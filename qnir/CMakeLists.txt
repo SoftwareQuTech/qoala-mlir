@@ -11,10 +11,7 @@ add_public_tablegen_target(QnirCombineIncGen)
 
 add_llvm_example(qnir
   qnirc.cpp
-  parser/AST.cpp
-  mlir/MLIRGen.cpp
   mlir/Dialect.cpp
-  mlir/QnirCombine.cpp
 
   DEPENDS
   QnirOpsIncGen

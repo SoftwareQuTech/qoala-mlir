@@ -1,18 +1,18 @@
-#ifndef TOY_OPS
-#define TOY_OPS
+#ifndef QNIR_OPS
+#define QNIR_OPS
 
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def Toy_Dialect : Dialect {
-  let name = "toy";
-  let cppNamespace = "::mlir::toy";
+def Qnir_Dialect : Dialect {
+  let name = "qnir";
+  let cppNamespace = "::mlir::qnir";
 }
 
-class Toy_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<Toy_Dialect, mnemonic, traits>;
+class Qnir_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<Qnir_Dialect, mnemonic, traits>;
 
-def ConstantOp : Toy_Op<"constant", [NoSideEffect]> {
+def ConstantOp : Qnir_Op<"constant", [NoSideEffect]> {
   let summary = "constant";
 
   let arguments = (ins F64ElementsAttr:$value);
@@ -33,7 +33,7 @@ def ConstantOp : Toy_Op<"constant", [NoSideEffect]> {
   let verifier = [{ return ::verify(*this); }];
 }
 
-def AddOp : Toy_Op<"add"> {
+def AddOp : Qnir_Op<"add"> {
   let summary = "element-wise addition operation";
 
   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
@@ -48,20 +48,20 @@ def AddOp : Toy_Op<"add"> {
 }
 
 
-def PrintOp : Toy_Op<"print"> {
+def PrintOp : Qnir_Op<"print"> {
   let summary = "print operation";
   let arguments = (ins F64Tensor:$input);
   let assemblyFormat = "$input attr-dict `:` type($input)";
 }
 
-def Print2Op : Toy_Op<"print2"> {
+def Print2Op : Qnir_Op<"print2"> {
   let summary = "print2 operation";
   let arguments = (ins F64Tensor:$input);
   let assemblyFormat = "$input attr-dict `:` type($input)";
 }
 
 
-def ReturnOp : Toy_Op<"return", [NoSideEffect, HasParent<"FuncOp">,
+def ReturnOp : Qnir_Op<"return", [NoSideEffect, HasParent<"FuncOp">,
                                  Terminator]> {
   let summary = "return operation";
   let arguments = (ins Variadic<F64Tensor>:$input);
@@ -79,4 +79,4 @@ def ReturnOp : Toy_Op<"return", [NoSideEffect, HasParent<"FuncOp">,
   let verifier = [{ return ::verify(*this); }];
 }
 
-#endif // TOY_OPS
+#endif // QNIR_OPS

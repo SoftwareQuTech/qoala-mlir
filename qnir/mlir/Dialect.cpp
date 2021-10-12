@@ -1,16 +1,3 @@
-//===- Dialect.cpp - Toy IR Dialect registration in MLIR ------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-//
-// This file implements the dialect for the Toy IR: custom type parsing and
-// operation verification.
-//
-//===----------------------------------------------------------------------===//
-
 #include "qnir/Dialect.h"
 
 #include "mlir/IR/Builders.h"
@@ -18,17 +5,13 @@
 #include "mlir/IR/OpImplementation.h"
 
 using namespace mlir;
-using namespace mlir::toy;
+using namespace mlir::qnir;
 
 #include "qnir/Dialect.cpp.inc"
 
-//===----------------------------------------------------------------------===//
-// ToyDialect
-//===----------------------------------------------------------------------===//
-
 /// Dialect initialization, the instance will be owned by the context. This is
 /// the point of registration of types and operations for the dialect.
-void ToyDialect::initialize()
+void QnirDialect::initialize()
 {
   addOperations<
 #define GET_OP_LIST
@@ -37,7 +20,7 @@ void ToyDialect::initialize()
 }
 
 //===----------------------------------------------------------------------===//
-// Toy Operations
+// Qnir Operations
 //===----------------------------------------------------------------------===//
 
 /// A generalized parser for binary operations. This parses the different forms

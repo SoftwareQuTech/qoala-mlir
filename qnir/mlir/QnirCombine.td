@@ -1,18 +1,5 @@
-//===- ToyCombine.td - Pattern Match Optimizations for Toy -*- tablegen -*-===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-//
-// Defines language-specific pattern match optimizations for Toy using
-// Declarative Rewrite Rules (DRR) specified using TableGen records.
-//
-//===----------------------------------------------------------------------===//
-
-#ifndef TOY_COMBINE
-#define TOY_COMBINE
+#ifndef COMBINE
+#define COMBINE
 
 include "qnir/Ops.td"
 
@@ -59,4 +46,4 @@ def PrintOpPattern : Pat<
   (PrintOp $arg), (Print2Op $arg)>;
   // [(TypesAreIdentical $res, $arg)]>;
 
-#endif // TOY_COMBINE
+#endif // COMBINE
