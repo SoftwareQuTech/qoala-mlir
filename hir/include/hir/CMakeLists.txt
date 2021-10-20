@@ -1,6 +1,0 @@
-set(LLVM_TARGET_DEFINITIONS Ops.td)
-mlir_tablegen(HirOps.h.inc -gen-op-decls)
-mlir_tablegen(HirOps.cpp.inc -gen-op-defs)
-mlir_tablegen(HirDialect.h.inc -gen-dialect-decls)
-mlir_tablegen(HirDialect.cpp.inc -gen-dialect-defs)
-add_public_tablegen_target(HirOpsIncGen)
