@@ -7,11 +7,13 @@
 
 int main(int argc, char **argv)
 {
-    mlir::registerAllPasses();
-
     mlir::DialectRegistry registry;
-    // registerAllDialects(registry);
+    registerAllDialects(registry);
     registry.insert<mlir::hir::HirDialect>();
+
+    mlir::registerAllPasses();
+    mlir::registerAsmPrinterCLOptions();
+    mlir::registerMLIRContextCLOptions();
 
     return failed(
         mlir::MlirOptMain(argc, argv, "HIR dialect driver\n", registry));

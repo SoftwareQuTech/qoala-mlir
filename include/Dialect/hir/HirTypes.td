@@ -3,7 +3,8 @@
 
 def Hir_QubitType : Hir_Type<"Qubit"> {
   let mnemonic = "qubit";  // REQUIRED (otherwise no `generatedType<Parser|Printer>` will be generated)
-  let parameters = (ins "int64_t":$size);
+  let printer = [{ ::print(*this, $_printer); }];
+  let parser = [{ return ::parseQubit($_parser, $_ctxt); }];
 }
 
 #endif // HIR_TYPES

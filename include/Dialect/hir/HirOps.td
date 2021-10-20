@@ -47,5 +47,11 @@ def UseQubitOp : Hir_Op<"use_qubit"> {
   let arguments = (ins Hir_QubitType);
 }
 
+def AllocQubitOp : Hir_Op<"qalloc"> {
+  let results = (outs Hir_QubitType:$qout);
+  
+  let assemblyFormat = [{ attr-dict `:` type($qout) }];
+}
+
 
 #endif // HIR_OPS
