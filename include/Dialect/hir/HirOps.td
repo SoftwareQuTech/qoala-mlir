@@ -9,8 +9,10 @@ include "Dialect/hir/HirTypes.td"
 
 
 def GateOp : Hir_Op<"gate"> {
-  let arguments = (ins F32:$in_qubit);
+  let summary = "gate operation";
+  let description = [{ idk }];
 
+  let arguments = (ins F32:$in_qubit);
   let results = (outs F32:$out_qubit);
 }
 

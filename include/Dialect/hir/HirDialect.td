@@ -5,6 +5,12 @@ include "mlir/IR/OpBase.td"
 
 def Hir_Dialect : Dialect {
   let name = "hir";
+  let summary = "A standalone out-of-tree MLIR dialect.";
+  let description = [{
+      This dialect is an example of an out-of-tree MLIR dialect designed to
+      illustrate the basic setup required to develop MLIR-based tools without
+      working inside of the LLVM source tree.
+  }];
   let cppNamespace = "::mlir::hir";
 }
 
