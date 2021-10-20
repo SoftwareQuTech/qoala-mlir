@@ -8,14 +8,6 @@ include "Dialect/hir/HirDialect.td"
 include "Dialect/hir/HirTypes.td"
 
 
-def GateOp : Hir_Op<"gate"> {
-  let summary = "gate operation";
-  let description = [{ idk }];
-
-  let arguments = (ins F32:$in_qubit);
-  let results = (outs F32:$out_qubit);
-}
-
 // def NewValueOp : Hir_Op<"new_value"> {
 //   let results = (outs F32:$value);
 // }
@@ -43,15 +35,30 @@ def GateOp : Hir_Op<"gate"> {
 //   let verifier = [{ return ::verify(*this); }];
 // }
 
-def UseQubitOp : Hir_Op<"use_qubit"> {
-  let arguments = (ins Hir_QubitType);
-}
 
 def AllocQubitOp : Hir_Op<"qalloc"> {
   let results = (outs Hir_QubitType:$qout);
   
   let assemblyFormat = [{ attr-dict `:` type($qout) }];
+  let verifier = ?;
 }
+
+def GateXOp : Hir_Op<"gate_x"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let assemblyFormat = [{ attr-dict $qin `=` }];
+  let verifier = ?;
+}
+
+def GateYOp : Hir_Op<"gate_y"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let assemblyFormat = [{ attr-dict $qin `=` }];
+  let verifier = ?;
+}
+
 
 
 #endif // HIR_OPS
