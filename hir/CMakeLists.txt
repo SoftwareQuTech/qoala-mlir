@@ -11,7 +11,7 @@ set(LLVM_LINK_COMPONENTS
 
 add_llvm_example(hir
   hirc.cpp
-  mlir/Dialect.cpp
+  mlir/HirDialect.cpp
 
   DEPENDS
   HirOpsIncGen
