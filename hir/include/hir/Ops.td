@@ -16,6 +16,8 @@ class Hir_Type<string name> : TypeDef<Hir_Dialect, name> { }
 
 def QubitType : Hir_Type<"Qubit"> {
   let parameters = (ins "int":$intParam);
+  let printer = [{ ::print(*this, $_printer); }];
+  let parser = [{ return ::parseQubit($_printer, $_ctxt); }];
 }
   
 def GateOp : Hir_Op<"gate"> {
