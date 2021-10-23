@@ -26,23 +26,6 @@ void HirDialect::initialize()
         >();
 }
 
-namespace
-{
-
-    static void print(QubitType qubitType, DialectAsmPrinter &os)
-    {
-        os << "qubit";
-    }
-    static Type parseQubit(DialectAsmParser &parser, MLIRContext *ctx)
-    {
-        if (failed(parser.parseLess()))
-            return Type();
-
-        return QubitType();
-    }
-
-} // namespace
-
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/hir/HirOpsTypes.cpp.inc"
 
@@ -50,7 +33,10 @@ Type HirDialect::parseType(DialectAsmParser &parser) const
 {
     StringRef mnemonic;
     if (failed(parser.parseKeyword(&mnemonic)))
+    {
+        parser.emitError(parser.getNameLoc(), "unknown type ?!!");
         return Type();
+    }
     Type type;
     generatedTypeParser(parser, mnemonic, type);
     return type;
