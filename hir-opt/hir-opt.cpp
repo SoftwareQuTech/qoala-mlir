@@ -6,6 +6,7 @@
 #include "Dialect/hir/Passes.h"
 #include "Dialect/hir/HirDialect.h"
 #include "Dialect/lir/LirDialect.h"
+#include "Conversion/HirToLir/Passes.h"
 
 int main(int argc, char **argv)
 {
@@ -16,6 +17,7 @@ int main(int argc, char **argv)
 
     mlir::registerAllPasses();
     mlir::registerHirPasses();
+    mlir::registerHirToLirConversionPasses();
 
     return failed(
         mlir::MlirOptMain(argc, argv, "HIR dialect driver\n", registry));

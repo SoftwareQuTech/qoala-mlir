@@ -1,5 +1,5 @@
-add_mlir_translation_library(HirToLir
-    ConvertToLir.cpp
+add_mlir_translation_library(LirToText
+    ConvertToText.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${PROJECT_SOURCE_DIR}/include/Target/lir
@@ -10,4 +10,4 @@ add_mlir_translation_library(HirToLir
     MLIRHir
     )
 
-target_link_libraries(HirToLir PUBLIC MLIRIR)
+target_link_libraries(LirToText PUBLIC MLIRIR)

@@ -2,7 +2,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Translation.h"
 
-#include "Target/lir/ConvertToLir.h"
+#include "Target/lir/ConvertToText.h"
 
 using namespace mlir;
 

@@ -10,7 +10,7 @@
 
 #include "Dialect/lir/LirDialect.h"
 #include "Dialect/lir/LirOps.h"
-#include "Target/lir/ConvertToLir.h"
+#include "Target/lir/ConvertToText.h"
 #include "Dialect/hir/HirDialect.h"
 
 using namespace mlir;
