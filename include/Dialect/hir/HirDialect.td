@@ -24,8 +24,8 @@ class Hir_Op<string mnemonic, list<OpTrait> traits = []> :
     //                                               OperationState &state);
     // * static void print(OpAsmPrinter &p, <op-c++-class-name> op)
     // * static LogicalResult verify(<op-c++-class-name> op)
-    let parser = [{ return ::parse$cppClass(parser, result); }];
-    let printer = [{ ::print(*this, p); }];
+    // let parser = [{ return ::parse$cppClass(parser, result); }];
+    // let printer = [{ ::print(*this, p); }];
     let verifier = [{ return ::verify(*this); }];
 }
 

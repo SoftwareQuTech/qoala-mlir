@@ -7,20 +7,44 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "Dialect/hir/HirDialect.td"
 include "Dialect/hir/HirTypes.td"
 
-def Quantum_AllocateOp : Hir_Op<"alloc", [MemoryEffects<[MemRead]>]> {
-    let arguments = (ins Variadic<Index>:$dynamicsize);
-    let results = (outs Quantum_QubitType:$qout);
-
-    let builders = [
-      OpBuilder<(ins "int":$size), [{
-        return build($_builder, $_state, ::mlir::hir::QubitType::get($_builder.getContext(), size), {});
-      }]>
-    ];
+def Hir_AllocateOp : Hir_Op<"alloc"> {
+    let results = (outs Hir_QubitType:$qout);
 
     let verifier = ?;
-    let assemblyFormat = [{ ( `(` $dynamicsize^ `)` )? attr-dict `:` type($qout) }];
 }
 
+def Hir_EntangleOp : Hir_Op<"entangle"> {
+    let results = (outs Hir_QubitType:$qout);
+
+    let verifier = ?;
+}
+
+def Hir_SendCMsgOp : Hir_Op<"send_cmsg"> {
+    let arguments = (ins Hir_CMsgType:$cmout);
+
+    let verifier = ?;
+}
+
+def Hir_RecvCMsgOp : Hir_Op<"recv_cmsg"> {
+    let results = (outs Hir_CMsgType:$cmin);
+
+    let verifier = ?;
+}
+
+
+def GateXOp : Hir_Op<"gate_x"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let verifier = ?;
+}
+
+def GateYOp : Hir_Op<"gate_y"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let verifier = ?;
+}
 
 
 
