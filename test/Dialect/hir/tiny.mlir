@@ -1,2 +1,5 @@
-%0 = hir.qalloc : !hir.qubit<>
-%1 = "hir.gate_x"(%0) : (!hir.qubit<>) -> ()
+// RUN: hir-opt %s
+
+%0 = "hir.alloc"() : () -> !hir.qubit
+%1 = "hir.recv_cmsg"() : () -> !hir.cvalue
+%2 = "hir.gate_x"(%0, %1) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
