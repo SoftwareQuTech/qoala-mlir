@@ -19,11 +19,11 @@ using namespace mlir;
 namespace
 {
 
-  class QubitMap
+  class ValueMap
   {
   public:
-    QubitMap(MLIRContext *ctx) : ctx(ctx), qubits(), cvalues_on_c(), cvalues_on_q() {}
-    void allocate(Value arg, Value q)
+    ValueMap(MLIRContext *ctx) : ctx(ctx), qubits(), cvalues_on_c(), cvalues_on_q() {}
+    void allocate_qubit(Value arg, Value q)
     {
       qubits[arg] = q;
     }
@@ -40,10 +40,20 @@ namespace
     Value resolve_cvalue_on_c(Value arg) { return cvalues_on_c[arg]; }
     Value resolve_cvalue_on_q(Value arg) { return cvalues_on_q[arg]; }
 
+    bool has_cvalue_on_c_values(Value arg)
+    {
+      return cvalues_on_c.find(arg) != cvalues_on_c.end();
+    }
+    bool has_cvalue_on_q_values(Value arg)
+    {
+      return cvalues_on_q.find(arg) != cvalues_on_q.end();
+    }
+
     MLIRContext *getContext() const { return ctx; }
 
   private:
     MLIRContext *ctx;
+    // maps from values in old dialect to values in new dialect
     llvm::DenseMap<Value, Value> qubits;
     llvm::DenseMap<Value, Value> cvalues_on_c;
     llvm::DenseMap<Value, Value> cvalues_on_q;
@@ -70,23 +80,23 @@ namespace
   template <typename Op>
   struct HirToLirOpConversion : OpConversionPattern<Op>
   {
-    QubitMap *qubitMap;
+    ValueMap *valueMap;
     Type getLirQubitType() const
     {
-      return lircommon::QubitType::get(qubitMap->getContext());
+      return lircommon::QubitType::get(valueMap->getContext());
     }
 
     Type getLirCValueCType() const
     {
-      return lircommon::CValueOnClasType::get(qubitMap->getContext());
+      return lircommon::CValueOnClasType::get(valueMap->getContext());
     }
     Type getLirCValueQType() const
     {
-      return lircommon::CValueOnQuanType::get(qubitMap->getContext());
+      return lircommon::CValueOnQuanType::get(valueMap->getContext());
     }
 
-    HirToLirOpConversion(MLIRContext *ctx, QubitMap *qubitMap)
-        : OpConversionPattern<Op>(ctx), qubitMap(qubitMap) {}
+    HirToLirOpConversion(MLIRContext *ctx, ValueMap *valueMap)
+        : OpConversionPattern<Op>(ctx), valueMap(valueMap) {}
   };
 
   struct AllocateOpConversion : HirToLirOpConversion<hir::AllocateOp>
@@ -98,7 +108,7 @@ namespace
     {
       auto qubit =
           rewriter.create<lircommon::AllocateOp>(op->getLoc(), getLirQubitType());
-      qubitMap->allocate(op.getResult(), qubit);
+      valueMap->allocate_qubit(op.getResult(), qubit);
       rewriter.eraseOp(op);
       return success();
     }
@@ -111,9 +121,9 @@ namespace
     matchAndRewrite(hir::RecvCMsgOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      auto value =
+      auto new_op =
           rewriter.create<lircommon::RecvCMsgOp>(op->getLoc(), getLirCValueCType());
-      qubitMap->allocate_cvalue_on_c(op.getResult(), value);
+      valueMap->allocate_cvalue_on_c(op.getResult(), new_op);
       rewriter.eraseOp(op);
       return success();
     }
@@ -127,35 +137,46 @@ namespace
                     ConversionPatternRewriter &rewriter) const final
     {
       lircommon::GateXOpAdaptor args(operands);
-      auto value_lircommon = qubitMap->resolve_cvalue_on_c(args.cin());
-      auto cvalue_on_q = rewriter.create<lircommon::CValueClassToQuanOp>(op->getLoc(), getLirCValueQType(), value_lircommon);
-      // qubitMap->allocate_cvalue_on_q(cvalue_on_q)
 
-      auto qubit_lircommon = qubitMap->resolve(args.qin());
-      auto value =
+      // check if value is already on Q side
+      Value cvalue_on_q;
+      if (valueMap->has_cvalue_on_q_values(args.cin()))
+      {
+        cvalue_on_q = valueMap->resolve_cvalue_on_q(args.cin());
+      }
+      else
+      {
+        assert(valueMap->has_cvalue_on_c_values(args.cin()));
+        auto value_lircommon = valueMap->resolve_cvalue_on_c(args.cin());
+        cvalue_on_q = rewriter.create<lircommon::CValueClassToQuanOp>(op->getLoc(), getLirCValueQType(), value_lircommon);
+        valueMap->allocate_cvalue_on_q(args.cin(), cvalue_on_q);
+      }
+
+      auto qubit_lircommon = valueMap->resolve(args.qin());
+      auto qubit =
           rewriter.create<lircommon::GateXOp>(op->getLoc(), getLirQubitType(), qubit_lircommon, cvalue_on_q);
-      // qubitMap->allocate(op.getResult(), qubit);
+      valueMap->allocate_qubit(op.getResult(), qubit);
       rewriter.eraseOp(op);
       return success();
     }
   };
 
   void populateHirToLirConversionPatterns(
-      HirTypeConverter &typeConverter, QubitMap &qubitMap,
+      HirTypeConverter &typeConverter, ValueMap &valueMap,
       OwningRewritePatternList &patterns)
   {
     // clang-format off
   patterns.insert<
       AllocateOpConversion
-  >(patterns.getContext(), &qubitMap);
+  >(patterns.getContext(), &valueMap);
 
   patterns.insert<
       RecvCMsgOpConversion
-  >(patterns.getContext(), &qubitMap);
+  >(patterns.getContext(), &valueMap);
 
   patterns.insert<
       GateXOpConversion
-  >(patterns.getContext(), &qubitMap);
+  >(patterns.getContext(), &valueMap);
     // clang-format on
   }
 
@@ -182,8 +203,8 @@ namespace
   {
     OwningRewritePatternList patterns(&getContext());
     HirTypeConverter typeConverter(&getContext());
-    QubitMap qubitMap(&getContext());
-    populateHirToLirConversionPatterns(typeConverter, qubitMap, patterns);
+    ValueMap valueMap(&getContext());
+    populateHirToLirConversionPatterns(typeConverter, valueMap, patterns);
 
     HirToLirTarget target(getContext());
     if (failed(applyPartialConversion(getOperation(), target,

@@ -18,12 +18,12 @@ def LirCommon_EntangleOp : LirCommon_Op<"entangle"> {
 }
 
 def LirCommon_SendCMsgOp : LirCommon_Op<"send_cmsg"> {
-    let arguments = (ins LirCommon_CValueOnClasType:$cout);
+    let arguments = (ins LirCommon_CValueOnClasType:$cin);
     let verifier = ?;
 }
 
 def LirCommon_RecvCMsgOp : LirCommon_Op<"recv_cmsg"> {
-    let results = (outs LirCommon_CValueOnClasType:$cin);
+    let results = (outs LirCommon_CValueOnClasType:$cout);
     let verifier = ?;
 }
 
