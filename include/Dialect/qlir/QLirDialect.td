@@ -1,24 +1,24 @@
-#ifndef LIR_DIALECT
-#define LIR_DIALECT
+#ifndef QLIR_DIALECT
+#define QLIR_DIALECT
 
 include "mlir/IR/OpBase.td"
 
-def Lir_Dialect : Dialect {
-  let name = "lir";
-  let summary = "A standalone out-of-tree MLIR dialect.";
+def QLir_Dialect : Dialect {
+  let name = "qlir";
+  let summary = "A standalone out-of-tree MQLIR dialect.";
   let description = [{
-      This dialect is an example of an out-of-tree MLIR dialect designed to
-      illustrate the basic setup required to develop MLIR-based tools without
+      This dialect is an example of an out-of-tree MQLIR dialect designed to
+      illustrate the basic setup required to develop MQLIR-based tools without
       working inside of the LLVM source tree.
   }];
-  let cppNamespace = "::mlir::lir";
+  let cppNamespace = "::mlir::qlir";
 }
 
-class Lir_Op<string mnemonic, list<OpTrait> traits = []> :
-        Op<Lir_Dialect, mnemonic, traits> {
+class QLir_Op<string mnemonic, list<OpTrait> traits = []> :
+        Op<QLir_Dialect, mnemonic, traits> {
 
     // For each Quantum op, the following static functions need to be defined in
-    // LirOps.cpp:
+    // QLirOps.cpp:
     //
     // * static ParseResult parse<op-c++-class-name>(OpAsmParser &parser,
     //                                               OperationState &state);
@@ -29,6 +29,6 @@ class Lir_Op<string mnemonic, list<OpTrait> traits = []> :
     let verifier = [{ return ::verify(*this); }];
 }
 
-class Lir_Type<string name> : TypeDef<Lir_Dialect, name> {}
+class QLir_Type<string name> : TypeDef<QLir_Dialect, name> {}
 
-#endif // LIR_DIALECT
+#endif // QLIR_DIALECT

@@ -6,11 +6,11 @@
 #include "mlir/Support/LLVM.h"
 #include "llvm/ADT/ArrayRef.h"
 
-#include "Dialect/lir/LirOps.h"
-#include "Dialect/lir/LirDialect.h"
+#include "Dialect/clir/CLirOps.h"
+#include "Dialect/clir/CLirDialect.h"
 
 using namespace mlir;
-using namespace mlir::lir;
+using namespace mlir::clir;
 
 #define GET_OP_CLASSES
-#include "Dialect/lir/LirOps.cpp.inc"
+#include "Dialect/clir/CLirOps.cpp.inc"

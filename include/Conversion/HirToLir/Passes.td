@@ -7,7 +7,9 @@ def HirToLirPass : Pass<"convert-hir-to-lir", "ModuleOp"> {
   let summary = "Convert hir dialect to lir dialect";
   let constructor = "mlir::createHirToLirPass()";
   let dependentDialects = ["hir::HirDialect",
-                           "lir::LirDialect",
+                           "clir::CLirDialect",
+                           "qlir::QLirDialect",
+                           "lircommon::LirCommonDialect",
                            "StandardOpsDialect",
                            "AffineDialect",
                            "scf::SCFDialect"];

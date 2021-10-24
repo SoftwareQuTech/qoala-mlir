@@ -1,5 +1,5 @@
-#ifndef LIR_LIROPS_H
-#define LIR_LIROPS_H
+#ifndef LIRCOMMON_LIRCOMMONOPS_H
+#define LIRCOMMON_LIRCOMMONOPS_H
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -9,9 +9,9 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-#include "LirTypes.h"
+#include "LirCommonTypes.h"
 
 #define GET_OP_CLASSES
-#include "Dialect/lir/LirOps.h.inc"
+#include "Dialect/lircommon/LirCommonOps.h.inc"
 
-#endif // LIR_LIROPS_H
+#endif // LIRCOMMON_LIRCOMMONOPS_H

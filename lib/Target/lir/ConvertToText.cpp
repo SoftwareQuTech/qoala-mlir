@@ -8,13 +8,19 @@
 #include <string>
 #include <vector>
 
-#include "Dialect/lir/LirDialect.h"
-#include "Dialect/lir/LirOps.h"
+#include "Dialect/clir/CLirDialect.h"
+#include "Dialect/clir/CLirOps.h"
+#include "Dialect/qlir/QLirDialect.h"
+#include "Dialect/qlir/QLirOps.h"
+#include "Dialect/lircommon/LirCommonDialect.h"
+#include "Dialect/lircommon/LirCommonOps.h"
 #include "Target/lir/ConvertToText.h"
 #include "Dialect/hir/HirDialect.h"
 
 using namespace mlir;
-using namespace lir;
+using namespace clir;
+using namespace qlir;
+using namespace lircommon;
 
 namespace mlir
 {
@@ -30,7 +36,7 @@ namespace mlir
             },
             [](DialectRegistry &registry)
             {
-                registry.insert<lir::LirDialect, hir::HirDialect, StandardOpsDialect>();
+                registry.insert<lircommon::LirCommonDialect, qlir::QLirDialect, clir::CLirDialect, hir::HirDialect, StandardOpsDialect>();
             });
     }
 } // namespace mlir

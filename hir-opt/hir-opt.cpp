@@ -5,7 +5,9 @@
 
 #include "Dialect/hir/Passes.h"
 #include "Dialect/hir/HirDialect.h"
-#include "Dialect/lir/LirDialect.h"
+#include "Dialect/clir/CLirDialect.h"
+#include "Dialect/qlir/QLirDialect.h"
+#include "Dialect/lircommon/LirCommonDialect.h"
 #include "Conversion/HirToLir/Passes.h"
 
 int main(int argc, char **argv)
@@ -13,7 +15,9 @@ int main(int argc, char **argv)
     mlir::DialectRegistry registry;
     registerAllDialects(registry);
     registry.insert<mlir::hir::HirDialect>();
-    registry.insert<mlir::lir::LirDialect>();
+    registry.insert<mlir::clir::CLirDialect>();
+    registry.insert<mlir::qlir::QLirDialect>();
+    registry.insert<mlir::lircommon::LirCommonDialect>();
 
     mlir::registerAllPasses();
     mlir::registerHirPasses();

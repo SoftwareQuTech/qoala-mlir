@@ -6,7 +6,9 @@ add_mlir_translation_library(LirToText
 
     LINK_LIBS PUBLIC
     MLIRIR
-    MLIRLir
+    MLIRCLir
+    MLIRQLir
+    MLIRLirCommon
     MLIRHir
     )
 

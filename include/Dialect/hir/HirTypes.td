@@ -8,10 +8,11 @@ def Hir_QubitType : Hir_Type<"Qubit"> {
   let summary = "Qubit type";
 }
 
-def Hir_CMsgType : Hir_Type<"CMsg"> {
-  let mnemonic = "cmsg";
-  let summary = "Classical message type";
+def Hir_CValueType : Hir_Type<"CValue"> {
+  let mnemonic = "cvalue";
+  let summary = "Classical value type";
 }
+
 
 
 #endif // HIR_TYPES

@@ -5,31 +5,31 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/lir/LirDialect.h"
-#include "Dialect/lir/LirOps.h"
-#include "Dialect/lir/LirTypes.h"
+#include "Dialect/clir/CLirDialect.h"
+#include "Dialect/clir/CLirOps.h"
+#include "Dialect/clir/CLirTypes.h"
 
-#include "Dialect/lir/LirOpsDialect.cpp.inc"
+#include "Dialect/clir/CLirOpsDialect.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::lir;
+using namespace mlir::clir;
 
-void LirDialect::initialize()
+void CLirDialect::initialize()
 {
     addOperations<
 #define GET_OP_LIST
-#include "Dialect/lir/LirOps.cpp.inc"
+#include "Dialect/clir/CLirOps.cpp.inc"
         >();
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "Dialect/lir/LirOpsTypes.cpp.inc"
+#include "Dialect/clir/CLirOpsTypes.cpp.inc"
         >();
 }
 
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/lir/LirOpsTypes.cpp.inc"
+#include "Dialect/clir/CLirOpsTypes.cpp.inc"
 
-Type LirDialect::parseType(DialectAsmParser &parser) const
+Type CLirDialect::parseType(DialectAsmParser &parser) const
 {
     StringRef mnemonic;
     if (failed(parser.parseKeyword(&mnemonic)))
@@ -43,7 +43,7 @@ Type LirDialect::parseType(DialectAsmParser &parser) const
 }
 
 /// Print a type registered to this dialect.
-void LirDialect::printType(Type type, DialectAsmPrinter &os) const
+void CLirDialect::printType(Type type, DialectAsmPrinter &os) const
 {
     (void)generatedTypePrinter(type, os);
 }
