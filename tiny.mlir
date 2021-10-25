@@ -1,11 +1,12 @@
-// func @f() -> !hir.qubit {
-    %0 = "hir.alloc"() : () -> !hir.qubit
-    %1 = "hir.gate_x"(%0) : (!hir.qubit) -> !hir.qubit
-    // %15 = "hir.gate_x"(%1) : (!hir.qubit) -> !hir.qubit
-    // %2 = "hir.gate_y"(%15) : (!hir.qubit) -> !hir.qubit
-    // %3 = "hir.entangle"() : () -> !hir.qubit
-    // %4 = "hir.recv_cmsg"() : () -> !hir.cmsg
-    // "hir.send_cmsg"(%4) : (!hir.cmsg) -> ()
-    // %5 = "lir.alloc"() : () -> !lir.qubit
-    // return %0 : !hir.qubit
-// }
+func @f() -> () {
+    %q0 = "hir.alloc"() : () -> !hir.qubit
+    %c = "hir.new_cval"() : () -> !hir.cvalue
+    %q1 = "hir.gate_x"(%q0, %c) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q2 = "hir.gate_x"(%q1, %c) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q3 = "hir.gate_y"(%q2, %c) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %3 = "hir.entangle"() : () -> !hir.qubit
+    %4 = "hir.recv_cmsg"() : () -> !hir.cvalue
+    "hir.send_cmsg"(%4) : (!hir.cvalue) -> ()
+    %5 = "hir.alloc"() : () -> !hir.qubit
+    return
+}

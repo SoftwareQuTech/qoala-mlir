@@ -1,1 +1,1 @@
-add_subdirectory(hir-translate)
+add_subdirectory(lir-translate)

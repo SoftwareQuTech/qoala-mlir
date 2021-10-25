@@ -8,10 +8,10 @@ namespace mlir
 
     class Pass;
 
-    std::unique_ptr<Pass> createHirToLirPass();
+    std::unique_ptr<Pass> createHirToLirCommonPass();
 
 #define GEN_PASS_REGISTRATION
-#include "Conversion/HirToLir/Passes.h.inc"
+#include "Conversion/HirToLirCommon/Passes.h.inc"
 
 } // namespace mlir
 

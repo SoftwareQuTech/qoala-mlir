@@ -19,14 +19,20 @@ def Hir_EntangleOp : Hir_Op<"entangle"> {
     let verifier = ?;
 }
 
+def Hir_NewCValueOp : Hir_Op<"new_cval"> {
+    let results = (outs Hir_CValueType:$cout);
+
+    let verifier = ?;
+}
+
 def Hir_SendCMsgOp : Hir_Op<"send_cmsg"> {
-    let arguments = (ins Hir_CValueType:$cout);
+    let arguments = (ins Hir_CValueType:$cin);
 
     let verifier = ?;
 }
 
 def Hir_RecvCMsgOp : Hir_Op<"recv_cmsg"> {
-    let results = (outs Hir_CValueType:$cin);
+    let results = (outs Hir_CValueType:$cout);
 
     let verifier = ?;
 }
@@ -42,6 +48,20 @@ def GateXOp : Hir_Op<"gate_x"> {
 def GateYOp : Hir_Op<"gate_y"> {
   let arguments = (ins Hir_QubitType:$qin, Hir_CValueType:$cin);
   let results = (outs Hir_QubitType:$qout);
+
+  let verifier = ?;
+}
+
+def GateZOp : Hir_Op<"gate_z"> {
+  let arguments = (ins Hir_QubitType:$qin, Hir_CValueType:$cin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let verifier = ?;
+}
+
+def MeasOp : Hir_Op<"meas"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_CValueType:$cout);
 
   let verifier = ?;
 }

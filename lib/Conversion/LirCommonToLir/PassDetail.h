@@ -7,7 +7,7 @@ namespace mlir
 {
 
 #define GEN_PASS_CLASSES
-#include "Conversion/HirToLir/Passes.h.inc"
+#include "Conversion/LirCommonToLir/Passes.h.inc"
 
 } // end namespace mlir
 

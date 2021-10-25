@@ -5,11 +5,11 @@ set(LLVM_LINK_COMPONENTS
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
-add_llvm_executable(hir-translate
-    hir-translate.cpp
+add_llvm_executable(lir-translate
+    lir-translate.cpp
     )
-llvm_update_compile_flags(hir-translate)
-target_link_libraries(hir-translate
+llvm_update_compile_flags(lir-translate)
+target_link_libraries(lir-translate
     PRIVATE
     ${dialect_libs}
     ${translation_libs}
@@ -21,4 +21,4 @@ target_link_libraries(hir-translate
     MLIRSupport
     )
 
-mlir_check_link_libraries(hir-translate)
+mlir_check_link_libraries(lir-translate)

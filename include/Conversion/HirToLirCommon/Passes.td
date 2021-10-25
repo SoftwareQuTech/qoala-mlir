@@ -3,9 +3,9 @@
 
 include "mlir/Pass/PassBase.td"
 
-def HirToLirPass : Pass<"convert-hir-to-lir", "ModuleOp"> {
-  let summary = "Convert hir dialect to lir dialect";
-  let constructor = "mlir::createHirToLirPass()";
+def HirToLirCommonPass : Pass<"convert-hir-to-lircommon", "ModuleOp"> {
+  let summary = "Convert hir dialect to lir-common dialect";
+  let constructor = "mlir::createHirToLirCommonPass()";
   let dependentDialects = ["hir::HirDialect",
                            "clir::CLirDialect",
                            "qlir::QLirDialect",

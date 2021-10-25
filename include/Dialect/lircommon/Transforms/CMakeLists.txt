@@ -1,0 +1,3 @@
+set(LLVM_TARGET_DEFINITIONS LirCommonRewrites.td)
+mlir_tablegen(LirCommonRewrites.h.inc -gen-rewriters)
+add_public_tablegen_target(MLIRLirCommonTransformsRewritesPassIncGen)

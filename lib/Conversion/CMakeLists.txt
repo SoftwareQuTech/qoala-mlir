@@ -1,1 +1,2 @@
-add_subdirectory(HirToLir)
+add_subdirectory(HirToLirCommon)
+add_subdirectory(LirCommonToLir)
