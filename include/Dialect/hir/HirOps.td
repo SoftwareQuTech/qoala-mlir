@@ -59,6 +59,25 @@ def GateZOp : Hir_Op<"gate_z"> {
   let verifier = ?;
 }
 
+def GateHOp : Hir_Op<"gate_h"> {
+  let arguments = (ins Hir_QubitType:$qin);
+  let results = (outs Hir_QubitType:$qout);
+
+  let verifier = ?;
+}
+
+def CPhaseOp : Hir_Op<"cphase"> {
+  let arguments = (ins Hir_QubitType:$qin0, Hir_QubitType:$qin1);
+  let results = (outs Hir_QubitType:$qout0, Hir_QubitType:$qout1);
+  let verifier = ?;
+}
+
+def CNotOp : Hir_Op<"cnot"> {
+  let arguments = (ins Hir_QubitType:$qin0, Hir_QubitType:$qin1);
+  let results = (outs Hir_QubitType:$qout0, Hir_QubitType:$qout1);
+  let verifier = ?;
+}
+
 def MeasOp : Hir_Op<"meas"> {
   let arguments = (ins Hir_QubitType:$qin);
   let results = (outs Hir_CValueType:$cout);

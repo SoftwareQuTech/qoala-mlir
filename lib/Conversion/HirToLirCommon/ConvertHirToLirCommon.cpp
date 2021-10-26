@@ -196,7 +196,7 @@ namespace
     matchAndRewrite(FuncOp funcOp, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const override
     {
-      llvm::outs() << "rewriting func op\n";
+      // llvm::outs() << "rewriting func op\n";
 
       // auto funcType =
       //     FunctionType::get(funcOp->getContext(), mlir::NoneType::get(funcOp->getContext()),
@@ -222,12 +222,12 @@ namespace
     matchAndRewrite(ReturnOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      llvm::outs() << "rewriting ReturnOp\n";
+      // llvm::outs() << "rewriting ReturnOp\n";
       FuncOp func = op->getParentOfType<FuncOp>();
       auto q = func->getResult(0);
-      llvm::outs() << "this is q: " << q;
+      // llvm::outs() << "this is q: " << q;
       auto qubit_lircommon = valueMap->resolve(q);
-      llvm::outs() << "this is qubit_lircommon: " << qubit_lircommon;
+      // llvm::outs() << "this is qubit_lircommon: " << qubit_lircommon;
       rewriter.create<ReturnOp>(op->getLoc(), qubit_lircommon);
       rewriter.eraseOp(op);
       return success();
@@ -241,7 +241,7 @@ namespace
     matchAndRewrite(hir::GateXOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      llvm::outs() << "rewriting GateXOp\n";
+      // llvm::outs() << "rewriting GateXOp\n";
 
       lircommon::GateXOpAdaptor args(operands);
 
@@ -308,7 +308,7 @@ namespace
     matchAndRewrite(hir::GateZOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      llvm::outs() << "rewriting GateZOp\n";
+      // llvm::outs() << "rewriting GateZOp\n";
 
       lircommon::GateZOpAdaptor args(operands);
 
@@ -335,6 +335,68 @@ namespace
     }
   };
 
+  struct GateHOpConversion : HirToLirOpConversion<hir::GateHOp>
+  {
+    using HirToLirOpConversion::HirToLirOpConversion;
+    LogicalResult
+    matchAndRewrite(hir::GateHOp op, ArrayRef<Value> operands,
+                    ConversionPatternRewriter &rewriter) const final
+    {
+      // llvm::outs() << "rewriting GateZOp\n";
+
+      lircommon::GateHOpAdaptor args(operands);
+
+      auto qubit_lircommon = valueMap->resolve(args.qin());
+      auto qubit =
+          rewriter.create<lircommon::GateHOp>(op->getLoc(), getLirQubitType(), qubit_lircommon);
+      valueMap->allocate_qubit(op.getResult(), qubit);
+      rewriter.eraseOp(op);
+      return success();
+    }
+  };
+
+  struct CPhaseOpConversion : HirToLirOpConversion<hir::CPhaseOp>
+  {
+    using HirToLirOpConversion::HirToLirOpConversion;
+    LogicalResult
+    matchAndRewrite(hir::CPhaseOp op, ArrayRef<Value> operands,
+                    ConversionPatternRewriter &rewriter) const final
+    {
+      lircommon::CPhaseOpAdaptor args(operands);
+
+      auto qubit_lircommon0 = valueMap->resolve(args.qin0());
+      auto qubit_lircommon1 = valueMap->resolve(args.qin1());
+      auto newOp =
+          rewriter.create<lircommon::CPhaseOp>(
+              op->getLoc(), getLirQubitType(), getLirQubitType(), qubit_lircommon0, qubit_lircommon1);
+      valueMap->allocate_qubit(op.getResult(0), newOp.getResult(0));
+      valueMap->allocate_qubit(op.getResult(1), newOp.getResult(1));
+      rewriter.eraseOp(op);
+      return success();
+    }
+  };
+
+  struct CNotOpConversion : HirToLirOpConversion<hir::CNotOp>
+  {
+    using HirToLirOpConversion::HirToLirOpConversion;
+    LogicalResult
+    matchAndRewrite(hir::CNotOp op, ArrayRef<Value> operands,
+                    ConversionPatternRewriter &rewriter) const final
+    {
+      lircommon::CNotOpAdaptor args(operands);
+
+      auto qubit_lircommon0 = valueMap->resolve(args.qin0());
+      auto qubit_lircommon1 = valueMap->resolve(args.qin1());
+      auto newOp =
+          rewriter.create<lircommon::CNotOp>(
+              op->getLoc(), getLirQubitType(), getLirQubitType(), qubit_lircommon0, qubit_lircommon1);
+      valueMap->allocate_qubit(op.getResult(0), newOp.getResult(0));
+      valueMap->allocate_qubit(op.getResult(1), newOp.getResult(1));
+      rewriter.eraseOp(op);
+      return success();
+    }
+  };
+
   struct MeasOpConversion : HirToLirOpConversion<hir::MeasOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
@@ -342,7 +404,7 @@ namespace
     matchAndRewrite(hir::MeasOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      llvm::outs() << "rewriting MeasOp\n";
+      // llvm::outs() << "rewriting MeasOp\n";
 
       lircommon::MeasOpAdaptor args(operands);
 
@@ -367,6 +429,10 @@ namespace
       RecvCMsgOpConversion,
       GateXOpConversion,
       GateYOpConversion,
+      GateZOpConversion,
+      GateHOpConversion,
+      CPhaseOpConversion,
+      CNotOpConversion,
       NewCValueOpConversion,
       // FuncOpConversion,
       ReturnOpConversion,
@@ -452,9 +518,9 @@ namespace
     HirToLirTarget target(getContext());
 
     Operation *op = getOperation();
-    printOperation(op);
+    // printOperation(op);
 
-    llvm::outs() << "\n converting operation " << *op << "\n";
+    // llvm::outs() << "\n converting operation " << *op << "\n";
 
     if (failed(applyPartialConversion(op, target,
                                       std::move(patterns))))

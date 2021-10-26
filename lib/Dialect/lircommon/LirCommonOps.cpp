@@ -14,3 +14,10 @@ using namespace mlir::lircommon;
 
 #define GET_OP_CLASSES
 #include "Dialect/lircommon/LirCommonOps.cpp.inc"
+
+// void AddCValueOnQuanOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Value cin0, ::mlir::Value cin1)
+// {
+//     odsState.addOperands(cin0);
+//     odsState.addOperands(cin1);
+//     odsState.addTypes(lircommon::CValueOnQuanType());
+// }
