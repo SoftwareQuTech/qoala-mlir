@@ -32,6 +32,10 @@ def LirCommon_SendCMsgOp : LirCommon_Op<"send_cmsg"> {
     let verifier = ?;
 }
 
+def LirCommon_NoResultOp : LirCommon_Op<"no_result"> {
+    let verifier = ?;
+}
+
 def LirCommon_RecvCMsgOp : LirCommon_Op<"recv_cmsg"> {
     let results = (outs LirCommon_CValueOnClasType:$cout);
     let verifier = ?;
