@@ -80,9 +80,9 @@ namespace
         // Op printers
         LogicalResult print(lir::AllocateOp op);
         LogicalResult print(lir::EntangleOp op);
-        LogicalResult print(lir::GateXOp op);
-        LogicalResult print(lir::GateYOp op);
-        LogicalResult print(lir::GateZOp op);
+        LogicalResult print(lir::RotXOp op);
+        LogicalResult print(lir::RotYOp op);
+        LogicalResult print(lir::RotZOp op);
         LogicalResult print(lir::MeasOp op);
 
     public:
@@ -123,7 +123,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lir::GateXOp op)
+    LogicalResult NetQASMTranslation::print(lir::RotXOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_x Q" << std::to_string(phys_id) << " <angle>"
@@ -131,7 +131,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lir::GateYOp op)
+    LogicalResult NetQASMTranslation::print(lir::RotYOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_y Q" << std::to_string(phys_id) << " <angle>"
@@ -139,7 +139,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lir::GateZOp op)
+    LogicalResult NetQASMTranslation::print(lir::RotZOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_z Q" << std::to_string(phys_id) << " <angle>"
@@ -187,9 +187,9 @@ namespace
                     return runPrinters<
                         lir::AllocateOp,
                         lir::EntangleOp,
-                        lir::GateXOp,
-                        lir::GateYOp,
-                        lir::GateZOp,
+                        lir::RotXOp,
+                        lir::RotYOp,
+                        lir::RotZOp,
                         lir::MeasOp>(op);
                 }
             });

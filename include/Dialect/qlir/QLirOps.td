@@ -31,14 +31,14 @@ def QLir_SendCLirValueOp : QLir_Op<"send_clir"> {
 
 
 
-def GateXOp : QLir_Op<"gate_x"> {
+def RotXOp : QLir_Op<"rot_x"> {
   let arguments = (ins QLir_QubitType:$qin);
   let results = (outs QLir_QubitType:$qout);
 
   let verifier = ?;
 }
 
-def GateYOp : QLir_Op<"gate_y"> {
+def RotYOp : QLir_Op<"rot_y"> {
   let arguments = (ins QLir_QubitType:$qin);
   let results = (outs QLir_QubitType:$qout);
 

@@ -3,8 +3,8 @@ func @f() -> () {
     %q0 = "hir.alloc"() : () -> !hir.qubit
     %theta = "hir.new_cval"() : () -> !hir.cvalue
     %phi = "hir.new_cval"() : () -> !hir.cvalue
-    %q1 = "hir.gate_y"(%q0, %theta) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
-    %q2 = "hir.gate_z"(%q1, %phi) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1 = "hir.rot_y"(%q0, %theta) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q2 = "hir.rot_z"(%q1, %phi) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
 
     // entanglement generation
     %epr0 = "hir.entangle"() : () -> !hir.qubit

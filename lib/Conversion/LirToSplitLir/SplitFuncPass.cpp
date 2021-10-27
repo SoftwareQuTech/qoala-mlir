@@ -70,11 +70,11 @@ namespace
 
     Type getLirCValueCType() const
     {
-      return lir::CValueOnClasType::get(valueMap->getContext());
+      return lir::CValueCType::get(valueMap->getContext());
     }
     Type getLirCValueQType() const
     {
-      return lir::CValueOnQuanType::get(valueMap->getContext());
+      return lir::CValueQType::get(valueMap->getContext());
     }
 
     SplitFuncOpConversion(MLIRContext *ctx, ValueMap *valueMap)

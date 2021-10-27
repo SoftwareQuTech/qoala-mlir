@@ -62,12 +62,12 @@ public:
 
 bool isClassicalOp(Operation *op)
 {
-    return isa<SendCMsgOp>(op) || isa<RecvCMsgOp>(op) || isa<NewCValueOnClasOp>(op) || isa<CValueClassToQuanOp>(op);
+    return isa<SendCMsgOp>(op) || isa<RecvCMsgOp>(op) || isa<NewCValueCOp>(op) || isa<CValueCtoQOp>(op);
 }
 
 bool isLocalClassicalOp(Operation *op)
 {
-    return isa<NewCValueOnClasOp>(op) || isa<CValueClassToQuanOp>(op);
+    return isa<NewCValueCOp>(op) || isa<CValueCtoQOp>(op);
 }
 
 struct AllocReorderPattern : public LirRewritePattern<AllocateOp>
@@ -114,12 +114,12 @@ public:
     }
 };
 
-struct CPhaseReorderPattern : public LirRewritePattern<CPhaseOp>
+struct GateCphaseReorderPattern : public LirRewritePattern<GateCphaseOp>
 {
 public:
-    using LirRewritePattern<CPhaseOp>::LirRewritePattern;
+    using LirRewritePattern<GateCphaseOp>::LirRewritePattern;
 
-    LogicalResult matchAndRewrite(CPhaseOp op, PatternRewriter &rewriter) const override
+    LogicalResult matchAndRewrite(GateCphaseOp op, PatternRewriter &rewriter) const override
     {
         auto nextNode = op->getNextNode();
         // llvm::outs() << "next node = " << *nextNode << "\n";
@@ -128,7 +128,7 @@ public:
         {
             // llvm::outs() << "next node is classical\n";
             rewriter.setInsertionPointAfter(nextNode);
-            auto newOp = rewriter.create<CPhaseOp>(op->getLoc(), QubitType::get(op->getContext()), QubitType::get(op->getContext()), op.qin0(), op.qin1());
+            auto newOp = rewriter.create<GateCphaseOp>(op->getLoc(), QubitType::get(op->getContext()), QubitType::get(op->getContext()), op.qin0(), op.qin1());
             rewriter.replaceOp(op, newOp.getResults());
             return success();
         }
@@ -136,12 +136,12 @@ public:
     }
 };
 
-struct GateXPattern : public LirRewritePattern<GateXOp>
+struct RotXPattern : public LirRewritePattern<RotXOp>
 {
 public:
-    using LirRewritePattern<GateXOp>::LirRewritePattern;
+    using LirRewritePattern<RotXOp>::LirRewritePattern;
 
-    LogicalResult matchAndRewrite(GateXOp op, PatternRewriter &rewriter) const override
+    LogicalResult matchAndRewrite(RotXOp op, PatternRewriter &rewriter) const override
     {
         return failure();
     }
@@ -150,7 +150,7 @@ public:
 struct ThisOneWorks : public ::mlir::RewritePattern
 {
     ThisOneWorks(::mlir::MLIRContext *context)
-        : ::mlir::RewritePattern("lir.gate_x", 1, context, {"lir.gate_y"}) {}
+        : ::mlir::RewritePattern("lir.rot_x", 1, context, {"lir.rot_y"}) {}
     ::mlir::LogicalResult matchAndRewrite(::mlir::Operation *op0,
                                           ::mlir::PatternRewriter &rewriter) const override
     {
@@ -159,15 +159,15 @@ struct ThisOneWorks : public ::mlir::RewritePattern
         ::mlir::Operation::operand_range q(op0->getOperands());
 
         // Match
-        auto castedOp0 = ::llvm::dyn_cast<::mlir::lir::GateXOp>(op0);
+        auto castedOp0 = ::llvm::dyn_cast<::mlir::lir::RotXOp>(op0);
         q = castedOp0.getODSOperands(0);
         c = castedOp0.getODSOperands(1);
 
         // Rewrite
         auto odsLoc = op0->getLoc();
-        GateYOp tblgen_GateYOp_0 = rewriter.create<::mlir::lir::GateYOp>(odsLoc, QubitType::get(op0->getContext()), castedOp0.qin(), castedOp0.cin());
+        RotYOp tblgen_RotYOp_0 = rewriter.create<::mlir::lir::RotYOp>(odsLoc, QubitType::get(op0->getContext()), castedOp0.qin(), castedOp0.cin());
 
-        rewriter.replaceOp(op0, tblgen_GateYOp_0.getResult());
+        rewriter.replaceOp(op0, tblgen_RotYOp_0.getResult());
         return ::mlir::success();
     };
 };
@@ -175,7 +175,7 @@ struct ThisOneWorks : public ::mlir::RewritePattern
 struct DoubleXPattern : public ::mlir::RewritePattern
 {
     DoubleXPattern(::mlir::MLIRContext *context)
-        : ::mlir::RewritePattern("lir.gate_x", 2, context, {"lir.add_cvalue_on_q", "lir.gate_x"}) {}
+        : ::mlir::RewritePattern("lir.rot_x", 2, context, {"lir.add_cvalue_q", "lir.rot_x"}) {}
     ::mlir::LogicalResult matchAndRewrite(::mlir::Operation *op0,
                                           ::mlir::PatternRewriter &rewriter) const override
     {
@@ -187,7 +187,7 @@ struct DoubleXPattern : public ::mlir::RewritePattern
 
         // Match
         tblgen_ops.push_back(op0);
-        auto castedOp0 = ::llvm::dyn_cast<::mlir::lir::GateXOp>(op0);
+        auto castedOp0 = ::llvm::dyn_cast<::mlir::lir::RotXOp>(op0);
         (void)castedOp0;
         auto *op1 = (*castedOp0.getODSOperands(0).begin()).getDefiningOp();
         {
@@ -196,12 +196,12 @@ struct DoubleXPattern : public ::mlir::RewritePattern
                 return rewriter.notifyMatchFailure(castedOp0, [&](::mlir::Diagnostic &diag)
                                                    { diag << "Operand 0 of castedOp0 has null definingOp"; });
             }
-            auto castedOp1 = ::llvm::dyn_cast<::mlir::lir::GateXOp>(op1);
+            auto castedOp1 = ::llvm::dyn_cast<::mlir::lir::RotXOp>(op1);
             (void)castedOp1;
             if (!(castedOp1))
             {
                 return rewriter.notifyMatchFailure(op1, [&](::mlir::Diagnostic &diag)
-                                                   { diag << "castedOp1 is not ::mlir::lir::GateXOp type"; });
+                                                   { diag << "castedOp1 is not ::mlir::lir::RotXOp type"; });
             }
             q = castedOp1.getODSOperands(0);
             c1 = castedOp1.getODSOperands(1);
@@ -213,32 +213,32 @@ struct DoubleXPattern : public ::mlir::RewritePattern
         auto odsLoc = rewriter.getFusedLoc({tblgen_ops[0]->getLoc(), tblgen_ops[1]->getLoc()});
         (void)odsLoc;
         ::llvm::SmallVector<::mlir::Value, 4> tblgen_repl_values;
-        ::mlir::lir::AddCValueOnQuanOp tblgen_AddCValueOnQuanOp_0;
+        ::mlir::lir::AddCValueQOp tblgen_AddCValueQOp_0;
         {
             ::mlir::Value tblgen_value_0 = (*c1.begin());
             ::mlir::Value tblgen_value_1 = (*c2.begin());
-            tblgen_AddCValueOnQuanOp_0 = rewriter.create<::mlir::lir::AddCValueOnQuanOp>(odsLoc,
-                                                                                         /*cin0=*/tblgen_value_0,
-                                                                                         /*cin1=*/tblgen_value_1);
+            tblgen_AddCValueQOp_0 = rewriter.create<::mlir::lir::AddCValueQOp>(odsLoc,
+                                                                               /*cin0=*/tblgen_value_0,
+                                                                               /*cin1=*/tblgen_value_1);
         }
-        ::mlir::lir::GateXOp tblgen_GateXOp_1;
+        ::mlir::lir::RotXOp tblgen_RotXOp_1;
         {
             ::mlir::SmallVector<::mlir::Value, 4> tblgen_values;
             (void)tblgen_values;
             ::mlir::SmallVector<::mlir::NamedAttribute, 4> tblgen_attrs;
             (void)tblgen_attrs;
             tblgen_values.push_back((*q.begin()));
-            tblgen_values.push_back((*tblgen_AddCValueOnQuanOp_0.getODSResults(0).begin()));
+            tblgen_values.push_back((*tblgen_AddCValueQOp_0.getODSResults(0).begin()));
             ::mlir::SmallVector<::mlir::Type, 4> tblgen_types;
             (void)tblgen_types;
             for (auto v : castedOp0.getODSResults(0))
             {
                 tblgen_types.push_back(v.getType());
             }
-            tblgen_GateXOp_1 = rewriter.create<::mlir::lir::GateXOp>(odsLoc, tblgen_types, tblgen_values, tblgen_attrs);
+            tblgen_RotXOp_1 = rewriter.create<::mlir::lir::RotXOp>(odsLoc, tblgen_types, tblgen_values, tblgen_attrs);
         }
 
-        for (auto v : ::llvm::SmallVector<::mlir::Value, 4>{tblgen_GateXOp_1.getODSResults(0)})
+        for (auto v : ::llvm::SmallVector<::mlir::Value, 4>{tblgen_RotXOp_1.getODSResults(0)})
         {
             tblgen_repl_values.push_back(v);
         }
@@ -309,8 +309,8 @@ void LirRewritePass::runOnFunction()
         EntangleReorderPattern,
         DoubleXPattern,
         DoubleHadamardPattern,
-        CPhaseReorderPattern>(&getContext());
-    // patterns.add<GateXPattern>(&getContext());
+        GateCphaseReorderPattern>(&getContext());
+    // patterns.add<RotXPattern>(&getContext());
     // patterns.add<ThisOneWorks>(&getContext());
 
     auto config = GreedyRewriteConfig();

@@ -88,11 +88,11 @@ namespace
 
     Type getLirCValueCType() const
     {
-      return lir::CValueOnClasType::get(valueMap->getContext());
+      return lir::CValueCType::get(valueMap->getContext());
     }
     Type getLirCValueQType() const
     {
-      return lir::CValueOnQuanType::get(valueMap->getContext());
+      return lir::CValueQType::get(valueMap->getContext());
     }
 
     HirToLirOpConversion(MLIRContext *ctx, ValueMap *valueMap)
@@ -137,7 +137,7 @@ namespace
                     ConversionPatternRewriter &rewriter) const final
     {
       auto new_op =
-          rewriter.create<lir::NewCValueOnClasOp>(op->getLoc(), getLirCValueCType());
+          rewriter.create<lir::NewCValueCOp>(op->getLoc(), getLirCValueCType());
       valueMap->allocate_cvalue_on_c(op.getResult(), new_op);
       rewriter.eraseOp(op);
       return success();
@@ -178,7 +178,7 @@ namespace
       {
         assert(valueMap->has_cvalue_on_q_values(args.cin()));
         auto value_lir = valueMap->resolve_cvalue_on_q(args.cin());
-        cvalue_on_c = rewriter.create<lir::CValueQuanToClasOp>(op->getLoc(), getLirCValueCType(), value_lir);
+        cvalue_on_c = rewriter.create<lir::CValueQtoCOp>(op->getLoc(), getLirCValueCType(), value_lir);
         valueMap->allocate_cvalue_on_c(args.cin(), cvalue_on_c);
       }
 
@@ -234,16 +234,16 @@ namespace
     }
   };
 
-  struct GateXOpConversion : HirToLirOpConversion<hir::GateXOp>
+  struct RotXOpConversion : HirToLirOpConversion<hir::RotXOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
     LogicalResult
-    matchAndRewrite(hir::GateXOp op, ArrayRef<Value> operands,
+    matchAndRewrite(hir::RotXOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      // llvm::outs() << "rewriting GateXOp\n";
+      // llvm::outs() << "rewriting RotXOp\n";
 
-      lir::GateXOpAdaptor args(operands);
+      lir::RotXOpAdaptor args(operands);
 
       // check if value is already on Q side
       Value cvalue_on_q;
@@ -255,27 +255,27 @@ namespace
       {
         assert(valueMap->has_cvalue_on_c_values(args.cin()));
         auto value_lir = valueMap->resolve_cvalue_on_c(args.cin());
-        cvalue_on_q = rewriter.create<lir::CValueClassToQuanOp>(op->getLoc(), getLirCValueQType(), value_lir);
+        cvalue_on_q = rewriter.create<lir::CValueCtoQOp>(op->getLoc(), getLirCValueQType(), value_lir);
         valueMap->allocate_cvalue_on_q(args.cin(), cvalue_on_q);
       }
 
       auto qubit_lir = valueMap->resolve(args.qin());
       auto qubit =
-          rewriter.create<lir::GateXOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
+          rewriter.create<lir::RotXOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
       valueMap->allocate_qubit(op.getResult(), qubit);
       rewriter.eraseOp(op);
       return success();
     }
   };
 
-  struct GateYOpConversion : HirToLirOpConversion<hir::GateYOp>
+  struct RotYOpConversion : HirToLirOpConversion<hir::RotYOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
     LogicalResult
-    matchAndRewrite(hir::GateYOp op, ArrayRef<Value> operands,
+    matchAndRewrite(hir::RotYOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      lir::GateYOpAdaptor args(operands);
+      lir::RotYOpAdaptor args(operands);
 
       // check if value is already on Q side
       Value cvalue_on_q;
@@ -287,13 +287,13 @@ namespace
       {
         assert(valueMap->has_cvalue_on_c_values(args.cin()));
         auto value_lir = valueMap->resolve_cvalue_on_c(args.cin());
-        cvalue_on_q = rewriter.create<lir::CValueClassToQuanOp>(op->getLoc(), getLirCValueQType(), value_lir);
+        cvalue_on_q = rewriter.create<lir::CValueCtoQOp>(op->getLoc(), getLirCValueQType(), value_lir);
         valueMap->allocate_cvalue_on_q(args.cin(), cvalue_on_q);
       }
 
       auto qubit_lir = valueMap->resolve(args.qin());
       auto qubit =
-          rewriter.create<lir::GateYOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
+          rewriter.create<lir::RotYOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
       valueMap->allocate_qubit(op.getResult(), qubit);
       rewriter.eraseOp(op);
 
@@ -301,16 +301,16 @@ namespace
     }
   };
 
-  struct GateZOpConversion : HirToLirOpConversion<hir::GateZOp>
+  struct RotZOpConversion : HirToLirOpConversion<hir::RotZOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
     LogicalResult
-    matchAndRewrite(hir::GateZOp op, ArrayRef<Value> operands,
+    matchAndRewrite(hir::RotZOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      // llvm::outs() << "rewriting GateZOp\n";
+      // llvm::outs() << "rewriting RotZOp\n";
 
-      lir::GateZOpAdaptor args(operands);
+      lir::RotZOpAdaptor args(operands);
 
       // check if value is already on Q side
       Value cvalue_on_q;
@@ -322,13 +322,13 @@ namespace
       {
         assert(valueMap->has_cvalue_on_c_values(args.cin()));
         auto value_lir = valueMap->resolve_cvalue_on_c(args.cin());
-        cvalue_on_q = rewriter.create<lir::CValueClassToQuanOp>(op->getLoc(), getLirCValueQType(), value_lir);
+        cvalue_on_q = rewriter.create<lir::CValueCtoQOp>(op->getLoc(), getLirCValueQType(), value_lir);
         valueMap->allocate_cvalue_on_q(args.cin(), cvalue_on_q);
       }
 
       auto qubit_lir = valueMap->resolve(args.qin());
       auto qubit =
-          rewriter.create<lir::GateZOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
+          rewriter.create<lir::RotZOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
       valueMap->allocate_qubit(op.getResult(), qubit);
       rewriter.eraseOp(op);
       return success();
@@ -342,7 +342,7 @@ namespace
     matchAndRewrite(hir::GateHOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      // llvm::outs() << "rewriting GateZOp\n";
+      // llvm::outs() << "rewriting RotZOp\n";
 
       lir::GateHOpAdaptor args(operands);
 
@@ -355,19 +355,19 @@ namespace
     }
   };
 
-  struct CPhaseOpConversion : HirToLirOpConversion<hir::CPhaseOp>
+  struct GateCphaseOpConversion : HirToLirOpConversion<hir::GateCphaseOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
     LogicalResult
-    matchAndRewrite(hir::CPhaseOp op, ArrayRef<Value> operands,
+    matchAndRewrite(hir::GateCphaseOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      lir::CPhaseOpAdaptor args(operands);
+      lir::GateCphaseOpAdaptor args(operands);
 
       auto qubit_lir0 = valueMap->resolve(args.qin0());
       auto qubit_lir1 = valueMap->resolve(args.qin1());
       auto newOp =
-          rewriter.create<lir::CPhaseOp>(
+          rewriter.create<lir::GateCphaseOp>(
               op->getLoc(), getLirQubitType(), getLirQubitType(), qubit_lir0, qubit_lir1);
       valueMap->allocate_qubit(op.getResult(0), newOp.getResult(0));
       valueMap->allocate_qubit(op.getResult(1), newOp.getResult(1));
@@ -376,19 +376,19 @@ namespace
     }
   };
 
-  struct CNotOpConversion : HirToLirOpConversion<hir::CNotOp>
+  struct GateCnotOpConversion : HirToLirOpConversion<hir::GateCnotOp>
   {
     using HirToLirOpConversion::HirToLirOpConversion;
     LogicalResult
-    matchAndRewrite(hir::CNotOp op, ArrayRef<Value> operands,
+    matchAndRewrite(hir::GateCnotOp op, ArrayRef<Value> operands,
                     ConversionPatternRewriter &rewriter) const final
     {
-      lir::CNotOpAdaptor args(operands);
+      lir::GateCnotOpAdaptor args(operands);
 
       auto qubit_lir0 = valueMap->resolve(args.qin0());
       auto qubit_lir1 = valueMap->resolve(args.qin1());
       auto newOp =
-          rewriter.create<lir::CNotOp>(
+          rewriter.create<lir::GateCnotOp>(
               op->getLoc(), getLirQubitType(), getLirQubitType(), qubit_lir0, qubit_lir1);
       valueMap->allocate_qubit(op.getResult(0), newOp.getResult(0));
       valueMap->allocate_qubit(op.getResult(1), newOp.getResult(1));
@@ -427,12 +427,12 @@ namespace
       EntangleOpConversion,
       SendCMsgOpConversion,
       RecvCMsgOpConversion,
-      GateXOpConversion,
-      GateYOpConversion,
-      GateZOpConversion,
+      RotXOpConversion,
+      RotYOpConversion,
+      RotZOpConversion,
       GateHOpConversion,
-      CPhaseOpConversion,
-      CNotOpConversion,
+      GateCphaseOpConversion,
+      GateCnotOpConversion,
       NewCValueOpConversion,
       // FuncOpConversion,
       ReturnOpConversion,

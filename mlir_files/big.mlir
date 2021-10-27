@@ -17,17 +17,17 @@ func @f() -> () {
     %d0 = "hir.recv_cmsg"() : () -> !hir.cvalue
     %c0 = "hir.new_cval"() : () -> !hir.cvalue
 
-    %q1b = "hir.gate_x"(%q1a, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
-    %q1c = "hir.gate_x"(%q1b, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
-    %q1d = "hir.gate_x"(%q1c, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
-    %q1e = "hir.gate_x"(%q1d, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1b = "hir.rot_x"(%q1a, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1c = "hir.rot_x"(%q1b, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1d = "hir.rot_x"(%q1c, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1e = "hir.rot_x"(%q1d, %c0) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
 
     %d1 = "hir.recv_cmsg"() : () -> !hir.cvalue
-    %q1f = "hir.gate_z"(%q1e, %d1) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    %q1f = "hir.rot_z"(%q1e, %d1) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
     // %m0 = "hir.meas"(%q0a) : (!hir.qubit) -> !hir.cvalue
     // "hir.send_cmsg"(%m0) : (!hir.cvalue) -> ()
     // %d1 = "hir.recv_cmsg"() : () -> !hir.cvalue
-    // %q1b = "hir.gate_z"(%q1a, %d1) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+    // %q1b = "hir.rot_z"(%q1a, %d1) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
     // %m1 = "hir.meas"(%q1b) : (!hir.qubit) -> !hir.cvalue
     // "hir.send_cmsg"(%m1) : (!hir.cvalue) -> ()
     return

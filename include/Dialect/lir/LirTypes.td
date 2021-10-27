@@ -3,17 +3,17 @@
 
 include "Dialect/lir/LirDialect.td"
 
-def Lir_CValueOnClasType : Lir_Type<"CValueOnClas"> {
-  let mnemonic = "cvalue_on_clas";
+def CValueCType : Lir_Type<"CValueC"> {
+  let mnemonic = "cvalue_c";
   let summary = "Classical value on CPU";
 }
 
-def Lir_CValueOnQuanType : Lir_Type<"CValueOnQuan"> {
-  let mnemonic = "cvalue_on_quan";
+def CValueQType : Lir_Type<"CValueQ"> {
+  let mnemonic = "cvalue_q";
   let summary = "Classical value on QPU";
 }
 
-def Lir_QubitType : Lir_Type<"Qubit"> {
+def QubitType : Lir_Type<"Qubit"> {
   let mnemonic = "qubit";
   let summary = "Qubit type";
 }
