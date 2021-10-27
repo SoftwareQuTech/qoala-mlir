@@ -12,15 +12,15 @@
 #include "Dialect/clir/CLirOps.h"
 #include "Dialect/qlir/QLirDialect.h"
 #include "Dialect/qlir/QLirOps.h"
-#include "Dialect/lircommon/LirCommonDialect.h"
-#include "Dialect/lircommon/LirCommonOps.h"
+#include "Dialect/lir/LirDialect.h"
+#include "Dialect/lir/LirOps.h"
 #include "Target/lir/ConvertToText.h"
 #include "Dialect/hir/HirDialect.h"
 
 using namespace mlir;
 using namespace clir;
 using namespace qlir;
-using namespace lircommon;
+using namespace lir;
 
 namespace
 {
@@ -78,12 +78,12 @@ namespace
         }
 
         // Op printers
-        LogicalResult print(lircommon::AllocateOp op);
-        LogicalResult print(lircommon::EntangleOp op);
-        LogicalResult print(lircommon::GateXOp op);
-        LogicalResult print(lircommon::GateYOp op);
-        LogicalResult print(lircommon::GateZOp op);
-        LogicalResult print(lircommon::MeasOp op);
+        LogicalResult print(lir::AllocateOp op);
+        LogicalResult print(lir::EntangleOp op);
+        LogicalResult print(lir::GateXOp op);
+        LogicalResult print(lir::GateYOp op);
+        LogicalResult print(lir::GateZOp op);
+        LogicalResult print(lir::MeasOp op);
 
     public:
         NetQASMTranslation(ModuleOp op, raw_ostream &output)
@@ -115,7 +115,7 @@ namespace
         return phys_qubits[qubit];
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::AllocateOp op)
+    LogicalResult NetQASMTranslation::print(lir::AllocateOp op)
     {
         auto phys_id = newQubit(op.qout());
         output << "set Q" << std::to_string(phys_id) << " " << phys_id << "\n";
@@ -123,7 +123,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::GateXOp op)
+    LogicalResult NetQASMTranslation::print(lir::GateXOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_x Q" << std::to_string(phys_id) << " <angle>"
@@ -131,7 +131,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::GateYOp op)
+    LogicalResult NetQASMTranslation::print(lir::GateYOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_y Q" << std::to_string(phys_id) << " <angle>"
@@ -139,7 +139,7 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::GateZOp op)
+    LogicalResult NetQASMTranslation::print(lir::GateZOp op)
     {
         auto phys_id = mapQubit(op.qin(), op.qout());
         output << "rot_z Q" << std::to_string(phys_id) << " <angle>"
@@ -147,14 +147,14 @@ namespace
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::MeasOp op)
+    LogicalResult NetQASMTranslation::print(lir::MeasOp op)
     {
         auto phys_id = getPhysId(op.qin());
         output << "meas Q" << std::to_string(phys_id) << " M0\n";
         return success();
     }
 
-    LogicalResult NetQASMTranslation::print(lircommon::EntangleOp op)
+    LogicalResult NetQASMTranslation::print(lir::EntangleOp op)
     {
         addQubit(op.qout());
         output << "array @0 10\n";
@@ -173,8 +173,8 @@ namespace
         WalkResult result = module.walk<WalkOrder::PreOrder>(
             [&](Operation *op)
             {
-                if (op->getName().getStringRef() == "lircommon.cval_c_to_q" ||
-                    op->getName().getStringRef() == "lircommon.cval_q_to_c")
+                if (op->getName().getStringRef() == "lir.cval_c_to_q" ||
+                    op->getName().getStringRef() == "lir.cval_q_to_c")
                 {
                     // new subroutine
                     output << "-----------------------\n\n";
@@ -185,12 +185,12 @@ namespace
                 else
                 {
                     return runPrinters<
-                        lircommon::AllocateOp,
-                        lircommon::EntangleOp,
-                        lircommon::GateXOp,
-                        lircommon::GateYOp,
-                        lircommon::GateZOp,
-                        lircommon::MeasOp>(op);
+                        lir::AllocateOp,
+                        lir::EntangleOp,
+                        lir::GateXOp,
+                        lir::GateYOp,
+                        lir::GateZOp,
+                        lir::MeasOp>(op);
                 }
             });
 
@@ -215,7 +215,7 @@ namespace mlir
             },
             [](DialectRegistry &registry)
             {
-                registry.insert<lircommon::LirCommonDialect, qlir::QLirDialect, clir::CLirDialect, hir::HirDialect, StandardOpsDialect>();
+                registry.insert<lir::LirDialect, qlir::QLirDialect, clir::CLirDialect, hir::HirDialect, StandardOpsDialect>();
             });
     }
 } // namespace mlir

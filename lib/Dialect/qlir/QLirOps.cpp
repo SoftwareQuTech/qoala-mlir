@@ -9,8 +9,8 @@
 #include "Dialect/qlir/QLirOps.h"
 #include "Dialect/qlir/QLirDialect.h"
 
-#include "Dialect/lircommon/LirCommonTypes.h"
-#include "Dialect/lircommon/LirCommonDialect.h"
+#include "Dialect/lir/LirTypes.h"
+#include "Dialect/lir/LirDialect.h"
 
 using namespace mlir;
 using namespace mlir::qlir;

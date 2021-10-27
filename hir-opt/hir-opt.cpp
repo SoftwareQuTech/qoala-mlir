@@ -7,10 +7,10 @@
 #include "Dialect/hir/HirDialect.h"
 #include "Dialect/clir/CLirDialect.h"
 #include "Dialect/qlir/QLirDialect.h"
-#include "Dialect/lircommon/LirCommonDialect.h"
-#include "Dialect/lircommon/Passes.h"
-#include "Conversion/HirToLirCommon/Passes.h"
-#include "Conversion/LirCommonToLir/Passes.h"
+#include "Dialect/lir/LirDialect.h"
+#include "Dialect/lir/Passes.h"
+#include "Conversion/HirToLir/Passes.h"
+#include "Conversion/LirToSplitLir/Passes.h"
 
 int main(int argc, char **argv)
 {
@@ -19,13 +19,13 @@ int main(int argc, char **argv)
     registry.insert<mlir::hir::HirDialect>();
     registry.insert<mlir::clir::CLirDialect>();
     registry.insert<mlir::qlir::QLirDialect>();
-    registry.insert<mlir::lircommon::LirCommonDialect>();
+    registry.insert<mlir::lir::LirDialect>();
 
     mlir::registerAllPasses();
     mlir::registerHirPasses();
-    mlir::registerLirCommonPasses();
-    mlir::registerHirToLirCommonConversionPasses();
-    mlir::registerLirCommonToLirConversionPasses();
+    mlir::registerLirPasses();
+    mlir::registerHirToLirConversionPasses();
+    mlir::registerLirToSplitLirConversionPasses();
 
     return failed(
         mlir::MlirOptMain(argc, argv, "HIR dialect driver\n", registry));

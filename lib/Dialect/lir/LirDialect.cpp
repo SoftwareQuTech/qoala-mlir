@@ -5,33 +5,31 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/qlir/QLirDialect.h"
-#include "Dialect/qlir/QLirOps.h"
-#include "Dialect/qlir/QLirTypes.h"
-
+#include "Dialect/lir/LirDialect.h"
+#include "Dialect/lir/LirOps.h"
 #include "Dialect/lir/LirTypes.h"
 
-#include "Dialect/qlir/QLirOpsDialect.cpp.inc"
+#include "Dialect/lir/LirOpsDialect.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::qlir;
+using namespace mlir::lir;
 
-void QLirDialect::initialize()
+void LirDialect::initialize()
 {
     addOperations<
 #define GET_OP_LIST
-#include "Dialect/qlir/QLirOps.cpp.inc"
+#include "Dialect/lir/LirOps.cpp.inc"
         >();
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "Dialect/qlir/QLirOpsTypes.cpp.inc"
+#include "Dialect/lir/LirOpsTypes.cpp.inc"
         >();
 }
 
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/qlir/QLirOpsTypes.cpp.inc"
+#include "Dialect/lir/LirOpsTypes.cpp.inc"
 
-Type QLirDialect::parseType(DialectAsmParser &parser) const
+Type LirDialect::parseType(DialectAsmParser &parser) const
 {
     StringRef mnemonic;
     if (failed(parser.parseKeyword(&mnemonic)))
@@ -45,7 +43,7 @@ Type QLirDialect::parseType(DialectAsmParser &parser) const
 }
 
 /// Print a type registered to this dialect.
-void QLirDialect::printType(Type type, DialectAsmPrinter &os) const
+void LirDialect::printType(Type type, DialectAsmPrinter &os) const
 {
     (void)generatedTypePrinter(type, os);
 }

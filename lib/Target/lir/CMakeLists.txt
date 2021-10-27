@@ -8,7 +8,7 @@ add_mlir_translation_library(LirToText
     MLIRIR
     MLIRCLir
     MLIRQLir
-    MLIRLirCommon
+    MLIRLir
     MLIRHir
     )
 
