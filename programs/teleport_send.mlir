@@ -1,9 +1,11 @@
 func @f() -> () {
     // prepare local qubit
     %q0 = "hir.alloc"() : () -> !hir.qubit
+
     %theta = "hir.new_cval"() : () -> !hir.cvalue
-    %phi = "hir.new_cval"() : () -> !hir.cvalue
     %q1 = "hir.rot_y"(%q0, %theta) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
+
+    %phi = "hir.new_cval"() : () -> !hir.cvalue
     %q2 = "hir.rot_z"(%q1, %phi) : (!hir.qubit, !hir.cvalue) -> !hir.qubit
 
     // entanglement generation

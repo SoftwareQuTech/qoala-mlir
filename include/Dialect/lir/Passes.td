@@ -3,8 +3,16 @@
 
 include "mlir/Pass/PassBase.td"
 
-def LirRewritePass : FunctionPass<"lir-apply-reordering"> {
-    let constructor = "mlir::createLirRewritePass()";
+def LirReorderDownPass : FunctionPass<"lir-apply-reordering-down"> {
+    let constructor = "mlir::createLirReorderDownPass()";
+}
+
+def LirReorderUpPass : FunctionPass<"lir-apply-reordering-up"> {
+    let constructor = "mlir::createLirReorderUpPass()";
+}
+
+def LirGatePass : FunctionPass<"lir-optimize-gates"> {
+    let constructor = "mlir::createLirGatePass()";
 }
 
 #endif // LIR_PASSES

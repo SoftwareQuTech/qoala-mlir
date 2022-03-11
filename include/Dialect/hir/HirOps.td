@@ -92,6 +92,20 @@ def MeasOp : Hir_Op<"meas"> {
   let verifier = ?;
 }
 
+// def AddCValuesOp : Hir_Op<"add_cvals"> {
+//   let arguments = (ins CValueType:$cin0, CValueType:$cin1);
+//   let results = (outs CValueType:$cout);
+//   let verifier = ?;
+
+//   // let builders = [
+//   //   OpBuilder<(ins "Value":$cin0, "Value":$cin1), [{
+//   //     $_state.addOperands(cin0);
+//   //     $_state.addOperands(cin1);
+//   //     $_state.addTypes(CValueType::get($_builder.getContext()));
+//   //   }]>
+//   // ];
+// }
+
 
 
 #endif // HIR_OPS

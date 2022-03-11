@@ -10,5 +10,6 @@ include "Dialect/lir/LirOps.td"
 // def : Pat<(RotXOp (RotXOp $q, $c1), $c2), (RotXOp $q, (AddCValueQOp $c1, $c2))>;
 // def : Pat<(GateHOp (GateHOp (Lir_AllocateOp:$q))), (Lir_AllocateOp)>;
 // def : Pat<(GateHOp (GateHOp $q)), (replaceWithValue $q)>;
+// def : Pat<(MeasOp (RotZOp $q, $_)), (MeasOp $q)>;
 
 #endif // LIR_LIR_REWRITES

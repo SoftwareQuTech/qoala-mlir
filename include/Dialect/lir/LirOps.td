@@ -113,7 +113,7 @@ def CValueQtoCOp : Lir_Op<"cval_q_to_c"> {
   let verifier = ?;
 }
 
-def AddCValueCOp : Lir_Op<"add_cvalue_c"> {
+def AddCValueCOp : Lir_Op<"add_cval_c"> {
   let arguments = (ins CValueCType:$cin0, CValueCType:$cin1);
   let results = (outs CValueCType:$cout);
   let verifier = ?;
@@ -127,7 +127,7 @@ def AddCValueCOp : Lir_Op<"add_cvalue_c"> {
   ];
 }
 
-def AddCValueQOp : Lir_Op<"add_cvalue_q"> {
+def AddCValueQOp : Lir_Op<"add_cval_q"> {
   let arguments = (ins CValueQType:$cin0, CValueQType:$cin1);
   let results = (outs CValueQType:$cout);
   let verifier = ?;

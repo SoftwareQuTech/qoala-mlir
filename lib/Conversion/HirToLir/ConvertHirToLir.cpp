@@ -417,6 +417,40 @@ namespace
     }
   };
 
+  // struct AddCValuesConversion : HirToLirOpConversion<hir::AddCValuesOp>
+  // {
+  //   using HirToLirOpConversion::HirToLirOpConversion;
+  //   LogicalResult
+  //   matchAndRewrite(hir::AddCValuesOp op, ArrayRef<Value> operands,
+  //                   ConversionPatternRewriter &rewriter) const final
+  //   {
+  //     // llvm::outs() << "rewriting RotXOp\n";
+
+  //     lir::AddCValuesOpAdaptor args(operands);
+
+  //     // check if value is already on Q side
+  //     Value cvalue_on_q;
+  //     if (valueMap->has_cvalue_on_q_values(args.cin()))
+  //     {
+  //       cvalue_on_q = valueMap->resolve_cvalue_on_q(args.cin());
+  //     }
+  //     else
+  //     {
+  //       assert(valueMap->has_cvalue_on_c_values(args.cin()));
+  //       auto value_lir = valueMap->resolve_cvalue_on_c(args.cin());
+  //       cvalue_on_q = rewriter.create<lir::CValueCtoQOp>(op->getLoc(), getLirCValueQType(), value_lir);
+  //       valueMap->allocate_cvalue_on_q(args.cin(), cvalue_on_q);
+  //     }
+
+  //     auto qubit_lir = valueMap->resolve(args.qin());
+  //     auto qubit =
+  //         rewriter.create<lir::RotXOp>(op->getLoc(), getLirQubitType(), qubit_lir, cvalue_on_q);
+  //     valueMap->allocate_qubit(op.getResult(), qubit);
+  //     rewriter.eraseOp(op);
+  //     return success();
+  //   }
+  // };
+
   void populateHirToLirConversionPatterns(
       HirTypeConverter &typeConverter, ValueMap &valueMap,
       OwningRewritePatternList &patterns)

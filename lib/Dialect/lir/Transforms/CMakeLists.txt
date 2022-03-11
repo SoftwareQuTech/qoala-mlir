@@ -1,5 +1,7 @@
 add_mlir_dialect_library(LirTransforms
-    LirRewrites.cpp
+    LirReorderDown.cpp
+    LirReorderUp.cpp
+    LirGate.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${PROJECT_SOURCE_DIR}/include/Dialect/lir/Transforms
