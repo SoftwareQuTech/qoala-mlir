@@ -1,0 +1,47 @@
+digraph G {
+  compound = true;
+  subgraph cluster_1 {
+    v2 [label = " ", shape = plain];
+    label = "builtin.module : ())\n";
+    subgraph cluster_3 {
+      v4 [label = " ", shape = plain];
+      label = "";
+      subgraph cluster_5 {
+        v6 [label = " ", shape = plain];
+        label = "builtin.func : ())\n\nsym_name: \"f\"\ntype: () -> ()";
+        subgraph cluster_7 {
+          v8 [label = " ", shape = plain];
+          label = "";
+          v9 [label = "hir.entangle : (!hir.qubit))\n", shape = ellipse];
+          v10 [label = "hir.alloc : (!hir.qubit))\n", shape = ellipse];
+          v11 [label = "hir.gate_h : (!hir.qubit))\n", shape = ellipse];
+          v12 [label = "hir.cphase : (!hir.qubit, !hir.qub...))\n", shape = ellipse];
+          v13 [label = "hir.recv_cmsg : (!hir.cvalue))\n", shape = ellipse];
+          v14 [label = "hir.rot_z : (!hir.qubit))\n", shape = ellipse];
+          v15 [label = "hir.gate_h : (!hir.qubit))\n", shape = ellipse];
+          v16 [label = "hir.meas : (!hir.cvalue))\n", shape = ellipse];
+          v17 [label = "hir.send_cmsg : ())\n", shape = ellipse];
+          v18 [label = "hir.recv_cmsg : (!hir.cvalue))\n", shape = ellipse];
+          v19 [label = "hir.rot_z : (!hir.qubit))\n", shape = ellipse];
+          v20 [label = "hir.gate_h : (!hir.qubit))\n", shape = ellipse];
+          v21 [label = "hir.meas : (!hir.cvalue))\n", shape = ellipse];
+          v22 [label = "hir.send_cmsg : ())\n", shape = ellipse];
+          v23 [label = "std.return : ())\n", shape = ellipse];
+        }
+      }
+    }
+  }
+  v10 -> v11 [label = "", style = solid];
+  v9 -> v12 [label = "0", style = solid];
+  v11 -> v12 [label = "1", style = solid];
+  v12 -> v14 [label = "0", style = solid];
+  v13 -> v14 [label = "1", style = solid];
+  v14 -> v15 [label = "", style = solid];
+  v15 -> v16 [label = "", style = solid];
+  v16 -> v17 [label = "", style = solid];
+  v12 -> v19 [label = "0", style = solid];
+  v18 -> v19 [label = "1", style = solid];
+  v19 -> v20 [label = "", style = solid];
+  v20 -> v21 [label = "", style = solid];
+  v21 -> v22 [label = "", style = solid];
+}

@@ -1,0 +1,24 @@
+func @f() -> () {
+%comm0 = "lir.entangle"() { node: "Client" } : () -> !lir.qubit
+%mem0 = "lir.qinit"() : () -> !lir.qubit
+%mem1 = "lir.hadamard"(%mem0) : !lir.qubit -> !lir.qubit
+%comm1, %mem2 = "lir.cphase"(%comm0, %mem1) : (!lir.qubit, !lir.qubit) -> (!lir.qubit, !lir.qubit)
+
+%d1c = "lir.recv_cmsg"() { node: "Client" } : () -> !lir.cvalue_c
+%d1q = "lir.c_to_q"(%d1c) : (!lir.cvalue_c) -> !lir.cvalue_q
+%comm2 = "lir.rot_z"(%comm1, %d1q) : (!lir.qubit, !lir.cvalue_q) -> !lir.qubit
+%comm3 = "lir.hadamard"(%comm2) : (!lir.qubit) -> !lir.qubit
+%m1q = "lir.measure"(%comm3) : !lir.qubit -> !lir.cvalue_q
+%m1c = "lir.q_to_c"(%m1q) : (!lir.cvalue_q) -> !lir.cvalue_c
+
+"lir.send_msg"(%m1c) { node: "Client" } : !lir.cvalue_c -> ()
+
+%d2c = "lir.recv_msg"() { node: "Client" } : () -> !lir.cvalue_c
+%d2q = "lir.c_to_q"(%d2c) : (!lir.cvalue_c) -> !lir.cvalue_q
+%mem3 = "lir.rot_z"(%mem2, %d2c) : (!lir.qubit, !lir.cvalue_q) -> !lir.qubit
+%mem4 = "lir.hadamard"(%mem3) : (!lir.qubit) -> !lir.qubit
+%m2q = "lir.measure"(%mem4) : !lir.qubit -> !lir.cvalue_q
+%m2c = "lir.q_to_c"(%m2q) : (!lir.cvalue_q) -> !lir.cvalue_c
+
+"lir.send_msg"(%m2c) { node: "Client" } : !lir.cvalue_c -> ()
+}

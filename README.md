@@ -16,3 +16,10 @@ cmake --build . --target mlir-doc
 ```
 **Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
 
+
+
+## Print graph
+
+```
+../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
+``` 

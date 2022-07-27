@@ -27,6 +27,8 @@ int main(int argc, char **argv)
     mlir::registerHirToLirConversionPasses();
     mlir::registerLirToSplitLirConversionPasses();
 
+    mlir::registerViewOpGraphPassPass();
+
     return failed(
         mlir::MlirOptMain(argc, argv, "HIR dialect driver\n", registry));
 }
