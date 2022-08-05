@@ -17,9 +17,17 @@ cmake --build . --target mlir-doc
 **Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
 
 
+$PREFIX (install location) is by default `/usr/local`.
+$BUILD_DIR (build location) is by default the `build` directory inside the `llvm-project` git repo.
+Cannot use "~" in the cmake command, have to use `/home/<user>` !
+
 
 ## Print graph
+
+From within the `graphs` directory:
 
 ```
 ../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
 ``` 
+
+View graph with `xdot bqc_server_hir.gv`.
