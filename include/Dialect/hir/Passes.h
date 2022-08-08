@@ -6,7 +6,7 @@ namespace mlir
 
     class Pass;
 
-    std::unique_ptr<FunctionPass> createHirRewritePass();
+    std::unique_ptr<OperationPass<FuncOp>> createHirRewritePass();
 
 #define GEN_PASS_REGISTRATION
 #include "Dialect/hir/Passes.h.inc"

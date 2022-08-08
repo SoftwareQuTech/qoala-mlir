@@ -3,7 +3,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def HirRewritePass : FunctionPass<"hir-apply-rewrites"> {
+def HirRewritePass : Pass<"hir-apply-rewrites"> {
     let constructor = "mlir::createHirRewritePass()";
 }
 
