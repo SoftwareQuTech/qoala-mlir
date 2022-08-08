@@ -80,9 +80,3 @@ It depends on the target 'MLIRToyIncGen`.
 # Tools
 
 `mlir-tblgen` is like a compiler that takes input source files (`.td` files) and also requires you to set include directories with `-I`. It's in `{llvm_build}/bin/` (built) or `/usr/local/bin` (installed).
-
-E.g
-```
-/usr/local/bin/mlir-tblgen -gen-dialect-decls toy/include/Dialect/toy/ToyOps.td -I /usr/loca/include
-```
-produces the generated code for `ToyOps.h.inc` ??

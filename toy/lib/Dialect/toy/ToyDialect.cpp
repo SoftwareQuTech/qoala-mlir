@@ -17,10 +17,9 @@ using namespace mlir::toy;
 
 void ToyDialect::initialize()
 {
-//     addOperations<
-// #define GET_OP_LIST
-// #include "Dialect/toy/Toy.cpp.inc"
-//         >();
+    addOperations<ConstantOp>();
+
+
 //     addTypes<
 // #define GET_TYPEDEF_LIST
 // #include "Dialect/toy/ToyTypes.cpp.inc"
