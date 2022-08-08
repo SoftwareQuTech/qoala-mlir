@@ -1,0 +1,1 @@
+include/Dialect/clir/CLirOps.h.inc: /home/bart/repos/qutech/mlir/qoala-mlir/include/Dialect/clir/CLirDialect.td /home/bart/repos/qutech/mlir/qoala-mlir/include/Dialect/clir/CLirTypes.td /usr/local/include/mlir/IR/OpBase.td /usr/local/include/mlir/Interfaces/SideEffectInterfaceBase.td /usr/local/include/mlir/Interfaces/SideEffectInterfaces.td

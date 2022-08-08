@@ -1,0 +1,1 @@
+include/Dialect/qlir/QLirOps.h.inc: /home/bart/repos/qutech/mlir/qoala-mlir/include/Dialect/qlir/QLirDialect.td /home/bart/repos/qutech/mlir/qoala-mlir/include/Dialect/qlir/QLirTypes.td /usr/local/include/mlir/IR/OpBase.td /usr/local/include/mlir/Interfaces/SideEffectInterfaceBase.td /usr/local/include/mlir/Interfaces/SideEffectInterfaces.td
