@@ -28,18 +28,21 @@ include_directories(${PROJECT_BINARY_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
-# add_subdirectory(lib)
-# add_subdirectory(include)
-# add_subdirectory(hir-opt)
+add_subdirectory(lib)
+add_subdirectory(include)
 # add_subdirectory(test)
-# add_subdirectory(tools)
+add_subdirectory(tools)
 
-# 'include/' directory for source files
-include_directories(${PROJECT_SOURCE_DIR}/toy/include)
 
-# 'include/' directory for built files (inside build/, which includes *.inc files)
-include_directories(${PROJECT_BINARY_DIR}/toy/include)
-add_subdirectory(toy)
+# Toy
+# ---------------------
 
-get_property(target_names DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-message("all targets: ${target_names}")
+# # 'include/' directory for source files
+# include_directories(${PROJECT_SOURCE_DIR}/toy/include)
+
+# # 'include/' directory for built files (inside build/, which includes *.inc files)
+# include_directories(${PROJECT_BINARY_DIR}/toy/include)
+# add_subdirectory(toy)
+
+# get_property(target_names DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
+# message("all targets: ${target_names}")

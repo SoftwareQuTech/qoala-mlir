@@ -1,1 +1,1 @@
-add_subdirectory(lir-translate)
+add_subdirectory(iqoala-opt)
