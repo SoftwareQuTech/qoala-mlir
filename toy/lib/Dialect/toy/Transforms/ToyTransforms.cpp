@@ -1,6 +1,7 @@
 #include "mlir/IR/PatternMatch.h"
 
 #include "Dialect/toy/Toy.h"
+#include "Dialect/toy/ToyTransforms.h.inc"
 
 using namespace mlir;
 using namespace mlir::toy;
@@ -42,4 +43,9 @@ struct SimplifyRedundantTranspose : public mlir::OpRewritePattern<TransposeOp>
 void TransposeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *context)
 {
     results.add<SimplifyRedundantTranspose>(context);
+}
+
+void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *context)
+{
+    results.add<ReshapeReshapeOptPattern>(context);
 }

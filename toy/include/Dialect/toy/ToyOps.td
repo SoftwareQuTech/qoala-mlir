@@ -44,4 +44,16 @@ def TransposeOp : Toy_Op<"transpose", [NoSideEffect]> {
   let hasCanonicalizer = 1;
 }
 
+def ReshapeOp : Toy_Op<"reshape", [NoSideEffect]> {
+  let arguments = (ins F64Tensor:$input);
+
+  let results = (outs StaticShapeTensorOf<[F64]>);
+
+  let assemblyFormat = [{
+    `(` $input `:` type($input) `)` attr-dict `to` type(results)
+  }];
+
+  let hasCanonicalizer = 1;
+}
+
 #endif // TOY_OPS

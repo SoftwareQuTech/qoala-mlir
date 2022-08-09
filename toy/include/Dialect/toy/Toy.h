@@ -6,6 +6,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/BuiltinAttributes.h"
 
+// Needed for [NoSideEffect] in the .td file.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
 #define GET_OP_CLASSES
