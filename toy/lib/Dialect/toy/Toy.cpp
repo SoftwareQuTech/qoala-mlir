@@ -14,3 +14,13 @@ using namespace mlir::toy;
 
 #define GET_OP_CLASSES
 #include "Dialect/toy/Toy.cpp.inc"
+
+LogicalResult ConstantOp::verify()
+{
+    return success();
+}
+
+void ConstantOp::build(OpBuilder &odsBuilder, OperationState &odsState, double value)
+{
+    build(odsBuilder, odsState, DenseElementsAttr());
+}

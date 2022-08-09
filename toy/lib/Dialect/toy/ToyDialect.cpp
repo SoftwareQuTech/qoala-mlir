@@ -14,14 +14,17 @@
 using namespace mlir;
 using namespace mlir::toy;
 
-
 void ToyDialect::initialize()
 {
-    addOperations<ConstantOp>();
+    // addOperations<ConstantOp>();
 
+    addOperations<
+#define GET_OP_LIST
+#include "Dialect/toy/Toy.cpp.inc"
+        >();
 
-//     addTypes<
-// #define GET_TYPEDEF_LIST
-// #include "Dialect/toy/ToyTypes.cpp.inc"
-//         >();
+    //     addTypes<
+    // #define GET_TYPEDEF_LIST
+    // #include "Dialect/toy/ToyTypes.cpp.inc"
+    //         >();
 }

@@ -7,7 +7,13 @@ add_mlir_dialect_library(MLIRToy
 
     LINK_LIBS PUBLIC
     MLIRIR
+
+    LINK_LIBS PRIVATE
+    MLIRAnalysis
+    MLIRIR
+    MLIRParser
+    MLIRSideEffectInterfaces
+    MLIRTransforms
 )
 
-get_property(target_names DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-message("targets from lib/: ${target_names}")
+add_subdirectory(Transforms)

@@ -61,8 +61,8 @@ sudo cmake --build . --target install
 
 `add_mlir_dialect(Toy toy)` adds the target `MLIRToyIncGen`
 This target does the following:
-- `mlir-tblgen -gen-op-decls`, producing `Toy.h.inc`
-- `mlir-tblgen -gen-op-defs`, producing `Toy.cpp.inc`
+- `mlir-tblgen -gen-op-decls`, producing `Toy.h.inc` (contains the Ops)
+- `mlir-tblgen -gen-op-defs`, producing `Toy.cpp.inc` (containts the Ops)
 - `mlir-tblgen -gen-typedef-decls`, producing `ToyTypes.h.inc`
 - `mlir-tblgen -gen-typedef-defs`, producing `ToyTypes.cpp.inc`
 - `mlir-tblgen -gen-dialect-decls`, producing `ToyDialect.h.inc`
@@ -77,6 +77,25 @@ It produces the library `libMLIRToy.a` inside `build/lib`.
 It depends on the target 'MLIRToyIncGen`.
 
 
+For targets in `lib/`, each `add_mlir_dialect_library` should be in its own
+`CMakeLists.txt`, and therefore in its own directory.
+So, a separate Transforms library would require a separate
+`Transforms` directory inside `lib/Dialect/toy`, with its own `CMakeLists.txt`.
+
+
 # Tools
 
 `mlir-tblgen` is like a compiler that takes input source files (`.td` files) and also requires you to set include directories with `-I`. It's in `{llvm_build}/bin/` (built) or `/usr/local/bin` (installed).
+
+
+
+# Misc
+Be careful when `#include`ing `.h.inc` files. You may or may not want to
+`#define` a certain variable just before it. For example you might need to use
+
+```
+#define GET_OP_CLASSES
+#include "Dialect/toy/Toy.h.inc"
+```
+
+instead of just `#include "Dialect/toy/Toy.h.inc"`.
