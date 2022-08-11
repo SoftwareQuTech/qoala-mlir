@@ -1,1 +1,5 @@
 add_subdirectory(iqoala)
+add_subdirectory(qoala_hir)
+add_subdirectory(qoala_lir)
+add_subdirectory(IR)
+add_subdirectory(qoala_test)
