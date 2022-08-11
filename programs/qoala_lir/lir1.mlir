@@ -1,4 +1,6 @@
 module {
+    "qoala_lir.netqasmfunc"() ({}) {arg0 = 3 : i32, function_type = () -> ()} : () -> ()
+
     func.func @f() {
     ^b0:
         %0 = "qoala_lir.new_qubit"() : () -> f64
