@@ -80,6 +80,14 @@ def NetqasmFuncOp : QoalaLir_Op<"netqasmfunc", [FunctionOpInterface]> {
   }];
 }
 
+def ReturnOp : QoalaLir_Op<"netqasm_return", [NoSideEffect, HasParent<"NetqasmFuncOp">,
+                                 Terminator]> {
+  // The return operation takes an optional input operand to return. This
+  // value must match the return type of the enclosing function.
+  // let arguments = (ins Variadic<I32>:$classical, Variadic<F64>:$quantum);
+  let arguments = (ins I32:$classical, F64:$quantum);
+}
+
 
 def ConstantOp : QoalaLir_Op<"constant"> {
     let arguments = (ins I32Attr:$value);

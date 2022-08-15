@@ -1,5 +1,9 @@
 module {
-    "qoala_lir.netqasmfunc"() ({}) {arg0 = 3 : i32, function_type = () -> ()} : () -> ()
+    "qoala_lir.netqasmfunc"() ({
+        %0 = "qoala_lir.new_qubit"() : () -> f64
+        %1 = "qoala_lir.constant"() {value = 2 : i32} : () -> i32
+        "qoala_lir.netqasm_return"(%1, %0) : (i32, f64) -> ()
+    }) {arg0 = 3 : i32, function_type = () -> ()} : () -> ()
 
     func.func @f() {
     ^b0:
