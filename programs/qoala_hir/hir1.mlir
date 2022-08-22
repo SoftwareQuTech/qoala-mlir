@@ -7,6 +7,9 @@ module {
         %2 = "qoala_hir.multiply_const"(%1) {constant = 3 : i32} : (i32) -> i32
         %3 = "qoala_hir.conditional_multiply_const"(%2, %1) {constant = 3 : i32} : (i32, i32) -> i32
 
+        %s = "qoala_hir.int_struct"() : () -> !qoala_hir.intstruct
+        "qoala_hir.use_int_struct"(%s) : (!qoala_hir.intstruct) -> ()
+
         cf.br ^b1
 
     ^b1:

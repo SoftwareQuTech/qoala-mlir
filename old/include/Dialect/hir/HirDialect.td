@@ -6,6 +6,9 @@ include "mlir/IR/OpBase.td"
 def Hir_Dialect : Dialect {
   let name = "hir";
   let cppNamespace = "::mlir::hir";
+
+  // Used  so that "parseType" and "printType" declarations are generated!
+  let useDefaultTypePrinterParser = 1;
 }
 
 class Hir_Op<string mnemonic, list<OpTrait> traits = []> :

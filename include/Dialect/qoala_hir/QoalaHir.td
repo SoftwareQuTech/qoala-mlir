@@ -8,5 +8,6 @@ include "mlir/IR/OpBase.td"
 
 include "Dialect/qoala_hir/QoalaHirDialect.td"
 include "Dialect/qoala_hir/QoalaHirOps.td"
+include "Dialect/qoala_hir/QoalaHirTypes.td"
 
 #endif // QOALA_HIR_TD

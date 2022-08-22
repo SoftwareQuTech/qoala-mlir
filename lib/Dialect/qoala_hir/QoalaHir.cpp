@@ -8,6 +8,7 @@
 
 #include "Dialect/qoala_hir/QoalaHir.h"
 #include "Dialect/qoala_hir/QoalaHirDialect.h"
+#include "Dialect/qoala_hir/QoalaHirTypes.h"
 
 using namespace mlir;
 using namespace mlir::qoala_hir;

@@ -3,6 +3,7 @@
 
 include "mlir/IR/OpBase.td"
 include "Dialect/qoala_hir/QoalaHirDialect.td"
+include "Dialect/qoala_hir/QoalaHirTypes.td"
 
 // Needed for `[NoSideEffect]`
 // Note that QoalaHir.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
@@ -22,6 +23,14 @@ def ConstantOp : QoalaHir_Op<"constant"> {
     let arguments = (ins I32Attr:$value);
 
     let results = (outs I32);
+}
+
+def IntStructOp : QoalaHir_Op<"int_struct"> {
+    let results = (outs QoalaHir_IntStructType);
+}
+
+def UseIntStructOp : QoalaHir_Op<"use_int_struct"> {
+    let arguments = (ins QoalaHir_IntStructType:$value);
 }
 
 
