@@ -13,7 +13,7 @@ module {
         %2 = "qoala_lir.multiply_const"(%1) {constant = 3 : i32} : (i32) -> i32
         %3 = "qoala_lir.conditional_multiply_const"(%2, %1) {constant = 3 : i32} : (i32, i32) -> i32
 
-        cf.br ^b1
+        "cf.br"() [^b1] : () -> ()
 
     ^b1:
         %q, %success = "qoala_lir.entangle_keep"() : () -> (f64, i1)

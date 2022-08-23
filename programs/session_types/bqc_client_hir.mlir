@@ -1,7 +1,12 @@
 func.func @client(i32, i32, i32, i32) -> (i1, i1, i1) {
-^b0(%alpha: i32, %beta: i32, %theta1: i32, %theta2: i32):
-    %result1, %epr1 = "hir.entangle_keep"() { max_time = 1000 : i32 } : () -> (!hir.result, !hir.qubit)
-    cf.cond_br %result1, ^b1, ^b0
+// Needed since entry block cannot have predecessor
+^b_start(%alpha: i32, %beta: i32, %theta1: i32, %theta2: i32):
+    cf.br ^b0
+
+^b0:
+    %result1, %epr1 = "hir.entangle_keep"() { max_time = 20000 : i32 } : () -> (!hir.result, !hir.qubit)
+    %succ1 = "hir.result_to_bit"(%result1) : (!hir.result) -> i1
+    cf.cond_br %succ1, ^b1, ^b0
 
 ^b1:
     %epr1a = "hir.rotation_gate"(%epr1, %theta2) : (!hir.qubit, i32) -> !hir.qubit
@@ -9,7 +14,8 @@ func.func @client(i32, i32, i32, i32) -> (i1, i1, i1) {
     %p2 = "hir.meas"(%epr1b) : (!hir.qubit) -> i1
 
     %result2, %epr2 = "hir.entangle_keep"() { max_time = 1000 : i32 } : () -> (!hir.result, !hir.qubit)
-    cf.cond_br %result2, ^b2, ^b0
+    %succ2 = "hir.result_to_bit"(%result2) : (!hir.result) -> i1
+    cf.cond_br %succ2, ^b1, ^b0
 
 ^b2:
     %epr2a = "hir.rotation_gate"(%epr2, %theta1) : (!hir.qubit, i32) -> !hir.qubit
@@ -33,5 +39,5 @@ func.func @client(i32, i32, i32, i32) -> (i1, i1, i1) {
     "hir.send_int"(%delta2b) : (i32) -> ()
     %m2 = "hir.recv_bit"() : () -> i1
 
-    return (%p1, %p2, %m2)
+    "func.return"(%p1, %p2, %m2) : (i1, i1, i1) -> ()
 }
