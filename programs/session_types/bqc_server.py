@@ -11,6 +11,9 @@ class Qubit:
     def cphase(self, q):
         pass
 
+    def H(self):
+        pass
+
 
 class EPRSocket:
     def recv_keep(self) -> Qubit:
@@ -18,10 +21,10 @@ class EPRSocket:
 
 
 class CSocket:
-    def send_float(self):
+    def send_int(self):
         pass
 
-    def recv_float(self):
+    def recv_int(self):
         pass
 
     def recv_int(self):
@@ -40,7 +43,7 @@ def server():
     epr2: Qubit = epr_socket.recv_keep()
     epr2.cphase(epr1)
 
-    delta1 = yield from csocket.recv_float()
+    delta1 = yield from csocket.recv_int()
 
     epr2.rot_Z(angle=delta1)
     epr2.H()
@@ -48,7 +51,7 @@ def server():
 
     csocket.send_int(m1)
 
-    delta2 = yield from csocket.recv_float()
+    delta2 = yield from csocket.recv_int()
 
     epr1.rot_Z(angle=delta2)
     epr1.H()
