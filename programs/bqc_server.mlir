@@ -1,4 +1,4 @@
-func @f() -> () {
+func.func @f() -> () {
     %q0 = "hir.entangle"() : () -> !hir.qubit
     %q1 = "hir.entangle"() : () -> !hir.qubit
     %q0a, %q1a = "hir.cphase"(%q0, %q1) : (!hir.qubit, !hir.qubit) -> (!hir.qubit, !hir.qubit)
