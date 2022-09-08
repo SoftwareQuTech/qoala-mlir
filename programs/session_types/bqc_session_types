@@ -1,0 +1,75 @@
+BqcClient: =
+	?entangle_create
+	.?entangle_create
+	.!angle1
+	.?outcome1
+	.!angle2
+	.?outcome2
+	.1
+
+
+
+BqcServer: =
+	?entangle_receive
+	.?entangle_receive
+	.?angle1
+	.!outcome1
+	.?angle2
+	.!outcome2
+	.1
+
+
+Constructs
+
+- send M N : S, 
+- receive N : (A x S)
+- entangle_create N : (Q x S)
+- entangle_receive N : (Q x S)
+- send_qubit M N : S
+- receive_qubit N : (Q x S)
+- close N : I
+
+
+
+clientImpl : (Int x Int x BqcClient) o- 1
+clientImpl(t1, t2, s) =
+    let (q1, s) = entangle_create() s in
+        let (q2, s) = entangle_create() s in
+            let s = send(calculateAngle(q1, t1)) s in
+                let (m1, s) = receive s in
+                    let s = send(calculateAngle(q2, t2, m1)) s in
+                        let (m2, s) = receive s; return calculateResult(m2); close s
+
+
+serverImpl : (BqcServer) o- 1
+serverImpl(s) =
+    let (q1, s) = entangle_receive() s in
+        let (q2, s) = entangle_receive() s in
+            let (angle1, s) = receive s in
+                let s = send(measure(q1, angle1)) s in
+                    let (angle2, s) = receive s in
+                        let s = send(measure(q2, angle2)) s; close s
+
+
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
