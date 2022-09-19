@@ -1,4 +1,4 @@
-# LIR
+# HIR
 
 ```mlir
 %q = init() : () -> f64
@@ -7,6 +7,8 @@
 %qb = rot(%qa, %t) : (i32, f64) -> f64
 %m = meas(%qb) : (f64) -> i1
 ```
+
+# LIR
 
 Split into netqasm functions:
 (assuming there is a reason to *not* move all
@@ -30,6 +32,7 @@ qoala.netqasm @func2(%t: i32, %q: f64) -> i1 {
 %m = call @func2(%t, %q) : (i32, f64) -> i1
 ```
 
+# LIR-M
 
 Map qubits
 
@@ -56,7 +59,7 @@ qoala.netqasm @func2(%t: i32, %q: f64) -> i1 {
 
 
 # BQC example
-### LIR
+### HIR
 
 ```mlir
 %epr1 = entangle() : () -> !qubit
@@ -69,6 +72,8 @@ send(%m1) : (i1) -> ()
 %epr1b = rot(%epr1a, %delta2) : (!qubit, i32) -> !qubit
 %m2 = meas(%epr1b) : (!qubit) -> i1
 ```
+
+### LIR
 
 Split into netqasm functions:
 (assuming there is a reason to *not* move all
@@ -101,6 +106,7 @@ send(%m1) : (i1) -> ()
 %m1 = call @func3(%delta2, %epr1) -> i1
 ```
 
+### LIR-M
 
 Map qubits (using SMT?)
 
