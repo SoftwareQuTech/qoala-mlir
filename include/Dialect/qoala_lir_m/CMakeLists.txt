@@ -1,0 +1,3 @@
+add_mlir_dialect(QoalaLirM qoala_lir_m)
+
+add_subdirectory(Transforms)

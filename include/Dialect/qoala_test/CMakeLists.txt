@@ -1,1 +1,0 @@
-add_mlir_dialect(QoalaTest qoala_test)

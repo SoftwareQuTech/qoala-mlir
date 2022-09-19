@@ -99,3 +99,13 @@ Be careful when `#include`ing `.h.inc` files. You may or may not want to
 ```
 
 instead of just `#include "Dialect/toy/Toy.h.inc"`.
+
+
+## Type vs TypeDef
+`Type` defined in `OpBase.td`, `TypeDef` defined in `AttrTypeBase.td`.
+Apparently `TypeDef` should be used to create custom types.
+
+## Useful llvm source files:
+- `llvm/mlir/include/mlir/IR/OpBase.td`
+- `llvm/mlir/include/mlir/IR/AttrTypeBase.td`
+- `llvm/mlir/include/mlir/IR/Types.h`
