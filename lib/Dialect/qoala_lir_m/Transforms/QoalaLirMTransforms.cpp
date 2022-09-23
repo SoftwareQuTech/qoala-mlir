@@ -7,7 +7,7 @@
 using namespace mlir;
 using namespace mlir::qoala_lir_m;
 
-struct LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<NetqasmFuncOp>>
+class LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<>>
 {
     void runOnOperation() override
     {
@@ -15,3 +15,8 @@ struct LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<Netqa
         llvm::outs() << op << "\n";
     }
 };
+
+std::unique_ptr<mlir::Pass> createLirMGenericPass()
+{
+    return std::make_unique<LirMGenericPass>();
+}

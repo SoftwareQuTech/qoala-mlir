@@ -1,3 +1,3 @@
-#include "Dialect/qoala_lir_m/Transforms/QoalaLirMTransforms.h.inc"
+// #include "Dialect/qoala_lir_m/Transforms/QoalaLirMTransforms.h.inc"
 
-struct LirMGenericPass;
+std::unique_ptr<Pass> createLirMGenericPass();

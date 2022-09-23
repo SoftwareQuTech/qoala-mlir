@@ -3,7 +3,7 @@ add_mlir_dialect_library(MLIRQoalaLirMTransforms
 
     DEPENDS
     MLIRQoalaLirMIncGen
-    MLIRQoalaLirMTransformsIncGen
+    # MLIRQoalaLirMTransformsIncGen
     )
 
 target_link_libraries(MLIRQoalaLirMTransforms PUBLIC MLIRIR)

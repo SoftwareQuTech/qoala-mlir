@@ -21,9 +21,9 @@ int main(int argc, char **argv)
 
     mlir::MLIRContext context;
     mlir::PassManager pm(&context);
-    pm.addPass(mlir::createCanonicalizerPass());
+    // pm.addPass(mlir::createCanonicalizerPass());
 
-    pm.addPass(std::make_unique<LirMGenericPass>());
+    pm.addPass(createLirMGenericPass());
 
     return failed(
         mlir::MlirOptMain(argc, argv, "Toy dialect driver\n", registry));
