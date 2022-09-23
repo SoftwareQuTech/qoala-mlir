@@ -7,6 +7,8 @@
 #include "Dialect/qoala_lir_m/QoalaLirMDialect.h"
 #include "Dialect/qoala_lir_m/QoalaLirM.h"
 
+#include "Dialect/qoala_lir_m/Transforms/QoalaLirMTransforms.h"
+
 int main(int argc, char **argv)
 {
     mlir::DialectRegistry registry;
@@ -20,6 +22,8 @@ int main(int argc, char **argv)
     mlir::MLIRContext context;
     mlir::PassManager pm(&context);
     pm.addPass(mlir::createCanonicalizerPass());
+
+    pm.addPass(std::make_unique<LirMGenericPass>());
 
     return failed(
         mlir::MlirOptMain(argc, argv, "Toy dialect driver\n", registry));
