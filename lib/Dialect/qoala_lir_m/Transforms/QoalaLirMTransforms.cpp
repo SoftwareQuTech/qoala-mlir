@@ -7,12 +7,26 @@
 using namespace mlir;
 using namespace mlir::qoala_lir_m;
 
-class LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<>>
+class LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<NetqasmFuncOp>>
+// class LirMGenericPass : public PassWrapper<LirMGenericPass, OperationPass<>>
 {
     void runOnOperation() override
     {
         Operation *op = getOperation();
-        llvm::outs() << op << "\n";
+        NetqasmFuncOp funcOp = llvm::dyn_cast<NetqasmFuncOp>(getOperation());
+        llvm::outs() << op->getName() << "\n";
+        llvm::outs() << funcOp.getSymName() << "\n";
+
+        Region &body = funcOp.getBody();
+        for (auto &body_op : body.getOps())
+        {
+            llvm::outs() << body_op.getName() << "\n";
+        }
+    }
+
+    StringRef getArgument() const final
+    {
+        return "generic-pass";
     }
 };
 

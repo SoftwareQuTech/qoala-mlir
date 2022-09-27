@@ -101,6 +101,23 @@ Be careful when `#include`ing `.h.inc` files. You may or may not want to
 instead of just `#include "Dialect/toy/Toy.h.inc"`.
 
 
+# Passes
+Using `PassManager`s or `PassRegistration` doesn't seem to do anything.
+The following does work: use 
+
+```
+mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass>
+                       { return createXXXPass(); });
+```
+
+Creating a `std::unique_ptr` inside the lambda doesn't seem to work; it's better to
+declare a `createXXXPass` function in `MyTransforms.h` which returns a `std::unique_ptr<Pass>`.
+
+
+# Tranformations
+Inside a pass, one may call `applyPatternsAndFoldGreedily()` with a set of `Pattern`s.
+
+
 ## Type vs TypeDef
 `Type` defined in `OpBase.td`, `TypeDef` defined in `AttrTypeBase.td`.
 Apparently `TypeDef` should be used to create custom types.

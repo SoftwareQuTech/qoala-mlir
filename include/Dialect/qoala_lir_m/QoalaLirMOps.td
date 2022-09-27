@@ -39,7 +39,8 @@ class QoalaLirM_ClassicalOp<string mnemonic, list<Trait> traits = []> :
 // Apparently, in general: when an operation name ends in _XXX (underscore + some XXX),
 // tablegen will generate classes with just XXX and not your full name !!
 
-def NetqasmFuncOp : QoalaLirM_Op<"netqasmfunc", [FunctionOpInterface]> {
+// `IsolatedFromAbove` is needed for running an OperationPass on it.
+def NetqasmFuncOp : QoalaLirM_Op<"netqasmfunc", [FunctionOpInterface, IsolatedFromAbove]> {
 
   // part with "TypeAttrOf" is needed for compiling lib!
   // "$function_type" together with "kEmitAccessorPrefix_Prefixed" in Dialect
