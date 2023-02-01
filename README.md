@@ -1,25 +1,19 @@
-# An out-of-tree MLIR dialect
-
-This is an example of an out-of-tree [MLIR](https://mlir.llvm.org/) dialect along with a standalone `opt`-like tool to operate on that dialect.
+# Qoala MLIR
 
 ## Building
 
-This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build and launch the tests, run
+This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build everything, run
 ```sh
 mkdir build && cd build
 cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit
-cmake --build . --target check-standalone
-```
-To build the documentation from the TableGen description of the dialect operations, run
-```sh
-cmake --build . --target mlir-doc
+cmake --build . 
 ```
 **Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
 
 
-$PREFIX (install location) is by default `/usr/local`.
-$BUILD_DIR (build location) is by default the `build` directory inside the `llvm-project` git repo.
-Cannot use "~" in the cmake command, have to use `/home/<user>` !
+- `$PREFIX` (install location) is by default `/usr/local`.
+- `$BUILD_DIR` (build location) is by default the `build` directory inside the `llvm-project` git repo.
+- Cannot use "~" in the cmake command, have to use `/home/<user>` !
 
 
 ## Print graph
@@ -43,7 +37,7 @@ mkdir build && cd build
 
 Configure:
 ```
-cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON
+cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_INSTALL_UTILS=ON
 ```
 
 Build (should produce files in `./llvm/build`)

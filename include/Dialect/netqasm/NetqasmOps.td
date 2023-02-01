@@ -15,7 +15,7 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 
-// Needed for `[NoSideEffect]`
+// Needed for `[NoMemoryEffect]`
 // Note that Netqasm.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -64,7 +64,7 @@ def SubroutineOp : Netqasm_Op<"subroutine", [FunctionOpInterface, IsolatedFromAb
 }
 
 
-def ReturnOp : Netqasm_Op<"return", [NoSideEffect, HasParent<"SubroutineOp">,
+def ReturnOp : Netqasm_Op<"return", [NoMemoryEffect, HasParent<"SubroutineOp">,
                                  Terminator]> {
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
