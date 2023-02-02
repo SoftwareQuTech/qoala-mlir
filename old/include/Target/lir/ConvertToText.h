@@ -1,4 +1,0 @@
-namespace mlir
-{
-    void registerToLirTranslation();
-}

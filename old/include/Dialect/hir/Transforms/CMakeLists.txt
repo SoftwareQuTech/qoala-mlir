@@ -1,3 +1,0 @@
-set(LLVM_TARGET_DEFINITIONS HirRewrites.td)
-mlir_tablegen(HirRewrites.h.inc -gen-rewriters)
-add_public_tablegen_target(MLIRHirTransformsRewritesPassIncGen)

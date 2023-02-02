@@ -1,2 +1,0 @@
-add_subdirectory(HirToLir)
-add_subdirectory(LirToSplitLir)
