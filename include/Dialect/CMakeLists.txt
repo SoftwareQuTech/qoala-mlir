@@ -1,6 +1,1 @@
-# add_subdirectory(iqoala)
-# add_subdirectory(qoala_hir)
-# add_subdirectory(qoala_lir_m)
-# add_subdirectory(qoala_lir)
 add_subdirectory(netqasm)
-# add_subdirectory(IR)

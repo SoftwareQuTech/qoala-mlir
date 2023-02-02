@@ -32,22 +32,3 @@ add_subdirectory(lib)
 add_subdirectory(include)
 # add_subdirectory(test)
 add_subdirectory(tools)
-
-
-
-
-# add_subdirectory(Ch2)
-
-
-# Toy
-# ---------------------
-
-# # 'include/' directory for source files
-# include_directories(${PROJECT_SOURCE_DIR}/toy/include)
-
-# # 'include/' directory for built files (inside build/, which includes *.inc files)
-# include_directories(${PROJECT_BINARY_DIR}/toy/include)
-# add_subdirectory(toy)
-
-# get_property(target_names DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-# message("all targets: ${target_names}")

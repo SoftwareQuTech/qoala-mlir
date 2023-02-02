@@ -1,32 +1,5 @@
 # Qoala MLIR
 
-## Building
-
-This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build everything, run
-```sh
-mkdir build && cd build
-cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit
-cmake --build . 
-```
-**Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
-
-
-- `$PREFIX` (install location) is by default `/usr/local`.
-- `$BUILD_DIR` (build location) is by default the `build` directory inside the `llvm-project` git repo.
-- Cannot use "~" in the cmake command, have to use `/home/<user>` !
-
-
-## Print graph
-
-From within the `graphs` directory:
-
-```
-../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
-``` 
-
-View graph with `xdot bqc_server_hir.gv`.
-
-
 ## Build LLVM
 From within the `./llvm` directory (top level of submodule):
 
@@ -50,6 +23,58 @@ Install (should produce files in `/usr/local/lib`, `/usr/local/include` and `/us
 sudo cmake --build . --target install
 ```
 
+## Build this repo
+
+This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build everything, run
+```sh
+mkdir build && cd build
+cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit
+cmake --build . 
+```
+**Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
+
+
+- `$PREFIX` (install location) is by default `/usr/local`.
+- `$BUILD_DIR` (build location) is by default the `build` directory inside the `llvm-project` git repo.
+- Cannot use "~" in the cmake command, have to use `/home/<user>` !
+
+
+## Test if everything works
+All from within `build/`:
+
+Try to run tablegen for Netqasm dialect (uses stuff in `include/Dialect/netqasm`):
+```sh
+cmake --build . --target MLIRNetqasmIncGen
+```
+
+Try to build Netqasm dialect library (uses stuff in `lib/Dialect/netqasm`, relies on `MLIRNetqasmIncGen`):
+```sh
+cmake --build . --target MLIRNetqasm
+```
+
+Try to build Netqasm dialect optimizer tool (uses stuff in `tools/netqasm`, relies on `MLIRNetqasm`):
+```sh
+cmake --build . --target netqasm-opt
+```
+
+Run `netqasm-opt` tool:
+```sh
+./bin/netqasm-opt ../programs/netqasm/netqasm1.mlir
+```
+Should just print the contents of `netqasm1.mlir`.
+
+## Print graph
+
+From within the `graphs` directory:
+
+```
+../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
+``` 
+
+View graph with `xdot bqc_server_hir.gv`.
+
+
+
 
 # Targets
 
@@ -61,6 +86,9 @@ This target does the following:
 - `mlir-tblgen -gen-typedef-defs`, producing `ToyTypes.cpp.inc`
 - `mlir-tblgen -gen-dialect-decls`, producing `ToyDialect.h.inc`
 - `mlir-tblgen -gen-dialect-defs`, producing `ToyDialect.cpp.inc`
+
+All `.inc` files appear in `build/include/Dialect/toy` (assuming the `.td` files
+are in `include/Dialect/toy`).
 
 Every `mlir-tblgen` run takes `Toy.td` as input. This `Toy.td` file should therefore
 `include` all other relevant `.td` files (e.g. `ToyDialect.td`).
