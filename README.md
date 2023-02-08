@@ -105,6 +105,40 @@ So, a separate Transforms library would require a separate
 `Transforms` directory inside `lib/Dialect/toy`, with its own `CMakeLists.txt`.
 
 
+# ODS
+Operations defined in ODS (`.td` file) generate the following C++ class names:
+- `MyNameOp` -> `class MyNameOp`
+- `Idk_MyNameOp` -> `class MyNameOp` (!!)
+- `Idk_Wtf_MyNameOp` -> `class Wtf_MyNameOp`
+In other words: if the name starts with `XXX_`, this part is omitted!
+
+# Standard Ops
+
+## Syntax
+Operation with a region:
+```mlir
+"dialect.opname"() ( { <blocks> } ) : <function-type>
+```
+where the `()` indicate a list of regions, and each region is indicated by `{}`.
+
+A region `{}` consists of blocks `^b:`.
+A region `{}` may start directly with operations: they are in an implict entry block.
+
+A block `^b:` can have arguments, written as e.g. `^b(%a: i32):`
+
+Operation with a successor (e.g. `cf.br`):
+```mlir
+"dialect.opname"() [^b1] : <function-type>
+```
+
+
+## Module
+Traits (among others):
+- `NoTerminator` (from `GraphRegionNoTerminator` list): region does not have a terminator
+- `SingleBlock` (from `GraphRegionNoTerminator` list): region can only have 0 or 1 blocks
+
+
+
 # Tools
 
 `mlir-tblgen` is like a compiler that takes input source files (`.td` files) and also requires you to set include directories with `-I`. It's in `{llvm_build}/bin/` (built) or `/usr/local/bin` (installed).
@@ -146,5 +180,6 @@ Apparently `TypeDef` should be used to create custom types.
 
 ## Useful llvm source files:
 - `llvm/mlir/include/mlir/IR/OpBase.td`
+- `llvm/mlir/include/mlir/IR/BuiltinOps.td`
 - `llvm/mlir/include/mlir/IR/AttrTypeBase.td`
 - `llvm/mlir/include/mlir/IR/Types.h`
