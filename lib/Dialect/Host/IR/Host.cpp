@@ -11,17 +11,17 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/DialectImplementation.h"
 
-#include "Dialect/Host/Host.h"
-#include "Dialect/Host/HostDialect.h"
-#include "Dialect/Host/HostTypes.h.inc"
+#include "Dialect/Host/IR/Host.h"
+#include "Dialect/Host/IR/HostDialect.h"
+#include "Dialect/Host/IR/HostTypes.h.inc"
 
 using namespace mlir;
 using namespace mlir::host;
 
 // include generated source code for operations
 #define GET_OP_CLASSES
-#include "Dialect/Host/Host.cpp.inc"
+#include "Dialect/Host/IR/Host.cpp.inc"
 
 // include generated source code for types
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/Host/HostTypes.cpp.inc"
+#include "Dialect/Host/IR/HostTypes.cpp.inc"

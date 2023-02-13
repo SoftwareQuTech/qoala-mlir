@@ -1,1 +1,1 @@
-add_mlir_dialect(Host host)
+add_subdirectory(IR)

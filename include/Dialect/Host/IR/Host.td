@@ -6,8 +6,8 @@
 
 include "mlir/IR/OpBase.td"
 
-include "Dialect/Host/HostDialect.td"
-include "Dialect/Host/HostTypes.td"
-include "Dialect/Host/HostOps.td"
+include "Dialect/Host/IR/HostDialect.td"
+include "Dialect/Host/IR/HostTypes.td"
+include "Dialect/Host/IR/HostOps.td"
 
 #endif // HOST_TD

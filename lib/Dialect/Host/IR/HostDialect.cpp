@@ -5,8 +5,8 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/Host/HostDialect.h"
-#include "Dialect/Host/Host.h"
+#include "Dialect/Host/IR/HostDialect.h"
+#include "Dialect/Host/IR/Host.h"
 
 // important! otherwise the source code in this inc file is not linked into the lib
 #include "Dialect/Host/HostDialect.cpp.inc"
@@ -20,11 +20,11 @@ void HostDialect::initialize()
 
     addOperations<
 #define GET_OP_LIST
-#include "Dialect/Host/Host.cpp.inc"
+#include "Dialect/Host/IR/Host.cpp.inc"
         >();
 
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "Dialect/Host/HostTypes.cpp.inc"
+#include "Dialect/Host/IR/HostTypes.cpp.inc"
         >();
 }

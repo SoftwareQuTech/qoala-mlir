@@ -3,7 +3,7 @@
 
 include "mlir/IR/AttrTypeBase.td"
 
-include "Dialect/Host/HostDialect.td"
+include "Dialect/Host/IR/HostDialect.td"
 
 class Host_Type<string name, string typeMnemonic, list<Trait> traits = []> 
     : TypeDef<Host_Dialect, name, traits> {

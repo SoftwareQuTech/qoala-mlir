@@ -5,8 +5,8 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 
-#include "Dialect/Host/HostDialect.h"
-#include "Dialect/Host/Host.h"
+#include "Dialect/Host/IR/HostDialect.h"
+#include "Dialect/Host/IR/Host.h"
 
 int main(int argc, char **argv)
 {

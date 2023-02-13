@@ -133,11 +133,25 @@ Operation with a successor (e.g. `cf.br`):
 
 
 ## Module
+- Dialect: `Builtin_Dialect`, name: `builtin`
+- Full Op name: `builtin.module`
+
 Traits (among others):
 - `NoTerminator` (from `GraphRegionNoTerminator` list): region does not have a terminator
-- `SingleBlock` (from `GraphRegionNoTerminator` list): region can only have 0 or 1 blocks
+- `SingleBlock` (from `GraphRegionNoTerminator` list): region must have exactly 1 block
+- **TODO**
 
 
+## Function
+- Dialect: `Func_Dialect`, name: `func`
+- Full Op name: `func.func`
+
+Traits/Interfaces (among others):
+- `FunctionOpInterface`: means
+  - single region
+  - must have ODS `function_type` TypeAttr (used by `getFunctionType()`)
+  - must have ODS `sym_name` StringAttr (used by `getSymbolAttrName()`)
+  - must have ODS `sym_visibility` StringAttr 
 
 # Tools
 

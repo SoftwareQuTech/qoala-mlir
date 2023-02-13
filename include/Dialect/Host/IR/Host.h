@@ -18,10 +18,10 @@
 
 // FIRST include typedef classes, THEN op classes (latter needs decls of former)
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/Host/HostTypes.h.inc"
+#include "Dialect/Host/IR/HostTypes.h.inc"
 
 #define GET_OP_CLASSES
-#include "Dialect/Host/Host.h.inc"
+#include "Dialect/Host/IR/Host.h.inc"
 
 using namespace mlir;
 

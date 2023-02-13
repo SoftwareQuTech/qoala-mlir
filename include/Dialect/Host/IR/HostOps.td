@@ -19,8 +19,8 @@ include "mlir/IR/OpAsmInterface.td"
 // Note that Host.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-include "Dialect/Host/HostDialect.td"
-include "Dialect/Host/HostTypes.td"
+include "Dialect/Host/IR/HostDialect.td"
+include "Dialect/Host/IR/HostTypes.td"
 
 
 class Host_Op<string mnemonic, list<Trait> traits = []> :
