@@ -11,16 +11,10 @@
 //         // attributes
 //         function_type = () -> (),
 //         sym_name = "func1",
-//         sym_visibility="private"
+//         sym_visibility="public"
 //     } : () -> ()
 
 // }) : () -> ()
-
-module {
-    func.func @main() {
-        func.return
-    }
-}
 
 // "builtin.module"() ({
 //     "func.func"()({}) {"function_type"= () -> (), "sym_name" = "func1"} : () -> ()

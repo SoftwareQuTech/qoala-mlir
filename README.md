@@ -151,6 +151,16 @@ Traits/Interfaces (among others):
   - single region
   - must have ODS `function_type` TypeAttr (used by `getFunctionType()`)
   - must have ODS `sym_name` StringAttr (used by `getSymbolAttrName()`)
+
+## Branch
+- Dialect: `ControlFlow_Dialect`, name: `cg`
+- Full Op name: `cf.br`
+
+Traits/Interfaces (among others):
+- `FunctionOpInterface`: means
+  - single region
+  - must have ODS `function_type` TypeAttr (used by `getFunctionType()`)
+  - must have ODS `sym_name` StringAttr (used by `getSymbolAttrName()`)
   - must have ODS `sym_visibility` StringAttr 
 
 # Tools
@@ -158,6 +168,9 @@ Traits/Interfaces (among others):
 `mlir-tblgen` is like a compiler that takes input source files (`.td` files) and also requires you to set include directories with `-I`. It's in `{llvm_build}/bin/` (built) or `/usr/local/bin` (installed).
 
 
+The default `mlir-cpu-runner` in `llvm/build/bin` does not register any dialects.
+`tools/interpreter` contains a copy of the source code of `mlir-cpu-runner` but does register all dialects. It can interpret ops in the LLVM Dialect (`llvm.mlir`) directly.
+Other ops may or may not be valid, depending on whether there is a translation interface implemented for it.
 
 # Misc
 Be careful when `#include`ing `.h.inc` files. You may or may not want to
