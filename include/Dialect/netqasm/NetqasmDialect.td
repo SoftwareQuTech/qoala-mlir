@@ -9,7 +9,7 @@ def Netqasm_Dialect : Dialect {
   let cppNamespace = "::mlir::netqasm";
 
   // Use new fold API, see https://discourse.llvm.org/t/psa-new-improved-fold-method-signature-has-landed-please-update-your-downstream-projects/67618
-  let useFoldAPI = kEmitFoldAdaptorFolder;
+  // let useFoldAPI = kEmitFoldAdaptorFolder;
 
   // If 1, don't need to manually provide `parseType` and `printType` methods
   // in dialect source (cpp) file
