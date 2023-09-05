@@ -71,7 +71,7 @@ def ReturnOp : Netqasm_Op<"return", [NoMemoryEffect, HasParent<"SubroutineOp">,
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
   // let arguments = (ins Variadic<I32>:$classical, Variadic<F64>:$quantum);
-  let arguments = (ins I32:$classical, F64:$quantum);
+  let arguments = (ins I32:$classical, CommQubitType:$quantum);
 }
 
 

@@ -197,7 +197,7 @@ Inside a pass, one may call `applyPatternsAndFoldGreedily()` with a set of `Patt
 
 
 ## Type vs TypeDef
-`Type` defined in `OpBase.td`, `TypeDef` defined in `AttrTypeBase.td`.
+`Type` defined in `CommonTypeConstraints.td`, `TypeDef` defined in `AttrTypeBase.td`.
 Apparently `TypeDef` should be used to create custom types.
 
 ## Useful llvm source files:

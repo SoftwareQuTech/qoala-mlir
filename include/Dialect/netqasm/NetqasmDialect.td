@@ -10,7 +10,7 @@ def Netqasm_Dialect : Dialect {
 
   // If 1, don't need to manually provide `parseType` and `printType` methods
   // in dialect source (cpp) file
-  // let useDefaultTypePrinterParser = 1;
+  let useDefaultTypePrinterParser = 1;
 }
 
 #endif // NETQASM_DIALECT_TD
