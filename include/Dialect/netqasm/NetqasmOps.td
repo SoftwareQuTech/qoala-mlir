@@ -5,9 +5,10 @@ include "mlir/IR/OpBase.td"
 
 // Needed for FunctionOpInterface
 // Note that Netqasm.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
-include "mlir/IR/FunctionInterfaces.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Bytecode/BytecodeOpInterface.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
@@ -56,6 +57,11 @@ def SubroutineOp : Netqasm_Op<"subroutine", [FunctionOpInterface, IsolatedFromAb
 
     /// Returns the result types of this function.
     ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+  
+    /// Returns the region on the current operation that is callable. This may
+    /// return null in the case of an external callable object, e.g. an external
+    /// function.
+    ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
   }];
 }
 

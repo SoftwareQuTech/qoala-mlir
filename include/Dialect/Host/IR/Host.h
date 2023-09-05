@@ -7,7 +7,7 @@
 #include "mlir/IR/BuiltinAttributes.h"
 
 // Needed for [FunctionOpInterface] in the .td file.
-#include "mlir/IR/FunctionInterfaces.h"
+#include "mlir/Interfaces/FunctionInterfaces.h"
 
 // Needed for [NoMemoryEffect] in the .td file.
 #include "mlir/Interfaces/SideEffectInterfaces.h"

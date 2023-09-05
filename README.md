@@ -25,19 +25,14 @@ sudo cmake --build . --target install
 
 ## Build this repo
 
-This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build everything, run
+This setup assumes that you have built LLVM and MLIR in `./llvm/build` and installed them to `/usr/local`. To build everything, run
 ```sh
 mkdir build && cd build
-cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit
+cmake -G Ninja .. -DMLIR_DIR=/usr/local/lib/cmake/mlir
 cmake --build . 
 ```
-**Note**: Make sure to pass `-DLLVM_INSTALL_UTILS=ON` when building LLVM with CMake in order to install `FileCheck` to the chosen installation prefix.
 
-
-- `$PREFIX` (install location) is by default `/usr/local`.
-- `$BUILD_DIR` (build location) is by default the `build` directory inside the `llvm-project` git repo.
-- Cannot use "~" in the cmake command, have to use `/home/<user>` !
-
+- Assumes that the install location is `/usr/local`.
 
 ## Test if everything works
 All from within `build/`:
