@@ -205,3 +205,9 @@ Apparently `TypeDef` should be used to create custom types.
 - `llvm/mlir/include/mlir/IR/BuiltinOps.td`
 - `llvm/mlir/include/mlir/IR/AttrTypeBase.td`
 - `llvm/mlir/include/mlir/IR/Types.h`
+
+
+
+## Misc
+`op-result-list` cannot be surrounded by parentheses!
+So you cannot write `(%0, %1) = <op> ...` but it must be `%0, %1 = <op> ...`

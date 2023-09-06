@@ -4,7 +4,7 @@
 include "mlir/IR/OpBase.td"
 
 // Needed for FunctionOpInterface
-// Note that Netqasm.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
+// Note that Netqasm.h also needs to include "mlir/Interfaces/FunctionInterfaces.h" !
 include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
@@ -40,9 +40,10 @@ def SubroutineOp : Netqasm_Op<"subroutine", [FunctionOpInterface, IsolatedFromAb
   // part with "TypeAttrOf" is needed for compiling lib!
   // "$function_type" together with "kEmitAccessorPrefix_Prefixed" in Dialect
   // makes sure "getFunctionType()" exists
-  let arguments = (ins SymbolNameAttr:$sym_name, TypeAttrOf<FunctionType>:$function_type,
+  let arguments = (ins SymbolNameAttr:$sym_name,
+    TypeAttrOf<FunctionType>:$function_type,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
-    OptionalAttr<DictArrayAttr>:$res_attrs );
+    OptionalAttr<DictArrayAttr>:$res_attrs);
 
   let regions = (region AnyRegion:$body);
 
@@ -74,6 +75,41 @@ def ReturnOp : Netqasm_Op<"return", [NoMemoryEffect, HasParent<"SubroutineOp">,
   let arguments = (ins I32:$classical, CommQubitType:$quantum);
 }
 
+def CallOp : Netqasm_Op<"call", [CallOpInterface, MemRefsNormalizable,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  // The return operation takes an optional input operand to return. This
+  // value must match the return type of the enclosing function.
+  // let arguments = (ins Variadic<I32>:$classical, Variadic<F64>:$quantum);
+  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<AnyType>:$operands);
+  let results = (outs Variadic<AnyType>);
+
+  let extraClassDeclaration = [{
+    FunctionType getCalleeType();
+
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    MutableOperandRange getArgOperandsMutable() {
+      return getOperandsMutable();
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    CallInterfaceCallable getCallableForCallee() {
+      return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+    }
+
+    /// Set the callee for this operation.
+    void setCalleeFromCallable(CallInterfaceCallable callee) {
+      (*this)->setAttr("callee", callee.get<SymbolRefAttr>());
+    }
+  }];
+}
+
 
 def ConstantOp : Netqasm_Op<"constant"> {
     let arguments = (ins I32Attr:$value);
@@ -91,7 +127,7 @@ def NewCommQubitOp : Netqasm_QuantumOp<"new_comm_qubit"> {
 }
 
 def EntangleKeepOp : Netqasm_QuantumOp<"entangle_keep"> {
-    let results = (outs F64:$qout, I1:$success);
+    let results = (outs EntQubitType:$qout, I1:$success);
 }
 
 def EntangleMeasureOp : Netqasm_QuantumOp<"entangle_measure"> {
