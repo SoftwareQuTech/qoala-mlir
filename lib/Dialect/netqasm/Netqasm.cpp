@@ -62,3 +62,45 @@ LogicalResult CallOp::verifySymbolUses(SymbolTableCollection &symbolTable)
 
     return success();
 }
+
+LogicalResult EntangleKeepOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote_node");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote_node' symbol reference attribute");
+    RemoteNodeOp fn = symbolTable.lookupNearestSymbolFrom<RemoteNodeOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult SendMsgOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote_node");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote_node' symbol reference attribute");
+    RemoteNodeOp fn = symbolTable.lookupNearestSymbolFrom<RemoteNodeOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult ReceiveMsgOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote_node");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote_node' symbol reference attribute");
+    RemoteNodeOp fn = symbolTable.lookupNearestSymbolFrom<RemoteNodeOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}

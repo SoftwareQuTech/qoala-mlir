@@ -33,13 +33,12 @@ class Netqasm_QuantumOp<string mnemonic, list<Trait> traits = []> :
 class Netqasm_ClassicalOp<string mnemonic, list<Trait> traits = []> :
   Netqasm_Op<mnemonic, traits>;
 
+def RemoteNodeOp: Netqasm_Op<"remote_node", [Symbol]>;
 
 // `IsolatedFromAbove` is needed for running an OperationPass on it.
 def SubroutineOp : Netqasm_Op<"subroutine", [FunctionOpInterface, IsolatedFromAbove]> {
 
   // part with "TypeAttrOf" is needed for compiling lib!
-  // "$function_type" together with "kEmitAccessorPrefix_Prefixed" in Dialect
-  // makes sure "getFunctionType()" exists
   let arguments = (ins SymbolNameAttr:$sym_name,
     TypeAttrOf<FunctionType>:$function_type,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
@@ -71,7 +70,7 @@ def ReturnOp : Netqasm_Op<"return", [NoMemoryEffect, HasParent<"SubroutineOp">,
                                  Terminator]> {
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
-  // let arguments = (ins Variadic<I32>:$classical, Variadic<F64>:$quantum);
+  // let arguments = (ins Variadic<I32>:$classical, Variadic<QubitType>:$quantum);
   let arguments = (ins I32:$classical, CommQubitType:$quantum);
 }
 
@@ -79,7 +78,7 @@ def CallOp : Netqasm_Op<"call", [CallOpInterface, MemRefsNormalizable,
      DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
-  // let arguments = (ins Variadic<I32>:$classical, Variadic<F64>:$quantum);
+  // let arguments = (ins Variadic<I32>:$classical, Variadic<QubitType>:$quantum);
   let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<AnyType>:$operands);
   let results = (outs Variadic<AnyType>);
 
@@ -119,47 +118,75 @@ def ConstantOp : Netqasm_Op<"constant"> {
 
 
 def NewQubitOp : Netqasm_QuantumOp<"new_qubit"> {
-    let results = (outs F64:$qout);
+    let results = (outs QubitType:$qout);
 }
 
 def NewCommQubitOp : Netqasm_QuantumOp<"new_comm_qubit"> {
     let results = (outs CommQubitType:$qout);
 }
 
-def EntangleKeepOp : Netqasm_QuantumOp<"entangle_keep"> {
+def EntangleKeepWithFailOp : Netqasm_QuantumOp<"entangle_keep_with_fail"> {
     let results = (outs EntQubitType:$qout, I1:$success);
 }
 
-def EntangleMeasureOp : Netqasm_QuantumOp<"entangle_measure"> {
-    let results = (outs F64:$qout);
+def EntangleKeepOp: Netqasm_QuantumOp<"entangle_keep",
+                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote_node);
+    let results = (outs EntQubitType:$qout);
 }
 
-def SendMsgOp : Netqasm_ClassicalOp<"send_msg"> {
+def EntangleMeasureOp : Netqasm_QuantumOp<"entangle_measure"> {
+    let results = (outs QubitType:$qout);
+}
+
+def EntToLocal : Netqasm_QuantumOp<"ent_to_local"> {
+  let arguments = (ins EntQubitType:$qin);
+  let results = (outs QubitType:$qout);
+}
+
+def SendMsgOp : Netqasm_ClassicalOp<"send_msg",
+              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins I32:$cin);
 }
 
-def ReceiveMsgOp : Netqasm_ClassicalOp<"receive_msg"> {
+def ReceiveMsgOp : Netqasm_ClassicalOp<"receive_msg",
+              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let results = (outs I32:$cout);
 }
 
 def AngleGateOp : Netqasm_QuantumOp<"angle_gate"> {
-  let arguments = (ins F64:$qin, F64:$cin);
-  let results = (outs F64:$qout);
+  let arguments = (ins QubitType:$qin, F32:$cin);
+  let results = (outs QubitType:$qout);
+}
+
+def RotateZOp : Netqasm_QuantumOp<"rot_z"> {
+  let arguments = (ins QubitType:$qin, I32:$cin);
+  let results = (outs QubitType:$qout);
 }
 
 def GateOp : Netqasm_QuantumOp<"gate"> {
-  let arguments = (ins F64:$qin);
-  let results = (outs F64:$qout);
+  let arguments = (ins QubitType:$qin);
+  let results = (outs QubitType:$qout);
+}
+
+def HadamardOp : Netqasm_QuantumOp<"had"> {
+  let arguments = (ins QubitType:$qin);
+  let results = (outs QubitType:$qout);
 }
 
 def TwoQubitGateOp : Netqasm_QuantumOp<"two_qubit_gate"> {
-  let arguments = (ins F64:$qin0, F64:$qin1);
-  let results = (outs F64:$qout0, F64:$qout1);
+  let arguments = (ins QubitType:$qin0, QubitType:$qin1);
+  let results = (outs QubitType:$qout0, QubitType:$qout1);
+}
+
+def CphaseOp : Netqasm_QuantumOp<"cphase"> {
+  let arguments = (ins QubitType:$qin0, QubitType:$qin1);
+  let results = (outs QubitType:$qout0, QubitType:$qout1);
 }
 
 def MeasureOp : Netqasm_QuantumOp<"measure"> {
-  let arguments = (ins F64:$qin);
-  let results = (outs F64:$cout);
+  let arguments = (ins QubitType:$qin);
+  let results = (outs I1:$cout);
 }
 
 def AddOp : Netqasm_ClassicalOp<"add"> {

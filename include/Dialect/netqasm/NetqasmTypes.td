@@ -11,6 +11,7 @@ class Netqasm_Type<string name, string typeMnemonic, list<Trait> traits = []>
 }
 
 def CommQubitType: Netqasm_Type<"CommQubit", "cqubit">;
+def QubitType: Netqasm_Type<"Qubit", "qubit">;
 def EntQubitType: Netqasm_Type<"EntQubit", "equbit">;
 
 #endif // NETQASM_TYPES_TD
