@@ -1,5 +1,5 @@
 "builtin.module"() ({
-    "netqasm.remote_node"() {"sym_name" = "client"} : () -> ()
+    "netqasm.remote_node"() {sym_name = "client"} : () -> ()
 
     "func.func"() ({
         %q0 = "netqasm.entangle_keep"() {remote_node = @client} : () -> !netqasm.equbit
