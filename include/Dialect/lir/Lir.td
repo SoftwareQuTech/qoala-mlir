@@ -1,13 +1,13 @@
-#ifndef HOST_TD
-#define HOST_TD
+#ifndef LIR_TD
+#define LIR_TD
 
 // This file is the one that is used as input to mlir-tblgen.
 // It should include the other .td files (including Dialect, Types, etc).
 
 include "mlir/IR/OpBase.td"
 
-include "Dialect/Host/IR/HostDialect.td"
-include "Dialect/Host/IR/HostTypes.td"
-include "Dialect/Host/IR/HostOps.td"
+include "Dialect/lir/LirDialect.td"
+include "Dialect/lir/LirTypes.td"
+include "Dialect/lir/LirOps.td"
 
-#endif // HOST_TD
+#endif // LIR_TD

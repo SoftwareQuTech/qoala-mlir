@@ -1,5 +1,5 @@
-#ifndef HOST_H
-#define HOST_H
+#ifndef LIR_H
+#define LIR_H
 
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -8,6 +8,7 @@
 
 // Needed for [FunctionOpInterface] in the .td file.
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 
 // Needed for [NoMemoryEffect] in the .td file.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
@@ -18,11 +19,11 @@
 
 // FIRST include typedef classes, THEN op classes (latter needs decls of former)
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/Host/IR/HostTypes.h.inc"
+#include "Dialect/lir/LirTypes.h.inc"
 
 #define GET_OP_CLASSES
-#include "Dialect/Host/IR/Host.h.inc"
+#include "Dialect/lir/Lir.h.inc"
 
 using namespace mlir;
 
-#endif // HOST_H
+#endif // LIR_H

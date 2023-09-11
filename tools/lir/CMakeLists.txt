@@ -6,7 +6,7 @@ set(LIBS
     ${conversion_libs}
     MLIROptLib
     )
-add_llvm_executable(host-opt host-opt.cpp)
+add_llvm_executable(lir-opt lir_opt.cpp)
 
-llvm_update_compile_flags(host-opt)
-target_link_libraries(host-opt PRIVATE ${LIBS})
+llvm_update_compile_flags(lir-opt)
+target_link_libraries(lir-opt PRIVATE ${LIBS})

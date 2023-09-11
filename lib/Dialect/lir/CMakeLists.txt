@@ -1,9 +1,9 @@
-add_mlir_dialect_library(MLIRHost
-    HostDialect.cpp
-    Host.cpp
+add_mlir_dialect_library(MLIRLir
+    LirDialect.cpp
+    Lir.cpp
 
     DEPENDS
-    MLIRHostIncGen
+    MLIRLirIncGen
 
     LINK_LIBS PUBLIC
     MLIRIR

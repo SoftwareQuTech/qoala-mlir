@@ -5,14 +5,14 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 
-#include "Dialect/Host/IR/HostDialect.h"
-#include "Dialect/Host/IR/Host.h"
+#include "Dialect/lir/LirDialect.h"
+#include "Dialect/lir/Lir.h"
 
 int main(int argc, char **argv)
 {
     mlir::DialectRegistry registry;
     registerAllDialects(registry);
-    registry.insert<mlir::host::HostDialect>();
+    registry.insert<mlir::lir::LirDialect>();
 
     mlir::registerAllPasses();
 
@@ -23,5 +23,5 @@ int main(int argc, char **argv)
     mlir::PassManager pm(&context);
 
     return failed(
-        mlir::MlirOptMain(argc, argv, "Qoala iHost optimizer\n", registry));
+        mlir::MlirOptMain(argc, argv, "Qoala LIR-M optimizer\n", registry));
 }
