@@ -14,4 +14,10 @@ def CommQubitType: Lir_Type<"CommQubit", "cqubit">;
 def QubitType: Lir_Type<"Qubit", "qubit">;
 def EntQubitType: Lir_Type<"EntQubit", "equbit">;
 
+def NoisyQubitType: Lir_Type<"NoisyQubit", "nqubit"> {
+  let parameters = (ins "unsigned":$fidelity);
+
+  let assemblyFormat = "`<` `fid` `=` $fidelity `>`";
+}
+
 #endif // LIR_TYPES_TD

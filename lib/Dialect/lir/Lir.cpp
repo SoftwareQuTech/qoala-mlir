@@ -3,6 +3,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/Support/LLVM.h"
 #include "llvm/ADT/ArrayRef.h"
 // #include "mlir/IR/FunctionImplementation.h"
@@ -103,4 +104,25 @@ LogicalResult ReceiveMsgOp::verifySymbolUses(SymbolTableCollection &symbolTable)
                              << "' does not reference a valid remote node";
 
     return success();
+}
+
+ParseResult SubroutineOp::parse(OpAsmParser &parser, OperationState &result)
+{
+    auto buildFuncType =
+        [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+           function_interface_impl::VariadicFlag,
+           std::string &)
+    { return builder.getFunctionType(argTypes, results); };
+
+    return function_interface_impl::parseFunctionOp(
+        parser, result, /*allowVariadic=*/false,
+        getFunctionTypeAttrName(result.name), buildFuncType,
+        getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+}
+
+void SubroutineOp::print(OpAsmPrinter &p)
+{
+    function_interface_impl::printFunctionOp(
+        p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+        getArgAttrsAttrName(), getResAttrsAttrName());
 }

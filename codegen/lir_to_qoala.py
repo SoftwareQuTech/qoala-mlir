@@ -16,6 +16,10 @@ from qoala.lang.program import BasicBlock, BasicBlockType, ProgramMeta, QoalaPro
 from qoala.lang.routine import LocalRoutine, RoutineMetadata
 
 from codegen.lir import LirOp, parse_lir_file
+from llvm.build.tools.mlir.python_packages.mlir_core.mlir._mlir_libs._mlir.ir import (
+    Context,
+    Module,
+)
 
 
 class RegisterManager:
@@ -197,4 +201,13 @@ class CodeGenerator:
 
 
 if __name__ == "__main__":
-    CodeGenerator("programs/lir/bqc_server.mlir").generate()
+    # CodeGenerator("programs/lir/bqc_server.mlir").generate()
+
+    with Context() as ctx:
+        # with open("programs/lir/bqc_server_bare.mlir", "r") as f:
+        with open("programs/lir/bqc_server_simple.mlir", "r") as f:
+            text = f.read()
+            # print(text)
+
+        module = Module.parse(text)
+        print(module)

@@ -10,7 +10,7 @@ mkdir build && cd build
 
 Configure:
 ```
-cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_INSTALL_UTILS=ON
+cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_INSTALL_UTILS=ON -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DPython3_EXECUTABLE=/home/bart/.venv/qoala-mlir/bin/python3
 ```
 
 Build (should produce files in `./llvm/build`)
@@ -211,3 +211,5 @@ Apparently `TypeDef` should be used to create custom types.
 ## Misc
 `op-result-list` cannot be surrounded by parentheses!
 So you cannot write `(%0, %1) = <op> ...` but it must be `%0, %1 = <op> ...`
+
+To print the generic (non-custom) format of MLIR operations, pass `--mlir-print-op-generic` to `mlir-opt`.

@@ -63,6 +63,8 @@ def SubroutineOp : Lir_Op<"subroutine", [FunctionOpInterface, IsolatedFromAbove]
     /// function.
     ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
   }];
+
+  let hasCustomAssemblyFormat = 1;
 }
 
 
@@ -71,7 +73,10 @@ def ReturnOp : Lir_Op<"return", [NoMemoryEffect, HasParent<"SubroutineOp">,
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
   // let arguments = (ins Variadic<I32>:$classical, Variadic<QubitType>:$quantum);
-  let arguments = (ins I32:$classical, CommQubitType:$quantum);
+  // let arguments = (ins I32:$classical, QubitType:$quantum);
+  let arguments = (ins Variadic<AnyType>:$operands);
+
+  let assemblyFormat = "attr-dict ($operands^ `:` type($operands))?";
 }
 
 def CallOp : Lir_Op<"call", [CallOpInterface, MemRefsNormalizable,
@@ -107,6 +112,10 @@ def CallOp : Lir_Op<"call", [CallOpInterface, MemRefsNormalizable,
       (*this)->setAttr("callee", callee.get<SymbolRefAttr>());
     }
   }];
+
+  let assemblyFormat = [{
+    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
 }
 
 
@@ -132,7 +141,11 @@ def EntangleKeepWithFailOp : Lir_QuantumOp<"entangle_keep_with_fail"> {
 def EntangleKeepOp: Lir_QuantumOp<"entangle_keep",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote_node);
-    let results = (outs EntQubitType:$qout);
+    let results = (outs QubitType:$qout);
+
+  let assemblyFormat = [{
+    $remote_node attr-dict
+  }];
 }
 
 def EntangleMeasureOp : Lir_QuantumOp<"entangle_measure"> {
@@ -151,7 +164,13 @@ def SendMsgOp : Lir_ClassicalOp<"send_msg",
 
 def ReceiveMsgOp : Lir_ClassicalOp<"receive_msg",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+
+    let arguments = (ins FlatSymbolRefAttr:$remote_node);
     let results = (outs I32:$cout);
+
+  let assemblyFormat = [{
+    $remote_node attr-dict `:` type($cout)
+  }];
 }
 
 def AngleGateOp : Lir_QuantumOp<"angle_gate"> {
@@ -162,6 +181,10 @@ def AngleGateOp : Lir_QuantumOp<"angle_gate"> {
 def RotateZOp : Lir_QuantumOp<"rot_z"> {
   let arguments = (ins QubitType:$qin, I32:$cin);
   let results = (outs QubitType:$qout);
+
+  let assemblyFormat = [{
+    $qin `,` $cin attr-dict
+  }];
 }
 
 def GateOp : Lir_QuantumOp<"gate"> {
@@ -172,6 +195,10 @@ def GateOp : Lir_QuantumOp<"gate"> {
 def HadamardOp : Lir_QuantumOp<"had"> {
   let arguments = (ins QubitType:$qin);
   let results = (outs QubitType:$qout);
+
+  let assemblyFormat = [{
+    $qin attr-dict
+  }];
 }
 
 def TwoQubitGateOp : Lir_QuantumOp<"two_qubit_gate"> {
@@ -187,6 +214,10 @@ def CphaseOp : Lir_QuantumOp<"cphase"> {
 def MeasureOp : Lir_QuantumOp<"measure"> {
   let arguments = (ins QubitType:$qin);
   let results = (outs I1:$cout);
+
+  let assemblyFormat = [{
+    $qin attr-dict
+  }];
 }
 
 def AddOp : Lir_ClassicalOp<"add"> {
