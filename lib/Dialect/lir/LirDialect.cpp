@@ -40,11 +40,11 @@
  *   40 | struct NoisyQubitTypeStorage;
  * The correct declaration (and definition) of the struct is available in the "Dialect/lir/Dialect.h.inc" file
  * (provided that we use the #define GET_TYPEDEF_CLASSES, just like in "Lir.h"). This makes this file compile, however
- * *it makes fail the linking of `lir-opt`*, since the class defintion is found twice in the linked libraries (once here,
+ * *it makes fail the linking of `lir-opt`, since the class defintion is found twice in the linked libraries (once here,
  * and once in the libMLIRLir.a, since Lir.cpp also uses the"Dialect/lir/Dialect.h.inc with the #define GET_TYPEDEF_CLASSES macro).
  * BARCKGROUND: Since C and C++ share the linker, a struct/class definition (struct/class name that contains methods) need to be
  * translated by the compiler into something that the linker can understand. To this end, the compiler will simply "extract" the
- * methods and translated their named into the mangled ones, and export those sumbols in the binary. After this happens (at compile
+ * methods and translated their named into the mangled ones, and export those symbols in the binary. After this happens (at compile
  * time), a C++ class or struct is not different from a C struct or union. The mangled names only become meaningful at runtime,
  * since the dispatcher needs to know which method to invoke; for this, it uses the mangled name of the method.
  * SOLUTION: Knowing this we can simply insert a "shell" *declaration* of the struct here (declaring the inheritance), so the

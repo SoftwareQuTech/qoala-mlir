@@ -1,9 +1,17 @@
 # Qoala MLIR
 
+## LLVM git submodule
+*IMPORTANT:* This repository contains a link to the LLVM repository as a git submodule.
+Right after checking out this repository, you need to initialize and checkout the LLVM
+submodule by running:
+```sh
+git submodule update --init
+```
+
 ## Required packages
 Before going into the compilation, we need to install a few build tools. In Debian-like distros:
 ```shell
-sudo apt-get install build-essential cmake ninka python3-full python3-dev
+sudo apt-get install build-essential cmake ninja python3-full python3-dev
 ```
 
 ## Recommended packages
@@ -42,7 +50,7 @@ mkdir build && cd build
 
 Configure (Optionally, set the clang compiler here:):
 ```shell
-cmake -G Ninja ../llvm
+cmake -G Ninja ../llvm \
       -DCMAKE_C_COMPILER=clang-17 \
       -DCMAKE_CXX_COMPILER=clang++-17 \
       -DCMAKE_LINKER=ld.ldd-17 \
