@@ -11,7 +11,7 @@ git submodule update --init
 ## Required packages
 Before going into the compilation, we need to install a few build tools. In Debian-like distros:
 ```shell
-sudo apt-get install build-essential cmake ninja python3-full python3-dev
+sudo apt-get install build-essential cmake ninja-build python3-full python3-dev
 ```
 
 ## Recommended packages
