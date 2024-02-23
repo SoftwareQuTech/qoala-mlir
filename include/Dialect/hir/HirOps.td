@@ -74,4 +74,61 @@ def RecvFloatsOp : Hir_Op<"recv_floats",
     let results = (outs TensorOf<[F32]>:$cout);
 }
 
+
+def NewQubitOp : Hir_Op<"new_qubit"> {
+    let results = (outs QubitType:$qout);
+}
+
+def RotXOp : Hir_Op<"rot_x"> {
+  let arguments = (ins QubitType:$qin, F32:$angle);
+  let results = (outs QubitType:$qout);
+}
+
+def RotYOp : Hir_Op<"rot_y"> {
+  let arguments = (ins QubitType:$qin, F32:$angle);
+  let results = (outs QubitType:$qout);
+}
+
+def RotZOp : Hir_Op<"rot_z"> {
+  let arguments = (ins QubitType:$qin, F32:$angle);
+  let results = (outs QubitType:$qout);
+}
+
+def HadamardOp : Hir_Op<"hadamard"> {
+  let arguments = (ins QubitType:$qin);
+  let results = (outs QubitType:$qout);
+}
+
+def CnotOp : Hir_Op<"cnot"> {
+  let arguments = (ins QubitType:$qin0, QubitType:$qin1);
+  let results = (outs QubitType:$qout0, QubitType:$qout1);
+}
+
+def CzOp : Hir_Op<"cz"> {
+  let arguments = (ins QubitType:$qin0, QubitType:$qin1);
+  let results = (outs QubitType:$qout0, QubitType:$qout1);
+}
+
+def CrotXOp : Hir_Op<"crot_x"> {
+  let arguments = (ins QubitType:$qin0, QubitType:$qin1, F32:$angle);
+  let results = (outs QubitType:$qout0, QubitType:$qout1);
+}
+
+def MeasureOp : Hir_Op<"measure"> {
+  let arguments = (ins QubitType:$qin0);
+  let results = (outs I1:$outcome);
+}
+
+def EprsOp: Hir_Op<"eprs",
+                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let results = (outs TensorOf<[QubitType]>:$qout);
+}
+
+def EprsMeasureOp: Hir_Op<"eprs_measure",
+                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let results = (outs TensorOf<[I1]>:$outcomes);
+}
+
 #endif // HIR_OPS_TD
