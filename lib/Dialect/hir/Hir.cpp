@@ -26,3 +26,60 @@ using namespace mlir::hir;
 // include generated source code for types
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/hir/HirTypes.cpp.inc"
+
+
+LogicalResult SendIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult RecvIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult SendFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult RecvFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
