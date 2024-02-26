@@ -105,6 +105,9 @@ cmake --build . --target hir-opt
 ```
 
 ## Run tests
+Note: `hir-opt` needs to be on your PATH.
+(TODO: figure out how to point `llvm-lit` to `build/bin/hir-opt` instead.)
+
 ```sh
 ./llvm/build/bin/llvm-lit test
 ```
