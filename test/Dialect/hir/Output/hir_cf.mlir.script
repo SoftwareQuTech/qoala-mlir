@@ -1,1 +1,0 @@
-set -o pipefail;set -x;{ : 'RUN: at line 1';   hir-opt /home/bart/repos/qoala-mlir/test/Dialect/hir/hir_cf.mlir | FileCheck /home/bart/repos/qoala-mlir/test/Dialect/hir/hir_cf.mlir; }
