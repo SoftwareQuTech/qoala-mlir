@@ -1,3 +1,5 @@
+add_subdirectory(Analysis)
+
 add_mlir_dialect_library(MLIRHir
     HirDialect.cpp
     Hir.cpp

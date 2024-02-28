@@ -8,6 +8,8 @@
 #include "Dialect/hir/HirDialect.h"
 #include "Dialect/hir/Hir.h"
 
+#include "Dialect/hir/Passes.h"
+
 int main(int argc, char **argv)
 {
     mlir::DialectRegistry registry;
@@ -15,6 +17,7 @@ int main(int argc, char **argv)
     registry.insert<mlir::hir::HirDialect>();
 
     mlir::registerAllPasses();
+    mlir::registerHirPasses();
 
     mlir::registerViewOpGraphPass();
 
