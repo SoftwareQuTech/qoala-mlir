@@ -25,6 +25,10 @@ namespace
 
 } // namespace
 
+/*
+ * Helper function to quickly check if a mlir::Operation* can be
+ * casted into one of the Op classes provided as a list.
+ */
 template <typename T, typename... Rest>
 bool tryCast(mlir::Operation *op)
 {
@@ -58,6 +62,7 @@ void HirCheckLinearPass::runOnOperation()
                 {
       if (isQuantumOp(op))
       {
+        // For all ops that produce quantum values, check the results.
         for (auto result : op->getResults())
         {
           // Check if the result value has zero or one use.
