@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
   mlir::MLIRContext context;
 
   mlir::PassManager pm(&context);
-  // pm.addPass(mlir::createHirCheckLinearPass());
 
   return failed(
       mlir::MlirOptMain(argc, argv, "Qoala HIR optimizer\n", registry));
