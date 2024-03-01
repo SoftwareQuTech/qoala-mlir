@@ -1,8 +1,8 @@
 #ifndef HIR_PASSES_H_
 #define HIR_PASSES_H_
 
-#include "mlir/Pass/Pass.h"
 #include "Dialect/hir/HirDialect.h"
+#include "mlir/Pass/Pass.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
