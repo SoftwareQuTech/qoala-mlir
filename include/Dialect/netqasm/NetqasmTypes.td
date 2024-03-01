@@ -10,8 +10,6 @@ class Netqasm_Type<string name, string typeMnemonic, list<Trait> traits = []>
   let mnemonic = typeMnemonic;
 }
 
-def CommQubitType: Netqasm_Type<"CommQubit", "cqubit">;
-def QubitType: Netqasm_Type<"Qubit", "qubit">;
-def EntQubitType: Netqasm_Type<"EntQubit", "equbit">;
+def VirtualQubitType: Netqasm_Type<"VirtualQubit", "vqubit">;
 
 #endif // NETQASM_TYPES_TD
