@@ -33,14 +33,14 @@ declare_mlir_dialect_python_bindings(
 # To check how the types need to be declared, see:
 # https://github.com/llvm/circt/blob/218617cf1f6b1a5058bee178076ee9197429132e/lib/Bindings/Python/HWModule.cpp
 # TODO - Implement the QoalaHIR extension to register the quantum types
-#declare_mlir_python_extension(QoalaHirPythonSources.Extension
-#        MODULE_NAME _qoalaQirTypes
-#        ADD_TO_PARENT QoalaHirPythonSources
-#        SOURCES
-#            QoalaHirExtension.cpp
-#        EMBED_CAPI_LINK_LIBS
-#            QoalaHirCAPI
-#)
+declare_mlir_python_extension(QoalaHirPythonSources.Extension
+        MODULE_NAME _qoalaQirTypes
+        ADD_TO_PARENT QoalaHirPythonSources
+        SOURCES
+            QoalaHirExtension.cpp
+        EMBED_CAPI_LINK_LIBS
+            QoalaHirCAPI
+)
 
 # Registration of the plugin. We need to link a python library, containing *ALL* of the
 # MLIR libraries, which takes a long time and creates a python plugin of around 150MB.

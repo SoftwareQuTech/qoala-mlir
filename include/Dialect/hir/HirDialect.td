@@ -11,6 +11,9 @@ def Hir_Dialect : Dialect {
   // If 1, don't need to manually provide `parseType` and `printType` methods
   // in dialect source (cpp) file
   let useDefaultTypePrinterParser = 1;
+  let extraClassDeclaration = [{
+    void registerTypes();
+  }];
 }
 
 #endif // HIR_DIALECT_TD

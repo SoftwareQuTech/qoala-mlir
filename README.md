@@ -85,13 +85,14 @@ sudo cmake --build . --target install
 
 ## Build this repo
 
-This setup assumes that you have built LLVM and MLIR in `./llvm/build` and installed them to `/opt/mlir/usr/local` (as
-configured in the LLVM/MLIR compilation line shown above). Before running this command, pleas make sure that you have
-activated the python virtual environment created for LLVM.
+This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has been installed to `/opt/mlir/usr/local`
+(as configured in the LLVM/MLIR compilation line shown above), and your python virtual environment is located in the
+folder `/path/to/your/venvs/llvm-venv`. Before running this command, please make sure that you have activated the python
+virtual environment created for LLVM.
 To build everything, run
 ```sh
 (llvm-venv)$ mkdir build && cd build
-(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir
+(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
 
