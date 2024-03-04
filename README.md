@@ -33,7 +33,7 @@ cd /path/to/your/venvs
 python3 -m venv llvm-venv # "llvm-venv" is the name of out python virtual environment
 ```
 
-Activate the python virtual environemtn and install the [requirements for the MLIR python bindings](https://mlir.llvm.org/docs/Bindings/Python/#pre-requisites)
+Activate the python virtual environment and install the [requirements for the MLIR python bindings](https://mlir.llvm.org/docs/Bindings/Python/#pre-requisites)
 ```shell
 source /path/to/your/venvs/llvm-venv/bin/activate
 cd llvm # The root folder of the llvm project
@@ -48,12 +48,19 @@ Create `build` directory:
 mkdir build && cd build
 ```
 
-Configure (Optionally, set the clang compiler here:):
+Configure (Optionally, set the clang compiler here).
+**IMPORTANT**: It is highly recommended to use the `-DCMAKE_INSTALL_PREFIX` option to configure a different
+installation prefix of the LLVM/MLIR files. In the example below, we use the prefix `/opt/mlir`, so LLVM/MLIR will be
+installed in the `/opt/mlir/usr/local` folder. This is needed to _avoid leaving another clang/LLVM installation in an
+inconsistent state_, so we can use clang as the compiler, and the required version of the MLIR for this repository.
+Please also note that the installation prefix needs to be configured **before compiling** LLVM/MLIR; it **cannot**
+be specified when running the `install` target later.
 ```shell
 cmake -G Ninja ../llvm \
       -DCMAKE_C_COMPILER=clang-17 \
       -DCMAKE_CXX_COMPILER=clang++-17 \
       -DCMAKE_LINKER=ld.ldd-17 \
+      -DCMAKE_INSTALL_PREFIX=/opt/mlir \
       -DLLVM_ENABLE_PROJECTS=mlir \
       -DLLVM_BUILD_EXAMPLES=ON \
       -DLLVM_TARGETS_TO_BUILD="X86" \
@@ -63,7 +70,8 @@ cmake -G Ninja ../llvm \
       -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
       -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 ```
-Please note that we need to specify the python executable _from the virtual environment_. Otherwise, the MLIR python requirements will not be available when needed.
+*Warning*: We need to specify the python executable _from the virtual environment_. Otherwise, the MLIR python
+requirements will not be available when needed.
 
 Build llvm according to the configuration (should produce the compiled files in `./llvm/build`)
 ```shell
@@ -77,14 +85,13 @@ sudo cmake --build . --target install
 
 ## Build this repo
 
-This setup assumes that you have built LLVM and MLIR in `./llvm/build` and installed them to `/usr/local`. To build everything, run
+This setup assumes that you have built LLVM and MLIR in `./llvm/build` and installed them to `/opt/mlir/usr/local` (as
+configured in the LLVM/MLIR compilation line shown above). To build everything, run
 ```sh
 mkdir build && cd build
-cmake -G Ninja .. -DMLIR_DIR=/usr/local/lib/cmake/mlir
+cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir
 cmake --build . 
 ```
-
-- Assumes that the install location is `/usr/local`.
 
 ## Build a specific dialect
 All from within `build/`:
