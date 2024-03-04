@@ -36,8 +36,8 @@ python3 -m venv llvm-venv # "llvm-venv" is the name of out python virtual enviro
 Activate the python virtual environment and install the [requirements for the MLIR python bindings](https://mlir.llvm.org/docs/Bindings/Python/#pre-requisites)
 ```shell
 source /path/to/your/venvs/llvm-venv/bin/activate
-cd llvm # The root folder of the llvm project
-pip install -r mlir/python/requirements.txt
+(llvm-venv)$ cd llvm # The root folder of the llvm project
+(llvm-venv)$ pip install -r mlir/python/requirements.txt
 ```
 
 ## Build LLVM
@@ -86,11 +86,13 @@ sudo cmake --build . --target install
 ## Build this repo
 
 This setup assumes that you have built LLVM and MLIR in `./llvm/build` and installed them to `/opt/mlir/usr/local` (as
-configured in the LLVM/MLIR compilation line shown above). To build everything, run
+configured in the LLVM/MLIR compilation line shown above). Before running this command, pleas make sure that you have
+activated the python virtual environment created for LLVM.
+To build everything, run
 ```sh
-mkdir build && cd build
-cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir
-cmake --build . 
+(llvm-venv)$ mkdir build && cd build
+(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir
+(llvm-venv)$ cmake --build . 
 ```
 
 ## Build a specific dialect
