@@ -48,7 +48,7 @@ Create `build` directory:
 mkdir build && cd build
 ```
 
-Configure (Optionally, set the clang compiler here).
+Configure (Optionally, set the clang compiler here. Please change the suffix `-17` to match the LLVM version you have).
 **IMPORTANT**: It is highly recommended to use the `-DCMAKE_INSTALL_PREFIX` option to configure a different
 installation prefix of the LLVM/MLIR files. In the example below, we use the prefix `/opt/mlir`, so LLVM/MLIR will be
 installed in the `/opt/mlir/usr/local` folder. This is needed to _avoid leaving another clang/LLVM installation in an
@@ -59,7 +59,7 @@ be specified when running the `install` target later.
 cmake -G Ninja ../llvm \
       -DCMAKE_C_COMPILER=clang-17 \
       -DCMAKE_CXX_COMPILER=clang++-17 \
-      -DCMAKE_LINKER=ld.ldd-17 \
+      -DCMAKE_LINKER=ld.lld-17 \
       -DCMAKE_INSTALL_PREFIX=/opt/mlir \
       -DLLVM_ENABLE_PROJECTS=mlir \
       -DLLVM_BUILD_EXAMPLES=ON \
@@ -89,10 +89,23 @@ This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has
 (as configured in the LLVM/MLIR compilation line shown above), and your python virtual environment is located in the
 folder `/path/to/your/venvs/llvm-venv`. Before running this command, please make sure that you have activated the python
 virtual environment created for LLVM.
-To build everything, run
-```sh
+To build everything, run (see below to use `clang/LLVM` as the compiler toolchain)
+```shell
 (llvm-venv)$ mkdir build && cd build
 (llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
+(llvm-venv)$ cmake --build . 
+```
+
+To compile with `clang`, execute these commands (Please change the suffix `-17` to match the LLVM version you have):
+```shell
+(llvm-venv)$ mkdir build && cd build
+(llvm-venv)$ 
+(llvm-venv)$ LD=ld.ldd-17 cmake -G Ninja .. \
+                                -DCMAKE_C_COMPILER=clang-17 \
+                                -DCMAKE_CXX_COMPILER=clang++-17 \
+                                -DCMAKE_LINKER=ld.ldd-17 \
+                                -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir \
+                                -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
 
@@ -100,17 +113,17 @@ To build everything, run
 All from within `build/`:
 
 Try to run tablegen for the Hir dialect (uses stuff in `include/Dialect/hir`):
-```sh
+```shell
 cmake --build . --target MLIRHirIncGen
 ```
 
 Try to build Netqasm dialect library (uses stuff in `lib/Dialect/hir`, relies on `MLIRHirIncGen`):
-```sh
+```shell
 cmake --build . --target MLIRHir
 ```
 
 Try to build Netqasm dialect optimizer tool (uses stuff in `tools/hir`, relies on `MLIRHir`):
-```sh
+```shell
 cmake --build . --target hir-opt
 ```
 
@@ -118,7 +131,7 @@ cmake --build . --target hir-opt
 Note: `hir-opt` needs to be on your PATH.
 (TODO: figure out how to point `llvm-lit` to `build/bin/hir-opt` instead.)
 
-```sh
+```shell
 ./llvm/build/bin/llvm-lit test
 ```
 
@@ -133,5 +146,57 @@ From within the `graphs` directory:
 
 View graph with `xdot bqc_server_hir.gv`.
 
+## Using the generating python bindings
 
+### Runtime requirements
+
+Before using the python bindings, it is required to install a few python libraries in your python virtual environment.
+The LLVM source project comes with a `requirements.txt` file that contains the list of packages that need to be
+installed before using any MLIR python bindings.
+
+To install the requirements, execute these commands:
+```shell
+source /path/to/your/venvs/runtime-venv/bin/activate
+(runtime-venv)$ cd /path/to/root/llvm # The root folder of the llvm project
+(runtime-venv)$ pip install -r mlir/python/requirements.txt
+```
+
+After running this, the python virtual environment is ready to  be used with the MLIR python bindings.
+
+
+### Directly using the compiled libraries in the `build` folder
+
+The simplest way to use the compiled python bindings is to add the path to the `PYTHONPATH`. There are several ways to
+do this:
+
+#### Modify your `activate` script:
+
+A simple way to do this is to update your python path in the activation script of your virtual environment. In this way
+you don't need to worry about updating this variable every time you execute a python script.
+
+Open the `/path/to/your/venvs/runtime-venv/bin/activate` file with your favorite text editor, and add the following line
+at the end of that file:
+```
+export PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qoala_hir_bindings
+```
+
+Save the file, and reactivate the virtual environment if it was active in any terminal.
+
+#### Execute your python  script with the updated python path
+
+A more "manual" approach is to simply set the right value of the `PYTHONPATH` variable every time you want to execute a
+python script with the MLIR python bindings.
+
+To do this, simply attach the updated python path variable before invoking the python command:
+```shell
+(runtime-venv)$ PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qoala_hir_bindings python3 python_script.py
+```
+Please note that you need to add the definition _every time_ you want ot run a python script with the MLIR bindings.
+Additionally, you need to add this extra setting _once you have activated your python virtual environment_.
+
+
+### Using the python wheel to install the python bindings
+
+TODO - Pywheel is not generated yet. Generate the wheel to depend on _all_ the dependencies specified by MLIR in the
+file `mlir/python/requirements.txt`
 
