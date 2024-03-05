@@ -11,6 +11,7 @@ add_mlir_dialect_library(MLIRHir
 
     DEPENDS
     MLIRHirIncGen
+    MLIRHirPassIncGen
 
     LINK_LIBS PUBLIC
     MLIRIR
