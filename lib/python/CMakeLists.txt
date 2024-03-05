@@ -4,7 +4,7 @@ include(AddMLIRPython)
 include(MLIRDetectPythonEnv)
 mlir_configure_python_dev_packages()
 
-add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=qoala.hir.")
+add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=qoalahir.")
 
 declare_mlir_python_sources(QoalaHirPythonSources)
 
@@ -49,8 +49,8 @@ declare_mlir_python_extension(QoalaHirPythonSources.Extension
 add_mlir_python_common_capi_library(QoalaHirPythonCAPI
         INSTALL_COMPONENT QoalaHirPythonModules
         INSTALL_DESTINATION python_packages/qoala_hir_bindings/mlir/_mlir_libs
-        OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoala/hir/_mlir_libs"
-        RELATIVE_INSTALL_ROOT "../../../.."
+        OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir/_mlir_libs"
+        RELATIVE_INSTALL_ROOT "../../.."
         DECLARED_SOURCES
             QoalaHirPythonSources
             # TODO: Remove this in favor of showing fine grained registration once
@@ -62,8 +62,8 @@ add_mlir_python_common_capi_library(QoalaHirPythonCAPI
 # Instantiation of the python extensions
 # This
 add_mlir_python_modules(QoalaHirPythonModules
-        ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoala/hir"
-        INSTALL_PREFIX "python_packages/qoala_hir_bindings/qoala/hir"
+        ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir"
+        INSTALL_PREFIX "python_packages/qoala_hir_bindings/qoalahir"
         DECLARED_SOURCES
             QoalaHirPythonSources
             MLIRPythonExtension.RegisterEverything
