@@ -182,7 +182,7 @@ export PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qoala_hir
 
 Save the file, and reactivate the virtual environment if it was active in any terminal.
 
-#### Execute your python  script with the updated python path
+#### Execute your python script with the updated python path
 
 A more "manual" approach is to simply set the right value of the `PYTHONPATH` variable every time you want to execute a
 python script with the MLIR python bindings.

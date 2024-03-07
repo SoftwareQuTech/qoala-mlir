@@ -23,10 +23,6 @@ using namespace mlir::hir;
 #define GET_OP_CLASSES
 #include "Dialect/hir/Hir.cpp.inc"
 
-// include generated source code for types
-#define GET_TYPEDEF_CLASSES
-#include "Dialect/hir/HirTypes.cpp.inc"
-
 LogicalResult SendIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   // Check that the callee attribute was specified.
   auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");

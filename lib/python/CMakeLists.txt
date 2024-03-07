@@ -40,6 +40,8 @@ declare_mlir_python_extension(QoalaHirPythonSources.Extension
             QoalaHirExtension.cpp
         EMBED_CAPI_LINK_LIBS
             QoalaHirCAPI
+        PRIVATE_LINK_LIBS
+            LLVMSupport
 )
 
 # Registration of the plugin. We need to link a python library, containing *ALL* of the
@@ -48,26 +50,33 @@ declare_mlir_python_extension(QoalaHirPythonSources.Extension
 # linking of the final python plugin.
 add_mlir_python_common_capi_library(QoalaHirPythonCAPI
         INSTALL_COMPONENT QoalaHirPythonModules
-        INSTALL_DESTINATION python_packages/qoala_hir_bindings/mlir/_mlir_libs
+        INSTALL_DESTINATION python_packages/qoala_hir_bindings/qoalahir/_mlir_libs
         OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir/_mlir_libs"
-        RELATIVE_INSTALL_ROOT "../../.."
+        RELATIVE_INSTALL_ROOT "../../../.."
         DECLARED_SOURCES
-            QoalaHirPythonSources
-            # TODO: Remove this in favor of showing fine grained registration once
-            # available.
-            MLIRPythonExtension.RegisterEverything
             MLIRPythonSources.Core
+            QoalaHirPythonSources.Extension
+            # We no longer bring "everything" (all the dialects) in the linkage.
+            # This means that compilation is faster and the generated library is lighter
+            # This also means that we now need to "include" the mlir_core python bindings
+            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+            #MLIRPythonExtension.RegisterEverything
 )
 
 # Instantiation of the python extensions
-# This
 add_mlir_python_modules(QoalaHirPythonModules
         ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir"
         INSTALL_PREFIX "python_packages/qoala_hir_bindings/qoalahir"
         DECLARED_SOURCES
+            # We no longer bring "everything" (all the dialects) in the linkage.
+            # This means that compilation is faster and the generated library is lighter
+            # This also means that we now need to "include" the mlir_core python bindings
+            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+            #MLIRPythonExtension.RegisterEverything
+            MLIRPythonSources.Core
+            MLIRPythonSources.Dialects.builtin
+            QoalaHirPythonSources.Extension
             QoalaHirPythonSources
-            MLIRPythonExtension.RegisterEverything
-            MLIRPythonSources
         COMMON_CAPI_LINK_LIBS
             QoalaHirPythonCAPI
 )

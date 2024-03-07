@@ -15,10 +15,11 @@ add_mlir_dialect_library(MLIRHir
 
     LINK_LIBS PUBLIC
     MLIRIR
+    MLIRInferTypeOpInterface
+    MLIRFuncDialect
 
     LINK_LIBS PRIVATE
     MLIRAnalysis
-    MLIRIR
     MLIRParser
     MLIRSideEffectInterfaces
     MLIRTransforms
