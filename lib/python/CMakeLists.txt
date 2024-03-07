@@ -54,13 +54,13 @@ add_mlir_python_common_capi_library(QoalaHirPythonCAPI
         OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir/_mlir_libs"
         RELATIVE_INSTALL_ROOT "../../../.."
         DECLARED_SOURCES
-            MLIRPythonSources.Core
             QoalaHirPythonSources.Extension
+            MLIRPythonExtension.RegisterEverything
+            MLIRPythonSources.Core
             # We no longer bring "everything" (all the dialects) in the linkage.
             # This means that compilation is faster and the generated library is lighter
             # This also means that we now need to "include" the mlir_core python bindings
             # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
-            #MLIRPythonExtension.RegisterEverything
 )
 
 # Instantiation of the python extensions
@@ -72,11 +72,10 @@ add_mlir_python_modules(QoalaHirPythonModules
             # This means that compilation is faster and the generated library is lighter
             # This also means that we now need to "include" the mlir_core python bindings
             # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
-            #MLIRPythonExtension.RegisterEverything
-            MLIRPythonSources.Core
-            MLIRPythonSources.Dialects.builtin
             QoalaHirPythonSources.Extension
             QoalaHirPythonSources
+            MLIRPythonExtension.RegisterEverything
+            MLIRPythonSources
         COMMON_CAPI_LINK_LIBS
             QoalaHirPythonCAPI
 )
