@@ -4,7 +4,7 @@ include(AddMLIRPython)
 include(MLIRDetectPythonEnv)
 mlir_configure_python_dev_packages()
 
-add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=qoala.hir.")
+add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=qoalahir.")
 
 declare_mlir_python_sources(QoalaHirPythonSources)
 
@@ -33,14 +33,16 @@ declare_mlir_dialect_python_bindings(
 # To check how the types need to be declared, see:
 # https://github.com/llvm/circt/blob/218617cf1f6b1a5058bee178076ee9197429132e/lib/Bindings/Python/HWModule.cpp
 # TODO - Implement the QoalaHIR extension to register the quantum types
-#declare_mlir_python_extension(QoalaHirPythonSources.Extension
-#        MODULE_NAME _qoalaQirTypes
-#        ADD_TO_PARENT QoalaHirPythonSources
-#        SOURCES
-#            QoalaHirExtension.cpp
-#        EMBED_CAPI_LINK_LIBS
-#            QoalaHirCAPI
-#)
+declare_mlir_python_extension(QoalaHirPythonSources.Extension
+        MODULE_NAME _qoalaQirTypes
+        ADD_TO_PARENT QoalaHirPythonSources
+        SOURCES
+            QoalaHirExtension.cpp
+        EMBED_CAPI_LINK_LIBS
+            QoalaHirCAPI
+        PRIVATE_LINK_LIBS
+            LLVMSupport
+)
 
 # Registration of the plugin. We need to link a python library, containing *ALL* of the
 # MLIR libraries, which takes a long time and creates a python plugin of around 150MB.
@@ -48,23 +50,29 @@ declare_mlir_dialect_python_bindings(
 # linking of the final python plugin.
 add_mlir_python_common_capi_library(QoalaHirPythonCAPI
         INSTALL_COMPONENT QoalaHirPythonModules
-        INSTALL_DESTINATION python_packages/qoala_hir_bindings/mlir/_mlir_libs
-        OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoala/hir/_mlir_libs"
+        INSTALL_DESTINATION python_packages/qoala_hir_bindings/qoalahir/_mlir_libs
+        OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir/_mlir_libs"
         RELATIVE_INSTALL_ROOT "../../../.."
         DECLARED_SOURCES
-            QoalaHirPythonSources
-            # TODO: Remove this in favor of showing fine grained registration once
-            # available.
+            QoalaHirPythonSources.Extension
             MLIRPythonExtension.RegisterEverything
             MLIRPythonSources.Core
+            # We no longer bring "everything" (all the dialects) in the linkage.
+            # This means that compilation is faster and the generated library is lighter
+            # This also means that we now need to "include" the mlir_core python bindings
+            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
 )
 
 # Instantiation of the python extensions
-# This
 add_mlir_python_modules(QoalaHirPythonModules
-        ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoala/hir"
-        INSTALL_PREFIX "python_packages/qoala_hir_bindings/qoala/hir"
+        ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qoala_hir_bindings/qoalahir"
+        INSTALL_PREFIX "python_packages/qoala_hir_bindings/qoalahir"
         DECLARED_SOURCES
+            # We no longer bring "everything" (all the dialects) in the linkage.
+            # This means that compilation is faster and the generated library is lighter
+            # This also means that we now need to "include" the mlir_core python bindings
+            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+            QoalaHirPythonSources.Extension
             QoalaHirPythonSources
             MLIRPythonExtension.RegisterEverything
             MLIRPythonSources
