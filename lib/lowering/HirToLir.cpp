@@ -1,4 +1,3 @@
-#include "Dialect/hir/Passes.h"
 #include "lowering/HIRToLIR.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
@@ -8,12 +7,17 @@ namespace mlir {
 #include "lowering/HIRToLIR.h.inc"
 }
 
-class HIRtoLIRPass : public mlir::impl::HIRtoLIRBase<HIRtoLIRPass> {
+using namespace mlir;
+
+class HIRtoLIRPass : public impl::HIRtoLIRBase<HIRtoLIRPass> {
 public:
-    void runOnOperation() override {
-        // TODO
-    }
+    void runOnOperation() override;
 };
+
+void HIRtoLIRPass::runOnOperation()  {
+    // TODO
+    ModuleOp module = mlir::OperationPass<ModuleOp>::getOperation();
+}
 
 std::unique_ptr<mlir::Pass> mlir::createHirToLirPass() {
     return std::make_unique<HIRtoLIRPass>();

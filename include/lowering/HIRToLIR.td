@@ -13,7 +13,9 @@ def HIRtoLIR : Pass<"lower-qoala-hir-to-lir", "mlir::ModuleOp"> {
     This pass lowers all the instances of the Qoala HIR dialect to the LIR dialect.
   }];
   let constructor = "::mlir::createHirToLirPass()";
-  //let dependentDialects = ["::mlir::lir::Lir_Dialect"];
+  // Since we lower HIR to LIR, we need to depend on both dialects to create
+  // valid MLIR
+  let dependentDialects = ["hir::HirDialect", "lir::LirDialect"];
 }
 
 #endif /* HIR_TO_LIR_PASS */
