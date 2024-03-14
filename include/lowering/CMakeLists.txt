@@ -1,0 +1,5 @@
+set(LLVM_TARGET_DEFINITIONS HIRToLIR.td)
+mlir_tablegen(HIRToLIR.h.inc -gen-pass-decls -name HirToLir)
+mlir_tablegen(HIRToLIR.capi.h.inc -gen-pass-capi-header --prefix HirToLir)
+mlir_tablegen(HIRToLIR.capi.cpp.inc -gen-pass-capi-impl --prefix HirToLir)
+add_public_tablegen_target(MLIRHirToLirPassIncGen)
