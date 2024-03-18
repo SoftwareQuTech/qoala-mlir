@@ -17,7 +17,6 @@ using namespace qoala::helpers;
 class HIRtoLIRPass : public mlir::impl::HIRtoLIRBase<HIRtoLIRPass> {
 public:
     void runOnOperation() override;
-
 };
 
 void HIRtoLIRPass::runOnOperation()  {
