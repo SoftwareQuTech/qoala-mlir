@@ -1,5 +1,6 @@
 add_mlir_conversion_library(MLIRHirToLirPass
         HirToLir.cpp
+        HIRToLIRPatterns.cpp
         Helpers.cpp
 
         ADDITIONAL_HEADER_DIRS

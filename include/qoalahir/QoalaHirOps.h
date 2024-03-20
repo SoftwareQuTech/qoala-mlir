@@ -8,6 +8,6 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
 #define GET_OP_CLASSES
-#include "Dialect/hir/HirOps.h.inc"
+#include "Dialect/hir/Hir.h.inc"
 
 #endif // QOALAHIR_QOALAHIROPS_H

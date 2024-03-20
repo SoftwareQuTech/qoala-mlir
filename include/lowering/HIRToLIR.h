@@ -1,10 +1,12 @@
 #ifndef QOALA_MLIR_HIRTOLIR_H
 #define QOALA_MLIR_HIRTOLIR_H
+#include "mlir/Pass/Pass.h"
 
 // In the Lowering pass, we rely on both HIR and LIR dialects
 #include "Dialect/hir/HirDialect.h"
 #include "Dialect/lir/LirDialect.h"
-#include "mlir/Pass/Pass.h"
+#include "Dialect/hir/Hir.h"
+#include "Dialect/lir/Lir.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
