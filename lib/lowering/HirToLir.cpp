@@ -41,9 +41,6 @@ void HIRtoLIRPass::runOnOperation() {
     target.addDynamicallyLegalOp<hir::RotYOp>([](hir::RotYOp op) {
         return true;
     });
-    target.addDynamicallyLegalOp<hir::RotZOp>([](hir::RotZOp op) {
-        return true;
-    });
     target.addDynamicallyLegalOp<hir::CnotOp>([](hir::CnotOp op) {
         return true;
     });
@@ -53,7 +50,8 @@ void HIRtoLIRPass::runOnOperation() {
     HirQubitToLirQubitTypeConverter typeConverter(&context);
     patterns.add<
             NewQubitOpLowering,
-            MeasureQubitOpLowering
+            MeasureQubitOpLowering,
+            RotZOpLowering
             >(typeConverter, &context);
 
 

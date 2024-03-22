@@ -1,7 +1,9 @@
 #ifndef QOALA_MLIR_HIRTOLIRPATTERNS_H
 #define QOALA_MLIR_HIRTOLIRPATTERNS_H
 #include "mlir/Transforms/DialectConversion.h"
+#include "llvm/Support/Debug.h"
 #include "Dialect/hir/Hir.h"
+#include "Dialect/lir/Lir.h"
 
 namespace qoala::lowering {
 class HirQubitToLirQubitTypeConverter : public TypeConverter {
@@ -9,23 +11,29 @@ public:
     explicit HirQubitToLirQubitTypeConverter(MLIRContext *ctx);
 };
 
-class NewQubitOpLowering : public OpConversionPattern<mlir::hir::NewQubitOp> {
+template <typename SourceOp, typename DestOp>
+class OpLoweringTemplate : public OpConversionPattern<SourceOp> {
 public:
-    NewQubitOpLowering(const TypeConverter &typeConverter, MLIRContext *ctx)
-            : OpConversionPattern(typeConverter, ctx) { }
+    // Constructor simply matches the super class
+    using OpConversionPattern<SourceOp>::OpConversionPattern;
+
     LogicalResult matchAndRewrite(
-            mlir::hir::NewQubitOp op, mlir::hir::NewQubitOp::Adaptor adaptor,
-            ConversionPatternRewriter &rewriter) const override;
+            SourceOp op, typename SourceOp::Adaptor adaptor,
+            ConversionPatternRewriter &rewriter) const override {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        auto newOp = rewriter.replaceOpWithNewOp<DestOp>(op, adaptor.getOperands());
+        return success();
+    }
 };
 
-class MeasureQubitOpLowering : public OpConversionPattern<mlir::hir::MeasureOp> {
-public:
-    MeasureQubitOpLowering(const TypeConverter &typeConverter, MLIRContext *ctx)
-            : OpConversionPattern(typeConverter, ctx) { }
-    LogicalResult matchAndRewrite(
-            mlir::hir::MeasureOp op, OpAdaptor adaptor,
-            ConversionPatternRewriter &rewriter) const override;
-};
+using MeasureQubitOpLowering = OpLoweringTemplate<mlir::hir::MeasureOp, mlir::lir::MeasureOp>;
+
+using NewQubitOpLowering = OpLoweringTemplate<mlir::hir::NewQubitOp, mlir::lir::NewQubitOp>;
+
+using RotZOpLowering = OpLoweringTemplate<mlir::hir::RotZOp, mlir::lir::RotateZOp>;
+
+// TODO - instantiate the template to map operations from one dialect to the other
+
 } //namespace qoala::lowering
 
 #endif //QOALA_MLIR_HIRTOLIRPATTERNS_H
