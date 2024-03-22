@@ -16,4 +16,4 @@ std::unique_ptr<Pass> createHirCheckLinearPass();
 
 } // namespace mlir
 
-#endif // HIL_PASSES_H_
+#endif // HIR_PASSES_H_

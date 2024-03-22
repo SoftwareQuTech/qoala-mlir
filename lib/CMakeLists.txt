@@ -1,3 +1,4 @@
 add_subdirectory(Dialect)
+add_subdirectory(lowering)
 add_subdirectory(qoalahir-capi)
 add_subdirectory(python)

@@ -10,13 +10,28 @@
 
 #include "Dialect/hir/Passes.h"
 
+// Since the lowering pass is part of this opt tool,
+// we need to also link the libraries of the LIR dialect
+#include "Dialect/lir/Lir.h"
+#include "Dialect/lir/LirDialect.h"
+
+//And, of course, we also need the libraries of the lowering pass itself
+#include "lowering/HIRToLIR.h"
+
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
+  // We register all the default dialects from MLIR
   registerAllDialects(registry);
+  // We register all the dialects we are implementing
   registry.insert<mlir::hir::HirDialect>();
+  registry.insert<mlir::lir::LirDialect>();
 
+  // We also register all the passes from MLIR
   mlir::registerAllPasses();
+  // And also the passes from HIR
   mlir::registerHirPasses();
+  // And the pass that lowers HIR to LIR
+  mlir::registerHirToLirPasses();
 
   mlir::registerViewOpGraphPass();
 
