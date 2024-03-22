@@ -4,12 +4,26 @@
 #include "Dialect/hir/Hir.h"
 
 namespace qoala::lowering {
-class NewQubitOpLowering : public ConversionPattern {
+class HirQubitToLirQubitTypeConverter : public TypeConverter {
 public:
-    explicit NewQubitOpLowering(MLIRContext *ctx)
-            : ConversionPattern(mlir::hir::NewQubitOp::getOperationName(), 1, ctx) { }
+    explicit HirQubitToLirQubitTypeConverter(MLIRContext *ctx);
+};
+
+class NewQubitOpLowering : public OpConversionPattern<mlir::hir::NewQubitOp> {
+public:
+    NewQubitOpLowering(const TypeConverter &typeConverter, MLIRContext *ctx)
+            : OpConversionPattern(typeConverter, ctx) { }
     LogicalResult matchAndRewrite(
-            Operation *op, ArrayRef<Value> operands,
+            mlir::hir::NewQubitOp op, mlir::hir::NewQubitOp::Adaptor adaptor,
+            ConversionPatternRewriter &rewriter) const override;
+};
+
+class MeasureQubitOpLowering : public OpConversionPattern<mlir::hir::MeasureOp> {
+public:
+    MeasureQubitOpLowering(const TypeConverter &typeConverter, MLIRContext *ctx)
+            : OpConversionPattern(typeConverter, ctx) { }
+    LogicalResult matchAndRewrite(
+            mlir::hir::MeasureOp op, OpAdaptor adaptor,
             ConversionPatternRewriter &rewriter) const override;
 };
 } //namespace qoala::lowering
