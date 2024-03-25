@@ -19,12 +19,6 @@ using namespace qoala::lowering;
 
 
 class HIRtoLIRPass : public mlir::impl::HIRtoLIRBase<HIRtoLIRPass> {
-    /// Return the dialect that must be loaded in the context before this pass.
-    void getDependentDialects(DialectRegistry &registry) const override {
-        registry.insert<hir::HirDialect>();
-        registry.insert<lir::LirDialect>();
-    }
-
     void runOnOperation() override;
 };
 
@@ -47,19 +41,19 @@ void HIRtoLIRPass::runOnOperation() {
     target.addDynamicallyLegalOp<hir::RotYOp>([](hir::RotYOp op) {
         return true;
     });
-    target.addDynamicallyLegalOp<hir::RotZOp>([](hir::RotZOp op) {
-        return true;
-    });
     target.addDynamicallyLegalOp<hir::CnotOp>([](hir::CnotOp op) {
-        return true;
-    });
-    target.addDynamicallyLegalOp<hir::MeasureOp>([](hir::MeasureOp op) {
         return true;
     });
 
     // We add the conversion pattern to the context
     RewritePatternSet patterns(&context);
-    patterns.add<qoala::lowering::NewQubitOpLowering>(&context);
+    HirQubitToLirQubitTypeConverter typeConverter(&context);
+    patterns.add<
+            NewQubitOpLowering,
+            MeasureQubitOpLowering,
+            RotZOpLowering
+            >(typeConverter, &context);
+
 
     // We finally apply a **partial** conversion, since there will be some operations that will stay... momentarily
     LogicalResult result = mlir::applyPartialConversion(operation, target, std::move(patterns));
