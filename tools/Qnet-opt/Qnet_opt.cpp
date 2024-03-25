@@ -1,18 +1,15 @@
-#include "mlir/IR/AsmState.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
-#include "Dialect/Qnet/Qnet.h"
 #include "Dialect/Qnet/QnetDialect.h"
 
 #include "Dialect/Qnet/Passes.h"
 
 // Since the lowering pass is part of this opt tool,
 // we need to also link the libraries of the LIR dialect
-#include "Dialect/lir/Lir.h"
 #include "Dialect/lir/LirDialect.h"
 
 //And, of course, we also need the libraries of the lowering pass itself
@@ -40,5 +37,5 @@ int main(int argc, char **argv) {
   mlir::PassManager pm(&context);
 
   return failed(
-      mlir::MlirOptMain(argc, argv, "Qoala HIR optimizer\n", registry));
+      mlir::MlirOptMain(argc, argv, "Qoala Qnet optimizer\n", registry));
 }

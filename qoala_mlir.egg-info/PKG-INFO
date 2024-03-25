@@ -73,10 +73,10 @@ Should just print the contents of `netqasm1.mlir`.
 From within the `graphs` directory:
 
 ```
-../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
+../build/bin/qnet-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_qnet.gv
 ``` 
 
-View graph with `xdot bqc_server_hir.gv`.
+View graph with `xdot bqc_server_qnet.gv`.
 
 
 

@@ -30,8 +30,8 @@ void qoala::conversion::QnetToQmemPass::runOnOperation() {
     ConversionTarget target(context);
     // We add the legal dialects that we aim to keep in the target
     target.addLegalDialect<lir::LirDialect>();
-    // We define the hir dialect as "illegal", so the conversion will fail
-    // if there are any hir operations in the converted IR
+    // We define the Qnet dialect as "illegal", so the conversion will fail
+    // if there are any qnet operations in the converted IR
     target.addIllegalDialect<qnet::QnetDialect>();
     // We also declare operations that can be declared legal in the target dialect.
     // We callback argument (which receives the operation involved) can determine if

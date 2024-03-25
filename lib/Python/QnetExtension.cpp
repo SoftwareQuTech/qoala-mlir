@@ -22,7 +22,7 @@ PYBIND11_MODULE(_qnetTypes, m) {
     // We declare a submodule called "qnet_types"
     auto qnetTypesM = m.def_submodule("qnet_types");
 
-    // Registration of the QoalaHir dialect under the "qir_types" module
+    // Registration of the Qnet dialect under the "qir_types" module
     qnetTypesM.def(
             // We define a "register_dialect" function under the "qir_types" module
             "register_dialect",
