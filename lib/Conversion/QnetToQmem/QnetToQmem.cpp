@@ -15,15 +15,15 @@ namespace mlir {
 using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
-using namespace qoala::conversion;
 using namespace qoala::dialects;
 
-
+namespace qoala::conversion {
 class QnetToQmemPass : public mlir::impl::QnetToQmemBase<QnetToQmemPass> {
     void runOnOperation() override;
 };
+} /* namespace qoala::conversion */
 
-void QnetToQmemPass::runOnOperation() {
+void qoala::conversion::QnetToQmemPass::runOnOperation() {
     MLIRContext &context = getContext();
     Operation *operation = getOperation();
     // Get a conversion target to define our target dialects
@@ -53,7 +53,7 @@ void QnetToQmemPass::runOnOperation() {
             NewQubitOpLowering,
             MeasureQubitOpLowering,
             RotZOpLowering
-            >(typeConverter, &context);
+    >(typeConverter, &context);
 
 
     // We finally apply a **partial** conversion, since there will be some operations that will stay... momentarily
@@ -64,5 +64,5 @@ void QnetToQmemPass::runOnOperation() {
 }
 
 std::unique_ptr<mlir::Pass> mlir::createQnetToQmemPass() {
-    return std::make_unique<QnetToQmemPass>();
+    return std::make_unique<qoala::conversion::QnetToQmemPass>();
 }
