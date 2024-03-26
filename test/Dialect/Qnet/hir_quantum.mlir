@@ -1,4 +1,4 @@
-// RUN: qnet-opt %s | FileCheck %s
+// RUN: qoala-opt %s | FileCheck %s
 
 module {
 // CHECK: qnet.new_qubit

@@ -1,4 +1,4 @@
-// RUN: qnet-opt --qnet-check-linear %s 2>&1 | FileCheck %s
+// RUN: qoala-opt --qnet-check-linear %s 2>&1 | FileCheck %s
 
 module {
     %q0 = "qnet.new_qubit"() : () -> !qnet.qubit

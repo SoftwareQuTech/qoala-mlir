@@ -1,4 +1,4 @@
-// RUN: qnet-opt --qnet-check-linear %s --verify-diagnostics
+// RUN: qoala-opt --qnet-check-linear %s --verify-diagnostics
 
 module {
     %q0 = "qnet.new_qubit"() : () -> !qnet.qubit

@@ -124,12 +124,12 @@ cmake --build . --target MLIRQnet
 
 Try to build Netqasm dialect optimizer tool (uses stuff in `tools/qnet`, relies on `MLIRQnet`):
 ```shell
-cmake --build . --target qnet-opt
+cmake --build . --target qoala-opt
 ```
 
 ## Run tests
-Note: `qnet-opt` needs to be on your PATH.
-(TODO: figure out how to point `llvm-lit` to `build/bin/qnet-opt` instead.)
+Note: `qoala-opt` needs to be on your PATH.
+(TODO: figure out how to point `llvm-lit` to `build/bin/qoala-opt` instead.)
 
 ```shell
 ./llvm/build/bin/llvm-lit test
@@ -141,7 +141,7 @@ Note: `qnet-opt` needs to be on your PATH.
 From within the `graphs` directory:
 
 ```
-../build/bin/qnet-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_qnet.gv
+../build/bin/qoala-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_qnet.gv
 ``` 
 
 View graph with `xdot bqc_server_qnet.gv`.
