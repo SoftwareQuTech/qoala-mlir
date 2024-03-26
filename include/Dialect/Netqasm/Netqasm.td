@@ -7,7 +7,6 @@
 include "mlir/IR/OpBase.td"
 
 include "Dialect/Netqasm/NetqasmDialect.td"
-include "Dialect/Netqasm/NetqasmTypes.td"
 include "Dialect/Netqasm/NetqasmOps.td"
 
 #endif // NETQASM_TD

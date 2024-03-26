@@ -21,53 +21,92 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/Netqasm/NetqasmDialect.td"
-include "Dialect/Netqasm/NetqasmTypes.td"
 
 
 class Netqasm_Op<string mnemonic, list<Trait> traits = []> :
   Op<Netqasm_Dialect, mnemonic, traits>;
 
-def DeclareVirtualQubitOp : Netqasm_Op<"decl_vqubit"> {
-  let arguments = (ins I32Attr:$addr);
-  let results = (outs VirtualQubitType:$q);
-}
+def RemoteOp: Netqasm_Op<"remote", [Symbol]>;
 
 def InitOp : Netqasm_Op<"init"> {
-  let arguments = (ins VirtualQubitType:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
 }
 
 def RotateXOp : Netqasm_Op<"rot_x"> {
-  let arguments = (ins VirtualQubitType:$q, I32:$angle_num, I32:$angle_denom);
+  let arguments = (
+    ins Arg<I32, "qubit", [MemWrite]>:$q,
+    I32:$angle_num,
+    I32:$angle_denom
+  );
 }
 
 def RotateYOp : Netqasm_Op<"rot_y"> {
-  let arguments = (ins VirtualQubitType:$q, I32:$angle_num, I32:$angle_denom);
+  let arguments = (
+    ins Arg<I32, "qubit", [MemWrite]>:$q,
+    I32:$angle_num,
+    I32:$angle_denom
+  );
 }
 
 def RotateZOp : Netqasm_Op<"rot_z"> {
-  let arguments = (ins VirtualQubitType:$q, I32:$angle_num, I32:$angle_denom);
+  let arguments = (
+    ins Arg<I32, "qubit", [MemWrite]>:$q,
+    I32:$angle_num,
+    I32:$angle_denom
+  );
 }
 
 def HadamardOp : Netqasm_Op<"hadamard"> {
-  let arguments = (ins VirtualQubitType:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
 }
 
 def CnotOp : Netqasm_Op<"cnot"> {
-  let arguments = (ins VirtualQubitType:$q1, VirtualQubitType:$q2);
+  let arguments = (
+    ins Arg<I32, "qubit1", [MemWrite]>:$q1,
+    Arg<I32, "qubit2", [MemWrite]>:$q2
+  );
 }
 
 def CzOp : Netqasm_Op<"cz"> {
-  let arguments = (ins VirtualQubitType:$q1, VirtualQubitType:$q2);
+  let arguments = (
+    ins Arg<I32, "qubit1", [MemWrite]>:$q1,
+    Arg<I32, "qubit2", [MemWrite]>:$q2
+  );
 }
 
 def CrotXOp : Netqasm_Op<"crot_x"> {
-  let arguments = (ins VirtualQubitType:$q1, VirtualQubitType:$q2, I32:$angle_num, I32:$angle_denom);
+  let arguments = (ins Arg<I32, "qubit1", [MemWrite]>:$q1, Arg<I32, "qubit2", [MemWrite]>:$q2, I32:$angle_num, I32:$angle_denom);
+  let arguments = (
+    ins Arg<I32, "qubit1", [MemWrite]>:$q1,
+    Arg<I32, "qubit2", [MemWrite]>:$q2,
+    I32:$angle_num,
+    I32:$angle_denom
+  );
 }
 
 def MeasureOp : Netqasm_Op<"measure"> {
-  let arguments = (ins VirtualQubitType:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
   let results = (outs I32:$outcome);
 }
 
+
+def EprsOp: Netqasm_Op<"eprs",
+                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let arguments = (
+    ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q,
+    I32Attr:$N,
+    FlatSymbolRefAttr:$remote
+  );
+}
+
+def EprsMeasureOp: Netqasm_Op<"eprs_measure",
+                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+    let arguments = (
+      ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q,
+      I32Attr:$N,
+      FlatSymbolRefAttr:$remote
+    );
+    let results = (outs TensorOf<[I1]>:$outcomes);
+}
 
 #endif // NETQASM_OPS_TD

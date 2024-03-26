@@ -16,8 +16,6 @@ using namespace mlir;
 using namespace qoala::dialects::qmem;
 
 void QmemDialect::initialize() {
-    // addOperations<ConstantOp>();
-
     addOperations<
 #define GET_OP_LIST
 #include "Dialect/Qmem/Qmem.cpp.inc"

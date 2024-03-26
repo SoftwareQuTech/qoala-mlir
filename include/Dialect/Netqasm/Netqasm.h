@@ -17,10 +17,6 @@
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
-// FIRST include typedef classes, THEN op classes (latter needs decls of former)
-#define GET_TYPEDEF_CLASSES
-#include "Dialect/Netqasm/NetqasmTypes.h.inc"
-
 #define GET_OP_CLASSES
 #include "Dialect/Netqasm/Netqasm.h.inc"
 

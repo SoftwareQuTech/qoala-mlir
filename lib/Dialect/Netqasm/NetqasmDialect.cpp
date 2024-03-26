@@ -13,18 +13,11 @@
 #include "Dialect/Netqasm/NetqasmDialect.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::netqasm;
+using namespace qoala::dialects::netqasm;
 
 void NetqasmDialect::initialize() {
-    // addOperations<ConstantOp>();
-
     addOperations<
 #define GET_OP_LIST
 #include "Dialect/Netqasm/Netqasm.cpp.inc"
-        >();
-
-    addTypes<
-#define GET_TYPEDEF_LIST
-#include "Dialect/Netqasm/NetqasmTypes.cpp.inc"
         >();
 }
