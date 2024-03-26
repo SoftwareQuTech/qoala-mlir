@@ -16,15 +16,15 @@ using namespace mlir;
 using namespace qoala::dialects::qmem;
 
 void QmemDialect::initialize() {
-  // addOperations<ConstantOp>();
+    // addOperations<ConstantOp>();
 
-  addOperations<
+    addOperations<
 #define GET_OP_LIST
 #include "Dialect/Qmem/Qmem.cpp.inc"
-      >();
+        >();
 
-  addTypes<
+    addTypes<
 #define GET_TYPEDEF_LIST
 #include "Dialect/Qmem/QmemTypes.cpp.inc"
-      >();
+        >();
 }

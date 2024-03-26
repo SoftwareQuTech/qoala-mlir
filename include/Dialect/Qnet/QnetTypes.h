@@ -6,4 +6,4 @@
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/Qnet/QnetTypes.h.inc"
 
-#endif //QNET_TYPES_H
+#endif // QNET_TYPES_H

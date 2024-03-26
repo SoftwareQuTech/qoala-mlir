@@ -8,8 +8,8 @@
 #include "Dialect/Qnet/Qnet.h"
 #include "Dialect/Qnet/QnetDialect.h"
 
-#include <iostream>
 #include <execinfo.h>
+#include <iostream>
 
 // important! otherwise the source code in this inc file is not linked into the
 // lib
@@ -19,9 +19,9 @@ using namespace mlir;
 using namespace qoala::dialects::qnet;
 
 void QnetDialect::initialize() {
-  registerTypes();
-  addOperations<
+    registerTypes();
+    addOperations<
 #define GET_OP_LIST
 #include "Dialect/Qnet/Qnet.cpp.inc"
-      >();
+        >();
 }

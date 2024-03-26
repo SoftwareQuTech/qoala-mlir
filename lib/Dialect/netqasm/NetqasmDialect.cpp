@@ -16,15 +16,15 @@ using namespace mlir;
 using namespace mlir::netqasm;
 
 void NetqasmDialect::initialize() {
-  // addOperations<ConstantOp>();
+    // addOperations<ConstantOp>();
 
-  addOperations<
+    addOperations<
 #define GET_OP_LIST
 #include "Dialect/Netqasm/Netqasm.cpp.inc"
-      >();
+        >();
 
-  addTypes<
+    addTypes<
 #define GET_TYPEDEF_LIST
 #include "Dialect/Netqasm/NetqasmTypes.cpp.inc"
-      >();
+        >();
 }

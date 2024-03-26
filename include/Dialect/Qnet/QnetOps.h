@@ -10,4 +10,4 @@
 #define GET_OP_CLASSES
 #include "Dialect/qnet/Qnet.h.inc"
 
-#endif //QNETOPS_H
+#endif // QNETOPS_H

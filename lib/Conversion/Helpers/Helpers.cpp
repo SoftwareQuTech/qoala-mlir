@@ -4,16 +4,12 @@ using namespace mlir;
 using namespace qoala::helpers;
 
 namespace qoala::helpers {
-    int indent;
+int indent;
 }
 
-void qoala::helpers::resetIndent() {
-    indent = 0;
-}
+void qoala::helpers::resetIndent() { indent = 0; }
 
-IdentRAII qoala::helpers::pushIndent() {
-    return IdentRAII(++indent);
-}
+IdentRAII qoala::helpers::pushIndent() { return IdentRAII(++indent); }
 
 llvm::raw_ostream &qoala::helpers::printIndent() {
     for (int i = 0; i < indent; ++i)
@@ -33,11 +29,11 @@ void qoala::helpers::printRegion(Region &region) {
 void qoala::helpers::printBlock(Block &block) {
     // Print the block intrinsics properties (basically: argument list)
     printIndent()
-            << "Block with " << block.getNumArguments() << " arguments, "
-            << block.getNumSuccessors()
-            << " successors, and "
-            // Note, this `.size()` is traversing a linked-list and is O(n).
-            << block.getOperations().size() << " operations\n";
+        << "Block with " << block.getNumArguments() << " arguments, "
+        << block.getNumSuccessors()
+        << " successors, and "
+        // Note, this `.size()` is traversing a linked-list and is O(n).
+        << block.getOperations().size() << " operations\n";
 
     // Block main role is to hold a list of Operations: let's recurse.
     auto indent = pushIndent();
@@ -54,8 +50,8 @@ void qoala::helpers::printOperation(Operation *op) {
     if (!op->getAttrs().empty()) {
         printIndent() << op->getAttrs().size() << " attributes:\n";
         for (NamedAttribute attr : op->getAttrs())
-            printIndent() << " - '" << attr.getName().getValue() << "' : '" << attr.getValue()
-                          << "'\n";
+            printIndent() << " - '" << attr.getName().getValue() << "' : '"
+                          << attr.getValue() << "'\n";
     }
 
     // Recurse into each of the regions attached to the operation.
