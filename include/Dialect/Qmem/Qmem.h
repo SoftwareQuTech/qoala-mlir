@@ -18,7 +18,7 @@
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
 #define GET_OP_CLASSES
-#include "Dialect/QMem/QMem.h.inc"
+#include "Dialect/Qmem/Qmem.h.inc"
 
 using namespace mlir;
 

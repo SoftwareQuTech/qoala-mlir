@@ -5,26 +5,26 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/QMem/QMem.h"
-#include "Dialect/QMem/QMemDialect.h"
+#include "Dialect/Qmem/Qmem.h"
+#include "Dialect/Qmem/QmemDialect.h"
 
 // important! otherwise the source code in this inc file is not linked into the
 // lib
-#include "Dialect/QMem/QMemDialect.cpp.inc"
+#include "Dialect/Qmem/QmemDialect.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::qmem;
+using namespace qoala::dialects::qmem;
 
-void QMemDialect::initialize() {
+void QmemDialect::initialize() {
   // addOperations<ConstantOp>();
 
   addOperations<
 #define GET_OP_LIST
-#include "Dialect/QMem/QMem.cpp.inc"
+#include "Dialect/Qmem/Qmem.cpp.inc"
       >();
 
   addTypes<
 #define GET_TYPEDEF_LIST
-#include "Dialect/QMem/QMemTypes.cpp.inc"
+#include "Dialect/Qmem/QmemTypes.cpp.inc"
       >();
 }

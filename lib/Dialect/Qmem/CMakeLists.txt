@@ -1,9 +1,9 @@
-add_mlir_dialect_library(MLIRQMem
-    QMemDialect.cpp
-    QMem.cpp
+add_mlir_dialect_library(MLIRQmem
+    QmemDialect.cpp
+    Qmem.cpp
 
     DEPENDS
-    MLIRQMemIncGen
+    MLIRQmemIncGen
 
     LINK_LIBS PUBLIC
     MLIRIR

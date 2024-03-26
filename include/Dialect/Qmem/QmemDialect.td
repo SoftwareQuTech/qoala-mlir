@@ -3,10 +3,10 @@
 
 include "mlir/IR/DialectBase.td"
 
-def QMem_Dialect : Dialect {
+def Qmem_Dialect : Dialect {
   let name = "qmem";
 
-  let cppNamespace = "::mlir::qmem";
+  let cppNamespace = "qoala::dialects::qmem";
 }
 
 #endif // QMEM_DIALECT_TD

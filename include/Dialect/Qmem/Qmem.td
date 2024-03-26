@@ -6,7 +6,7 @@
 
 include "mlir/IR/OpBase.td"
 
-include "Dialect/QMem/QMemDialect.td"
-include "Dialect/QMem/QMemOps.td"
+include "Dialect/Qmem/QmemDialect.td"
+include "Dialect/Qmem/QmemOps.td"
 
 #endif // QMEM_TD

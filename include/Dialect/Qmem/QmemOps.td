@@ -4,7 +4,7 @@
 include "mlir/IR/OpBase.td"
 
 // Needed for FunctionOpInterface
-// Note that QMem.h also needs to include "mlir/Interfaces/FunctionInterfaces.h" !
+// Note that Qmem.h also needs to include "mlir/Interfaces/FunctionInterfaces.h" !
 include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
@@ -17,89 +17,93 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 
 // Needed for `[NoMemoryEffect]`
-// Note that QMem.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
+// Note that Qmem.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-include "Dialect/QMem/QMemDialect.td"
+include "Dialect/Qmem/QmemDialect.td"
 
 
-class QMem_Op<string mnemonic, list<Trait> traits = []> :
-  Op<QMem_Dialect, mnemonic, traits>;
+class Qmem_Op<string mnemonic, list<Trait> traits = []> :
+  Op<Qmem_Dialect, mnemonic, traits>;
 
 
-def RemoteOp: QMem_Op<"remote", [Symbol]>;
+def RemoteOp: Qmem_Op<"remote", [Symbol]>;
 
-def SendIntsOp : QMem_Op<"send_ints",
+def SendIntsOp : Qmem_Op<"send_ints",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins TensorOf<[I32]>:$cin);
 }
 
-def RecvIntsOp : QMem_Op<"recv_ints",
+def RecvIntsOp : Qmem_Op<"recv_ints",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
 
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I32]>:$cout);
 }
 
-def SendFloatsOp : QMem_Op<"send_floats",
+def SendFloatsOp : Qmem_Op<"send_floats",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins TensorOf<[F32]>:$cin);
 }
 
-def RecvFloatsOp : QMem_Op<"recv_floats",
+def RecvFloatsOp : Qmem_Op<"recv_floats",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
 
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[F32]>:$cout);
 }
 
-def QAllocOp: QMem_Op<"qalloc"> {
+def QAllocOp: Qmem_Op<"qalloc"> {
     let results = (outs I32:$q);
 }
 
-def InitOp : QMem_Op<"init"> {
+def QAllocNOp: Qmem_Op<"qalloc_n"> {
+    let results = (outs MemRefOf<[I32]>:$q);
+}
+
+def InitOp : Qmem_Op<"init"> {
   let arguments = (ins I32:$q);
 }
 
-def RotateXOp : QMem_Op<"rot_x"> {
+def RotateXOp : Qmem_Op<"rot_x"> {
   let arguments = (ins I32:$q, F32:$angle);
 }
 
-def RotateYOp : QMem_Op<"rot_y"> {
+def RotateYOp : Qmem_Op<"rot_y"> {
   let arguments = (ins I32:$q, F32:$angle);
 }
 
-def RotateZOp : QMem_Op<"rot_z"> {
+def RotateZOp : Qmem_Op<"rot_z"> {
   let arguments = (ins I32:$q, F32:$angle);
 }
 
-def HadamardOp : QMem_Op<"hadamard"> {
+def HadamardOp : Qmem_Op<"hadamard"> {
   let arguments = (ins I32:$q);
 }
 
-def CnotOp : QMem_Op<"cnot"> {
+def CnotOp : Qmem_Op<"cnot"> {
   let arguments = (ins I32:$q1, I32:$q2);
 }
 
-def CzOp : QMem_Op<"cz"> {
+def CzOp : Qmem_Op<"cz"> {
   let arguments = (ins I32:$q1, I32:$q2);
 }
 
-def CrotXOp : QMem_Op<"crot_x"> {
+def CrotXOp : Qmem_Op<"crot_x"> {
   let arguments = (ins I32:$q1, I32:$q2, F32:$angle);
 }
 
-def MeasureOp : QMem_Op<"measure"> {
+def MeasureOp : Qmem_Op<"measure"> {
   let arguments = (ins I32:$q);
   let results = (outs I1:$outcome);
 }
 
-def EprsOp: QMem_Op<"eprs",
+def EprsOp: Qmem_Op<"eprs",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   let arguments = (ins MemRefOf<[I32]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
 }
 
-def EprsMeasureOp: QMem_Op<"eprs_measure",
+def EprsMeasureOp: Qmem_Op<"eprs_measure",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins MemRefOf<[I32]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I1]>:$outcomes);
