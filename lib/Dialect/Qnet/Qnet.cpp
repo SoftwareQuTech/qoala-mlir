@@ -24,82 +24,82 @@ using namespace qoala::dialects::qnet;
 #include "Dialect/Qnet/Qnet.cpp.inc"
 
 LogicalResult SendIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }
 
 LogicalResult RecvIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }
 
 LogicalResult
 SendFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }
 
 LogicalResult
 RecvFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }
 
 LogicalResult EprsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }
 
 LogicalResult
 EprsMeasureOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-  if (!fnAttr)
-    return emitOpError("requires a 'remote' symbol reference attribute");
-  RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid remote node";
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
 
-  return success();
+    return success();
 }

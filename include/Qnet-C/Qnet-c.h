@@ -17,4 +17,4 @@ MLIR_CAPI_EXPORTED MlirType mlirQubitTypeGet(MlirContext ctx);
 }
 #endif
 
-#endif //QNET_C_H
+#endif // QNET_C_H

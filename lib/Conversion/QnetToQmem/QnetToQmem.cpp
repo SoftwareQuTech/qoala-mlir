@@ -1,16 +1,16 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Transforms/DialectConversion.h"
 
-#include "Conversion/QnetToQmem/QnetToQmem.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Conversion/QnetToQmem/QnetToQmem.h"
 #include "Conversion/QnetToQmem/QnetToQmemPatterns.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_QNETTOQMEM
 #include "Conversion/QnetToQmem/QnetToQmem.h.inc"
-}
+} // namespace mlir
 
 using namespace mlir;
 using namespace llvm;
@@ -33,31 +33,27 @@ void qoala::conversion::QnetToQmemPass::runOnOperation() {
     // We define the Qnet dialect as "illegal", so the conversion will fail
     // if there are any qnet operations in the converted IR
     target.addIllegalDialect<qnet::QnetDialect>();
-    // We also declare operations that can be declared legal in the target dialect.
-    // We callback argument (which receives the operation involved) can determine if
-    //it is legal to leave the operation or not.
-    target.addDynamicallyLegalOp<qnet::RotXOp>([](qnet::RotXOp op) {
-        return true;
-    });
-    target.addDynamicallyLegalOp<qnet::RotYOp>([](qnet::RotYOp op) {
-        return true;
-    });
-    target.addDynamicallyLegalOp<qnet::CnotOp>([](qnet::CnotOp op) {
-        return true;
-    });
+    // We also declare operations that can be declared legal in the target
+    // dialect. We callback argument (which receives the operation involved) can
+    // determine if
+    // it is legal to leave the operation or not.
+    target.addDynamicallyLegalOp<qnet::RotXOp>(
+        [](qnet::RotXOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::RotYOp>(
+        [](qnet::RotYOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::CnotOp>(
+        [](qnet::CnotOp op) { return true; });
 
     // We add the conversion pattern to the context
     RewritePatternSet patterns(&context);
     QnetToQmemQubitTypeConverter typeConverter(&context);
-    patterns.add<
-            NewQubitOpLowering,
-            MeasureQubitOpLowering,
-            RotZOpLowering
-    >(typeConverter, &context);
+    patterns.add<NewQubitOpLowering, MeasureQubitOpLowering, RotZOpLowering>(
+        typeConverter, &context);
 
-
-    // We finally apply a **partial** conversion, since there will be some operations that will stay... momentarily
-    LogicalResult result = mlir::applyPartialConversion(operation, target, std::move(patterns));
+    // We finally apply a **partial** conversion, since there will be some
+    // operations that will stay... momentarily
+    LogicalResult result =
+        mlir::applyPartialConversion(operation, target, std::move(patterns));
     if (mlir::failed(result)) {
         signalPassFailure();
     }

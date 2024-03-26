@@ -23,8 +23,7 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/TargetSelect.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     llvm::InitLLVM y(argc, argv);
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();

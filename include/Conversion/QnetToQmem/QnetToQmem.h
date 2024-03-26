@@ -3,10 +3,10 @@
 #include "mlir/Pass/Pass.h"
 
 // In the Lowering pass, we rely on both Qnet and Qmem dialects
-#include "Dialect/Qnet/QnetDialect.h"
-#include "Dialect/lir/LirDialect.h"
 #include "Dialect/Qnet/Qnet.h"
+#include "Dialect/Qnet/QnetDialect.h"
 #include "Dialect/lir/Lir.h"
+#include "Dialect/lir/LirDialect.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
@@ -20,4 +20,4 @@ std::unique_ptr<mlir::Pass> createQnetToQmemPass();
 
 } // namespace mlir
 
-#endif //QNET_TO_QMEM_H
+#endif // QNET_TO_QMEM_H

@@ -19,8 +19,8 @@ using namespace qoala::dialects::qnet;
 #include "Dialect/Qnet/QnetTypes.cpp.inc"
 
 void QnetDialect::registerTypes() {
-  addTypes<
+    addTypes<
 #define GET_TYPEDEF_LIST
 #include "Dialect/Qnet/QnetTypes.cpp.inc"
-      >();
+        >();
 }
