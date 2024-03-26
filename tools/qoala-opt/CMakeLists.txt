@@ -6,7 +6,7 @@ set(LIBS
     ${conversion_libs}
     MLIROptLib
     )
-add_llvm_executable(qnet-opt Qnet_opt.cpp)
+add_llvm_executable(qoala-opt qoala_opt.cpp)
 
-llvm_update_compile_flags(qnet-opt)
-target_link_libraries(qnet-opt PRIVATE ${LIBS})
+llvm_update_compile_flags(qoala-opt)
+target_link_libraries(qoala-opt PRIVATE ${LIBS})

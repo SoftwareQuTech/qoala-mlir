@@ -1,3 +1,3 @@
-add_subdirectory(netqasm)
+add_subdirectory(Netqasm)
 add_subdirectory(lir)
 add_subdirectory(Qnet)
