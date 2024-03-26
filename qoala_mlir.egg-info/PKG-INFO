@@ -47,12 +47,12 @@ cmake --build .
 ## Test if everything works
 All from within `build/`:
 
-Try to run tablegen for Netqasm dialect (uses stuff in `include/Dialect/netqasm`):
+Try to run tablegen for Netqasm dialect (uses stuff in `include/Dialect/Netqasm`):
 ```sh
 cmake --build . --target MLIRNetqasmIncGen
 ```
 
-Try to build Netqasm dialect library (uses stuff in `lib/Dialect/netqasm`, relies on `MLIRNetqasmIncGen`):
+Try to build Netqasm dialect library (uses stuff in `lib/Dialect/Netqasm`, relies on `MLIRNetqasmIncGen`):
 ```sh
 cmake --build . --target MLIRNetqasm
 ```
@@ -73,10 +73,10 @@ Should just print the contents of `netqasm1.mlir`.
 From within the `graphs` directory:
 
 ```
-../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
+../build/bin/qoala-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_qnet.gv
 ``` 
 
-View graph with `xdot bqc_server_hir.gv`.
+View graph with `xdot bqc_server_qnet.gv`.
 
 
 

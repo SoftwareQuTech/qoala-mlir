@@ -5,26 +5,23 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/Netqasm/Netqasm.h"
-#include "Dialect/Netqasm/NetqasmDialect.h"
+#include "Dialect/Qnet/Qnet.h"
+#include "Dialect/Qnet/QnetDialect.h"
+
+#include <iostream>
+#include <execinfo.h>
 
 // important! otherwise the source code in this inc file is not linked into the
 // lib
-#include "Dialect/Netqasm/NetqasmDialect.cpp.inc"
+#include "Dialect/Qnet/QnetDialect.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::netqasm;
+using namespace qoala::dialects::qnet;
 
-void NetqasmDialect::initialize() {
-  // addOperations<ConstantOp>();
-
+void QnetDialect::initialize() {
+  registerTypes();
   addOperations<
 #define GET_OP_LIST
-#include "Dialect/Netqasm/Netqasm.cpp.inc"
-      >();
-
-  addTypes<
-#define GET_TYPEDEF_LIST
-#include "Dialect/Netqasm/NetqasmTypes.cpp.inc"
+#include "Dialect/Qnet/Qnet.cpp.inc"
       >();
 }

@@ -11,17 +11,17 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/netqasm/Netqasm.h"
-#include "Dialect/netqasm/NetqasmDialect.h"
-#include "Dialect/netqasm/NetqasmTypes.h.inc"
+#include "Dialect/Netqasm/Netqasm.h"
+#include "Dialect/Netqasm/NetqasmDialect.h"
+#include "Dialect/Netqasm/NetqasmTypes.h.inc"
 
 using namespace mlir;
 using namespace mlir::netqasm;
 
 // include generated source code for operations
 #define GET_OP_CLASSES
-#include "Dialect/netqasm/Netqasm.cpp.inc"
+#include "Dialect/Netqasm/Netqasm.cpp.inc"
 
 // include generated source code for types
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/netqasm/NetqasmTypes.cpp.inc"
+#include "Dialect/Netqasm/NetqasmTypes.cpp.inc"

@@ -112,24 +112,24 @@ To compile with `clang`, execute these commands (Please change the suffix `-17` 
 ## Build a specific dialect
 All from within `build/`:
 
-Try to run tablegen for the Hir dialect (uses stuff in `include/Dialect/hir`):
+Try to run tablegen for the Qnet dialect (uses stuff in `include/Dialect/Qnet`):
 ```shell
-cmake --build . --target MLIRHirIncGen
+cmake --build . --target MLIRQnetIncGen
 ```
 
-Try to build Netqasm dialect library (uses stuff in `lib/Dialect/hir`, relies on `MLIRHirIncGen`):
+Try to build Netqasm dialect library (uses stuff in `lib/Dialect/Qnet`, relies on `MLIRQnetIncGen`):
 ```shell
-cmake --build . --target MLIRHir
+cmake --build . --target MLIRQnet
 ```
 
-Try to build Netqasm dialect optimizer tool (uses stuff in `tools/hir`, relies on `MLIRHir`):
+Try to build Netqasm dialect optimizer tool (uses stuff in `tools/qnet`, relies on `MLIRQnet`):
 ```shell
-cmake --build . --target hir-opt
+cmake --build . --target qoala-opt
 ```
 
 ## Run tests
-Note: `hir-opt` needs to be on your PATH.
-(TODO: figure out how to point `llvm-lit` to `build/bin/hir-opt` instead.)
+Note: `qoala-opt` needs to be on your PATH.
+(TODO: figure out how to point `llvm-lit` to `build/bin/qoala-opt` instead.)
 
 ```shell
 ./llvm/build/bin/llvm-lit test
@@ -141,10 +141,10 @@ Note: `hir-opt` needs to be on your PATH.
 From within the `graphs` directory:
 
 ```
-../build/bin/hir-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_hir.gv
+../build/bin/qoala-opt ../programs/bqc_server.mlir --view-op-graph 2>&1 >/dev/null | tee bqc_server_qnet.gv
 ``` 
 
-View graph with `xdot bqc_server_hir.gv`.
+View graph with `xdot bqc_server_qnet.gv`.
 
 ## Using the generating python bindings
 
@@ -177,7 +177,7 @@ you don't need to worry about updating this variable every time you execute a py
 Open the `/path/to/your/venvs/runtime-venv/bin/activate` file with your favorite text editor, and add the following line
 at the end of that file:
 ```
-export PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qoala_hir_bindings
+export PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qnet_bindings
 ```
 
 Save the file, and reactivate the virtual environment if it was active in any terminal.
@@ -189,7 +189,7 @@ python script with the MLIR python bindings.
 
 To do this, simply attach the updated python path variable before invoking the python command:
 ```shell
-(runtime-venv)$ PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qoala_hir_bindings python3 python_script.py
+(runtime-venv)$ PYTHONPATH=$PYTHONPATH:/path/to/this/repo/build/python_packages/qnet_bindings python3 python_script.py
 ```
 Please note that you need to add the definition _every time_ you want ot run a python script with the MLIR bindings.
 Additionally, you need to add this extra setting _once you have activated your python virtual environment_.

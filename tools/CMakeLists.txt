@@ -1,3 +1,2 @@
-add_subdirectory(netqasm)
-add_subdirectory(hir)
+add_subdirectory(qoala-opt)
 add_subdirectory(interpreter)
