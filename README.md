@@ -51,7 +51,7 @@ mkdir build && cd build
 Configure (Optionally, set the clang compiler here. Please change the suffix `-17` to match the LLVM version you have).
 **IMPORTANT**: It is highly recommended to use the `-DCMAKE_INSTALL_PREFIX` option to configure a different
 installation prefix of the LLVM/MLIR files. In the example below, we use the prefix `/opt/mlir`, so LLVM/MLIR will be
-installed in the `/opt/mlir/usr/local` folder. This is needed to _avoid leaving another clang/LLVM installation in an
+installed in the `/opt/mlir/` folder. This is needed to _avoid leaving another clang/LLVM installation in an
 inconsistent state_, so we can use clang as the compiler, and the required version of the MLIR for this repository.
 Please also note that the installation prefix needs to be configured **before compiling** LLVM/MLIR; it **cannot**
 be specified when running the `install` target later.
@@ -85,14 +85,14 @@ sudo cmake --build . --target install
 
 ## Build this repo
 
-This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has been installed to `/opt/mlir/usr/local`
+This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has been installed to `/opt/mlir`
 (as configured in the LLVM/MLIR compilation line shown above), and your python virtual environment is located in the
 folder `/path/to/your/venvs/llvm-venv`. Before running this command, please make sure that you have activated the python
 virtual environment created for LLVM.
 To build everything, run (see below to use `clang/LLVM` as the compiler toolchain)
 ```shell
 (llvm-venv)$ mkdir build && cd build
-(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
+(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
 
@@ -104,7 +104,7 @@ To compile with `clang`, execute these commands (Please change the suffix `-17` 
                                 -DCMAKE_C_COMPILER=clang-17 \
                                 -DCMAKE_CXX_COMPILER=clang++-17 \
                                 -DCMAKE_LINKER=ld.ldd-17 \
-                                -DMLIR_DIR=/opt/mlir/usr/local/lib/cmake/mlir \
+                                -DMLIR_DIR=/opt/mlir/lib/cmake/mlir \
                                 -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
