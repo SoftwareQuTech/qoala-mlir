@@ -12,7 +12,7 @@
 // we need to also link the libraries of the LIR dialect
 #include "Dialect/lir/LirDialect.h"
 
-#include "Dialect/netqasm/NetqasmDialect.h"
+#include "Dialect/Netqasm/NetqasmDialect.h"
 
 //And, of course, we also need the libraries of the lowering pass itself
 #include "Conversion/QnetToQmem/QnetToQmem.h"

@@ -20,8 +20,8 @@ include "mlir/IR/OpAsmInterface.td"
 // Note that Netqasm.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-include "Dialect/netqasm/NetqasmDialect.td"
-include "Dialect/netqasm/NetqasmTypes.td"
+include "Dialect/Netqasm/NetqasmDialect.td"
+include "Dialect/Netqasm/NetqasmTypes.td"
 
 
 class Netqasm_Op<string mnemonic, list<Trait> traits = []> :

@@ -19,10 +19,10 @@
 
 // FIRST include typedef classes, THEN op classes (latter needs decls of former)
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/netqasm/NetqasmTypes.h.inc"
+#include "Dialect/Netqasm/NetqasmTypes.h.inc"
 
 #define GET_OP_CLASSES
-#include "Dialect/netqasm/Netqasm.h.inc"
+#include "Dialect/Netqasm/Netqasm.h.inc"
 
 using namespace mlir;
 

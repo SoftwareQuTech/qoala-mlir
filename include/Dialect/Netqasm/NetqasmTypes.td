@@ -3,7 +3,7 @@
 
 include "mlir/IR/AttrTypeBase.td"
 
-include "Dialect/netqasm/NetqasmDialect.td"
+include "Dialect/Netqasm/NetqasmDialect.td"
 
 class Netqasm_Type<string name, string typeMnemonic, list<Trait> traits = []> 
     : TypeDef<Netqasm_Dialect, name, traits> {

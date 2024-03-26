@@ -47,12 +47,12 @@ cmake --build .
 ## Test if everything works
 All from within `build/`:
 
-Try to run tablegen for Netqasm dialect (uses stuff in `include/Dialect/netqasm`):
+Try to run tablegen for Netqasm dialect (uses stuff in `include/Dialect/Netqasm`):
 ```sh
 cmake --build . --target MLIRNetqasmIncGen
 ```
 
-Try to build Netqasm dialect library (uses stuff in `lib/Dialect/netqasm`, relies on `MLIRNetqasmIncGen`):
+Try to build Netqasm dialect library (uses stuff in `lib/Dialect/Netqasm`, relies on `MLIRNetqasmIncGen`):
 ```sh
 cmake --build . --target MLIRNetqasm
 ```
