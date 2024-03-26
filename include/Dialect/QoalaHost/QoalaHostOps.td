@@ -4,7 +4,7 @@
 include "mlir/IR/OpBase.td"
 
 // Needed for FunctionOpInterface
-// Note that Qmem.h also needs to include "mlir/Interfaces/FunctionInterfaces.h" !
+// Note that QMem.h also needs to include "mlir/Interfaces/FunctionInterfaces.h" !
 include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
@@ -17,7 +17,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 
 // Needed for `[NoMemoryEffect]`
-// Note that Qmem.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
+// Note that QMem.h also needs to include "mlir/Interfaces/SideEffectInterfaces.h" !
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QoalaHost/QoalaHostDialect.td"

@@ -1,0 +1,6 @@
+#ifndef PYTHON_BINDINGS_QNET_OPS
+#define PYTHON_BINDINGS_QNET_OPS
+
+include "Dialect/QNet/QNet.td"
+
+#endif // PYTHON_BINDINGS_QNET_OPS

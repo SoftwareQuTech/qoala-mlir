@@ -11,20 +11,20 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "Dialect/QoalaHost/QoalaHost.h"
-#include "Dialect/QoalaHost/QoalaHostDialect.h"
-#include "Dialect/QoalaHost/QoalaHostTypes.h.inc"
+#include "Dialect/QMem/QMem.h"
+#include "Dialect/QMem/QMemDialect.h"
+#include "Dialect/QMem/QMemTypes.h.inc"
 
 using namespace mlir;
-using namespace qoala::dialects::qoalahost;
+using namespace qoala::dialects::qmem;
 
 // include generated source code for operations
 #define GET_OP_CLASSES
-#include "Dialect/QoalaHost/QoalaHost.cpp.inc"
+#include "Dialect/QMem/QMem.cpp.inc"
 
 // include generated source code for types
 #define GET_TYPEDEF_CLASSES
-#include "Dialect/QoalaHost/QoalaHostTypes.cpp.inc"
+#include "Dialect/QMem/QMemTypes.cpp.inc"
 
 LogicalResult SendIntsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
     // Check that the callee attribute was specified.
@@ -68,6 +68,33 @@ SendFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
 
 LogicalResult
 RecvFloatsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult EprsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return emitOpError("requires a 'remote' symbol reference attribute");
+    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
+    if (!fn)
+        return emitOpError() << "'" << fnAttr.getValue()
+                             << "' does not reference a valid remote node";
+
+    return success();
+}
+
+LogicalResult
+EprsMeasureOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
     // Check that the callee attribute was specified.
     auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
     if (!fnAttr)

@@ -1,2 +1,2 @@
 add_subdirectory(Dialect)
-add_subdirectory(Conversion/QnetToQmem)
+add_subdirectory(Conversion/QNetToQMem)
