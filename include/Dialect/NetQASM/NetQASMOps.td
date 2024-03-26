@@ -86,14 +86,14 @@ def CrotXOp : NetQASM_Op<"crot_x"> {
 
 def MeasureOp : NetQASM_Op<"measure"> {
   let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
-  let results = (outs I32:$outcome);
+  let results = (outs I1:$outcome);
 }
 
 
 def EprsOp: NetQASM_Op<"eprs",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   let arguments = (
-    ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q,
+    ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q,
     I32Attr:$N,
     FlatSymbolRefAttr:$remote
   );
@@ -102,7 +102,7 @@ def EprsOp: NetQASM_Op<"eprs",
 def EprsMeasureOp: NetQASM_Op<"eprs_measure",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (
-      ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q,
+      ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q,
       I32Attr:$N,
       FlatSymbolRefAttr:$remote
     );

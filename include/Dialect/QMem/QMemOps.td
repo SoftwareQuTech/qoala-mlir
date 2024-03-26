@@ -54,11 +54,7 @@ def RecvFloatsOp : QMem_Op<"recv_floats",
 }
 
 def QAllocOp: QMem_Op<"qalloc"> {
-    let results = (outs I32:$q);
-}
-
-def QAllocNOp: QMem_Op<"qalloc_n"> {
-    let results = (outs MemRefOf<[I32]>:$q);
+    let results = (outs TensorOf<[I32]>:$q);
 }
 
 def InitOp : QMem_Op<"init"> {
@@ -100,12 +96,12 @@ def MeasureOp : QMem_Op<"measure"> {
 
 def EprsOp: QMem_Op<"eprs",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-  let arguments = (ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
+  let arguments = (ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
 }
 
 def EprsMeasureOp: QMem_Op<"eprs_measure",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let arguments = (ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I1]>:$outcomes);
 }
 

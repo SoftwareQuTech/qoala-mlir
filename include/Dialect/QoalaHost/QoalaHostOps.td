@@ -53,12 +53,12 @@ def RecvFloatsOp : QoalaHost_Op<"recv_floats",
     let results = (outs TensorOf<[F32]>:$cout);
 }
 
-def QAllocNOp: QoalaHost_Op<"qalloc"> {
-    let results = (outs MemRefOf<[I32]>:$q);
+def QAllocOp: QoalaHost_Op<"qalloc"> {
+    let results = (outs TensorOf<[I32]>:$q);
 }
 
-def QFreeNOp: QoalaHost_Op<"qfree"> {
-    let results = (outs MemRefOf<[I32]>:$q);
+def QFreeOp: QoalaHost_Op<"qfree"> {
+    let results = (outs TensorOf<[I32]>:$q);
 }
 
 #endif // QOALAHOST_OPS_TD
