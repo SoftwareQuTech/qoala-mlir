@@ -1,7 +1,7 @@
 #ifndef QNET_DIALECT_H
 #define QNET_DIALECT_H
 
-#include "Dialect/Qnet/QnetDialect.h.inc"
 #include "mlir/IR/Dialect.h"
+#include "Dialect/Qnet/QnetDialect.h.inc"
 
 #endif // QNET_DIALECT_H
