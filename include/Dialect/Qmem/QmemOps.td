@@ -62,50 +62,50 @@ def QAllocNOp: Qmem_Op<"qalloc_n"> {
 }
 
 def InitOp : Qmem_Op<"init"> {
-  let arguments = (ins I32:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
 }
 
 def RotateXOp : Qmem_Op<"rot_x"> {
-  let arguments = (ins I32:$q, F32:$angle);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, F32:$angle);
 }
 
 def RotateYOp : Qmem_Op<"rot_y"> {
-  let arguments = (ins I32:$q, F32:$angle);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, F32:$angle);
 }
 
 def RotateZOp : Qmem_Op<"rot_z"> {
-  let arguments = (ins I32:$q, F32:$angle);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, F32:$angle);
 }
 
 def HadamardOp : Qmem_Op<"hadamard"> {
-  let arguments = (ins I32:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
 }
 
 def CnotOp : Qmem_Op<"cnot"> {
-  let arguments = (ins I32:$q1, I32:$q2);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2);
 }
 
 def CzOp : Qmem_Op<"cz"> {
-  let arguments = (ins I32:$q1, I32:$q2);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2);
 }
 
 def CrotXOp : Qmem_Op<"crot_x"> {
-  let arguments = (ins I32:$q1, I32:$q2, F32:$angle);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2, F32:$angle);
 }
 
 def MeasureOp : Qmem_Op<"measure"> {
-  let arguments = (ins I32:$q);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
   let results = (outs I1:$outcome);
 }
 
 def EprsOp: Qmem_Op<"eprs",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-  let arguments = (ins MemRefOf<[I32]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
+  let arguments = (ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
 }
 
 def EprsMeasureOp: Qmem_Op<"eprs_measure",
                 [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins MemRefOf<[I32]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let arguments = (ins Arg<MemRefOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I1]>:$outcomes);
 }
 
