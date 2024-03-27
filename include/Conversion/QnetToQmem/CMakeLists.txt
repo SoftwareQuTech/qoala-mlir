@@ -1,5 +1,0 @@
-set(LLVM_TARGET_DEFINITIONS QnetToQmem.td)
-mlir_tablegen(QnetToQmem.h.inc -gen-pass-decls -name QnetToQmem)
-mlir_tablegen(QnetToQmem.capi.h.inc -gen-pass-capi-header --prefix QnetToQmem)
-mlir_tablegen(QnetToQmem.capi.cpp.inc -gen-pass-capi-impl --prefix QnetToQmem)
-add_public_tablegen_target(MLIRQnetToQmemPassIncGen)

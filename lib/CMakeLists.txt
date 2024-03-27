@@ -1,5 +1,5 @@
 add_subdirectory(Dialect)
 add_subdirectory(Analysis)
 add_subdirectory(Conversion)
-add_subdirectory(Qnet-CAPI)
+add_subdirectory(QNet-CAPI)
 add_subdirectory(Python)

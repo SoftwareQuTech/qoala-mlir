@@ -1,1 +1,1 @@
-add_subdirectory(Qnet)
+add_subdirectory(QNet)

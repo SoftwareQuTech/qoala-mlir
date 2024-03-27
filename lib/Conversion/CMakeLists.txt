@@ -1,2 +1,2 @@
 add_subdirectory(Helpers)
-add_subdirectory(QnetToQmem)
+add_subdirectory(QNetToQMem)
