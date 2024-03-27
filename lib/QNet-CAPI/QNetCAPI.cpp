@@ -5,13 +5,16 @@
 #include "Dialect/QNet/QNetTypes.h"
 #include "mlir/CAPI/Registration.h"
 
-MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QNet, qnet,
-                                      qoala::dialects::qnet::QNetDialect)
+using namespace qoala::dialects;
+
+MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QNet, qnet, qnet::QNetDialect)
 
 bool mlirTypeIsAQubitType(MlirType type) {
-    return mlir::isa<qoala::dialects::qnet::QubitType>(unwrap(type));
+    return mlir::isa<qnet::QubitType>(unwrap(type));
 }
 
 MlirType mlirQubitTypeGet(MlirContext ctx) {
-    return wrap(qoala::dialects::qnet::QubitType::get(unwrap(ctx)));
+    return wrap(qnet::QubitType::get(unwrap(ctx)));
 }
+
+MlirTypeID mlirQubitTypeGetTypeID() { return wrap(qnet::QubitType::getTypeID()); }

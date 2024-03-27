@@ -13,6 +13,8 @@ MLIR_CAPI_EXPORTED bool mlirTypeIsAQubitType(MlirType type);
 
 MLIR_CAPI_EXPORTED MlirType mlirQubitTypeGet(MlirContext ctx);
 
+MLIR_CAPI_EXPORTED MlirTypeID mlirQubitTypeGetTypeID();
+
 #ifdef __cplusplus
 }
 #endif
