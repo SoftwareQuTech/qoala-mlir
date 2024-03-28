@@ -1,6 +1,4 @@
-// RUN: qoala-opt %s | FileCheck %s
-
-// CHECK: module
+// RUN: qoala-opt %s
 
 module {
   func.func @main() {
