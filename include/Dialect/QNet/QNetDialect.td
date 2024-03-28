@@ -14,6 +14,7 @@ def QNet_Dialect : Dialect {
   let extraClassDeclaration = [{
     void registerTypes();
   }];
+  let dependentDialects = ["tensor::TensorDialect"];
 }
 
 #endif // QNET_DIALECT_TD

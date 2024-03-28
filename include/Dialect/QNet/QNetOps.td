@@ -8,6 +8,7 @@ include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
+include "mlir/IR/CommonTypeConstraints.td"
 include "mlir/Bytecode/BytecodeOpInterface.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/CastInterfaces.td"
@@ -49,6 +50,9 @@ def RemoteOp: QNet_Op<"remote", [Symbol]>;
 def SendIntsOp : QNet_Op<"send_ints",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins TensorOf<[I32]>:$cin);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
 }
 
 def RecvIntsOp : QNet_Op<"recv_ints",
@@ -56,11 +60,17 @@ def RecvIntsOp : QNet_Op<"recv_ints",
 
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
 }
 
 def SendFloatsOp : QNet_Op<"send_floats",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
     let arguments = (ins TensorOf<[F32]>:$cin);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
 }
 
 def RecvFloatsOp : QNet_Op<"recv_floats",
@@ -68,6 +78,9 @@ def RecvFloatsOp : QNet_Op<"recv_floats",
 
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[F32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
 }
 
 
