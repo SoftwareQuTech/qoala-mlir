@@ -4,13 +4,13 @@ module {
   %zero = arith.constant 0 : index
   "qmem.remote"() {sym_name = "Bob"} : () -> ()
 
-  %qptrs = "qmem.qalloc"() {N = 1}: () -> tensor<1xi32>
-  "qmem.eprs"(%qptrs) {N = 1 : i32, "remote" = @Bob} : (tensor<1xi32>) -> ()
+  %qptrs = "qmem.qalloc"() : () -> tensor<1xi32>
+  %qptr = tensor.extract %qptrs[%zero] : tensor<1xi32>
+  "qmem.init"(%qptr) : (i32) -> ()
 
   %floats1 = "qmem.recv_floats"() {"remote" = @Bob, "length" = 1 : i32} : () -> tensor<1xf32>
   %t1 = tensor.extract %floats1[%zero] : tensor<1xf32>
 
-  %qptr = tensor.extract %qptrs[%zero] : tensor<1xi32>
   "qmem.rot_x"(%qptr, %t1) : (i32, f32) -> ()
 
   %floats2 = "qmem.recv_floats"() {"remote" = @Bob, "length" = 1 : i32} : () -> tensor<1xf32>
