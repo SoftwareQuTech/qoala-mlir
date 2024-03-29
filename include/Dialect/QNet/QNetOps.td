@@ -29,6 +29,65 @@ class QNet_Op<string mnemonic, list<Trait> traits = []> :
   Op<QNet_Dialect, mnemonic, traits>;
 
 
+/* QoalaFunc is a "clone" of func.func, with the extension that is also can contain
+ * a local symbol table. This is handful so the qoala.remote operation can be
+ * places inside the body of a function (and not only a the module level)
+ */
+def QoalaFunc: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
+  let summary = "Function declaration/definition for qoala programs.";
+  let description = [{
+    This function declaration operation differs from func.func operation in
+    the sense that it also carries the `SymbolTable` trait. This allows the
+    operations contained within the body region con also declare symbols,
+    which comes handy when declaring a quantum remote node within the scope
+    of a function. This facility allows placing the `qnet.remote` operation
+    in the body of a `qnet.func`, which correctly declares the symbol.
+  }];
+  let arguments = (ins SymbolNameAttr:$sym_name,
+                       TypeAttrOf<FunctionType>:$function_type,
+                       OptionalAttr<StrAttr>:$sym_visibility,
+                       OptionalAttr<DictArrayAttr>:$arg_attrs,
+                       OptionalAttr<DictArrayAttr>:$res_attrs);
+  let regions = (region AnyRegion:$body);
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable. This may
+    /// return null in the case of an external callable object, e.g. an external
+    /// function.
+    ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+
+    /// Returns the argument types of this function.
+    ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return isExternal(); }
+  }];
+  let hasCustomAssemblyFormat = 1;
+}
+
+/* The "return" operation had to be ported, since the func.return operation performs a
+ * check that it is returning from an operation from func.func....
+ * This operation performs the same check, but with qoala.func
+ */
+def QoalaReturn: QNet_Op<"return", [Pure, HasParent<"QoalaFunc">, ReturnLike, Terminator]> {
+  let summary = "Function return operation for qoala.func bodies";
+  let arguments = (ins Variadic<AnyType>:$operands);
+  let builders = [OpBuilder<(ins), [{
+    build($_builder, $_state, std::nullopt);
+  }]>];
+  let assemblyFormat = "attr-dict ($operands^ `:` type($operands))?";
+ }
+
+
 def RemoteOp: QNet_Op<"remote", [Symbol]> {
   // Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
   // declare the two arguments:

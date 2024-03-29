@@ -111,3 +111,23 @@ EprsMeasureOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
     return emitOpError() << "'" << fnAttr.getValue()
                          << "' does not reference a valid remote node";
 }
+
+/* Parse and print functions "ported" from func.func */
+
+ParseResult QoalaFunc::parse(OpAsmParser &parser, OperationState &result) {
+    auto buildFuncType =
+            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+               function_interface_impl::VariadicFlag,
+               std::string &) { return builder.getFunctionType(argTypes, results); };
+
+    return function_interface_impl::parseFunctionOp(
+            parser, result, /*allowVariadic=*/false,
+            getFunctionTypeAttrName(result.name), buildFuncType,
+            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+}
+
+void QoalaFunc::print(OpAsmPrinter &p) {
+    function_interface_impl::printFunctionOp(
+            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+            getArgAttrsAttrName(), getResAttrsAttrName());
+}
