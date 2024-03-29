@@ -101,6 +101,7 @@ def RemoteOp: QNet_Op<"remote", [Symbol]> {
   // HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
   // defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
   // there is no need to override that definition.
+  let assemblyFormat = "attr-dict $sym_name";
 }
 
 // TODO: check if something like this is possible: have a RemoteUsingOp class
