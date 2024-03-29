@@ -29,7 +29,20 @@ class QNet_Op<string mnemonic, list<Trait> traits = []> :
   Op<QNet_Dialect, mnemonic, traits>;
 
 
-def RemoteOp: QNet_Op<"remote", [Symbol]>;
+def RemoteOp: QNet_Op<"remote", [Symbol]> {
+  // Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
+  // declare the two arguments:
+  // https://mlir.llvm.org/docs/SymbolsAndSymbolTables/#defining-or-declaring-a-symbol
+  let arguments = (ins SymbolNameAttr:$sym_name,
+                       OptionalAttr<StrAttr>:$sym_visibility);
+
+  // Additionally, if the operation *defines* a symbol, it needs to correctly
+  // define a body for the `bool isDeclaration();` function, returning false when this
+  // operation _defines_ a symbol.
+  // HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
+  // defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
+  // there is no need to override that definition.
+}
 
 // TODO: check if something like this is possible: have a RemoteUsingOp class
 // that has the SymbolUserOpInterface trait, like this:
@@ -49,7 +62,7 @@ def RemoteOp: QNet_Op<"remote", [Symbol]>;
 
 def SendIntsOp : QNet_Op<"send_ints",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins TensorOf<[I32]>:$cin);
+    let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
@@ -67,7 +80,7 @@ def RecvIntsOp : QNet_Op<"recv_ints",
 
 def SendFloatsOp : QNet_Op<"send_floats",
               [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins TensorOf<[F32]>:$cin);
+    let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
