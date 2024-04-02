@@ -114,7 +114,7 @@ EprsMeasureOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
 
 /* Parse and print functions "ported" from func.func */
 
-ParseResult QoalaFunc::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
             [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
                function_interface_impl::VariadicFlag,
@@ -126,7 +126,7 @@ ParseResult QoalaFunc::parse(OpAsmParser &parser, OperationState &result) {
             getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
-void QoalaFunc::print(OpAsmPrinter &p) {
+void FuncOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());

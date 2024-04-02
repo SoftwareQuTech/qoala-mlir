@@ -29,11 +29,11 @@ class QNet_Op<string mnemonic, list<Trait> traits = []> :
   Op<QNet_Dialect, mnemonic, traits>;
 
 
-/* QoalaFunc is a "clone" of func.func, with the extension that is also can contain
+/* FuncOp is a "clone" of func.func, with the extension that is also can contain
  * a local symbol table. This is handful so the qoala.remote operation can be
  * places inside the body of a function (and not only a the module level)
  */
-def QoalaFunc: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
+def FuncOp: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
   let summary = "Function declaration/definition for qoala programs.";
   let description = [{
     This function declaration operation differs from func.func operation in
@@ -78,7 +78,7 @@ def QoalaFunc: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
  * check that it is returning from an operation from func.func....
  * This operation performs the same check, but with qoala.func
  */
-def QoalaReturn: QNet_Op<"return", [Pure, HasParent<"QoalaFunc">, ReturnLike, Terminator]> {
+def ReturnOp: QNet_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminator]> {
   let summary = "Function return operation for qoala.func bodies";
   let arguments = (ins Variadic<AnyType>:$operands);
   let builders = [OpBuilder<(ins), [{
