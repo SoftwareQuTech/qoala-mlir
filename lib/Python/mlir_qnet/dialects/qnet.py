@@ -12,13 +12,13 @@ from typing import Any, List, Optional, Sequence, Union
 
 @_ods_cext.register_operation(_Dialect, replace=True)
 class QoalaFunc(QoalaFunc):
-    """Specialization for the func op class."""
+    """Helper class ported from the 'FuncOp' class from the 'func' dialect"""
 
     def __init__(
             self, name, type, *, visibility=None, body_builder=None, loc=None, ip=None
     ):
         """
-        Create a FuncOp with the provided `name`, `type`, and `visibility`.
+        Create a QoalaFunc with the provided `name`, `type`, and `visibility`.
         - `name` is a string representing the function name.
         - `type` is either a FunctionType or a pair of list describing inputs and
           results.
