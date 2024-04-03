@@ -53,7 +53,7 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
                        OptionalAttr<StrAttr>:$sym_visibility);
 }
 
-def SendIntsOp : QMem_Op<"send_ints"> {
+def SendIntsOp : UsingRemote_Op<"send_ints"> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
 }
 
@@ -62,8 +62,7 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
     let results = (outs TensorOf<[I32]>:$cout);
 }
 
-def SendFloatsOp : QMem_Op<"send_floats",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def SendFloatsOp : UsingRemote_Op<"send_floats"> {
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
 }
 
