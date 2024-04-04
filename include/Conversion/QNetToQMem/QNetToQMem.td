@@ -13,9 +13,9 @@ def QNetToQMem : Pass<"convert-qnet-to-qmem", "mlir::ModuleOp"> {
     This pass lowers all the instances of the Qoala QNet dialect to the QMem dialect.
   }];
   let constructor = "::mlir::createQNetToQMemPass()";
-  // Since we lower QNet to LIR, we need to depend on both dialects to create
+  // Since we lower QNet to QMem, we need to depend on both dialects to create
   // valid MLIR
-  let dependentDialects = ["::qoala::dialects::qnet::QNetDialect", "lir::LirDialect"];
+  let dependentDialects = ["::qoala::dialects::qnet::QNetDialect", "::qoala::dialects::qmem::QMemDialect"];
 }
 
 #endif /* QNET_TO_QMEM_PASS */

@@ -5,8 +5,8 @@
 // In the Lowering pass, we rely on both QNet and QMem dialects
 #include "Dialect/QNet/QNet.h"
 #include "Dialect/QNet/QNetDialect.h"
-#include "Dialect/lir/Lir.h"
-#include "Dialect/lir/LirDialect.h"
+#include "Dialect/QMem/QMem.h"
+#include "Dialect/QMem/QMemDialect.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
