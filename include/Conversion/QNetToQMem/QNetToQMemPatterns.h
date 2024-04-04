@@ -1,45 +1,103 @@
-#ifndef QNET_TO_QMEM_PATTERNS : _H
-#define QNET_TO_QMEM_PATTERNS:_H
+#ifndef QNET_TO_QMEM_PATTERNS
+#define QNET_TO_QMEM_PATTERNS
 #include "Dialect/QNet/QNet.h"
-#include "Dialect/lir/Lir.h"
+#include "Dialect/QMem/QMem.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-class QNetToQMemQubitTypeConverter : public TypeConverter {
-  public:
-    explicit QNetToQMemQubitTypeConverter(MLIRContext *ctx);
-};
+    class QNetToQMemQubitTypeConverter : public TypeConverter {
+      public:
+        explicit QNetToQMemQubitTypeConverter(MLIRContext *ctx);
+    };
 
-template <typename SourceOp, typename DestOp>
-class OpLoweringTemplate : public OpConversionPattern<SourceOp> {
-  public:
-    // Constructor simply matches the super class
-    using OpConversionPattern<SourceOp>::OpConversionPattern;
+    /**
+     * Simple class template used to convert an operation of class SourceOp to
+     * another one of class DestOp *in a one-to-one manner*.
+     * @tparam SourceOp The source class of the source dialect to convert from
+     * @tparam DestOp The destination class of the target dialect to covert to
+     */
+    template <typename SourceOp, typename DestOp>
+    class SimpleOneToToneLoweringTemplate : public OpConversionPattern<SourceOp> {
+      public:
+        // Constructor simply matches the super class
+        using OpConversionPattern<SourceOp>::OpConversionPattern;
 
-    LogicalResult
-    matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                    ConversionPatternRewriter &rewriter) const override {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
-        auto newOp =
-            rewriter.replaceOpWithNewOp<DestOp>(op, adaptor.getOperands());
-        return success();
-    }
-};
+        /**
+         * Defines how to create an Operation on the destination dialect, using
+         * the data offered by the adaptor class of the source operation.
+         * Implementors of this signature are *highly* encouraged to use the
+         * `create` methods of the rewriter object to create instances of the
+         * operation on the target dialect. When using these methods, please be
+         * mindful that you need to "match" one of the target operations' class
+         * `build` methods with the arguments passed to the create:
+         * rewriter.create<DestOp>(op.getLoc(), <args_to_match_a_build_signature>...)
+         * In this sense, you might want to use the getters of the adaptor class
+         * to get the data (and types) to match any of the generated builders of the
+         * target operand class.
+         * @param op The operation on the source dialect  to be replaced
+         * @param adaptor The adaptor of th source operation to get data from
+         * @param rewriter The rewriter object to easily create new operations on the
+         *                 target dialect
+         * @return An operation on the destination dialect
+         */
+        virtual DestOp createNewOp(SourceOp op, SourceOp::Adaptor adaptor,
+                                   ConversionPatternRewriter &rewriter) const = 0;
 
-using MeasureQubitOpLowering =
-    OpLoweringTemplate<qnet::MeasureOp, mlir::lir::MeasureOp>;
+        LogicalResult
+        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
+                        ConversionPatternRewriter &rewriter) const override {
+            llvm::dbgs() << "lowering operation : '" << op << "'\n";
+            auto newOp = createNewOp(op, adaptor, rewriter);
+            rewriter.replaceOp(op, newOp);
+            return success();
+        }
+    };
 
-using NewQubitOpLowering =
-    OpLoweringTemplate<qnet::NewQubitOp, mlir::lir::NewQubitOp>;
+    /* Remote operations can be mapped with a simple one-to-one operation */
+    class RemoteOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::RemoteOp createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
+                                   ConversionPatternRewriter &rewriter) const override;
+    };
+    class SendIntsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::SendIntsOp createNewOp(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const override;
+    };
+    class RecvIntsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::RecvIntsOp createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const override;
+    };
+    class SendFloatsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::SendFloatsOp createNewOp(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
+    class RecvFloatsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::RecvFloatsOp createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
 
-using RotZOpLowering = OpLoweringTemplate<qnet::RotZOp, mlir::lir::RotateZOp>;
+    /* Since Qmem introduces "pointers" to physical qubits, we need to be a bit more careful about the conversions
+     * that involve creating/using qubits... */
 
-// TODO - instantiate the template to map operations from one dialect to the
-// other
+    // TODO - instantiate the template to map operations from one dialect to the other
 
 } // namespace qoala::conversion
 
-#endif // QNET_TO_QMEM_PATTERNS:_H
+#endif // QNET_TO_QMEM_PATTERNS

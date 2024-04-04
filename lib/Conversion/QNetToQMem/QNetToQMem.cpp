@@ -34,21 +34,35 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
     // if there are any qnet operations in the converted IR
     target.addIllegalDialect<qnet::QNetDialect>();
     // We also declare operations that can be declared legal in the target
-    // dialect. We callback argument (which receives the operation involved) can
-    // determine if
-    // it is legal to leave the operation or not.
+    // dialect. The `callback` argument (which receives the operation involved)
+    // can determine if it is legal to leave the operation or not.
     target.addDynamicallyLegalOp<qnet::RotXOp>(
-        [](qnet::RotXOp op) { return true; });
+            [](qnet::RotXOp op) { return true; });
     target.addDynamicallyLegalOp<qnet::RotYOp>(
-        [](qnet::RotYOp op) { return true; });
+            [](qnet::RotYOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::RotZOp>(
+            [](qnet::RotZOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::FuncOp>(
+            [](qnet::FuncOp) { return true; });
+    target.addDynamicallyLegalOp<qnet::ReturnOp>(
+            [](qnet::ReturnOp op) { return true; });
     target.addDynamicallyLegalOp<qnet::CnotOp>(
-        [](qnet::CnotOp op) { return true; });
+            [](qnet::CnotOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::NewQubitOp>(
+            [](qnet::NewQubitOp op) { return true; });
+    target.addDynamicallyLegalOp<qnet::MeasureOp>(
+            [](qnet::MeasureOp op) { return true; });
 
     // We add the conversion pattern to the context
     RewritePatternSet patterns(&context);
     QNetToQMemQubitTypeConverter typeConverter(&context);
-    patterns.add<NewQubitOpLowering, MeasureQubitOpLowering, RotZOpLowering>(
-        typeConverter, &context);
+    patterns.add<
+            qoala::conversion::RemoteOpLowering,
+            qoala::conversion::RecvIntsOpLowering,
+            qoala::conversion::RecvFloatsOpLowering,
+            qoala::conversion::SendIntsOpLowering,
+            qoala::conversion::SendFloatsOpLowering
+    >(typeConverter, &context);
 
     // We finally apply a **partial** conversion, since there will be some
     // operations that will stay... momentarily
