@@ -28,6 +28,31 @@ include "Dialect/QNet/QNetTypes.td"
 class QNet_Op<string mnemonic, list<Trait> traits = []> :
   Op<QNet_Dialect, mnemonic, traits>;
 
+/* This class is defined so that we can implement a "generic" way to implement the 'verifySymbolUses' method
+ * It provides an implementation that searches for the symbol specified in the "remote" attribute of the
+ * given operation.
+ * Any operation that needs to use this implementation of the 'verifySymbolUses', must use this class as the
+ * super class, and pass any other traits needed
+ */
+class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
+  QNet_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let extraClassDefinition = [{
+    LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
+        // Check that the callee attribute was specified.
+        auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+        if (!fnAttr)
+            return this->emitOpError("requires a 'remote' symbol reference attribute");
+        // Iteratively search on the parent SymbolTables
+        for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
+            if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
+                return success();
+            }
+        }
+        return this->emitOpError() << "'" << fnAttr.getValue()
+                                   << "' does not reference a valid remote node";
+      }
+  }];
+}
 
 /* FuncOp is a "clone" of func.func, with the extension that is also can contain
  * a local symbol table. This is handful so the qoala.remote operation can be
@@ -84,53 +109,58 @@ def ReturnOp: QNet_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminat
   let builders = [OpBuilder<(ins), [{
     build($_builder, $_state, std::nullopt);
   }]>];
-  let assemblyFormat = "attr-dict ($operands^ `:` type($operands))?";
+  let assemblyFormat = [{
+      attr-dict ($operands^ `:` type($operands))?
+  }];
  }
 
 
 def RemoteOp: QNet_Op<"remote", [Symbol]> {
-  // Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
-  // declare the two arguments:
-  // https://mlir.llvm.org/docs/SymbolsAndSymbolTables/#defining-or-declaring-a-symbol
+  /* Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
+   * declare the two arguments:
+   * https://mlir.llvm.org/docs/SymbolsAndSymbolTables/#defining-or-declaring-a-symbol
+   */
   let arguments = (ins SymbolNameAttr:$sym_name,
                        OptionalAttr<StrAttr>:$sym_visibility);
 
-  // Additionally, if the operation *defines* a symbol, it needs to correctly
-  // define a body for the `bool isDeclaration();` function, returning false when this
-  // operation _defines_ a symbol.
-  // HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
-  // defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
-  // there is no need to override that definition.
-  let assemblyFormat = "attr-dict $sym_name";
+  /* Additionally, if the operation *defines* a symbol, it needs to correctly
+   * define a body for the `bool isDeclaration();` function, returning false when this
+   * operation _defines_ a symbol.
+   * HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
+   * defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
+   * there is no need to override that definition.
+   */
+  let assemblyFormat = [{
+      attr-dict $sym_name
+  }];
 }
 
-// TODO: check if something like this is possible: have a RemoteUsingOp class
-// that has the SymbolUserOpInterface trait, like this:
-//
-// class RemoteUsing_Op<string mnemonic> :
-//   QNet_Op<mnemonic, [DeclareOpInterfaceMethods<SymbolUserOpInterface>]>;
-//
-// Then, ops that use "remote" symbols can just inherit from this class, like so: 
-// 
-// def SendIntsOp : RemoteUsing_Op<"send_ints"> {
-//     let arguments = (ins TensorOf<[I32]>:$cin);
-// }
-//
-// What's more, this may mean that in `QNet.cpp` we can just define `verifySymbolUses`
-// once, for RemoteUsingOp, instead of copying the same function definition for all
-// op classes that use remotes.
+/* Operations for handling remote nodes/qubits */
 
-def SendIntsOp : QNet_Op<"send_ints",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def EprsOp: UsingRemote_Op<"eprs"> {
+    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let results = (outs TensorOf<[QubitType]>:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
+    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let results = (outs TensorOf<[I1]>:$outcomes);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($outcomes)
+    }];
+}
+
+def SendIntsOp : UsingRemote_Op<"send_ints"> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
 }
 
-def RecvIntsOp : QNet_Op<"recv_ints",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-
+def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -138,17 +168,14 @@ def RecvIntsOp : QNet_Op<"recv_ints",
     }];
 }
 
-def SendFloatsOp : QNet_Op<"send_floats",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def SendFloatsOp : UsingRemote_Op<"send_floats"> {
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
 }
 
-def RecvFloatsOp : QNet_Op<"recv_floats",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-
+def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
@@ -156,6 +183,7 @@ def RecvFloatsOp : QNet_Op<"recv_floats",
     }];
 }
 
+/* Operations for local qubits (can also be applied to an entangled qubit) */
 
 def NewQubitOp : QNet_Op<"new_qubit"> {
     let results = (outs QubitType:$qout);
@@ -225,24 +253,6 @@ def MeasureOp : QNet_Op<"measure"> {
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
         operands attr-dict `:` type($outcome)
-    }];
-}
-
-def EprsOp: QNet_Op<"eprs",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
-    let results = (outs TensorOf<[QubitType]>:$qout);
-    let assemblyFormat = [{
-        operands attr-dict `:` type($qout)
-    }];
-}
-
-def EprsMeasureOp: QNet_Op<"eprs_measure",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
-    let results = (outs TensorOf<[I1]>:$outcomes);
-    let assemblyFormat = [{
-        operands attr-dict `:` type($outcomes)
     }];
 }
 

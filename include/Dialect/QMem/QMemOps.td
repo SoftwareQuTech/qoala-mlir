@@ -26,29 +26,47 @@ include "Dialect/QMem/QMemDialect.td"
 class QMem_Op<string mnemonic, list<Trait> traits = []> :
   Op<QMem_Dialect, mnemonic, traits>;
 
-
-def RemoteOp: QMem_Op<"remote", [Symbol]>;
-
-def SendIntsOp : QMem_Op<"send_ints",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins TensorOf<[I32]>:$cin);
+/* Helper class ported from QNet dialect */
+class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
+  QMem_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let extraClassDefinition = [{
+    LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
+        // Check that the callee attribute was specified.
+        auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+        if (!fnAttr)
+            return this->emitOpError("requires a 'remote' symbol reference attribute");
+        // Iteratively search on the parent SymbolTables
+        for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
+            if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
+                return success();
+            }
+        }
+        return this->emitOpError() << "'" << fnAttr.getValue()
+                                   << "' does not reference a valid remote node";
+      }
+  }];
 }
 
-def RecvIntsOp : QMem_Op<"recv_ints",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
 
+def RemoteOp: QMem_Op<"remote", [Symbol]> {
+  let arguments = (ins SymbolNameAttr:$sym_name,
+                       OptionalAttr<StrAttr>:$sym_visibility);
+}
+
+def SendIntsOp : UsingRemote_Op<"send_ints"> {
+    let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
+}
+
+def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I32]>:$cout);
 }
 
-def SendFloatsOp : QMem_Op<"send_floats",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let arguments = (ins TensorOf<[F32]>:$cin);
+def SendFloatsOp : UsingRemote_Op<"send_floats"> {
+    let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
 }
 
-def RecvFloatsOp : QMem_Op<"recv_floats",
-              [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-
+def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[F32]>:$cout);
 }
@@ -94,13 +112,11 @@ def MeasureOp : QMem_Op<"measure"> {
   let results = (outs I1:$outcome);
 }
 
-def EprsOp: QMem_Op<"eprs",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def EprsOp: UsingRemote_Op<"eprs"> {
   let arguments = (ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
 }
 
-def EprsMeasureOp: QMem_Op<"eprs_measure",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
     let arguments = (ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I1]>:$outcomes);
 }
