@@ -60,6 +60,26 @@ namespace qoala::conversion {
         return RotateXLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
     }
 
+    RotateYLowering::NewOpAndValues
+    RotateYLowering::createNewOpAndValues(
+            qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
+        auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        return RotateYLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
+    }
+
+    RotateZLowering::NewOpAndValues
+    RotateZLowering::createNewOpAndValues(
+            qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
+        auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        return RotateZLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
+    }
+
 /* Implementation of the specific conversion between similar ops */
     qmem::RemoteOp
     RemoteOpLowering::createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,

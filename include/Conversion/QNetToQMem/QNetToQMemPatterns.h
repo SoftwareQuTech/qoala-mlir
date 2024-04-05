@@ -165,6 +165,22 @@ namespace qoala::conversion {
         NewOpAndValues createNewOpAndValues(qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor,
                                             ConversionPatternRewriter &rewriter) const override;
     };
+    class RotateYLowering : public DifferentValuesLoweringTemplate<qnet::RotYOp, qmem::RotateYOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateZLowering : public DifferentValuesLoweringTemplate<qnet::RotZOp, qmem::RotateZOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
 
     // TODO - instantiate the template to map operations from one dialect to the other
 

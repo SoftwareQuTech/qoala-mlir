@@ -41,9 +41,6 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
             qnet::ReturnOp,
             qnet::EprsMeasureOp,
             qnet::MeasureOp,
-//            qnet::RotXOp,
-            qnet::RotYOp,
-            qnet::RotZOp,
             qnet::HadamardOp,
             qnet::CzOp,
             qnet::CnotOp,
@@ -60,7 +57,9 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
             qoala::conversion::RecvFloatsOpLowering,
             qoala::conversion::SendIntsOpLowering,
             qoala::conversion::SendFloatsOpLowering,
-            qoala::conversion::RotateXLowering
+            qoala::conversion::RotateXLowering,
+            qoala::conversion::RotateYLowering,
+            qoala::conversion::RotateZLowering
     >(typeConverter, &context);
 
     // We finally apply a **partial** conversion, since there will be some
