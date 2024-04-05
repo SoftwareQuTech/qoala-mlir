@@ -58,7 +58,8 @@ namespace qoala::conversion {
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
         return RotateXLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
     }
 
@@ -70,7 +71,8 @@ namespace qoala::conversion {
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
         return RotateYLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
     }
 
@@ -82,7 +84,8 @@ namespace qoala::conversion {
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
         return RotateZLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
     }
 
@@ -94,7 +97,8 @@ namespace qoala::conversion {
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptor.getQin());
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
         return HadamardLowering::NewOpAndValues(newHadamard, ValueRange{newHadamard.getQ()});
     }
 
@@ -105,26 +109,24 @@ namespace qoala::conversion {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
         auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin0());
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
         return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});
     }
 
     CNotLowering::NewOpAndValues
     CNotLowering::createNewOpAndValues(
             qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQout0(), adaptor.getQin0());
-        rewriter.replaceAllUsesWith(op.getQout1(), adaptor.getQin1());
+        // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
+        // in the internals of the replacement of the operation
+        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
+        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
         auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
-        llvm::dbgs() << "newOp " << newCnot << "\n";
-        llvm::dbgs() << "Qin0 = " << newCnot.getQ1() << "\n";
-        llvm::dbgs() << "Qin0 = " << newCnot.getQ2() << "\n";
-        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES*
-        // TODO - Replacing "op" with this set of values makes MLIR SIGSEGV when invoking the internal
-        //  mapping of the value... figure out why.
-        return CNotLowering::NewOpAndValues(newCnot, ValueRange{newCnot.getQ1(), newCnot.getQ2()});
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        return CNotLowering::NewOpAndValues(newCnot, ValueRange{newCnot->getOperands()});
     }
 
     /* Implementation of the specific conversion between similar ops

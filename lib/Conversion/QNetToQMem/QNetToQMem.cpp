@@ -39,9 +39,9 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
     target.addLegalOp<
             qnet::FuncOp,
             qnet::ReturnOp,
+            qnet::EprsOp,
             qnet::EprsMeasureOp,
             qnet::CzOp,
-            qnet::CnotOp,
             qnet::CrotXOp
     >();
 
@@ -59,7 +59,7 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
             qoala::conversion::RotateYLowering,
             qoala::conversion::RotateZLowering,
             qoala::conversion::HadamardLowering,
-//            qoala::conversion::CNotLowering,
+            qoala::conversion::CNotLowering,
             qoala::conversion::MeasureLowering
     >(typeConverter, &context);
 

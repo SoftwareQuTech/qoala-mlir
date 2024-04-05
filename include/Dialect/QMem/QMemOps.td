@@ -96,15 +96,15 @@ def HadamardOp : QMem_Op<"hadamard"> {
 }
 
 def CnotOp : QMem_Op<"cnot"> {
-  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1);
 }
 
 def CzOp : QMem_Op<"cz"> {
-  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1);
 }
 
 def CrotXOp : QMem_Op<"crot_x"> {
-  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q1, Arg<I32, "qubit", [MemWrite]>:$q2, F32:$angle);
+  let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1, F32:$angle);
 }
 
 def MeasureOp : QMem_Op<"measure"> {
