@@ -181,6 +181,30 @@ namespace qoala::conversion {
         NewOpAndValues createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
                                             ConversionPatternRewriter &rewriter) const override;
     };
+    class MeasureLowering : public DifferentValuesLoweringTemplate<qnet::MeasureOp, qmem::MeasureOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
+    class HadamardLowering : public DifferentValuesLoweringTemplate<qnet::HadamardOp, qmem::HadamardOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
+    class CNotLowering : public DifferentValuesLoweringTemplate<qnet::CnotOp, qmem::CnotOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
 
     // TODO - instantiate the template to map operations from one dialect to the other
 

@@ -54,6 +54,8 @@ namespace qoala::conversion {
     RotateXLowering::createNewOpAndValues(
             qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
@@ -64,6 +66,8 @@ namespace qoala::conversion {
     RotateYLowering::createNewOpAndValues(
             qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
@@ -74,13 +78,57 @@ namespace qoala::conversion {
     RotateZLowering::createNewOpAndValues(
             qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
         return RotateZLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
     }
 
-/* Implementation of the specific conversion between similar ops */
+    HadamardLowering::NewOpAndValues
+    HadamardLowering::createNewOpAndValues(
+            qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
+        auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptor.getQin());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        return HadamardLowering::NewOpAndValues(newHadamard, ValueRange{newHadamard.getQ()});
+    }
+
+    MeasureLowering::NewOpAndValues
+    MeasureLowering::createNewOpAndValues(
+            qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
+        // need to remap the uses of the measure value.
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin0());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUE*
+        return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});
+    }
+
+    CNotLowering::NewOpAndValues
+    CNotLowering::createNewOpAndValues(
+            qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        llvm::dbgs() << "lowering operation : '" << op << "'\n";
+        // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
+        // the mapped value of the respective "qin" operand of this operation
+        rewriter.replaceAllUsesWith(op.getQout0(), adaptor.getQin0());
+        rewriter.replaceAllUsesWith(op.getQout1(), adaptor.getQin1());
+        auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
+        llvm::dbgs() << "newOp " << newCnot << "\n";
+        llvm::dbgs() << "Qin0 = " << newCnot.getQ1() << "\n";
+        llvm::dbgs() << "Qin0 = " << newCnot.getQ2() << "\n";
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES*
+        // TODO - Replacing "op" with this set of values makes MLIR SIGSEGV when invoking the internal
+        //  mapping of the value... figure out why.
+        return CNotLowering::NewOpAndValues(newCnot, ValueRange{newCnot.getQ1(), newCnot.getQ2()});
+    }
+
+    /* Implementation of the specific conversion between similar ops
+     * These implementations do not need any special treatment, and mapping is quite straight forward */
     qmem::RemoteOp
     RemoteOpLowering::createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const {
