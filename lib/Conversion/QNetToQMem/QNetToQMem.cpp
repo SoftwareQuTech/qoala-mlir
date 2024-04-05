@@ -40,9 +40,7 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
             qnet::FuncOp,
             qnet::ReturnOp,
             qnet::EprsOp,
-            qnet::EprsMeasureOp,
-            qnet::CzOp,
-            qnet::CrotXOp
+            qnet::EprsMeasureOp
     >();
 
     // We add the conversion pattern to the context
@@ -60,6 +58,8 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
             qoala::conversion::RotateZLowering,
             qoala::conversion::HadamardLowering,
             qoala::conversion::CNotLowering,
+            qoala::conversion::CzLowering,
+            qoala::conversion::CRotXLowering,
             qoala::conversion::MeasureLowering
     >(typeConverter, &context);
 

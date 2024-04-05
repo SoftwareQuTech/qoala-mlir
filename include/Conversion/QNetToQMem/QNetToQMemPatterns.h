@@ -205,6 +205,22 @@ namespace qoala::conversion {
         NewOpAndValues createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
                                             ConversionPatternRewriter &rewriter) const override;
     };
+    class CzLowering : public DifferentValuesLoweringTemplate<qnet::CzOp, qmem::CzOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
+    class CRotXLowering : public DifferentValuesLoweringTemplate<qnet::CrotXOp, qmem::CrotXOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
 
     // TODO - instantiate the template to map operations from one dialect to the other
 

@@ -129,6 +129,39 @@ namespace qoala::conversion {
         return CNotLowering::NewOpAndValues(newCnot, ValueRange{newCnot->getOperands()});
     }
 
+    CzLowering::NewOpAndValues
+    CzLowering::createNewOpAndValues(
+            qnet::CzOp op, qnet::CzOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
+        // the mapped value of the respective "qin" operand of this operation
+        // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
+        // in the internals of the replacement of the operation
+        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
+        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
+        auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        return CzLowering::NewOpAndValues(newCz, ValueRange{newCz->getOperands()});
+    }
+
+    CRotXLowering::NewOpAndValues
+    CRotXLowering::createNewOpAndValues(
+            qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
+        // the mapped value of the respective "qin" operand of this operation
+        // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
+        // in the internals of the replacement of the operation
+        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
+        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
+        auto newCRotX = rewriter.create<qmem::CrotXOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(), adaptor.getAngle());
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        // In this particular case we only need the first 2 operands
+        auto opOperands = newCRotX->getOpOperands();
+        OperandRange firstTwoOperands(opOperands.data(), 2);
+        return CRotXLowering::NewOpAndValues(newCRotX, ValueRange{firstTwoOperands});
+    }
+
     /* Implementation of the specific conversion between similar ops
      * These implementations do not need any special treatment, and mapping is quite straight forward */
     qmem::RemoteOp
