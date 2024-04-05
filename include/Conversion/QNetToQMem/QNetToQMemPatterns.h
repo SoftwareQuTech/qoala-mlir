@@ -92,9 +92,13 @@ namespace qoala::conversion {
         qmem::RecvFloatsOp createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const override;
     };
-
-    /* Since Qmem introduces "pointers" to physical qubits, we need to be a bit more careful about the conversions
-     * that involve creating/using qubits... */
+    class NewQubitLowering : public SimpleOneToToneLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::QAllocOp createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
 
     // TODO - instantiate the template to map operations from one dialect to the other
 

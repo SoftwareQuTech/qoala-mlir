@@ -36,27 +36,25 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
     // We also declare operations that can be declared legal in the target
     // dialect. The `callback` argument (which receives the operation involved)
     // can determine if it is legal to leave the operation or not.
-    target.addDynamicallyLegalOp<qnet::RotXOp>(
-            [](qnet::RotXOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::RotYOp>(
-            [](qnet::RotYOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::RotZOp>(
-            [](qnet::RotZOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::FuncOp>(
-            [](qnet::FuncOp) { return true; });
-    target.addDynamicallyLegalOp<qnet::ReturnOp>(
-            [](qnet::ReturnOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::CnotOp>(
-            [](qnet::CnotOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::NewQubitOp>(
-            [](qnet::NewQubitOp op) { return true; });
-    target.addDynamicallyLegalOp<qnet::MeasureOp>(
-            [](qnet::MeasureOp op) { return true; });
+    target.addLegalOp<
+            qnet::FuncOp,
+            qnet::ReturnOp,
+            qnet::EprsMeasureOp,
+            qnet::MeasureOp,
+            qnet::RotXOp,
+            qnet::RotYOp,
+            qnet::RotZOp,
+            qnet::HadamardOp,
+            qnet::CzOp,
+            qnet::CnotOp,
+            qnet::CrotXOp
+    >();
 
     // We add the conversion pattern to the context
     RewritePatternSet patterns(&context);
     QNetToQMemQubitTypeConverter typeConverter(&context);
     patterns.add<
+            qoala::conversion::NewQubitLowering,
             qoala::conversion::RemoteOpLowering,
             qoala::conversion::RecvIntsOpLowering,
             qoala::conversion::RecvFloatsOpLowering,
