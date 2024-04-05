@@ -72,7 +72,7 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
 }
 
 def QAllocOp: QMem_Op<"qalloc"> {
-    let results = (outs TensorOf<[I32]>:$q);
+    let results = (outs I32:$q);
 }
 
 def InitOp : QMem_Op<"init"> {
