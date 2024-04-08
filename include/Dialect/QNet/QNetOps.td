@@ -137,7 +137,7 @@ def RemoteOp: QNet_Op<"remote", [Symbol]> {
 /* Operations for handling remote nodes/qubits */
 
 def EprsOp: UsingRemote_Op<"eprs"> {
-    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
         operands attr-dict
@@ -145,8 +145,8 @@ def EprsOp: UsingRemote_Op<"eprs"> {
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
-    let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
-    let results = (outs Res<I1, "outcome">:$outcome);
+    let arguments = (ins QubitType:$q, FlatSymbolRefAttr:$remote);
+    let results = (outs I1:$outcome);
     let assemblyFormat = [{
         operands attr-dict `:` type($outcome)
     }];
