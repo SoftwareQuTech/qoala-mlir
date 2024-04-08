@@ -128,7 +128,7 @@ namespace qoala::conversion {
         llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin0());
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});

@@ -8,7 +8,6 @@ include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 
 include "mlir/IR/SymbolInterfaces.td"
-include "mlir/IR/CommonTypeConstraints.td"
 include "mlir/Bytecode/BytecodeOpInterface.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/CastInterfaces.td"
@@ -26,7 +25,7 @@ include "Dialect/QNet/QNetTypes.td"
 
 
 class QNet_Op<string mnemonic, list<Trait> traits = []> :
-  Op<QNet_Dialect, mnemonic, traits>;
+    Op<QNet_Dialect, mnemonic, traits>;
 
 /* This class is defined so that we can implement a "generic" way to implement the 'verifySymbolUses' method
  * It provides an implementation that searches for the symbol specified in the "remote" attribute of the
@@ -35,23 +34,23 @@ class QNet_Op<string mnemonic, list<Trait> traits = []> :
  * super class, and pass any other traits needed
  */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
-  QNet_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-  let extraClassDefinition = [{
-    LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
-        // Check that the callee attribute was specified.
-        auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-        if (!fnAttr)
-            return this->emitOpError("requires a 'remote' symbol reference attribute");
-        // Iteratively search on the parent SymbolTables
-        for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
-            if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
-                return success();
+    QNet_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+        let extraClassDefinition = [{
+            LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
+                // Check that the callee attribute was specified.
+                auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+                if (!fnAttr)
+                    return this->emitOpError("requires a 'remote' symbol reference attribute");
+                // Iteratively search on the parent SymbolTables
+                for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
+                    if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
+                        return success();
+                    }
+                }
+                return this->emitOpError() << "'" << fnAttr.getValue()
+                                           << "' does not reference a valid remote node";
             }
-        }
-        return this->emitOpError() << "'" << fnAttr.getValue()
-                                   << "' does not reference a valid remote node";
-      }
-  }];
+        }];
 }
 
 /* FuncOp is a "clone" of func.func, with the extension that is also can contain
@@ -59,44 +58,44 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
  * places inside the body of a function (and not only a the module level)
  */
 def FuncOp: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
-  let summary = "Function declaration/definition for qoala programs.";
-  let description = [{
-    This function declaration operation differs from func.func operation in
-    the sense that it also carries the `SymbolTable` trait. This allows the
-    operations contained within the body region con also declare symbols,
-    which comes handy when declaring a quantum remote node within the scope
-    of a function. This facility allows placing the `qnet.remote` operation
-    in the body of a `qnet.func`, which correctly declares the symbol.
-  }];
-  let arguments = (ins SymbolNameAttr:$sym_name,
-                       TypeAttrOf<FunctionType>:$function_type,
-                       OptionalAttr<StrAttr>:$sym_visibility,
-                       OptionalAttr<DictArrayAttr>:$arg_attrs,
-                       OptionalAttr<DictArrayAttr>:$res_attrs);
-  let regions = (region AnyRegion:$body);
-  let extraClassDeclaration = [{
-    //===------------------------------------------------------------------===//
-    // FunctionOpInterface Methods
-    //===------------------------------------------------------------------===//
+    let summary = "Function declaration/definition for qoala programs.";
+    let description = [{
+        This function declaration operation differs from func.func operation in
+        the sense that it also carries the `SymbolTable` trait. This allows the
+        operations contained within the body region con also declare symbols,
+        which comes handy when declaring a quantum remote node within the scope
+        of a function. This facility allows placing the `qnet.remote` operation
+        in the body of a `qnet.func`, which correctly declares the symbol.
+    }];
+    let arguments = (ins SymbolNameAttr:$sym_name,
+                         TypeAttrOf<FunctionType>:$function_type,
+                         OptionalAttr<StrAttr>:$sym_visibility,
+                         OptionalAttr<DictArrayAttr>:$arg_attrs,
+                         OptionalAttr<DictArrayAttr>:$res_attrs);
+    let regions = (region AnyRegion:$body);
+    let extraClassDeclaration = [{
+        //===------------------------------------------------------------------===//
+        // FunctionOpInterface Methods
+        //===------------------------------------------------------------------===//
 
-    /// Returns the region on the current operation that is callable. This may
-    /// return null in the case of an external callable object, e.g. an external
-    /// function.
-    ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+        /// Returns the region on the current operation that is callable. This may
+        /// return null in the case of an external callable object, e.g. an external
+        /// function.
+        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
 
-    /// Returns the argument types of this function.
-    ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+        /// Returns the argument types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
 
-    /// Returns the result types of this function.
-    ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+        /// Returns the result types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
 
-    //===------------------------------------------------------------------===//
-    // SymbolOpInterface Methods - Inherited form FunctionOpInterface
-    //===------------------------------------------------------------------===//
+        //===------------------------------------------------------------------===//
+        // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+        //===------------------------------------------------------------------===//
 
-    bool isDeclaration() { return isExternal(); }
-  }];
-  let hasCustomAssemblyFormat = 1;
+        bool isDeclaration() { return isExternal(); }
+    }];
+    let hasCustomAssemblyFormat = 1;
 }
 
 /* The "return" operation had to be ported, since the func.return operation performs a
@@ -104,52 +103,52 @@ def FuncOp: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
  * This operation performs the same check, but with qoala.func
  */
 def ReturnOp: QNet_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminator]> {
-  let summary = "Function return operation for qoala.func bodies";
-  let arguments = (ins Variadic<AnyType>:$operands);
-  let builders = [OpBuilder<(ins), [{
-    build($_builder, $_state, std::nullopt);
-  }]>];
-  let assemblyFormat = [{
-      attr-dict ($operands^ `:` type($operands))?
-  }];
- }
+    let summary = "Function return operation for qoala.func bodies";
+    let arguments = (ins Variadic<AnyType>:$operands);
+    let builders = [OpBuilder<(ins), [{
+        build($_builder, $_state, std::nullopt);
+    }]>];
+    let assemblyFormat = [{
+        attr-dict ($operands^ `:` type($operands))?
+    }];
+}
 
 
 def RemoteOp: QNet_Op<"remote", [Symbol]> {
-  /* Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
-   * declare the two arguments:
-   * https://mlir.llvm.org/docs/SymbolsAndSymbolTables/#defining-or-declaring-a-symbol
-   */
-  let arguments = (ins SymbolNameAttr:$sym_name,
-                       OptionalAttr<StrAttr>:$sym_visibility);
+    /* Operations that declare or define a symbol (i.e., use the "Symbol" trait) *must*
+    * declare the two arguments:
+    * https://mlir.llvm.org/docs/SymbolsAndSymbolTables/#defining-or-declaring-a-symbol
+    */
+    let arguments = (ins Arg<SymbolNameAttr, "remote-name">:$sym_name,
+                         Arg<OptionalAttr<StrAttr>, "visibility">:$sym_visibility);
 
-  /* Additionally, if the operation *defines* a symbol, it needs to correctly
-   * define a body for the `bool isDeclaration();` function, returning false when this
-   * operation _defines_ a symbol.
-   * HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
-   * defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
-   * there is no need to override that definition.
-   */
-  let assemblyFormat = [{
-      attr-dict $sym_name
-  }];
+    /* Additionally, if the operation *defines* a symbol, it needs to correctly
+    * define a body for the `bool isDeclaration();` function, returning false when this
+    * operation _defines_ a symbol.
+    * HOWEVER, since there is a skeleton that always returns false (i.e., this op _always_
+    * defines a symbol) in the Symbol class defined in mlir/IR/SymbolInterfaces.td,
+    * there is no need to override that definition.
+    */
+    let assemblyFormat = [{
+        attr-dict $sym_name
+    }];
 }
 
 /* Operations for handling remote nodes/qubits */
 
 def EprsOp: UsingRemote_Op<"eprs"> {
     let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
-    let results = (outs TensorOf<[QubitType]>:$qout);
+    let results = (outs QubitType:$qout);
     let assemblyFormat = [{
-        operands attr-dict `:` type($qout)
+        operands attr-dict
     }];
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
     let arguments = (ins I32Attr:$N, FlatSymbolRefAttr:$remote);
-    let results = (outs TensorOf<[I1]>:$outcomes);
+    let results = (outs Res<I1, "outcome">:$outcome);
     let assemblyFormat = [{
-        operands attr-dict `:` type($outcomes)
+        operands attr-dict `:` type($outcome)
     }];
 }
 
@@ -249,7 +248,7 @@ def CrotXOp : QNet_Op<"crot_x"> {
 }
 
 def MeasureOp : QNet_Op<"measure"> {
-    let arguments = (ins QubitType:$qin0);
+    let arguments = (ins QubitType:$qin);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
         operands attr-dict `:` type($outcome)

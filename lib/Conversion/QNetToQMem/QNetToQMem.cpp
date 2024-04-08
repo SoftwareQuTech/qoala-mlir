@@ -21,56 +21,58 @@ namespace qoala::conversion {
     class QNetToQMemPass : public mlir::impl::QNetToQMemBase<QNetToQMemPass> {
         void runOnOperation() override;
     };
-} /* namespace qoala::conversion */
 
-void qoala::conversion::QNetToQMemPass::runOnOperation() {
-    MLIRContext &context = getContext();
-    Operation *operation = getOperation();
-    // Get a conversion target to define our target dialects
-    ConversionTarget target(context);
-    // We add the legal dialects that we aim to keep in the target
-    target.addLegalDialect<qmem::QMemDialect>();
-    // We define the QNet dialect as "illegal", so the conversion will fail
-    // if there are any qnet operations in the converted IR
-    target.addIllegalDialect<qnet::QNetDialect>();
-    // We also declare operations that can be declared legal in the target
-    // dialect. The `callback` argument (which receives the operation involved)
-    // can determine if it is legal to leave the operation or not.
-    target.addLegalOp<
-            qnet::EprsOp,
-            qnet::EprsMeasureOp
-    >();
+    void QNetToQMemPass::runOnOperation() {
+        MLIRContext &context = getContext();
+        Operation *operation = getOperation();
+        // Get a conversion target to define our target dialects
+        ConversionTarget target(context);
+        // We add the legal dialects that we aim to keep in the target
+        target.addLegalDialect<qmem::QMemDialect>();
+        // We define the QNet dialect as "illegal", so the conversion will fail
+        // if there are any qnet operations in the converted IR
+        target.addIllegalDialect<qnet::QNetDialect>();
+        // We also declare operations (classes) that can be declared legal in the target
+        // dialect. The `callback` argument (which receives the operation involved)
+        // can determine if it is legal to leave the operation or not.
+        target.addLegalOp<
+                //qnet::SomeOp,
+                //qnet::SomeOtherOp
+                qnet::EprsOp,
+                qnet::EprsMeasureOp
+        >();
 
-    // We add the conversion pattern to the context
-    RewritePatternSet patterns(&context);
-    QNetToQMemQubitTypeConverter typeConverter(&context);
-    patterns.add<
-            qoala::conversion::FuncOpLowering,
-            qoala::conversion::ReturnOpLowering,
-            qoala::conversion::NewQubitLowering,
-            qoala::conversion::RemoteOpLowering,
-            qoala::conversion::RecvIntsOpLowering,
-            qoala::conversion::RecvFloatsOpLowering,
-            qoala::conversion::SendIntsOpLowering,
-            qoala::conversion::SendFloatsOpLowering,
-            qoala::conversion::RotateXLowering,
-            qoala::conversion::RotateYLowering,
-            qoala::conversion::RotateZLowering,
-            qoala::conversion::HadamardLowering,
-            qoala::conversion::CNotLowering,
-            qoala::conversion::CzLowering,
-            qoala::conversion::CRotXLowering,
-            qoala::conversion::MeasureLowering
-    >(typeConverter, &context);
+        // We add the conversion pattern to the context
+        RewritePatternSet patterns(&context);
+        QNetToQMemQubitTypeConverter typeConverter(&context);
+        patterns.add<
+                FuncOpLowering,
+                ReturnOpLowering,
+                NewQubitLowering,
+                RemoteOpLowering,
+                RecvIntsOpLowering,
+                RecvFloatsOpLowering,
+                SendIntsOpLowering,
+                SendFloatsOpLowering,
+                RotateXLowering,
+                RotateYLowering,
+                RotateZLowering,
+                HadamardLowering,
+                CNotLowering,
+                CzLowering,
+                CRotXLowering,
+                MeasureLowering
+        >(typeConverter, &context);
 
-    // We finally apply a **partial** conversion, since there will be some
-    // operations that will stay... momentarily
-    LogicalResult result =
-        mlir::applyPartialConversion(operation, target, std::move(patterns));
-    if (mlir::failed(result)) {
-        signalPassFailure();
+        // We finally apply a **partial** conversion, since there will be some
+        // operations that will stay... momentarily
+        LogicalResult result =
+            mlir::applyPartialConversion(operation, target, std::move(patterns));
+        if (mlir::failed(result)) {
+            signalPassFailure();
+        }
     }
-}
+} /* namespace qoala::conversion */
 
 std::unique_ptr<mlir::Pass> mlir::createQNetToQMemPass() {
     return std::make_unique<qoala::conversion::QNetToQMemPass>();
