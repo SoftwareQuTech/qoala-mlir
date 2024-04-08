@@ -165,6 +165,11 @@ def MeasureOp : QMem_Op<"measure"> {
   let results = (outs I1:$outcome);
 }
 
+// This operation replaces the "init" for an entangled qubit
+// %0 = qmem.alloca : i32
+// ;; This op had the "semantics" of entangling the qubit
+// qmem.eprs %0
+// %0, %1, %1 = qmem.alloca {N: i32 = 3} : i32, i32, i32
 def EprsOp: UsingRemote_Op<"eprs"> {
   let arguments = (ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q, I32Attr:$N, FlatSymbolRefAttr:$remote);
 }

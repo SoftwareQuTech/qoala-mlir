@@ -34,6 +34,26 @@ namespace qoala::conversion {
         });
     }
 
+    qmem::FuncOp FuncOpLowering::createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymNameAttr(),
+                                                     adaptor.getFunctionTypeAttr(),
+                                                     adaptor.getSymVisibilityAttr(),
+                                                     adaptor.getArgAttrsAttr(),
+                                                     adaptor.getResAttrsAttr());
+        // Before returning the new function, we need to "attach" (inline)
+        // the body (region) of the old operation to the new one
+        // This is inspired in the last part of the `convertFuncOpToLLVMFuncOp`
+        // function in llvm/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp
+        rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+        return newFunc;
+    }
+
+    qmem::ReturnOp ReturnOpLowering::createNewOp(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
+                                                 ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<qmem::ReturnOp>(op.getLoc(), adaptor.getOperands());
+    }
+
     /* Implementation of the lowering for the creation of new qubits */
     qmem::QAllocOp
     NewQubitLowering::createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,

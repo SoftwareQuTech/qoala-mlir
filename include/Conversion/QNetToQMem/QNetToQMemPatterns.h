@@ -114,6 +114,22 @@ namespace qoala::conversion {
         }
     };
 
+    class FuncOpLowering : public SimpleOneToToneLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::FuncOp createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
+                                 ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class ReturnOpLowering : public SimpleOneToToneLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::ReturnOp createNewOp(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
+                                   ConversionPatternRewriter &rewriter) const override;
+    };
+
     /* Remote operations can be mapped with a simple one-to-one operation */
     class RemoteOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
     public:

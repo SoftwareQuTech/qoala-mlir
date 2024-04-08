@@ -37,8 +37,6 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
     // dialect. The `callback` argument (which receives the operation involved)
     // can determine if it is legal to leave the operation or not.
     target.addLegalOp<
-            qnet::FuncOp,
-            qnet::ReturnOp,
             qnet::EprsOp,
             qnet::EprsMeasureOp
     >();
@@ -47,6 +45,8 @@ void qoala::conversion::QNetToQMemPass::runOnOperation() {
     RewritePatternSet patterns(&context);
     QNetToQMemQubitTypeConverter typeConverter(&context);
     patterns.add<
+            qoala::conversion::FuncOpLowering,
+            qoala::conversion::ReturnOpLowering,
             qoala::conversion::NewQubitLowering,
             qoala::conversion::RemoteOpLowering,
             qoala::conversion::RecvIntsOpLowering,
