@@ -26,6 +26,59 @@ include "Dialect/QMem/QMemDialect.td"
 class QMem_Op<string mnemonic, list<Trait> traits = []> :
   Op<QMem_Dialect, mnemonic, traits>;
 
+/* Func and Return operations similar to the ones present un QNet */
+def FuncOp: QMem_Op<"func", [FunctionOpInterface, SymbolTable]> {
+  let summary = "Function declaration/definition for qoala programs.";
+  let description = [{
+    This function declaration operation differs from func.func operation in
+    the sense that it also carries the `SymbolTable` trait. This allows the
+    operations contained within the body region con also declare symbols,
+    which comes handy when declaring a quantum remote node within the scope
+    of a function. This facility allows placing the `qmem.remote` operation
+    in the body of a `qmem.func`, which correctly declares the symbol.
+  }];
+  let arguments = (ins SymbolNameAttr:$sym_name,
+                       TypeAttrOf<FunctionType>:$function_type,
+                       OptionalAttr<StrAttr>:$sym_visibility,
+                       OptionalAttr<DictArrayAttr>:$arg_attrs,
+                       OptionalAttr<DictArrayAttr>:$res_attrs);
+  let regions = (region AnyRegion:$body);
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable. This may
+    /// return null in the case of an external callable object, e.g. an external
+    /// function.
+    ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+
+    /// Returns the argument types of this function.
+    ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return isExternal(); }
+  }];
+  let hasCustomAssemblyFormat = 1;
+}
+
+def ReturnOp: QMem_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminator]> {
+  let summary = "Function return operation for qoala.func bodies";
+  let arguments = (ins Variadic<AnyType>:$operands);
+  let builders = [OpBuilder<(ins), [{
+    build($_builder, $_state, std::nullopt);
+  }]>];
+  let assemblyFormat = [{
+      attr-dict ($operands^ `:` type($operands))?
+  }];
+ }
+
 /* Helper class ported from QNet dialect */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
   QMem_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
