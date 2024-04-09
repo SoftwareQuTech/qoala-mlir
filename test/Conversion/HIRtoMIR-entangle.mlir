@@ -41,6 +41,9 @@ module {
     // CHECK: qmem.measure %[[QBIT2]] : i1
     %7 = qnet.measure %6 : i1
 
+    // CHECK: qmem.eprs_measure %[[QBIT0]] {remote = @[[REMOTEBOB]]} : i1
+    %8 = qnet.eprs_measure %0 {remote = @Bob} : i1
+
     // CHECK: qmem.return
     qnet.return
   }
