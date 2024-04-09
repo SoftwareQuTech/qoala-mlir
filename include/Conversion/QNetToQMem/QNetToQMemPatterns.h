@@ -130,6 +130,24 @@ namespace qoala::conversion {
                                    ConversionPatternRewriter &rewriter) const override;
     };
 
+    /* Operations used to create entanglement */
+    class EprsOpLowering : public DifferentValuesLoweringTemplate<qnet::EprsOp, qmem::EprsOp> {
+    public:
+        // Constructor simply matches the super class
+        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+
+        NewOpAndValues createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class EprsMeasureOpLowering : public SimpleOneToToneLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
+    public:
+        // Constructor simply refers to the parent
+        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        qmem::EprsMeasureOp createNewOp(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+
     /* Remote operations can be mapped with a simple one-to-one operation */
     class RemoteOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
     public:

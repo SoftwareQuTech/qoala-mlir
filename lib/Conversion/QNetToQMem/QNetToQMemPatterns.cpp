@@ -54,6 +54,28 @@ namespace qoala::conversion {
         return rewriter.create<qmem::ReturnOp>(op.getLoc(), adaptor.getOperands());
     }
 
+    /* Implementation of the operations that entangle qubits */
+    EprsOpLowering::NewOpAndValues
+    EprsOpLowering::createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const {
+        Location loc = op.getLoc();
+        // We first create a new qalloc operation
+        auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
+
+        // Then we introduce the "init" operation as the "eprs" op
+        auto newEprsOp = rewriter.create<qmem::EprsOp>(loc, newAllocOp.getResult(), adaptor.getRemoteAttr());
+        // We replace all the uses of the old qubit with the new value (what was passed as "q" operand to eprs)
+        rewriter.replaceAllUsesWith(op.getQout(), newEprsOp.getQ());
+        return EprsOpLowering::NewOpAndValues(newEprsOp, ValueRange{newAllocOp.getResult()});
+    }
+
+    qmem::EprsMeasureOp EprsMeasureOpLowering::createNewOp(qnet::EprsMeasureOp op,
+                                                           qnet::EprsMeasureOp::Adaptor adaptor,
+                                                           ConversionPatternRewriter &rewriter) const {
+        // TODO - Create a test case that uses this lowering!
+        return rewriter.create<qmem::EprsMeasureOp>(op.getLoc(), adaptor.getQ(), adaptor.getRemoteAttr());
+    }
+
     /* Implementation of the lowering for the creation of new qubits */
     qmem::QAllocOp
     NewQubitLowering::createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,

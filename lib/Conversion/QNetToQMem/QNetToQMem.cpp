@@ -35,11 +35,11 @@ namespace qoala::conversion {
         // We also declare operations (classes) that can be declared legal in the target
         // dialect. The `callback` argument (which receives the operation involved)
         // can determine if it is legal to leave the operation or not.
+
         target.addLegalOp<
+                qnet::EprsMeasureOp
                 //qnet::SomeOp,
                 //qnet::SomeOtherOp
-                qnet::EprsOp,
-                qnet::EprsMeasureOp
         >();
 
         // We add the conversion pattern to the context
@@ -48,6 +48,8 @@ namespace qoala::conversion {
         patterns.add<
                 FuncOpLowering,
                 ReturnOpLowering,
+                EprsOpLowering,
+                EprsMeasureOpLowering,
                 NewQubitLowering,
                 RemoteOpLowering,
                 RecvIntsOpLowering,

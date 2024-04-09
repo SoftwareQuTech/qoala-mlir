@@ -20,7 +20,7 @@ module {
     // CHECK-NEXT: qmem.eprs %[[QBIT2]] {remote = @[[REMOTEBOB]]}
     %2 = qnet.eprs  {remote = @Bob} : !qnet.qubit
 
-    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: %[[RECVA:.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %3 = qnet.recv_floats  {remote = @Bob} : tensor<2xf32>
 
     %c0 = arith.constant 0 : index
@@ -29,13 +29,13 @@ module {
     // CHECK: qmem.rot_x %[[QBIT2]], %extracted
     %4 = qnet.rot_x %2, %extracted : !qnet.qubit
 
-    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: %[[RECVB:.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %5 = qnet.recv_floats  {remote = @Bob} : tensor<2xf32>
 
     %c1 = arith.constant 1 : index
     %extracted_0 = tensor.extract %5[%c1] : tensor<2xf32>
 
-    // CHECK: qmem.rot_x %[[QBIT2]], %extracted_0
+    // CHECK: qmem.rot_y %[[QBIT2]], %extracted_0
     %6 = qnet.rot_y %4, %extracted_0 : !qnet.qubit
 
     // CHECK: qmem.measure %[[QBIT2]] : i1
