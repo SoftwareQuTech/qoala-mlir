@@ -4,8 +4,7 @@ module {
   %zero = arith.constant 0 : index
   "qmem.remote"() {sym_name = "Bob"} : () -> ()
 
-  %qptrs = "qmem.qalloc"() : () -> tensor<1xi32>
-  %qptr = tensor.extract %qptrs[%zero] : tensor<1xi32>
+  %qptr = "qmem.qalloc"() : () -> i32
   "qmem.init"(%qptr) : (i32) -> ()
 
   %floats1 = "qmem.recv_floats"() {"remote" = @Bob, "length" = 1 : i32} : () -> tensor<1xf32>
