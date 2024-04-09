@@ -140,7 +140,7 @@ def EprsOp: UsingRemote_Op<"eprs"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
-        operands attr-dict
+        operands attr-dict `:` type($qout)
     }];
 }
 
