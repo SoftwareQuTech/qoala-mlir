@@ -199,7 +199,9 @@ namespace qoala::conversion {
     qmem::RecvIntsOp
     RecvIntsOpLowering::createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
                                     ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::RecvIntsOp>(op.getLoc(), adaptor.getOperands(), adaptor.getRemoteAttr());
+        // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
+        Type outType = op.getCout().getType();
+        return rewriter.create<qmem::RecvIntsOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
     }
 
     qmem::SendFloatsOp
@@ -211,6 +213,8 @@ namespace qoala::conversion {
     qmem::RecvFloatsOp
     RecvFloatsOpLowering::createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
                                       ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), adaptor.getOperands(), adaptor.getRemoteAttr());
+        // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
+        Type outType = op.getCout().getType();
+        return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
     }
 } // namespace qoala::conversion
