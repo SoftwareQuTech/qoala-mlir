@@ -5,22 +5,22 @@
 module {
   // CHECK: qmem.func @test_entangle_quantum_program() {
   qnet.func @test_entangle_quantum_program() {
-    //CHECK: qmem.remote @Bob
+    //CHECK: qmem.remote @[[REMOTEBOB:.*]]
     qnet.remote @Bob
 
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
-    // CHECK-NEXT: qmem.eprs %[[QBIT0]]
+    // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTEBOB]]}
     %0 = qnet.eprs  {remote = @Bob} : !qnet.qubit
 
     // CHECK: %[[QBIT1:.*]] = qmem.qalloc : i32
-    // CHECK-NEXT: qmem.eprs %[[QBIT1]]
+    // CHECK-NEXT: qmem.eprs %[[QBIT1]] {remote = @[[REMOTEBOB]]}
     %1 = qnet.eprs  {remote = @Bob} : !qnet.qubit
 
     // CHECK: %[[QBIT2:.*]] = qmem.qalloc : i32
-    // CHECK-NEXT: qmem.eprs %[[QBIT2]]
+    // CHECK-NEXT: qmem.eprs %[[QBIT2]] {remote = @[[REMOTEBOB]]}
     %2 = qnet.eprs  {remote = @Bob} : !qnet.qubit
 
-    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @Bob} : tensor<2xf32>
+    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %3 = qnet.recv_floats  {remote = @Bob} : tensor<2xf32>
 
     %c0 = arith.constant 0 : index
@@ -29,7 +29,7 @@ module {
     // CHECK: qmem.rot_x %[[QBIT2]], %extracted
     %4 = qnet.rot_x %2, %extracted : !qnet.qubit
 
-    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @Bob} : tensor<2xf32>
+    // CHECK: %[[.*]] = qmem.recv_floats  {remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %5 = qnet.recv_floats  {remote = @Bob} : tensor<2xf32>
 
     %c1 = arith.constant 1 : index
