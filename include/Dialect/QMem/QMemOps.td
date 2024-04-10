@@ -113,7 +113,6 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
 // %0 = qmem.alloca : i32
 // ;; This op had the "semantics" of entangling the qubit
 // qmem.eprs %0
-// %0, %1, %1 = qmem.alloca {N: i32 = 3} : i32, i32, i32
 def EprsOp: UsingRemote_Op<"eprs"> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
@@ -137,7 +136,7 @@ def SendIntsOp : UsingRemote_Op<"send_ints"> {
 }
 
 def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
-    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
@@ -152,7 +151,7 @@ def SendFloatsOp : UsingRemote_Op<"send_floats"> {
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
-    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)

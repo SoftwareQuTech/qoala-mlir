@@ -14,7 +14,7 @@ module {
     affine.yield %qubits_updated : tensor<5x!qnet.qubit>
   }
 
-  %t1_tensor = qnet.recv_floats {remote = @Bob} : tensor<1xf32>
+  %t1_tensor = qnet.recv_floats {remote = @Bob, length = 1 : i32} : tensor<1xf32>
   %t1 = tensor.extract %t1_tensor[%0] : tensor<1xf32>
 
   %m_init = tensor.empty() : tensor<5xi1>

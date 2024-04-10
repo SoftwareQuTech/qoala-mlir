@@ -160,7 +160,7 @@ def SendIntsOp : UsingRemote_Op<"send_ints"> {
 }
 
 def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
-    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
@@ -175,7 +175,7 @@ def SendFloatsOp : UsingRemote_Op<"send_floats"> {
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
-    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
