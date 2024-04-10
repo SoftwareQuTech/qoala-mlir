@@ -3,7 +3,7 @@
 // CHECK: module
 
 module {
-  // CHECK: qmem.func @test_entangle_quantum_program() {
+  // CHECK: qmem.func @test_entangle_quantum_program()
   qnet.func @test_entangle_quantum_program() {
     //CHECK: qmem.remote @[[REMOTEBOB:.*]]
     qnet.remote @Bob
@@ -41,8 +41,9 @@ module {
     // CHECK: qmem.measure %[[QBIT2]] : i1
     %7 = qnet.measure %6 : i1
 
-    // CHECK: qmem.eprs_measure %[[QBIT0]] {remote = @[[REMOTEBOB]]} : i1
-    %8 = qnet.eprs_measure %0 {remote = @Bob} : i1
+    // CHECK: %[[QBIT3:.*]] = qmem.qalloc : i32
+    // CHECK-NEXT: qmem.eprs_measure %[[QBIT3]] {remote = @[[REMOTEBOB]]}
+    %8 = qnet.eprs_measure {remote = @Bob} : i1
 
     // CHECK: qmem.return
     qnet.return

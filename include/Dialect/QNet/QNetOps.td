@@ -145,7 +145,7 @@ def EprsOp: UsingRemote_Op<"eprs"> {
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
-    let arguments = (ins QubitType:$q, FlatSymbolRefAttr:$remote);
+    let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
         operands attr-dict `:` type($outcome)

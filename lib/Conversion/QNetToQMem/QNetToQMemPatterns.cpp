@@ -72,8 +72,10 @@ namespace qoala::conversion {
     qmem::EprsMeasureOp EprsMeasureOpLowering::createNewOp(qnet::EprsMeasureOp op,
                                                            qnet::EprsMeasureOp::Adaptor adaptor,
                                                            ConversionPatternRewriter &rewriter) const {
-        // TODO - Create a test case that uses this lowering!
-        return rewriter.create<qmem::EprsMeasureOp>(op.getLoc(), adaptor.getQ(), adaptor.getRemoteAttr());
+        Location loc = op.getLoc();
+        // We first create a new qalloc operation
+        auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
+        return rewriter.create<qmem::EprsMeasureOp>(loc, newAllocOp.getQ(), adaptor.getRemoteAttr());
     }
 
     /* Implementation of the lowering for the creation of new qubits */

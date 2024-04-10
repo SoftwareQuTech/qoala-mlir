@@ -3,7 +3,7 @@
 // CHECK: module
 
 module {
-  // CHECK: qmem.func @test_remote_quantum_program() {
+  // CHECK: qmem.func @test_remote_quantum_program()
   qnet.func @test_remote_quantum_program() {
     // CHECK: qmem.remote @Bob
     qnet.remote @Bob

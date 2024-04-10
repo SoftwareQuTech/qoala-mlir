@@ -3,7 +3,7 @@
 // CHECK: module
 
 module {
-  // CHECK: qmem.func @test_local_quantum_program() {
+  // CHECK: qmem.func @test_local_quantum_program()
   qnet.func @test_local_quantum_program() {
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.init %[[QBIT0]]
