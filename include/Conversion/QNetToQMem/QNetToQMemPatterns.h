@@ -3,7 +3,6 @@
 #include "Dialect/QNet/QNet.h"
 #include "Dialect/QMem/QMem.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "llvm/Support/Debug.h"
 
 using namespace qoala::dialects;
 
@@ -20,7 +19,7 @@ namespace qoala::conversion {
      * @tparam DestOp The destination class of the target dialect to covert to
      */
     template <typename SourceOp, typename DestOp>
-    class SimpleOneToToneLoweringTemplate : public OpConversionPattern<SourceOp> {
+    class SimpleOneToToOneLoweringTemplate : public OpConversionPattern<SourceOp> {
       public:
         // Constructor simply matches the super class
         using OpConversionPattern<SourceOp>::OpConversionPattern;
@@ -52,7 +51,6 @@ namespace qoala::conversion {
         LogicalResult
         matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
                         ConversionPatternRewriter &rewriter) const override {
-            llvm::dbgs() << "lowering operation : '" << op << "'\n";
             auto newOp = createNewOp(op, adaptor, rewriter);
             // We use the "replace op for op" method; This method check that the old and the new ops
             // yield the same number of SSA results
@@ -105,7 +103,6 @@ namespace qoala::conversion {
         LogicalResult
         matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
                         ConversionPatternRewriter &rewriter) const override {
-            llvm::dbgs() << "lowering operation : '" << op << "'\n";
             NewOpAndValues newOp = createNewOpAndValues(op, adaptor, rewriter);
             // We use the "replace op for values" method; This method check that the old op
             // yield the same number of SSA results as the given values
@@ -114,18 +111,18 @@ namespace qoala::conversion {
         }
     };
 
-    class FuncOpLowering : public SimpleOneToToneLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
+    class FuncOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::FuncOp createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
                                  ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ReturnOpLowering : public SimpleOneToToneLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
+    class ReturnOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::ReturnOp createNewOp(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
                                    ConversionPatternRewriter &rewriter) const override;
     };
@@ -140,54 +137,54 @@ namespace qoala::conversion {
                                             ConversionPatternRewriter &rewriter) const override;
     };
 
-    class EprsMeasureOpLowering : public SimpleOneToToneLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
+    class EprsMeasureOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::EprsMeasureOp createNewOp(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
 
     /* Remote operations can be mapped with a simple one-to-one operation */
-    class RemoteOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
+    class RemoteOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::RemoteOp createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
                                    ConversionPatternRewriter &rewriter) const override;
     };
-    class SendIntsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
+    class SendIntsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::SendIntsOp createNewOp(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
                                      ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvIntsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
+    class RecvIntsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::RecvIntsOp createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
                                      ConversionPatternRewriter &rewriter) const override;
     };
-    class SendFloatsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
+    class SendFloatsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::SendFloatsOp createNewOp(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvFloatsOpLowering : public SimpleOneToToneLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
+    class RecvFloatsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::RecvFloatsOp createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const override;
     };
-    class NewQubitLowering : public SimpleOneToToneLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
+    class NewQubitLowering : public SimpleOneToToOneLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToneLoweringTemplate::SimpleOneToToneLoweringTemplate;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qmem::QAllocOp createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
                                    ConversionPatternRewriter &rewriter) const override;
     };

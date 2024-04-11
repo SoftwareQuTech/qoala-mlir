@@ -14,7 +14,7 @@ namespace qoala::conversion {
         // In case there will be illegal values (values of types declared illegal)
         // after conversion, then we need to provide a "materialization", i.e. how
         // to cast from one type to the other Here we provide a "cast" to transform
-        // from source type (qnet::QubitType) to target type (lir::QubitType)
+        // from source type (qnet::QubitType) to target type (qmem::QubitType = i32)
         addTargetMaterialization([&](OpBuilder &builder, Type resultType,
                                      ValueRange inputs, Location loc) -> Value {
             // The conversion is simply a "builtin::unrealized_cast" operation
@@ -97,7 +97,6 @@ namespace qoala::conversion {
     RotateXLowering::NewOpAndValues
     RotateXLowering::createNewOpAndValues(
             qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
@@ -110,7 +109,6 @@ namespace qoala::conversion {
     RotateYLowering::NewOpAndValues
     RotateYLowering::createNewOpAndValues(
             qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
@@ -123,7 +121,6 @@ namespace qoala::conversion {
     RotateZLowering::NewOpAndValues
     RotateZLowering::createNewOpAndValues(
             qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
@@ -136,7 +133,6 @@ namespace qoala::conversion {
     HadamardLowering::NewOpAndValues
     HadamardLowering::createNewOpAndValues(
             qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
@@ -149,7 +145,6 @@ namespace qoala::conversion {
     MeasureLowering::NewOpAndValues
     MeasureLowering::createNewOpAndValues(
             qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
-        llvm::dbgs() << "lowering operation : '" << op << "'\n";
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
         auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin());
@@ -163,8 +158,9 @@ namespace qoala::conversion {
             qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation
-        // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
-        // in the internals of the replacement of the operation
+        // NOTE - For some reason (probably a misuse of MLIR or a bug) , if we use the rewriter object for
+        // this purpose, it ends up on a SIGSEGV in the internals of the replacement of the operation
+        // By using the "replaceAllUsesWith" directly from the value to replace, makes it work correctlyW
         op.getQout0().replaceAllUsesWith(adaptor.getQin0());
         op.getQout1().replaceAllUsesWith(adaptor.getQin1());
         auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
