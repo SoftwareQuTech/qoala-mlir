@@ -3,7 +3,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def QMemFactorizeRemoteDecls : Pass<"qmem-factorize-remotes", "qoala::dialects::qmem::RemoteOp"> {
+def QMemFactorizeRemoteDecls : Pass<"qmem-factorize-remotes", "mlir::ModuleOp"> {
   let summary = "Factorize all remote declarations by declaring a remote only once and placing them at the module level";
   let constructor = "mlir::createQMemFactorizeRemoteDeclsPass()";
   let dependentDialects = ["::qoala::dialects::qmem::QMemDialect"];
