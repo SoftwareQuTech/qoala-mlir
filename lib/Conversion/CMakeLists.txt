@@ -1,2 +1,3 @@
 add_subdirectory(Helpers)
 add_subdirectory(QNetToQMem)
+add_subdirectory(QMemToQoalaHost)

@@ -1,0 +1,5 @@
+set(LLVM_TARGET_DEFINITIONS QMemToQoalaHost.td)
+mlir_tablegen(QMemToQoalaHost.h.inc -gen-pass-decls -name QMemToQoalaHost)
+mlir_tablegen(QMemToQoalaHost.capi.h.inc -gen-pass-capi-header --prefix QMemToQoalaHost)
+mlir_tablegen(QMemToQoalaHost.capi.cpp.inc -gen-pass-capi-impl --prefix QMemToQoalaHost)
+add_public_tablegen_target(MLIRQMemToQoalaHostPassIncGen)

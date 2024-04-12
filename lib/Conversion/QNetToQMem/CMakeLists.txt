@@ -13,6 +13,6 @@ add_mlir_conversion_library(MLIRQNetToQMemPass
         DEPENDS
         QoalaConversionHelpers
         MLIRQNetIncGen
-        MLIRLirIncGen
+        MLIRQMemIncGen
         MLIRQNetToQMemPassIncGen
 )
