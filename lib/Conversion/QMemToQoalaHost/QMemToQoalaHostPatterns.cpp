@@ -4,5 +4,8 @@
 
 namespace qoala::conversion {
     /* Implementation of the qoala types converter */
+    QMemToQoalaHostQubitTypeConverter::QMemToQoalaHostQubitTypeConverter(MLIRContext *ctx) {
+        //TODO
+    }
     /* Implementation of the particular conversions */
 } // namespace qoala::conversion

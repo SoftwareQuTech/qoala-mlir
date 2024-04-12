@@ -35,16 +35,14 @@ namespace qoala::conversion {
         // We also declare operations (classes) that can be declared legal in the target
         // dialect. The `callback` argument (which receives the operation involved)
         // can determine if it is legal to leave the operation or not.
-        /*
         target.addLegalOp<
-                //qnet::SomeOp,
-                //qnet::SomeOtherOp
+#define GET_OP_LIST
+#include "Dialect/QMem/QMem.cpp.inc"
         >();
-         */
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
-//        QNetToQMemQubitTypeConverter typeConverter(&context);
+        QMemToQoalaHostQubitTypeConverter typeConverter(&context);
 //        patterns.add<
 //                //TODO
 //        >(typeConverter, &context);

@@ -253,8 +253,6 @@ namespace qoala::conversion {
                                             ConversionPatternRewriter &rewriter) const override;
     };
 
-    // TODO - instantiate the template to map operations from one dialect to the other
-
 } // namespace qoala::conversion
 
 #endif // QNET_TO_QMEM_PATTERNS

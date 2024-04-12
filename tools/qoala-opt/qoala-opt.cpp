@@ -17,6 +17,7 @@
 
 // And, of course, we also need the libraries of the lowering pass itself
 #include "Conversion/QNetToQMem/QNetToQMem.h"
+#include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h"
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;
@@ -35,6 +36,8 @@ int main(int argc, char **argv) {
     mlir::registerQNetPasses();
     // And the pass that converts QNet to QMem dialect
     mlir::registerQNetToQMemPasses();
+    // And the pass that converts QMem to QoalaHost dialect
+    mlir::registerQMemToQoalaHostPasses();
 
     mlir::registerViewOpGraphPass();
 
