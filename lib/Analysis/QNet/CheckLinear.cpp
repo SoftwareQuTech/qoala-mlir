@@ -26,7 +26,7 @@ struct QNetCheckLinearPass
  * casted into one of the Op classes provided as a list.
  */
 template <typename T, typename... Rest> bool tryCast(mlir::Operation *op) {
-    if (auto castedOp = llvm::dyn_cast<T>(op)) {
+    if (llvm::isa<T>(op)) {
         return true;
     } else if constexpr (sizeof...(Rest) > 0) {
         return tryCast<Rest...>(op);
@@ -40,8 +40,6 @@ bool isQuantumOp(mlir::Operation *op) {
 }
 
 void QNetCheckLinearPass::runOnOperation() {
-    // llvm::dbgs() << "\n=== Start of CheckLinear pass ===\n\n";
-
     Operation *operation = getOperation();
 
     if (ModuleOp module = llvm::dyn_cast<ModuleOp>(operation)) {
@@ -68,8 +66,6 @@ void QNetCheckLinearPass::runOnOperation() {
         signalPassFailure();
         return;
     }
-
-    // llvm::dbgs() << "\n=== End of CheckLinear pass ===\n\n";
 }
 
 std::unique_ptr<Pass> mlir::createQNetCheckLinearPass() {

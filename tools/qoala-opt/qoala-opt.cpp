@@ -7,7 +7,9 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
 
+#include "Dialect/QMem/Passes.h"
 #include "Dialect/QMem/QMemDialect.h"
+
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
@@ -34,6 +36,7 @@ int main(int argc, char **argv) {
     mlir::registerAllPasses();
     // And also the passes from QNet
     mlir::registerQNetPasses();
+    mlir::registerQMemPasses();
     // And the pass that converts QNet to QMem dialect
     mlir::registerQNetToQMemPasses();
     // And the pass that converts QMem to QoalaHost dialect

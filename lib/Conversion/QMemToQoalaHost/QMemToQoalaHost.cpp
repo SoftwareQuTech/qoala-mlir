@@ -12,6 +12,8 @@ namespace mlir {
 #include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h.inc"
 } // namespace mlir
 
+#include "llvm/Support/Debug.h"
+
 using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
@@ -24,7 +26,8 @@ namespace qoala::conversion {
 
     void QMemToQoalaHostPass::runOnOperation() {
         MLIRContext &context = getContext();
-        Operation *operation = getOperation();
+        ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
+
         // Get a conversion target to define our target dialects
         ConversionTarget target(context);
         // We add the legal dialects that we aim to keep in the target
