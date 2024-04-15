@@ -1,4 +1,4 @@
-add_mlir_dialect_library(MLIRQMemFactorizeRemoteDecls
+add_mlir_dialect_library(MLIRQMemAnalysisLibs
         FactorizeRemoteDecls.cpp
 
         ADDITIONAL_HEADER_DIRS

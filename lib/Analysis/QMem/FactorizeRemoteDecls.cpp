@@ -50,27 +50,8 @@ void QMemFactorizeRemoteDeclsPass::runOnOperation() {
     }
     // We update the references on all the operations that use th remote
     // Since the name of the remote did not change, this might not be needed!
+    // Repeat for each type of Operation that uses the remote reference
     /*
-    module.walk([&](qmem::SendIntsOp sendOp){
-        qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
-        sendOp.setRemote(reference.getSymName());
-    });
-    module.walk([&](qmem::RecvIntsOp sendOp){
-        qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
-        sendOp.setRemote(reference.getSymName());
-    });
-    module.walk([&](qmem::SendFloatsOp sendOp){
-        qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
-        sendOp.setRemote(reference.getSymName());
-    });
-    module.walk([&](qmem::RecvFloatsOp sendOp){
-        qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
-        sendOp.setRemote(reference.getSymName());
-    });
-    module.walk([&](qmem::EprsOp sendOp){
-        qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
-        sendOp.setRemote(reference.getSymName());
-    });
     module.walk([&](qmem::EprsMeasureOp sendOp){
         qmem::RemoteOp reference = filteredDecls[sendOp.getRemoteAttr().getAttr()];
         sendOp.setRemote(reference.getSymName());
