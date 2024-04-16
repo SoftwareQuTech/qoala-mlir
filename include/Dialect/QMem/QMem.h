@@ -18,6 +18,8 @@
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 
+#include "Dialect/QMem/QMemInterfaces.h.inc"
+
 #define GET_OP_CLASSES
 #include "Dialect/QMem/QMem.h.inc"
 
