@@ -49,8 +49,6 @@ static int identifier = 0;
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     assert(module);
-    // Code "location" to attach on the "top level" declarations/definitions
-    Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
 
     SmallVector<Operation *, 100> quantumOps;
     // Discover and mark the quantum operations
@@ -74,8 +72,8 @@ void QMemSimpleFunctionizePass::runOnOperation() {
         // Format the name of the new function
         std::string funcName = std::format("test{}", identifier++);
         // Create the new function, and attach a block to it
-        auto newFunc = topBuilder.create<func::FuncOp>(topLocation, funcName, funType);
-        Block *newBlock = topBuilder.createBlock(&newFunc.getBody());
+        auto newFunc = topBuilder.create<func::FuncOp>(module.getBodyRegion().getLoc(), funcName, funType);
+        Block *newBlock = newFunc.addEntryBlock();
 
         // Create a new operation of the same type that the original one, that uses
         // the function arguments instead of dialect results of other ops
@@ -86,13 +84,11 @@ void QMemSimpleFunctionizePass::runOnOperation() {
 
         // New operations (including the clone) should be attached to the block of the new function
         OpBuilder blockBuilder(&newFunc.getBody());
-        auto cloneOp = castedOldOp.simpleClone(blockBuilder, topLocation);
-        // TODO - The arguments are not referenced correctly in the new operands
-        //   Maybe pass the arguments to the clone?
+        auto cloneOp = castedOldOp.simpleClone(blockBuilder, newFunc.getLoc());
         cloneOp->setOperands(newBlock->getArguments());
 
         // Create the "return" for the new operation
-        auto returnOp = blockBuilder.create<func::ReturnOp>(topLocation, cloneOp->getResults());
+        auto returnOp = blockBuilder.create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
         llvm::dbgs() << "new FuncOp : " << newFunc << "\n";
 
         // Create a "call" operation in place of the original operation
