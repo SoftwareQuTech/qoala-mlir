@@ -13,6 +13,7 @@ using namespace qoala::dialects::qmem;
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/QMem/QMemTypes.cpp.inc"
 
+// include generated "dispatcher" of the operation interface
 #include "Dialect/QMem/QMemInterfaces.cpp.inc"
 
 

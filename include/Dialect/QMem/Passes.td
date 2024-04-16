@@ -12,7 +12,7 @@ def QMemFactorizeRemoteDecls : Pass<"qmem-factorize-remotes", "mlir::ModuleOp"> 
 def QMemSimpleFunctionize : Pass<"qmem-simple-functionize", "mlir::ModuleOp"> {
   let summary = "PoC; DO NOT USE - Extracts each QMem quantum operation into a single function";
   let constructor = "mlir::createQMemSimpleFunctionize()";
-  let dependentDialects = ["::qoala::dialects::qmem::QMemDialect"];
+  let dependentDialects = ["::qoala::dialects::qmem::QMemDialect", "::mlir::func::FuncDialect"];
 }
 
 #endif // QMEM_PASSES
