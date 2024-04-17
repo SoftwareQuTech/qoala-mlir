@@ -16,7 +16,8 @@ using namespace qoala::dialects;
 
 class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
     void runOnOperation() override;
-    static func::FuncOp createNewFunctionWithOperations(OpBuilder *opBuilder, Location loc, Operation *quantumOp);
+    static func::FuncOp createNewFunctionWithOperations(
+            OpBuilder *opBuilder, Location loc, ArrayRef<Operation *>quantumOp);
 };
 
 static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
@@ -47,11 +48,28 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
 
 static int identifier = 0;
 
-func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(OpBuilder *opBuilder, Location loc, Operation *quantumOp) {
+/**
+ * Creates a "wrapper" function around the given list of operations.
+ * WARNING: This function will not perform any type of Data nor Control Flow
+ * analysis on the given operations, and it assumes that the data and control
+ * flow of the given list is consistent.
+ * Being this said, this function will create a `func::FuncOp` objects whose
+ * arguments match the operand types of the first given operation, and whose
+ * return type match the result types of the last given operation
+ * @param opBuilder An `OpBuilder` object used to clone the given operations.
+ * @param loc The location to use as an attribute for the new operations created
+ * @param quantumOps An `ArrayRef` object containing the set of operations to wrap.
+ * @return A `func::FuncOp` object, inserted at the insertion point of the given `OpBuilder`,
+ *         whose body contains the given operations, and an extra return statement.
+ */
+func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
+        OpBuilder *opBuilder, Location loc, ArrayRef<Operation *>quantumOps) {
     // Create a new function at the top level, using the types of the original operation
+    Operation *firstOperation = quantumOps.front();
+    Operation *lastOperation = quantumOps.back();
     FunctionType funType = opBuilder->getFunctionType(
-            quantumOp->getOperandTypes(),
-            quantumOp->getResultTypes()
+            firstOperation->getOperandTypes(),
+            lastOperation->getResultTypes()
     );
     // Format the name of the new function
     std::string funcName = std::format("test{}", identifier++);
@@ -63,18 +81,23 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(OpBuilde
         // the function arguments instead of dialect results of other ops
         // Helper - cast the quantum operation to the "SimpleCloneInterface" type, so
         // it is possible to invoke "simpleClone" on that operation
-        auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
-        assert(castedOldOp); // We expect that the cast will succeed
-
-        // New operations (including the clone) should be attached to the block of the new function
+        Operation *lastClonedOp;
         OpBuilder::InsertionGuard g(*opBuilder);
-        opBuilder->setInsertionPointToStart(newBlock);
-        auto cloneOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
-        cloneOp->setOperands(newBlock->getArguments());
+        for (Operation *quantumOp : quantumOps) {
+            auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
+            assert(castedOldOp); // We expect that the cast will succeed
+
+            // New operations (including the clone) should be attached to the block of the new function
+            opBuilder->setInsertionPointToStart(newBlock);
+            auto clonedOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
+            clonedOp->setOperands(newBlock->getArguments());
+            lastClonedOp = clonedOp;
+        }
 
         // Create the "return" for the new operation
-        opBuilder->create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
+        opBuilder->create<func::ReturnOp>(lastClonedOp->getLoc(), lastClonedOp->getResults());
     }
+    return newFunc;
 }
 
 void QMemSimpleFunctionizePass::runOnOperation() {
@@ -95,7 +118,8 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     OpBuilder opBuilder(module.getBodyRegion());
 
     for (Operation *quantumOp : quantumOps) {
-        func::FuncOp newFunc = createNewFunctionWithOperations(&opBuilder, topLocation, quantumOp);
+        // We create a new function that will contain the single operation in its body (+ a return statement)
+        func::FuncOp newFunc = createNewFunctionWithOperations(&opBuilder, topLocation, ArrayRef{quantumOp});
         auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
         mappedFunctions.insert(std::pair{quantumOp, insertedSymbol});
     }
