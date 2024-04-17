@@ -17,7 +17,7 @@ using namespace qoala::dialects;
 class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
     void runOnOperation() override;
     static func::FuncOp createNewFunctionWithOperations(
-            OpBuilder *opBuilder, Location loc, ArrayRef<Operation *>quantumOp);
+            OpBuilder *, StringRef, Location , ArrayRef<Operation *>);
 };
 
 static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
@@ -46,8 +46,6 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     >(op);
 }
 
-static int identifier = 0;
-
 /**
  * Creates a "wrapper" function around the given list of operations.
  * WARNING: This function will not perform any type of Data nor Control Flow
@@ -63,7 +61,7 @@ static int identifier = 0;
  *         whose body contains the given operations, and an extra return statement.
  */
 func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
-        OpBuilder *opBuilder, Location loc, ArrayRef<Operation *>quantumOps) {
+        OpBuilder *opBuilder, StringRef funcName, Location loc, ArrayRef<Operation *>quantumOps) {
     // Create a new function at the top level, using the types of the original operation
     Operation *firstOperation = quantumOps.front();
     Operation *lastOperation = quantumOps.back();
@@ -71,8 +69,6 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
             firstOperation->getOperandTypes(),
             lastOperation->getResultTypes()
     );
-    // Format the name of the new function
-    std::string funcName = std::format("test{}", identifier++);
     // Create the new function, and attach a block to it
     auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
     Block *newBlock = newFunc.addEntryBlock();
@@ -100,6 +96,8 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
     return newFunc;
 }
 
+static int identifier = 0;
+
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
@@ -118,8 +116,12 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     OpBuilder opBuilder(module.getBodyRegion());
 
     for (Operation *quantumOp : quantumOps) {
+        // Format the name of the new function
+        std::string funcName = std::format("__qoala_wrapper{}", identifier++);
         // We create a new function that will contain the single operation in its body (+ a return statement)
-        func::FuncOp newFunc = createNewFunctionWithOperations(&opBuilder, topLocation, ArrayRef{quantumOp});
+        func::FuncOp newFunc = createNewFunctionWithOperations(
+                &opBuilder, StringRef{funcName}, topLocation, ArrayRef{quantumOp}
+                );
         auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
         mappedFunctions.insert(std::pair{quantumOp, insertedSymbol});
     }
