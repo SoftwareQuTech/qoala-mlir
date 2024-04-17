@@ -28,7 +28,9 @@ class QMem_Op<string mnemonic, list<Trait> traits = []> :
     Op<QMem_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<SimpleCloneInterface>]>;
 
 /* Func and Return operations similar to the ones present un QNet */
-def FuncOp: QMem_Op<"func", [FunctionOpInterface, SymbolTable]> {
+def FuncOp: QMem_Op<"func", [
+        AffineScope, AutomaticAllocationScope, FunctionOpInterface,
+        IsolatedFromAbove, Symbol]> {
     let summary = "Function declaration/definition for qoala programs.";
     let description = [{
         This function declaration operation differs from func.func operation in

@@ -57,7 +57,9 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
  * a local symbol table. This is handful so the qoala.remote operation can be
  * places inside the body of a function (and not only a the module level)
  */
-def FuncOp: QNet_Op<"func", [FunctionOpInterface, SymbolTable]> {
+def FuncOp: QNet_Op<"func", [
+        AffineScope, AutomaticAllocationScope, FunctionOpInterface,
+        IsolatedFromAbove, Symbol]> {
     let summary = "Function declaration/definition for qoala programs.";
     let description = [{
         This function declaration operation differs from func.func operation in
