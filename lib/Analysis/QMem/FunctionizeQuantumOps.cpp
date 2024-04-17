@@ -48,6 +48,7 @@ static int identifier = 0;
 
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
+    Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
     assert(module);
 
     SmallVector<Operation *, 100> quantumOps;
@@ -60,48 +61,54 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     });
 
     for (auto quantumOp : quantumOps) {
-        OpBuilder topBuilder(module.getBodyRegion());
+        OpBuilder opBuilder(module.getBodyRegion());
         llvm::dbgs() << "*******************\n";
         llvm::dbgs() << "old quantumOp : " << *quantumOp << "\n";
 
         // Create a new function at the top level, using the types of the original operation
-        FunctionType funType = topBuilder.getFunctionType(
+        FunctionType funType = opBuilder.getFunctionType(
                 quantumOp->getOperandTypes(),
                 quantumOp->getResultTypes()
                 );
         // Format the name of the new function
         std::string funcName = std::format("test{}", identifier++);
         // Create the new function, and attach a block to it
-        auto newFunc = topBuilder.create<func::FuncOp>(module.getBodyRegion().getLoc(), funcName, funType);
+        auto newFunc = opBuilder.create<func::FuncOp>(topLocation, funcName, funType);
         Block *newBlock = newFunc.addEntryBlock();
+        {
+            // Create a new operation of the same type that the original one, that uses
+            // the function arguments instead of dialect results of other ops
+            // Helper - cast the quantum operation to the "SimpleCloneInterface" type, so
+            // it is possible to invoke "simpleClone" on that operation
+            auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
+            assert(castedOldOp); // We expect that the cast will succeed
 
-        // Create a new operation of the same type that the original one, that uses
-        // the function arguments instead of dialect results of other ops
-        // Helper - cast the quantum operation to the "SimpleCloneInterface" type, so
-        // it is possible to invoke "simpleClone" on that operation
-        auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
-        assert(castedOldOp); // We expect that the cast will succeed
+            // New operations (including the clone) should be attached to the block of the new function
+            OpBuilder::InsertionGuard g(opBuilder);
+            opBuilder.setInsertionPointToStart(newBlock);
+            auto cloneOp = castedOldOp.simpleClone(opBuilder, newFunc.getLoc());
+            cloneOp->setOperands(newBlock->getArguments());
 
-        // New operations (including the clone) should be attached to the block of the new function
-        OpBuilder blockBuilder(&newFunc.getBody());
-        auto cloneOp = castedOldOp.simpleClone(blockBuilder, newFunc.getLoc());
-        cloneOp->setOperands(newBlock->getArguments());
+            // Create the "return" for the new operation
+            opBuilder.create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
+            llvm::dbgs() << "new FuncOp : " << newFunc << "\n";
+        }
+        auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
+        llvm::dbgs() << "symbol = " << insertedSymbol << "\n";
+        {
+            // Create a "call" operation in place of the original operation
+            OpBuilder::InsertionGuard g(opBuilder);
+            opBuilder.setInsertionPointAfter(quantumOp);
+            auto callOp = opBuilder.create<func::CallOp>(
+                    quantumOp->getLoc(), insertedSymbol, /*args=*/ValueRange(quantumOp->getOperands())
+            );
+            llvm::dbgs() << "new CallOp : " << callOp << "\n";
 
-        // Create the "return" for the new operation
-        auto returnOp = blockBuilder.create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
-        llvm::dbgs() << "new FuncOp : " << newFunc << "\n";
-
-        // Create a "call" operation in place of the original operation
-        OpBuilder inlineBuilder(quantumOp);
-        auto callOp = inlineBuilder.create<func::CallOp>(
-                quantumOp->getLoc(), newFunc, /*args=*/quantumOp->getOperands()
-                );
-        llvm::dbgs() << "new CallOp : " << callOp << "\n";
-
-        // Finally, replace the usages of the old operation with the result of the "call"
-        // and delete the old operation
-        quantumOp->replaceAllUsesWith(callOp);
-        quantumOp->erase();
+            // Finally, replace the usages of the old operation with the result of the "call"
+            // and delete the old operation
+            quantumOp->replaceAllUsesWith(callOp);
+            quantumOp->erase();
+        }
         llvm::dbgs() << "-------------------\n";
     }
 }
