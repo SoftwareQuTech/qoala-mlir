@@ -75,7 +75,8 @@ namespace qoala::conversion {
         Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
-        return rewriter.create<qmem::EprsMeasureOp>(loc, newAllocOp.getQ(), adaptor.getRemoteAttr());
+        Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
+        return rewriter.create<qmem::EprsMeasureOp>(loc, mappedOutType, newAllocOp.getQ(), adaptor.getRemoteAttr());
     }
 
     /* Implementation of the lowering for the creation of new qubits */
@@ -147,7 +148,8 @@ namespace qoala::conversion {
             qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin());
+        Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), mappedOutType, adaptor.getQin());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});
@@ -220,7 +222,7 @@ namespace qoala::conversion {
     RecvIntsOpLowering::createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
                                     ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
-        Type outType = op.getCout().getType();
+        Type outType = typeConverter->convertType(op.getCout().getType());
         return rewriter.create<qmem::RecvIntsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
     }
 
@@ -234,7 +236,7 @@ namespace qoala::conversion {
     RecvFloatsOpLowering::createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
                                       ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
-        Type outType = op.getCout().getType();
+        Type outType = typeConverter->convertType(op.getCout().getType());
         return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
     }
 } // namespace qoala::conversion
