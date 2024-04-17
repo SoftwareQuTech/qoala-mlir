@@ -36,11 +36,10 @@ namespace qoala::conversion {
 
     qmem::FuncOp FuncOpLowering::createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
-        auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymNameAttr(),
-                                                     adaptor.getFunctionTypeAttr(),
-                                                     adaptor.getSymVisibilityAttr(),
-                                                     adaptor.getArgAttrsAttr(),
-                                                     adaptor.getResAttrsAttr());
+        auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymName(),
+                                                     adaptor.getFunctionType(),
+                                                     adaptor.getAttributes().getValue(),
+                                                     ArrayRef<DictionaryAttr>{});
         // Before returning the new function, we need to "attach" (inline)
         // the body (region) of the old operation to the new one
         // This is inspired in the last part of the `convertFuncOpToLLVMFuncOp`

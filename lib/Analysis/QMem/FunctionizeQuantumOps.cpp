@@ -6,8 +6,6 @@
 
 #include <format>
 
-#include "llvm/Support/Debug.h"
-
 namespace mlir {
 #define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
 #include "Dialect/QMem/Passes.h.inc"
@@ -20,27 +18,29 @@ class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSim
     void runOnOperation() override;
 };
 
-static bool isQuantumOp(mlir::Operation &op) {
+static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
+    // A list fo the QMem operation types we would like to "functionize"
     return llvm::isa<
             qmem::CnotOp,
             qmem::CrotXOp,
             qmem::CzOp,
             qmem::EprsMeasureOp,
             qmem::EprsOp,
-//            qmem::FuncOp,
             qmem::HadamardOp,
             qmem::InitOp,
             qmem::MeasureOp,
             qmem::QAllocOp,
             qmem::RecvFloatsOp,
             qmem::RecvIntsOp,
-//            qmem::RemoteOp,
-//            qmem::ReturnOp,
             qmem::RotateXOp,
             qmem::RotateYOp,
             qmem::RotateZOp,
             qmem::SendFloatsOp,
             qmem::SendIntsOp
+            // We don't want to functionize "Remotes", "Returns" nor "Funcs"
+//            qmem::RemoteOp,
+//            qmem::ReturnOp,
+//            qmem::FuncOp,
     >(op);
 }
 
@@ -50,26 +50,25 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
     assert(module);
-
     SmallVector<Operation *, 100> quantumOps;
+    DenseMap<Operation *, func::FuncOp> mappedFunctions;
+
     // Discover and mark the quantum operations
     module.walk([&](Operation *operation) {
-        if (!isQuantumOp(*operation)) {
-            return;
+        if (qMemOpCanBeFunctionized(operation)) {
+            quantumOps.push_back(operation);
         }
-        quantumOps.push_back(operation);
     });
 
-    for (auto quantumOp : quantumOps) {
-        OpBuilder opBuilder(module.getBodyRegion());
-        llvm::dbgs() << "*******************\n";
-        llvm::dbgs() << "old quantumOp : " << *quantumOp << "\n";
+    // We start building our new functions at the start of the body of the module
+    OpBuilder opBuilder(module.getBodyRegion());
 
+    for (Operation *quantumOp : quantumOps) {
         // Create a new function at the top level, using the types of the original operation
         FunctionType funType = opBuilder.getFunctionType(
                 quantumOp->getOperandTypes(),
                 quantumOp->getResultTypes()
-                );
+        );
         // Format the name of the new function
         std::string funcName = std::format("test{}", identifier++);
         // Create the new function, and attach a block to it
@@ -91,25 +90,23 @@ void QMemSimpleFunctionizePass::runOnOperation() {
 
             // Create the "return" for the new operation
             opBuilder.create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
-            llvm::dbgs() << "new FuncOp : " << newFunc << "\n";
         }
         auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
-        llvm::dbgs() << "symbol = " << insertedSymbol << "\n";
-        {
-            // Create a "call" operation in place of the original operation
-            OpBuilder::InsertionGuard g(opBuilder);
-            opBuilder.setInsertionPointAfter(quantumOp);
-            auto callOp = opBuilder.create<func::CallOp>(
-                    quantumOp->getLoc(), insertedSymbol, /*args=*/ValueRange(quantumOp->getOperands())
-            );
-            llvm::dbgs() << "new CallOp : " << callOp << "\n";
+        mappedFunctions.insert(std::pair{quantumOp, insertedSymbol});
+    }
+    for (Operation *quantumOp : quantumOps) {
+        // Create a "call" operation in place of the original operation
+        OpBuilder::InsertionGuard g(opBuilder);
+        opBuilder.setInsertionPointAfter(quantumOp);
+        auto callOp = opBuilder.create<func::CallOp>(
+                quantumOp->getLoc(), mappedFunctions[quantumOp],
+                /*args=*/ValueRange(quantumOp->getOperands())
+        );
 
-            // Finally, replace the usages of the old operation with the result of the "call"
-            // and delete the old operation
-            quantumOp->replaceAllUsesWith(callOp);
-            quantumOp->erase();
-        }
-        llvm::dbgs() << "-------------------\n";
+        // Finally, replace the usages of the old operation with the result of the "call"
+        // and delete the old operation
+        quantumOp->replaceAllUsesWith(callOp);
+        quantumOp->erase();
     }
 }
 

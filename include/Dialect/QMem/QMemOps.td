@@ -34,11 +34,8 @@ def FuncOp: QMem_Op<"func", [
     let summary = "Function declaration/definition for qoala programs.";
     let description = [{
         This function declaration operation differs from func.func operation in
-        the sense that it also carries the `SymbolTable` trait. This allows the
-        operations contained within the body region con also declare symbols,
-        which comes handy when declaring a quantum remote node within the scope
-        of a function. This facility allows placing the `qmem.remote` operation
-        in the body of a `qmem.func`, which correctly declares the symbol.
+        the sense that it supports function attributes that are not declared
+        in the func.func operation.
     }];
     let arguments = (ins SymbolNameAttr:$sym_name,
                          TypeAttrOf<FunctionType>:$function_type,
@@ -46,6 +43,12 @@ def FuncOp: QMem_Op<"func", [
                          OptionalAttr<DictArrayAttr>:$arg_attrs,
                          OptionalAttr<DictArrayAttr>:$res_attrs);
     let regions = (region AnyRegion:$body);
+
+    let builders = [OpBuilder<(ins
+        "::llvm::StringRef":$name, "::mlir::FunctionType":$type,
+        CArg<"::llvm::ArrayRef<::mlir::NamedAttribute>", "{}">:$attrs,
+        CArg<"::llvm::ArrayRef<::mlir::DictionaryAttr>", "{}">:$argAttrs)
+    >];
     let extraClassDeclaration = [{
         //===------------------------------------------------------------------===//
         // FunctionOpInterface Methods
@@ -72,7 +75,7 @@ def FuncOp: QMem_Op<"func", [
 }
 
 def ReturnOp: QMem_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminator]> {
-    let summary = "Function return operation for qoala.func bodies";
+    let summary = "Function return operation for qmem.func bodies";
     let arguments = (ins Variadic<AnyType>:$operands);
     let builders = [OpBuilder<(ins), [{
         build($_builder, $_state, std::nullopt);

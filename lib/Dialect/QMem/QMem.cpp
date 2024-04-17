@@ -30,6 +30,24 @@ ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
             getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
+
+void FuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
+                   FunctionType type, ArrayRef<NamedAttribute> attrs,
+                   ArrayRef<DictionaryAttr> argAttrs) {
+    state.addAttribute(mlir::SymbolTable::getSymbolAttrName(),
+                       builder.getStringAttr(name));
+    state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
+    state.attributes.append(attrs.begin(), attrs.end());
+    state.addRegion();
+
+    if (argAttrs.empty())
+        return;
+    assert(type.getNumInputs() == argAttrs.size());
+    function_interface_impl::addArgAndResultAttrs(
+            builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
+            getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
+}
+
 void FuncOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
