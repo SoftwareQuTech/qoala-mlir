@@ -3,10 +3,10 @@
 // CHECK: module
 
 module {
+  //CHECK: qmem.remote @[[REMOTEBOB:.*]]
+  qnet.remote @Bob
   // CHECK: qmem.func @test_entangle_quantum_program()
   qnet.func @test_entangle_quantum_program() {
-    //CHECK: qmem.remote @[[REMOTEBOB:.*]]
-    qnet.remote @Bob
 
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTEBOB]]}
