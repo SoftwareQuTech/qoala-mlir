@@ -16,6 +16,7 @@ using namespace qoala::dialects;
 
 class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
     void runOnOperation() override;
+    static func::FuncOp createNewFunctionWithOperations(OpBuilder *opBuilder, Location loc, Operation *quantumOp);
 };
 
 static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
@@ -46,6 +47,36 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
 
 static int identifier = 0;
 
+func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(OpBuilder *opBuilder, Location loc, Operation *quantumOp) {
+    // Create a new function at the top level, using the types of the original operation
+    FunctionType funType = opBuilder->getFunctionType(
+            quantumOp->getOperandTypes(),
+            quantumOp->getResultTypes()
+    );
+    // Format the name of the new function
+    std::string funcName = std::format("test{}", identifier++);
+    // Create the new function, and attach a block to it
+    auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
+    Block *newBlock = newFunc.addEntryBlock();
+    {
+        // Create a new operation of the same type that the original one, that uses
+        // the function arguments instead of dialect results of other ops
+        // Helper - cast the quantum operation to the "SimpleCloneInterface" type, so
+        // it is possible to invoke "simpleClone" on that operation
+        auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
+        assert(castedOldOp); // We expect that the cast will succeed
+
+        // New operations (including the clone) should be attached to the block of the new function
+        OpBuilder::InsertionGuard g(*opBuilder);
+        opBuilder->setInsertionPointToStart(newBlock);
+        auto cloneOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
+        cloneOp->setOperands(newBlock->getArguments());
+
+        // Create the "return" for the new operation
+        opBuilder->create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
+    }
+}
+
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
@@ -64,33 +95,7 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     OpBuilder opBuilder(module.getBodyRegion());
 
     for (Operation *quantumOp : quantumOps) {
-        // Create a new function at the top level, using the types of the original operation
-        FunctionType funType = opBuilder.getFunctionType(
-                quantumOp->getOperandTypes(),
-                quantumOp->getResultTypes()
-        );
-        // Format the name of the new function
-        std::string funcName = std::format("test{}", identifier++);
-        // Create the new function, and attach a block to it
-        auto newFunc = opBuilder.create<func::FuncOp>(topLocation, funcName, funType);
-        Block *newBlock = newFunc.addEntryBlock();
-        {
-            // Create a new operation of the same type that the original one, that uses
-            // the function arguments instead of dialect results of other ops
-            // Helper - cast the quantum operation to the "SimpleCloneInterface" type, so
-            // it is possible to invoke "simpleClone" on that operation
-            auto castedOldOp = dyn_cast<qmem::iface::SimpleCloneInterface>(quantumOp);
-            assert(castedOldOp); // We expect that the cast will succeed
-
-            // New operations (including the clone) should be attached to the block of the new function
-            OpBuilder::InsertionGuard g(opBuilder);
-            opBuilder.setInsertionPointToStart(newBlock);
-            auto cloneOp = castedOldOp.simpleClone(opBuilder, newFunc.getLoc());
-            cloneOp->setOperands(newBlock->getArguments());
-
-            // Create the "return" for the new operation
-            opBuilder.create<func::ReturnOp>(cloneOp->getLoc(), cloneOp->getResults());
-        }
+        func::FuncOp newFunc = createNewFunctionWithOperations(&opBuilder, topLocation, quantumOp);
         auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
         mappedFunctions.insert(std::pair{quantumOp, insertedSymbol});
     }
