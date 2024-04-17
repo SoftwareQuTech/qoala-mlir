@@ -96,12 +96,13 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
     return newFunc;
 }
 
+// Identifier to make the names of the new function definitions unique
 static int identifier = 0;
 
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
-    Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
-    assert(module);
+    assert(module); // We expect the cast to succeed
+
     SmallVector<Operation *, 100> quantumOps;
     DenseMap<Operation *, func::FuncOp> mappedFunctions;
 
@@ -114,6 +115,7 @@ void QMemSimpleFunctionizePass::runOnOperation() {
 
     // We start building our new functions at the start of the body of the module
     OpBuilder opBuilder(module.getBodyRegion());
+    Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
 
     for (Operation *quantumOp : quantumOps) {
         // Format the name of the new function
