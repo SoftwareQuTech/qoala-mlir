@@ -1,5 +1,4 @@
 add_mlir_dialect_library(MLIRQMemAnalysisLibs
-        FactorizeRemoteDecls.cpp
         FunctionizeQuantumOps.cpp
 
         ADDITIONAL_HEADER_DIRS
