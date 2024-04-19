@@ -3,27 +3,36 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/STLExtras.h"
+#include "mlir/Support/LLVM.h"
 #include "llvm/Support/Debug.h"
 
 #include <format>
+#include <set>
 
 namespace mlir {
 #define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
 #include "Dialect/QMem/Passes.h.inc"
 } // namespace mlir
 
+/* MLIR magic: using the LLVM_DEBUG macro + this define, allows to selectively enable the debug output
+ * To enable the prints, simply invoke `opt` with `--debug-only=functionize`, or any other string defined
+ * as the "DEBUG_TYPE" macro */
 #define DEBUG_TYPE "functionize"
 
 using namespace mlir;
 using namespace qoala::dialects;
 
 class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
+private:
+    struct ArgTypesAndReturns {
+        std::vector<Type> argTypes;
+        std::vector<Type> resultTypes;
+        mlir::DenseMap<Operation *, std::set<uint32_t>> opResultsIndexes;
+    };
     void runOnOperation() override;
     static func::FuncOp createNewFunctionWithOperations(
             OpBuilder *, StringRef, Location, llvm::SetVector<Operation *> &);
+    static ArgTypesAndReturns computeArgTypesAndReturns(SetVector<Operation *> &);
 };
 
 static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
@@ -45,31 +54,17 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
             qmem::RotateZOp,
             qmem::SendFloatsOp,
             qmem::SendIntsOp
-            // We don't want to functionize "Remotes", "Returns" nor "Funcs"
+            // We don't want to functionize "Remotes", "Funcs" nor "Returns"
 //            qmem::RemoteOp,
-//            qmem::ReturnOp,
 //            qmem::FuncOp,
+//            qmem::ReturnOp,
     >(op);
 }
 
-/**
- * Creates a "wrapper" function around the given list of operations.
- * WARNING: This function will not perform any type of Data nor Control Flow
- * analysis on the given operations, and it assumes that the data and control
- * flow of the given list is consistent.
- * @param opBuilder An `OpBuilder` object used to clone the given operations.
- * @param funcName The name of the function to be created.
- * @param loc The location to use as an attribute for the new operations created.
- * @param quantumOps An `ArrayRef` object containing the set of operations to wrap.
- * @return A `func::FuncOp` object, inserted at the insertion point of the given `OpBuilder`,
- *         whose body contains the given operations, and an extra return statement.
- */
-func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
-        OpBuilder *opBuilder, StringRef funcName,
-        Location loc, SetVector<Operation *> &quantumOps) {
-    // Create a new function at the top level, using the types of the "orphan" usages of the given ops
-
+QMemSimpleFunctionizePass::ArgTypesAndReturns
+QMemSimpleFunctionizePass::computeArgTypesAndReturns(SetVector<Operation *> &quantumOps) {
     // We need to compute a sort of "closure" in the quantumOps set.
+    // Create a new function at the top level, using the types of the "orphan" usages of the given ops:
     // If an operation that appears on the "uses" is not in the quantumOps set, then it's an
     // "outsider", hence it's an argument of the quantumOps set.
     // If an operation that appears on the "operands" is not in the quantumOps set, then it's an
@@ -81,16 +76,14 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
     // Since we will clone the quantumOp, we need to save the _index_ of the result that is a
     // return. So later, when we clone the operation we construct the list of the actual result
     // values using the indexes per operation.
-    llvm::DenseMap<Operation *, std::set<uint32_t>> opResultsIndexes;
-
+    mlir::DenseMap<Operation *, std::set<uint32_t>> opResultsIndexes;
     for (Operation *quantumOp : quantumOps) {
         auto opOperands = quantumOp->getOperands();
-        for (Value opOperand : opOperands) {
+        for (Value opOperand: opOperands) {
             if (!quantumOps.contains(opOperand.getDefiningOp())) {
                 argTypes.push_back(opOperand.getType());
             }
         }
-
         ResultRange opResults = quantumOp->getResults();
         for (OpResult opResult : opResults) {
             // A set to store all the indexes of the results that will be returned
@@ -114,9 +107,28 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
             opResultsIndexes.insert(std::pair{quantumOp, returnIndexesForOp});
         }
     }
+    return QMemSimpleFunctionizePass::ArgTypesAndReturns{argTypes, resultTypes, opResultsIndexes};
+}
+
+/**
+ * Creates a "wrapper" function around the given list of operations.
+ * WARNING: This function will not perform any type of Data nor Control Flow
+ * analysis on the given operations, and it assumes that the data and control
+ * flow of the given list is consistent.
+ * @param opBuilder An `OpBuilder` object used to clone the given operations.
+ * @param funcName The name of the function to be created.
+ * @param loc The location to use as an attribute for the new operations created.
+ * @param quantumOps An `ArrayRef` object containing the set of operations to wrap.
+ * @return A `func::FuncOp` object, inserted at the insertion point of the given `OpBuilder`,
+ *         whose body contains the given operations, and an extra return statement.
+ */
+func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
+        OpBuilder *opBuilder, StringRef funcName,
+        Location loc, SetVector<Operation *> &quantumOps) {
+    QMemSimpleFunctionizePass::ArgTypesAndReturns typesAndValues = computeArgTypesAndReturns(quantumOps);
 
     // Create the new function, and attach a block to it
-    FunctionType funType = opBuilder->getFunctionType(argTypes, resultTypes);
+    FunctionType funType = opBuilder->getFunctionType(typesAndValues.argTypes, typesAndValues.resultTypes);
     auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
     Block *newBlock = newFunc.addEntryBlock();
 
@@ -142,7 +154,7 @@ func::FuncOp QMemSimpleFunctionizePass::createNewFunctionWithOperations(
             clonedOp->setOperands(newBlock->getArguments());
 
             // Populate the results from the current operation, matching the indexes already computed
-            for (uint32_t resultIndex: opResultsIndexes[quantumOp]) {
+            for (uint32_t resultIndex: typesAndValues.opResultsIndexes[quantumOp]) {
                 resultValues.push_back(clonedOp->getResult(resultIndex));
             }
             LLVM_DEBUG(llvm::dbgs() << "cloned op: " << *clonedOp << "\n");
