@@ -13,11 +13,6 @@
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
-// Since the lowering pass is part of this opt tool,
-// we need to also link the libraries of the LIR dialect
-#include "Dialect/lir/LirDialect.h"
-
-// And, of course, we also need the libraries of the lowering pass itself
 #include "Conversion/QNetToQMem/QNetToQMem.h"
 #include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h"
 
@@ -30,7 +25,6 @@ int main(int argc, char **argv) {
     registry.insert<qoala::dialects::qmem::QMemDialect>();
     registry.insert<qoala::dialects::netqasm::NetQASMDialect>();
     registry.insert<qoala::dialects::qoalahost::QoalaHostDialect>();
-    registry.insert<mlir::lir::LirDialect>();
 
     // We also register all the passes from MLIR
     mlir::registerAllPasses();

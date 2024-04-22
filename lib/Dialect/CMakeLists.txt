@@ -1,5 +1,4 @@
 add_subdirectory(NetQASM)
-add_subdirectory(lir)
 add_subdirectory(QNet)
 add_subdirectory(QMem)
 add_subdirectory(QoalaHost)
