@@ -1,10 +1,10 @@
-#include "Conversion/QNetToQMem/QNetToQMemPatterns.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
 namespace qoala::conversion {
     /* Implementation of the qoala types converter */
-    QNetToQMemQubitTypeConverter::QNetToQMemQubitTypeConverter(MLIRContext *ctx) {
+    QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
         addConversion([](Type type) { return type; });
         addConversion([ctx](qnet::QubitType type) -> Type {
@@ -36,11 +36,10 @@ namespace qoala::conversion {
 
     qmem::FuncOp FuncOpLowering::createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
-        auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymNameAttr(),
-                                                     adaptor.getFunctionTypeAttr(),
-                                                     adaptor.getSymVisibilityAttr(),
-                                                     adaptor.getArgAttrsAttr(),
-                                                     adaptor.getResAttrsAttr());
+        auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymName(),
+                                                     adaptor.getFunctionType(),
+                                                     adaptor.getAttributes().getValue(),
+                                                     ArrayRef<DictionaryAttr>{});
         // Before returning the new function, we need to "attach" (inline)
         // the body (region) of the old operation to the new one
         // This is inspired in the last part of the `convertFuncOpToLLVMFuncOp`
@@ -75,7 +74,8 @@ namespace qoala::conversion {
         Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
-        return rewriter.create<qmem::EprsMeasureOp>(loc, newAllocOp.getQ(), adaptor.getRemoteAttr());
+        Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
+        return rewriter.create<qmem::EprsMeasureOp>(loc, mappedOutType, newAllocOp.getQ(), adaptor.getRemoteAttr());
     }
 
     /* Implementation of the lowering for the creation of new qubits */
@@ -147,7 +147,8 @@ namespace qoala::conversion {
             qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), adaptor.getQin());
+        Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), mappedOutType, adaptor.getQin());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});
@@ -220,7 +221,7 @@ namespace qoala::conversion {
     RecvIntsOpLowering::createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
                                     ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
-        Type outType = op.getCout().getType();
+        Type outType = typeConverter->convertType(op.getCout().getType());
         return rewriter.create<qmem::RecvIntsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
     }
 
@@ -234,7 +235,7 @@ namespace qoala::conversion {
     RecvFloatsOpLowering::createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
                                       ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
-        Type outType = op.getCout().getType();
+        Type outType = typeConverter->convertType(op.getCout().getType());
         return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
     }
 } // namespace qoala::conversion

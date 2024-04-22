@@ -7,9 +7,9 @@
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QNetToQMemQubitTypeConverter : public TypeConverter {
+    class QoalaHIRToQoalaMIRTypeConverter : public TypeConverter {
       public:
-        explicit QNetToQMemQubitTypeConverter(MLIRContext *ctx);
+        explicit QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx);
     };
 
     /**
@@ -252,8 +252,6 @@ namespace qoala::conversion {
         NewOpAndValues createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
                                             ConversionPatternRewriter &rewriter) const override;
     };
-
-    // TODO - instantiate the template to map operations from one dialect to the other
 
 } // namespace qoala::conversion
 

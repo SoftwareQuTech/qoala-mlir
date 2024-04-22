@@ -7,16 +7,14 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
 
+#include "Dialect/QMem/Passes.h"
 #include "Dialect/QMem/QMemDialect.h"
+
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
-// Since the lowering pass is part of this opt tool,
-// we need to also link the libraries of the LIR dialect
-#include "Dialect/lir/LirDialect.h"
-
-// And, of course, we also need the libraries of the lowering pass itself
-#include "Conversion/QNetToQMem/QNetToQMem.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;
@@ -27,14 +25,16 @@ int main(int argc, char **argv) {
     registry.insert<qoala::dialects::qmem::QMemDialect>();
     registry.insert<qoala::dialects::netqasm::NetQASMDialect>();
     registry.insert<qoala::dialects::qoalahost::QoalaHostDialect>();
-    registry.insert<mlir::lir::LirDialect>();
 
     // We also register all the passes from MLIR
     mlir::registerAllPasses();
     // And also the passes from QNet
     mlir::registerQNetPasses();
-    // And the pass that converts QNet to QMem dialect
-    mlir::registerQNetToQMemPasses();
+    mlir::registerQMemPasses();
+    // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
+    mlir::registerQoalaHIRToQoalaMIRPasses();
+    // And the pass that converts QMem to QoalaHost dialect
+    mlir::registerQoalaMIRToQoalaLIRPasses();
 
     mlir::registerViewOpGraphPass();
 

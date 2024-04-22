@@ -1,2 +1,3 @@
 add_subdirectory(Dialect)
-add_subdirectory(Conversion/QNetToQMem)
+add_subdirectory(Conversion/QoalaHIRToQoalaMIR)
+add_subdirectory(Conversion/QoalaMIRToQoalaLIR)
