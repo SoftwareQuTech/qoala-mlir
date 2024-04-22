@@ -1,10 +1,11 @@
 add_mlir_conversion_library(MLIRQMemToQoalaHostPass
-        QMemToQoalaHost.cpp
-        QMemToQoalaHostPatterns.cpp
+        QoalaMIRToQoalaLIR.cpp
+        QoalaMIRToQoalaLIRPatterns.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QMem
-        ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/QMemToQoalaHost
+        ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/NetQASM
+        ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/QoalaMIRToQoalaLIR
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/helpers
 
         LINK_LIBS
@@ -14,5 +15,6 @@ add_mlir_conversion_library(MLIRQMemToQoalaHostPass
         QoalaConversionHelpers
         MLIRQMemIncGen
         MLIRQoalaHostIncGen
-        MLIRQMemToQoalaHostPassIncGen
+        MLIRNetQASMIncGen
+        MLIRQoalaMIRToQoalaLIRPassIncGen
 )

@@ -14,7 +14,7 @@
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
-#include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
     mlir::registerQoalaHIRToQoalaMIRPasses();
     // And the pass that converts QMem to QoalaHost dialect
-    mlir::registerQMemToQoalaHostPasses();
+    mlir::registerQoalaMIRToQoalaLIRPasses();
 
     mlir::registerViewOpGraphPass();
 

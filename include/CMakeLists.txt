@@ -1,3 +1,3 @@
 add_subdirectory(Dialect)
 add_subdirectory(Conversion/QoalaHIRToQoalaMIR)
-add_subdirectory(Conversion/QMemToQoalaHost)
+add_subdirectory(Conversion/QoalaMIRToQoalaLIR)

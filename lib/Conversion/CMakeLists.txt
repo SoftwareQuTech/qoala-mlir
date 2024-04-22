@@ -1,3 +1,3 @@
 add_subdirectory(Helpers)
 add_subdirectory(QoalaHIRToQoalaMIR)
-add_subdirectory(QMemToQoalaHost)
+add_subdirectory(QoalaMIRToQoalaLIR)

@@ -7,9 +7,9 @@
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QMemToQoalaHostQubitTypeConverter : public TypeConverter {
+    class QoalaMIRToQoalaLIRTypeConverter : public TypeConverter {
       public:
-        explicit QMemToQoalaHostQubitTypeConverter(MLIRContext *ctx);
+        explicit QoalaMIRToQoalaLIRTypeConverter(MLIRContext *ctx);
     };
 
     /**

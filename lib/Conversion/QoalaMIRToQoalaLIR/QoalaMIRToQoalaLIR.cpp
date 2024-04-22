@@ -4,12 +4,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include "Conversion/Helpers/Helpers.h"
-#include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h"
-#include "Conversion/QMemToQoalaHost/QMemToQoalaHostPatterns.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 namespace mlir {
-#define GEN_PASS_DEF_QMEMTOQOALAHOST
-#include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h.inc"
+#define GEN_PASS_DEF_QOALAMIRTOQOALALIR
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
 } // namespace mlir
 
 #include "llvm/Support/Debug.h"
@@ -20,11 +20,11 @@ using namespace qoala::helpers;
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QMemToQoalaHostPass : public mlir::impl::QMemtoQoalaHostBase<QMemToQoalaHostPass> {
+    class QoalaMIRToQoalaLIRPass : public mlir::impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
         void runOnOperation() override;
     };
 
-    void QMemToQoalaHostPass::runOnOperation() {
+    void QoalaMIRToQoalaLIRPass::runOnOperation() {
         MLIRContext &context = getContext();
         ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
 
@@ -45,7 +45,7 @@ namespace qoala::conversion {
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
-        QMemToQoalaHostQubitTypeConverter typeConverter(&context);
+        QoalaMIRToQoalaLIRTypeConverter typeConverter(&context);
 //        patterns.add<
 //                //TODO
 //        >(typeConverter, &context);
@@ -60,6 +60,6 @@ namespace qoala::conversion {
     }
 } /* namespace qoala::conversion */
 
-std::unique_ptr<mlir::Pass> mlir::createQMemToQoalaHostPass() {
-    return std::make_unique<qoala::conversion::QMemToQoalaHostPass>();
+std::unique_ptr<mlir::Pass> mlir::createQoalaMIRToQoalaLIRPass() {
+    return std::make_unique<qoala::conversion::QoalaMIRToQoalaLIRPass>();
 }
