@@ -6,7 +6,7 @@
 #include "mlir/Support/LLVM.h"
 #include "llvm/Support/Debug.h"
 
-#include <format>
+#include <cstdio>
 #include <set>
 
 namespace mlir {
@@ -191,13 +191,24 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
 
     for (Operation *quantumOp : quantumOps) {
+        // std::format was introduced as part of C++20 standard. This is included since GCC 13,
+        // which is NOT part of the standard GCC package of ubuntu 22 (bundles GCC 11)
+        // To avoid depending on headers included on a compiler that has to be manually installed,
+        // or an extra library (like LLVM's libc++), we will default to good'ol 70's C way of
+        // formatting a string
+        // #include <format>
+        //std::string funcName = std::format("__qoala_wrapper{}", identifier++);
         // Format the name of the new function
-        std::string funcName = std::format("__qoala_wrapper{}", identifier++);
+        auto nameFormat = "__qoala_wrapper%d";
+        int length = std::snprintf(nullptr, 0, nameFormat, identifier);
+        std::vector<char> funcName(length + 1);
+        std::sprintf(funcName.data(), nameFormat, identifier++);
+
         // We create a new function that will contain the single operation in its body (+ a return statement)
         SetVector<Operation *> operations;
         operations.insert(quantumOp);
         func::FuncOp newFunc = createNewFunctionWithOperations(
-                &opBuilder, funcName, topLocation, operations
+                &opBuilder, std::string(funcName.data()), topLocation, operations
                 );
         auto insertedSymbol = module.lookupSymbol<func::FuncOp>(newFunc.getNameAttr());
         mappedFunctions.insert(std::pair{quantumOp, insertedSymbol});
