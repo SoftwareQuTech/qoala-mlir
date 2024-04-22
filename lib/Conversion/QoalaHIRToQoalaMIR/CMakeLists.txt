@@ -1,10 +1,10 @@
-add_mlir_conversion_library(MLIRQNetToQMemPass
-        QNetToQMem.cpp
-        QNetToQMemPatterns.cpp
+add_mlir_conversion_library(MLIRQoalaHIRtoQoalaMIRPass
+        QoalaHIRToQoalaMIR.cpp
+        QoalaHIRToQoalaMIRPatterns.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QNet
-        ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/QNetToQMem
+        ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/QoalaHIRToQoalaMIR
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/helpers
 
         LINK_LIBS
@@ -14,5 +14,5 @@ add_mlir_conversion_library(MLIRQNetToQMemPass
         QoalaConversionHelpers
         MLIRQNetIncGen
         MLIRQMemIncGen
-        MLIRQNetToQMemPassIncGen
+        MLIRQoalaHIRToQoalaMIRPassIncGen
 )

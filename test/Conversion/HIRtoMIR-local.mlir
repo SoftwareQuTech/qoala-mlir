@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --convert-qnet-to-qmem | FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-hir-to-mir | FileCheck %s
 
 // CHECK: module
 

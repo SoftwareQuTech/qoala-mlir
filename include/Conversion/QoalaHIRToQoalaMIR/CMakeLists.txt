@@ -1,0 +1,5 @@
+set(LLVM_TARGET_DEFINITIONS QoalaHIRToQoalaMIR.td)
+mlir_tablegen(QoalaHIRToQoalaMIR.h.inc -gen-pass-decls -name QoalaHIRToQoalaMIR)
+mlir_tablegen(QoalaHIRToQoalaMIR.capi.h.inc -gen-pass-capi-header --prefix QoalaHIRToQoalaMIR)
+mlir_tablegen(QoalaHIRToQoalaMIR.capi.cpp.inc -gen-pass-capi-impl --prefix QoalaHIRToQoalaMIR)
+add_public_tablegen_target(MLIRQoalaHIRToQoalaMIRPassIncGen)

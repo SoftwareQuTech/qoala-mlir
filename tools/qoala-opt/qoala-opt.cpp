@@ -13,7 +13,7 @@
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
-#include "Conversion/QNetToQMem/QNetToQMem.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QMemToQoalaHost/QMemToQoalaHost.h"
 
 int main(int argc, char **argv) {
@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
     // And also the passes from QNet
     mlir::registerQNetPasses();
     mlir::registerQMemPasses();
-    // And the pass that converts QNet to QMem dialect
-    mlir::registerQNetToQMemPasses();
+    // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
+    mlir::registerQoalaHIRToQoalaMIRPasses();
     // And the pass that converts QMem to QoalaHost dialect
     mlir::registerQMemToQoalaHostPasses();
 

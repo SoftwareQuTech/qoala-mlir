@@ -7,9 +7,9 @@
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QNetToQMemQubitTypeConverter : public TypeConverter {
+    class QoalaHIRToQoalaMIRTypeConverter : public TypeConverter {
       public:
-        explicit QNetToQMemQubitTypeConverter(MLIRContext *ctx);
+        explicit QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx);
     };
 
     /**

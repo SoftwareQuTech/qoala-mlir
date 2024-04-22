@@ -1,10 +1,10 @@
-#include "Conversion/QNetToQMem/QNetToQMemPatterns.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
 namespace qoala::conversion {
     /* Implementation of the qoala types converter */
-    QNetToQMemQubitTypeConverter::QNetToQMemQubitTypeConverter(MLIRContext *ctx) {
+    QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
         addConversion([](Type type) { return type; });
         addConversion([ctx](qnet::QubitType type) -> Type {

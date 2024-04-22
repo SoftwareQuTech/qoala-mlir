@@ -10,13 +10,13 @@
 
 namespace mlir {
 #define GEN_PASS_DECL
-#include "Conversion/QNetToQMem/QNetToQMem.h.inc"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
 
-std::unique_ptr<mlir::Pass> createQNetToQMemPass();
+std::unique_ptr<mlir::Pass> createQoalaHIRToQoalaMIRPass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
-#include "Conversion/QNetToQMem/QNetToQMem.h.inc"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
 
 } // namespace mlir
 

@@ -4,12 +4,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include "Conversion/Helpers/Helpers.h"
-#include "Conversion/QNetToQMem/QNetToQMem.h"
-#include "Conversion/QNetToQMem/QNetToQMemPatterns.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
 namespace mlir {
-#define GEN_PASS_DEF_QNETTOQMEM
-#include "Conversion/QNetToQMem/QNetToQMem.h.inc"
+#define GEN_PASS_DEF_QOALAHIRTOQOALAMIR
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
 } // namespace mlir
 
 using namespace mlir;
@@ -18,11 +18,11 @@ using namespace qoala::helpers;
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QNetToQMemPass : public mlir::impl::QNetToQMemBase<QNetToQMemPass> {
+    class QoalaHIRToQoalaMIRPass : public mlir::impl::QoalaHIRToQoalaMIRBase<QoalaHIRToQoalaMIRPass> {
         void runOnOperation() override;
     };
 
-    void QNetToQMemPass::runOnOperation() {
+    void QoalaHIRToQoalaMIRPass::runOnOperation() {
         MLIRContext &context = getContext();
         Operation *operation = getOperation();
         // Get a conversion target to define our target dialects
@@ -44,7 +44,7 @@ namespace qoala::conversion {
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
-        QNetToQMemQubitTypeConverter typeConverter(&context);
+        QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);
         patterns.add<
                 FuncOpLowering,
                 ReturnOpLowering,
@@ -76,6 +76,6 @@ namespace qoala::conversion {
     }
 } /* namespace qoala::conversion */
 
-std::unique_ptr<mlir::Pass> mlir::createQNetToQMemPass() {
-    return std::make_unique<qoala::conversion::QNetToQMemPass>();
+std::unique_ptr<mlir::Pass> mlir::createQoalaHIRToQoalaMIRPass() {
+    return std::make_unique<qoala::conversion::QoalaHIRToQoalaMIRPass>();
 }
