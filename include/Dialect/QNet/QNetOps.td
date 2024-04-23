@@ -42,10 +42,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
                 if (!fnAttr)
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
                 // Iteratively search on the parent SymbolTables
-                for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
-                    if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
-                        return success();
-                    }
+                if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                    return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()
                                            << "' does not reference a valid remote node";
