@@ -26,6 +26,18 @@ include "Dialect/NetQASM/NetQASMDialect.td"
 class NetQASM_Op<string mnemonic, list<Trait> traits = []> :
   Op<NetQASM_Dialect, mnemonic, traits>;
 
+def QAllocOp: NetQASM_Op<"qalloc"> {
+    let results = (outs I32:$q);
+}
+
+def QInitOp: NetQASM_Op<"init"> {
+    let arguments = (ins I32:$q);
+}
+
+def QFreeOp: NetQASM_Op<"qfree"> {
+    let arguments = (ins I32:$q);
+}
+
 /* Helper class ported from QNet dialect */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
     NetQASM_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
