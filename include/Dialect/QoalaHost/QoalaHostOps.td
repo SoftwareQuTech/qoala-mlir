@@ -66,12 +66,4 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     let results = (outs TensorOf<[F32]>:$cout);
 }
 
-def QAllocOp: QoalaHost_Op<"qalloc"> {
-    let results = (outs TensorOf<[I32]>:$q);
-}
-
-def QFreeOp: QoalaHost_Op<"qfree"> {
-    let results = (outs TensorOf<[I32]>:$q);
-}
-
 #endif // QOALAHOST_OPS_TD
