@@ -26,6 +26,25 @@ include "Dialect/NetQASM/NetQASMDialect.td"
 class NetQASM_Op<string mnemonic, list<Trait> traits = []> :
   Op<NetQASM_Dialect, mnemonic, traits>;
 
+/* Helper class ported from QNet dialect */
+class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
+    NetQASM_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+        let extraClassDefinition = [{
+            LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
+                // Check that the callee attribute was specified.
+                auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+                if (!fnAttr)
+                    return this->emitOpError("requires a 'remote' symbol reference attribute");
+                // Iteratively search on the parent SymbolTables
+                if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                    return success();
+                }
+                return this->emitOpError() << "'" << fnAttr.getValue()
+                                           << "' does not reference a valid remote node";
+            }
+        }];
+}
+
 def RemoteOp: NetQASM_Op<"remote", [Symbol]>;
 
 def InitOp : NetQASM_Op<"init"> {
@@ -90,8 +109,7 @@ def MeasureOp : NetQASM_Op<"measure"> {
 }
 
 
-def EprsOp: NetQASM_Op<"eprs",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def EprsOp: UsingRemote_Op<"eprs"> {
   let arguments = (
     ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q,
     I32Attr:$N,
@@ -99,8 +117,7 @@ def EprsOp: NetQASM_Op<"eprs",
   );
 }
 
-def EprsMeasureOp: NetQASM_Op<"eprs_measure",
-                [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
     let arguments = (
       ins Arg<TensorOf<[I32]>, "qubits", [MemWrite]>:$q,
       I32Attr:$N,
