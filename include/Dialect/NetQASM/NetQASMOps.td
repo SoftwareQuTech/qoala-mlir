@@ -45,6 +45,86 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
+def LocalRoutineOp: NetQASM_Op<"local_routine", [
+        AffineScope, AutomaticAllocationScope, FunctionOpInterface,
+        IsolatedFromAbove, Symbol]> {
+    let summary = "Function declaration/definition for a netqasm local routine";
+    let description = [{
+        This function declaration operation differs from func.func operation in
+        the sense that it supports function attributes that are not declared
+        in the func.func operation.
+    }];
+    let arguments = (ins SymbolNameAttr:$sym_name,
+                         TypeAttrOf<FunctionType>:$function_type,
+                         OptionalAttr<StrAttr>:$sym_visibility,
+                         OptionalAttr<DictArrayAttr>:$arg_attrs,
+                         OptionalAttr<DictArrayAttr>:$res_attrs);
+    let regions = (region AnyRegion:$body);
+    let extraClassDeclaration = [{
+        //===------------------------------------------------------------------===//
+        // FunctionOpInterface Methods
+        //===------------------------------------------------------------------===//
+
+        /// Returns the region on the current operation that is callable. This may
+        /// return null in the case of an external callable object, e.g. an external
+        /// function.
+        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+
+        /// Returns the argument types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+        /// Returns the result types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+        //===------------------------------------------------------------------===//
+        // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+        //===------------------------------------------------------------------===//
+
+        bool isDeclaration() { return isExternal(); }
+    }];
+    let hasCustomAssemblyFormat = 1;
+}
+
+def RequestRoutineOp: NetQASM_Op<"request_routine", [
+        AffineScope, AutomaticAllocationScope, FunctionOpInterface,
+        IsolatedFromAbove, Symbol]> {
+    let summary = "Function declaration/definition for a netqasm local routine";
+    let description = [{
+        This function declaration operation differs from func.func operation in
+        the sense that it supports function attributes that are not declared
+        in the func.func operation.
+    }];
+    let arguments = (ins SymbolNameAttr:$sym_name,
+                         TypeAttrOf<FunctionType>:$function_type,
+                         OptionalAttr<StrAttr>:$sym_visibility,
+                         OptionalAttr<DictArrayAttr>:$arg_attrs,
+                         OptionalAttr<DictArrayAttr>:$res_attrs);
+    let regions = (region AnyRegion:$body);
+    let extraClassDeclaration = [{
+        //===------------------------------------------------------------------===//
+        // FunctionOpInterface Methods
+        //===------------------------------------------------------------------===//
+
+        /// Returns the region on the current operation that is callable. This may
+        /// return null in the case of an external callable object, e.g. an external
+        /// function.
+        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+
+        /// Returns the argument types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+        /// Returns the result types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+        //===------------------------------------------------------------------===//
+        // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+        //===------------------------------------------------------------------===//
+
+        bool isDeclaration() { return isExternal(); }
+    }];
+    let hasCustomAssemblyFormat = 1;
+}
+
 def RemoteOp: NetQASM_Op<"remote", [Symbol]>;
 
 def InitOp : NetQASM_Op<"init"> {
