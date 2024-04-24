@@ -95,6 +95,9 @@ def LocalRoutineOp: NetQASM_Op<"local_routine", [
         bool isDeclaration() { return isExternal(); }
     }];
     let hasCustomAssemblyFormat = 1;
+    // We need to define a custom (extra) verifier for checking that the
+    // function only contains operations from the `arith`, `memref`, `cf` dialects
+    let hasRegionVerifier = 1;
 }
 
 def RequestRoutineOp: NetQASM_Op<"request_routine", [
@@ -135,6 +138,9 @@ def RequestRoutineOp: NetQASM_Op<"request_routine", [
         bool isDeclaration() { return isExternal(); }
     }];
     let hasCustomAssemblyFormat = 1;
+    // We need to define a custom (extra) verifier for checking that the
+    // function only contains operations from the `arith`, `memref`, `cf` dialects
+    let hasRegionVerifier = 1;
 }
 
 def RemoteOp: NetQASM_Op<"remote", [Symbol]>;

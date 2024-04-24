@@ -7,10 +7,15 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "llvm/Support/Format.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
 
-using namespace mlir;
 using namespace qoala::dialects::netqasm;
 
 // include generated source code for operations
@@ -53,4 +58,55 @@ void RequestRoutineOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
+}
+
+/* Region verifiers for LocalRoutineOp and RequestRoutineOp */
+static bool operationIsNotValid(Operation &operation) {
+    return ! (isa<
+#define GET_OP_LIST
+#include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
+            >(operation) ||
+            isa<
+#define GET_OP_LIST
+#include "mlir/Dialect/MemRef/IR/MemRefOps.cpp.inc"
+            >(operation) ||
+            isa<
+#define GET_OP_LIST
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.cpp.inc"
+            >(operation));
+}
+
+LogicalResult RequestRoutineOp::verifyRegions() {
+    Region &region = getBody();
+    for (Block &block : region) {
+        for (Operation &operation : block) {
+            if (operationIsNotValid(operation)) {
+                std::string message;
+                llvm::raw_string_ostream formatter(message);
+                formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
+                                                   "or 'cf' dialects: '" << operation << "'";
+                formatter.flush();
+                return emitError(message);
+            }
+        }
+    }
+    return success();
+}
+
+
+LogicalResult LocalRoutineOp::verifyRegions() {
+    Region &region = getBody();
+    for (Block &block : region) {
+        for (Operation &operation : block) {
+            if (operationIsNotValid(operation)) {
+                std::string message;
+                llvm::raw_string_ostream formatter(message);
+                formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
+                                                   "or 'cf' dialects: '" << operation << "'";
+                formatter.flush();
+                return emitError(message);
+            }
+        }
+    }
+    return success();
 }
