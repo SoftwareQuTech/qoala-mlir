@@ -1,13 +1,11 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include "Analysis/Helpers/Helpers.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
 
 using namespace qoala::dialects::netqasm;
+using namespace qoala::helpers;
 
 // include generated source code for operations
 #define GET_OP_CLASSES
@@ -52,26 +50,12 @@ void RequestRoutineOp::print(OpAsmPrinter &p) {
 }
 
 /* Region verifiers for LocalRoutineOp and RequestRoutineOp */
-static bool operationIsNotValid(Operation &operation) {
-    return ! (isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
-            >(operation) ||
-            isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/MemRef/IR/MemRefOps.cpp.inc"
-            >(operation) ||
-            isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.cpp.inc"
-            >(operation));
-}
 
 LogicalResult RequestRoutineOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {
         for (Operation &operation : block) {
-            if (operationIsNotValid(operation)) {
+            if (operationIsNotFromAllowedDialects(operation)) {
                 std::string message;
                 llvm::raw_string_ostream formatter(message);
                 formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
@@ -88,7 +72,7 @@ LogicalResult LocalRoutineOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {
         for (Operation &operation : block) {
-            if (operationIsNotValid(operation)) {
+            if (operationIsNotFromAllowedDialects(operation)) {
                 std::string message;
                 llvm::raw_string_ostream formatter(message);
                 formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "

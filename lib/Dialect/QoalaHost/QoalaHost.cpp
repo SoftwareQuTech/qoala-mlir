@@ -1,12 +1,10 @@
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
-
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 
 using namespace mlir;
 using namespace qoala::dialects::qoalahost;
+using namespace qoala::helpers;
 
 // include generated source code for operations
 #define GET_OP_CLASSES
@@ -55,20 +53,8 @@ void MainFuncOp::print(OpAsmPrinter &p) {
 }
 
 /* Region verifiers for MainFuncOp */
-static bool operationIsNotValid(Operation &operation) {
+static bool operationIsNotFromQoalaHost(Operation &operation) {
     return ! (isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
-              >(operation) ||
-              isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/MemRef/IR/MemRefOps.cpp.inc"
-              >(operation) ||
-              isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.cpp.inc"
-              >(operation) ||
-              isa<
 #define GET_OP_LIST
 #include "Dialect/QoalaHost/QoalaHost.cpp.inc"
               >(operation));
@@ -78,7 +64,7 @@ LogicalResult MainFuncOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {
         for (Operation &operation : block) {
-            if (operationIsNotValid(operation)) {
+            if (operationIsNotFromAllowedDialects(operation) || operationIsNotFromQoalaHost(operation)) {
                 std::string message;
                 llvm::raw_string_ostream formatter(message);
                 formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
