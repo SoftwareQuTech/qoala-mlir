@@ -72,6 +72,9 @@ def MainFuncOp: QoalaHost_Op<"main_func", [
         bool isDeclaration() { return isExternal(); }
     }];
     let hasCustomAssemblyFormat = 1;
+    // We need to define a custom (extra) verifier for checking that the
+    // function only contains operations from the `qoalahost`, `arith`, `memref`, `cf` dialects
+    let hasRegionVerifier = 1;
 }
 
 def ReturnOp: QoalaHost_Op<"return", [Pure, HasParent<"MainFuncOp">, ReturnLike, Terminator]> {
