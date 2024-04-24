@@ -23,8 +23,67 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "Dialect/QoalaHost/QoalaHostDialect.td"
 
 
+
 class QoalaHost_Op<string mnemonic, list<Trait> traits = []> :
   Op<QoalaHost_Dialect, mnemonic, traits>;
+
+/* Func and Return operations similar to the ones present un QNet */
+def MainFuncOp: QoalaHost_Op<"main_func", [
+        AffineScope, AutomaticAllocationScope, FunctionOpInterface,
+        IsolatedFromAbove, Symbol]> {
+    let summary = "Function wrapper for the operations that are supposed to run on the host machine (CPS)";
+    let description = [{
+        This function declaration operation differs from func.func operation in
+        the sense that it supports function attributes that are not declared
+        in the func.func operation.
+    }];
+    let arguments = (ins SymbolNameAttr:$sym_name,
+                         TypeAttrOf<FunctionType>:$function_type,
+                         OptionalAttr<StrAttr>:$sym_visibility,
+                         OptionalAttr<DictArrayAttr>:$arg_attrs,
+                         OptionalAttr<DictArrayAttr>:$res_attrs);
+    let regions = (region AnyRegion:$body);
+
+    let builders = [OpBuilder<(ins
+        "::llvm::StringRef":$name, "::mlir::FunctionType":$type,
+        CArg<"::llvm::ArrayRef<::mlir::NamedAttribute>", "{}">:$attrs,
+        CArg<"::llvm::ArrayRef<::mlir::DictionaryAttr>", "{}">:$argAttrs)
+    >];
+    let extraClassDeclaration = [{
+        //===------------------------------------------------------------------===//
+        // FunctionOpInterface Methods
+        //===------------------------------------------------------------------===//
+
+        /// Returns the region on the current operation that is callable. This may
+        /// return null in the case of an external callable object, e.g. an external
+        /// function.
+        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+
+        /// Returns the argument types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+        /// Returns the result types of this function.
+        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+        //===------------------------------------------------------------------===//
+        // SymbolOpInterface Methods - Inherited form FunctionOpInterface
+        //===------------------------------------------------------------------===//
+
+        bool isDeclaration() { return isExternal(); }
+    }];
+    let hasCustomAssemblyFormat = 1;
+}
+
+def ReturnOp: QoalaHost_Op<"return", [Pure, HasParent<"MainFuncOp">, ReturnLike, Terminator]> {
+    let summary = "Function return operation for qoalahost.main_func bodies";
+    let arguments = (ins Variadic<AnyType>:$operands);
+    let builders = [OpBuilder<(ins), [{
+        build($_builder, $_state, std::nullopt);
+    }]>];
+    let assemblyFormat = [{
+        attr-dict ($operands^ `:` type($operands))?
+    }];
+}
 
 /* Helper class ported from QNet dialect */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
@@ -46,7 +105,13 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
 }
 
 
-def RemoteOp: QoalaHost_Op<"remote", [Symbol]>;
+def RemoteOp: QoalaHost_Op<"remote", [Symbol]> {
+    let arguments = (ins Arg<SymbolNameAttr, "remote-name">:$sym_name,
+                         Arg<OptionalAttr<StrAttr>, "visibility">:$sym_visibility);
+    let assemblyFormat = [{
+        attr-dict $sym_name
+    }];
+}
 
 def SendIntsOp : UsingRemote_Op<"send_ints"> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);

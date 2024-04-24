@@ -83,7 +83,7 @@ def ReturnOp: QMem_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminat
     let assemblyFormat = [{
         attr-dict ($operands^ `:` type($operands))?
     }];
- }
+}
 
 /* Helper class ported from QNet dialect */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
