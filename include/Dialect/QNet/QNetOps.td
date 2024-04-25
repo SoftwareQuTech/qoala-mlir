@@ -41,8 +41,9 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
                 auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
                 if (!fnAttr)
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
-                // Iteratively search on the parent SymbolTables
-                if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                // Search the symbol in the parent SymbolTables
+                // The declared symbol MUST come from a qnet.remote operation
+                if (symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
                     return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()
