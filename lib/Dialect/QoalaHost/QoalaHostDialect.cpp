@@ -1,10 +1,7 @@
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/Types.h"
-#include "mlir/Support/LLVM.h"
-#include "mlir/Support/LogicalResult.h"
-#include "mlir/Transforms/InliningUtils.h"
-#include "llvm/ADT/TypeSwitch.h"
 
+#include "Dialect/NetQASM/NetQASM.h"
+#include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 

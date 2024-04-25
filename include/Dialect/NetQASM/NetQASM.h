@@ -17,9 +17,14 @@
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
+using namespace mlir;
+
+// NetQASM uses QoalaHost classes and vice versa; so we insert _forward_ class
+// declarations so this file compiles correctly
+#define GET_OP_FWD_DEFINES
+#include "Dialect/QoalaHost/QoalaHost.h.inc"
+
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.h.inc"
-
-using namespace mlir;
 
 #endif // NETQASM_H

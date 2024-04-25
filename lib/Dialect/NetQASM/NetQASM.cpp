@@ -2,12 +2,12 @@
 #include "llvm/Support/raw_ostream.h"
 #include "Analysis/Helpers/Helpers.h"
 
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
 using namespace qoala::dialects::netqasm;
 using namespace qoala::helpers;
 
+#include "Dialect/QoalaHost/QoalaHost.h"
 // include generated source code for operations
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.cpp.inc"
@@ -51,7 +51,6 @@ void RequestRoutineOp::print(OpAsmPrinter &p) {
 }
 
 /* Region verifiers for LocalRoutineOp and RequestRoutineOp */
-
 LogicalResult RequestRoutineOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {

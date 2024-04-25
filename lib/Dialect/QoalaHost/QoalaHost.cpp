@@ -6,6 +6,7 @@ using namespace mlir;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::helpers;
 
+#include "Dialect/NetQASM/NetQASM.h"
 // include generated source code for operations
 #define GET_OP_CLASSES
 #include "Dialect/QoalaHost/QoalaHost.cpp.inc"
@@ -77,3 +78,19 @@ LogicalResult MainFuncOp::verifyRegions() {
     return success();
 }
 
+LogicalResult CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable) {
+    // Check that the callee attribute was specified.
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    if (!fnAttr)
+        return this->emitOpError("requires a 'remote' symbol reference attribute");
+    // Search the symbol in the parent SymbolTables
+    // The declared symbol MUST come from a netqasm.local_routine OR netqasm.request_routine operation
+    if (symbolTable.lookupNearestSymbolFrom<netqasm::LocalRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
+        return success();
+    }
+    if (symbolTable.lookupNearestSymbolFrom<netqasm::RequestRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
+        return success();
+    }
+    return this->emitOpError() << "'" << fnAttr.getValue()
+                               << "' does not reference a valid remote node";
+}
