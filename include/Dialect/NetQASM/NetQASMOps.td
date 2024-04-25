@@ -143,8 +143,6 @@ def RequestRoutineOp: NetQASM_Op<"request_routine", [
     let hasRegionVerifier = 1;
 }
 
-def RemoteOp: NetQASM_Op<"remote", [Symbol]>;
-
 def InitOp : NetQASM_Op<"init"> {
   let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
 }
