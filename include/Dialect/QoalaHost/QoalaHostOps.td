@@ -92,12 +92,12 @@ def CallOp : QoalaHost_Op<"call",
     let results = (outs Variadic<AnyType>);
 
     let builders = [
-        OpBuilder<(ins "qoala::dialects::netqasm::LocalRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+        OpBuilder<(ins "netqasm::LocalRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
             $_state.addOperands(operands);
             $_state.addAttribute("callee", SymbolRefAttr::get(callee));
             $_state.addTypes(callee.getFunctionType().getResults());
         }]>,
-        OpBuilder<(ins "qoala::dialects::netqasm::RequestRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+        OpBuilder<(ins "netqasm::RequestRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
             $_state.addOperands(operands);
             $_state.addAttribute("callee", SymbolRefAttr::get(callee));
             $_state.addTypes(callee.getFunctionType().getResults());
@@ -172,7 +172,7 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
                 // Search the symbol in the parent SymbolTables
                 // The declared symbol MUST come from a qoalahost.remote operation
-                if (symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                if (symbolTable.lookupNearestSymbolFrom<qoalahost::RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
                     return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()

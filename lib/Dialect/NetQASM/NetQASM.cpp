@@ -4,8 +4,14 @@
 
 #include "Dialect/NetQASM/NetQASM.h"
 
-using namespace qoala::dialects::netqasm;
+using namespace mlir;
+using namespace qoala::dialects;
 using namespace qoala::helpers;
+
+// This is the declaration of function that is implemented below
+// This declaration is needed here, so the automatically generated verifiers
+// from "NetQASM.cpp.inc" can find the declaration.
+bool operationIsNotFromNetQASM(Operation &operation);
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 // include generated source code for operations
@@ -13,7 +19,7 @@ using namespace qoala::helpers;
 #include "Dialect/NetQASM/NetQASM.cpp.inc"
 
 /* Parse and print functions "ported" from func.func: parse and print */
-ParseResult LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
             [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
                function_interface_impl::VariadicFlag,
@@ -25,14 +31,14 @@ ParseResult LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
             getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
-void LocalRoutineOp::print(OpAsmPrinter &p) {
+void netqasm::LocalRoutineOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
 /* Parse and print functions "ported" from func.func: parse and print */
-ParseResult RequestRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult netqasm::RequestRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
             [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
                function_interface_impl::VariadicFlag,
@@ -44,43 +50,15 @@ ParseResult RequestRoutineOp::parse(OpAsmParser &parser, OperationState &result)
             getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
-void RequestRoutineOp::print(OpAsmPrinter &p) {
+void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-/* Region verifiers for LocalRoutineOp and RequestRoutineOp */
-LogicalResult RequestRoutineOp::verifyRegions() {
-    Region &region = getBody();
-    for (Block &block : region) {
-        for (Operation &operation : block) {
-            if (operationIsNotFromArithMemRefOrCFDialects(operation)) {
-                std::string message;
-                llvm::raw_string_ostream formatter(message);
-                formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
-                                                   "or 'cf' dialects: '" << operation << "'";
-                formatter.flush();
-                return emitError(message);
-            }
-        }
-    }
-    return success();
-}
-
-LogicalResult LocalRoutineOp::verifyRegions() {
-    Region &region = getBody();
-    for (Block &block : region) {
-        for (Operation &operation : block) {
-            if (operationIsNotFromArithMemRefOrCFDialects(operation)) {
-                std::string message;
-                llvm::raw_string_ostream formatter(message);
-                formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
-                                                   "or 'cf' dialects: '" << operation << "'";
-                formatter.flush();
-                return emitError(message);
-            }
-        }
-    }
-    return success();
+bool operationIsNotFromNetQASM(Operation &operation) {
+    return ! (isa<
+#define GET_OP_LIST
+#include "Dialect/NetQASM/NetQASM.cpp.inc"
+    >(operation));
 }

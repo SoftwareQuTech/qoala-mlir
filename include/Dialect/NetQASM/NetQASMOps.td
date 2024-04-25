@@ -51,14 +51,14 @@ def QFreeOp: NetQASM_Op<"qfree"> {
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
     NetQASM_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
         let extraClassDefinition = [{
-            LogicalResult $cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
+            LogicalResult netqasm::$cppClass::verifySymbolUses(SymbolTableCollection &symbolTable) {
                 // Check that the callee attribute was specified.
                 auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
                 if (!fnAttr)
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
                 // Search the symbol in the parent SymbolTables
                 // The declared symbol MUST come from a qoalahost.remote operation
-                if (symbolTable.lookupNearestSymbolFrom<qoala::dialects::qoalahost::RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                if (symbolTable.lookupNearestSymbolFrom<qoalahost::RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
                     return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()
@@ -67,7 +67,24 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
-def LocalRoutineOp: NetQASM_Op<"local_routine", [
+/* Region verifier function for LocalRoutineOp and RequestRoutineOp */
+class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
+    NetQASM_Op<mnemonic, extraTraits> {
+        let extraClassDefinition = [{
+            LogicalResult $cppClass::verifyRegions() {
+                for (Operation &operation : this->getBody().getOps()) {
+                    if (operationIsNotFromArithMemRefOrCFDialects(operation) || operationIsNotFromNetQASM(operation)) {
+                        return this->emitError() << "'" << getOperationName() << "'"
+                                                 << "op contains an operation that is not from 'arith', 'memref',"
+                                                 << "'cf' or 'netqasm' dialects: '" << operation << "'";
+                    }
+                }
+                return success();
+            }
+        }];
+}
+
+def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
         IsolatedFromAbove, Symbol]> {
     let summary = "Function declaration/definition for a netqasm local routine";
@@ -110,7 +127,7 @@ def LocalRoutineOp: NetQASM_Op<"local_routine", [
     let hasRegionVerifier = 1;
 }
 
-def RequestRoutineOp: NetQASM_Op<"request_routine", [
+def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
         IsolatedFromAbove, Symbol]> {
     let summary = "Function declaration/definition for a netqasm local routine";

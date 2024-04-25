@@ -3,7 +3,7 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
-using namespace qoala::dialects::qoalahost;
+using namespace qoala::dialects;
 using namespace qoala::helpers;
 
 #include "Dialect/NetQASM/NetQASM.h"
@@ -17,7 +17,7 @@ using namespace qoala::helpers;
 
 
 /* Parse and print functions "ported" from func.func: parse and print */
-ParseResult MainFuncOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult qoalahost::MainFuncOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
             [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
                function_interface_impl::VariadicFlag,
@@ -30,9 +30,9 @@ ParseResult MainFuncOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 
-void MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
-                       FunctionType type, ArrayRef<NamedAttribute> attrs,
-                       ArrayRef<DictionaryAttr> argAttrs) {
+void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
+                                  FunctionType type, ArrayRef<NamedAttribute> attrs,
+                                  ArrayRef<DictionaryAttr> argAttrs) {
     state.addAttribute(mlir::SymbolTable::getSymbolAttrName(),
                        builder.getStringAttr(name));
     state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
@@ -47,7 +47,7 @@ void MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name
             getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
 }
 
-void MainFuncOp::print(OpAsmPrinter &p) {
+void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
@@ -61,29 +61,19 @@ static bool operationIsNotFromQoalaHost(Operation &operation) {
               >(operation));
 }
 
-LogicalResult MainFuncOp::verifyRegions() {
-    Region &region = getBody();
-    for (Block &block : region) {
-        for (Operation &operation : block) {
-            if (operationIsNotFromArithMemRefOrCFDialects(operation) || operationIsNotFromQoalaHost(operation)) {
-                std::string message;
-                llvm::raw_string_ostream formatter(message);
-                formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
-                                                   "or 'cf' dialects: '" << operation << "'";
-                formatter.flush();
-                return emitError(message);
-            }
+LogicalResult qoalahost::MainFuncOp::verifyRegions() {
+    for (Operation &operation : this->getBody().getOps()) {
+        if (operationIsNotFromArithMemRefOrCFDialects(operation) || operationIsNotFromQoalaHost(operation)) {
+            return this->emitError() << "'" << getOperationName() << "'"
+                                     << "op contains an operation that is not from 'arith', 'memref', "
+                                     << "'cf' or 'qoalahost' dialects: '" << operation << "'";
         }
     }
     return success();
 }
 
 /* Call operation verifier */
-LogicalResult CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable) {
-    // Check that the callee attribute was specified.
-    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
-    if (!fnAttr)
-        return this->emitOpError("requires a 'remote' symbol reference attribute");
+LogicalResult qoalahost::CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable) {
     // Search the symbol in the parent SymbolTables
     // The declared symbol MUST come from a netqasm.local_routine OR netqasm.request_routine operation
     if (symbolTable.lookupNearestSymbolFrom<netqasm::LocalRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
@@ -92,6 +82,7 @@ LogicalResult CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable)
     if (symbolTable.lookupNearestSymbolFrom<netqasm::RequestRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
         return success();
     }
-    return this->emitOpError() << "'" << fnAttr.getValue()
-                               << "' does not reference a valid remote node";
+    return this->emitOpError() << "'" << this->getCalleeAttr() << "'"
+                               << "does not reference a valid defined by either netqasm.local_routine or "
+                               << "netqasm.request_routine.";
 }
