@@ -55,7 +55,7 @@ LogicalResult RequestRoutineOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {
         for (Operation &operation : block) {
-            if (operationIsNotFromAllowedDialects(operation)) {
+            if (operationIsNotFromArithMemRefOrCFDialects(operation)) {
                 std::string message;
                 llvm::raw_string_ostream formatter(message);
                 formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "
@@ -72,7 +72,7 @@ LogicalResult LocalRoutineOp::verifyRegions() {
     Region &region = getBody();
     for (Block &block : region) {
         for (Operation &operation : block) {
-            if (operationIsNotFromAllowedDialects(operation)) {
+            if (operationIsNotFromArithMemRefOrCFDialects(operation)) {
                 std::string message;
                 llvm::raw_string_ostream formatter(message);
                 formatter << getOperationName() << "op contains an operation that is not from 'arith', 'memref' "

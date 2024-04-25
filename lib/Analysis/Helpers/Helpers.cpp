@@ -4,7 +4,7 @@ using namespace mlir;
 using namespace qoala::helpers;
 
 /* Region verifiers for MainFuncOp */
-bool qoala::helpers::operationIsNotFromAllowedDialects(Operation &operation) {
+bool qoala::helpers::operationIsNotFromArithMemRefOrCFDialects(Operation &operation) {
     return ! (isa<
 #define GET_OP_LIST
 #include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
@@ -16,9 +16,5 @@ bool qoala::helpers::operationIsNotFromAllowedDialects(Operation &operation) {
               isa<
 #define GET_OP_LIST
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.cpp.inc"
-              >(operation) ||
-              isa<
-#define GET_OP_LIST
-#include "mlir/Dialect/Tensor/IR/TensorOps.cpp.inc"
               >(operation));
 }
