@@ -78,9 +78,10 @@ LogicalResult MainFuncOp::verifyRegions() {
     return success();
 }
 
+/* Call operation verifier */
 LogicalResult CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable) {
     // Check that the callee attribute was specified.
-    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
+    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
     if (!fnAttr)
         return this->emitOpError("requires a 'remote' symbol reference attribute");
     // Search the symbol in the parent SymbolTables

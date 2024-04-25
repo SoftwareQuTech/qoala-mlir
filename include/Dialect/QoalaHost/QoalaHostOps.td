@@ -76,6 +76,7 @@ def MainFuncOp: QoalaHost_Op<"main_func", [
     // function only contains operations from the `qoalahost`, `arith`, `memref`, `cf` dialects
     let hasRegionVerifier = 1;
 }
+
 def CallOp : QoalaHost_Op<"call",
      [CallOpInterface, MemRefsNormalizable,
       DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
