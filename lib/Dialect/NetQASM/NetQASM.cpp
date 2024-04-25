@@ -2,6 +2,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "Analysis/Helpers/Helpers.h"
 
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
 using namespace qoala::dialects::netqasm;
