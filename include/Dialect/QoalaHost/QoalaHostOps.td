@@ -118,20 +118,32 @@ def RemoteOp: QoalaHost_Op<"remote", [Symbol]> {
 
 def SendIntsOp : UsingRemote_Op<"send_ints"> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
 }
 
 def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[I32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
 }
 
 def SendFloatsOp : UsingRemote_Op<"send_floats"> {
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs TensorOf<[F32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
 }
 
 #endif // QOALAHOST_OPS_TD
