@@ -170,13 +170,6 @@ def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
     let hasRegionVerifier = 1;
 }
 
-def InitOp : NetQASM_Op<"init"> {
-      let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
-    let assemblyFormat = [{
-        operands attr-dict
-    }];
-}
-
 def RotateXOp : NetQASM_Op<"rot_x"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
