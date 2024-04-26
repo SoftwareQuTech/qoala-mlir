@@ -13,8 +13,8 @@
 // CHECK-NEXT:      ^bb2:  // pred: ^bb1
 // CHECK-NEXT:        %extracted = tensor.extract %arg0[%c0] : tensor<6xi32>
 // CHECK-NEXT:        %extracted_0 = tensor.extract %arg0[%0] : tensor<6xi32>
-// CHECK-NEXT:        "netqasm.init"(%extracted) : (i32) -> ()
-// CHECK-NEXT:        "netqasm.cnot"(%extracted, %extracted_0) : (i32, i32) -> ()
+// CHECK-NEXT:        netqasm.init %extracted
+// CHECK-NEXT:        netqasm.cnot %extracted, %extracted_0
 // CHECK-NEXT:        %2 = arith.addi %0, %c1 : index
 // CHECK-NEXT:        cf.br ^bb1(%2 : index)
 // CHECK-NEXT:      ^bb3:  // pred: ^bb1
@@ -40,7 +40,6 @@ module {
   
   }
 
-  // %vqubits = "qoalahost.qalloc"() {N = 6} : () -> tensor<6xi32>
   %vqubits = arith.constant dense<[0, 1, 2, 3, 4, 5]> : tensor<6xi32>
   func.call @init_5(%vqubits) : (tensor<6xi32>) -> ()
 }

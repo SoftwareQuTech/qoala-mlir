@@ -83,7 +83,7 @@ def ReturnOp: QMem_Op<"return", [Pure, HasParent<"FuncOp">, ReturnLike, Terminat
     let assemblyFormat = [{
         attr-dict ($operands^ `:` type($operands))?
     }];
- }
+}
 
 /* Helper class ported from QNet dialect */
 class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
@@ -94,11 +94,10 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
                 auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
                 if (!fnAttr)
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
-                // Iteratively search on the parent SymbolTables
-                for (auto *parent = this->getOperation()->getParentOp(); parent; parent = parent->getParentOp()) {
-                    if (auto nearest = symbolTable.lookupNearestSymbolFrom<RemoteOp>(parent, this->getRemoteAttr())) {
-                        return success();
-                    }
+                // Search the symbol in the parent SymbolTables
+                // The declared symbol MUST come from a qmem.remote operation
+                if (symbolTable.lookupNearestSymbolFrom<RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                    return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()
                                            << "' does not reference a valid remote node";

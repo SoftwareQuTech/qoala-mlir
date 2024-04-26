@@ -4,11 +4,14 @@ add_mlir_dialect_library(MLIRNetQASM
 
     DEPENDS
     MLIRNetQASMIncGen
+    QoalaAnalysisHelpers
 
     LINK_LIBS PUBLIC
+    QoalaAnalysisHelpers
     MLIRIR
 
     LINK_LIBS PRIVATE
+    QoalaAnalysisHelpers
     MLIRAnalysis
     MLIRIR
     MLIRParser

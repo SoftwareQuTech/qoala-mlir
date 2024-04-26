@@ -1,48 +1,64 @@
-#include "mlir/IR/Attributes.h"
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/IRMapping.h"
-#include "mlir/IR/OpImplementation.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Support/LLVM.h"
-#include "llvm/ADT/ArrayRef.h"
-// #include "mlir/IR/FunctionImplementation.h"
-
-#include "mlir/IR/DialectImplementation.h"
-#include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Interfaces/FunctionImplementation.h"
+#include "llvm/Support/raw_ostream.h"
+#include "Analysis/Helpers/Helpers.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
-#include "Dialect/NetQASM/NetQASMDialect.h"
 
 using namespace mlir;
-using namespace qoala::dialects::netqasm;
+using namespace qoala::dialects;
+using namespace qoala::helpers;
 
+// This is the declaration of function that is implemented below
+// This declaration is needed here, so the automatically generated verifiers
+// from "NetQASM.cpp.inc" can find the declaration.
+bool operationIsNotFromNetQASM(Operation &operation);
+
+#include "Dialect/QoalaHost/QoalaHost.h"
 // include generated source code for operations
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.cpp.inc"
 
-LogicalResult EprsOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-    // Check that the callee attribute was specified.
-    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-    if (!fnAttr)
-        return emitOpError("requires a 'remote' symbol reference attribute");
-    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-    if (!fn)
-        return emitOpError() << "'" << fnAttr.getValue()
-                             << "' does not reference a valid remote node";
+/* Parse and print functions "ported" from func.func: parse and print */
+ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
+    auto buildFuncType =
+            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+               function_interface_impl::VariadicFlag,
+               std::string &) { return builder.getFunctionType(argTypes, results); };
 
-    return success();
+    return function_interface_impl::parseFunctionOp(
+            parser, result, /*allowVariadic=*/false,
+            getFunctionTypeAttrName(result.name), buildFuncType,
+            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
-LogicalResult
-EprsMeasureOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
-    // Check that the callee attribute was specified.
-    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("remote");
-    if (!fnAttr)
-        return emitOpError("requires a 'remote' symbol reference attribute");
-    RemoteOp fn = symbolTable.lookupNearestSymbolFrom<RemoteOp>(*this, fnAttr);
-    if (!fn)
-        return emitOpError() << "'" << fnAttr.getValue()
-                             << "' does not reference a valid remote node";
+void netqasm::LocalRoutineOp::print(OpAsmPrinter &p) {
+    function_interface_impl::printFunctionOp(
+            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+            getArgAttrsAttrName(), getResAttrsAttrName());
+}
 
-    return success();
+/* Parse and print functions "ported" from func.func: parse and print */
+ParseResult netqasm::RequestRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
+    auto buildFuncType =
+            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+               function_interface_impl::VariadicFlag,
+               std::string &) { return builder.getFunctionType(argTypes, results); };
+
+    return function_interface_impl::parseFunctionOp(
+            parser, result, /*allowVariadic=*/false,
+            getFunctionTypeAttrName(result.name), buildFuncType,
+            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+}
+
+void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
+    function_interface_impl::printFunctionOp(
+            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+            getArgAttrsAttrName(), getResAttrsAttrName());
+}
+
+bool operationIsNotFromNetQASM(Operation &operation) {
+    return ! (isa<
+#define GET_OP_LIST
+#include "Dialect/NetQASM/NetQASM.cpp.inc"
+    >(operation));
 }
