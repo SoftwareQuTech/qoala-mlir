@@ -170,6 +170,17 @@ def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
     let hasRegionVerifier = 1;
 }
 
+def ReturnOp: NetQASM_Op<"return", [Pure, ParentOneOf<["LocalRoutineOp", "RequestRoutineOp"]>, ReturnLike, Terminator]> {
+    let summary = "Function return operation for qoalahost.main_func bodies";
+    let arguments = (ins Variadic<AnyType>:$operands);
+    let builders = [OpBuilder<(ins), [{
+        build($_builder, $_state, std::nullopt);
+    }]>];
+    let assemblyFormat = [{
+        attr-dict ($operands^ `:` type($operands))?
+    }];
+}
+
 def RotateXOp : NetQASM_Op<"rot_x"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,

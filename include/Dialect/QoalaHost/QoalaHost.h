@@ -9,6 +9,7 @@
 // Needed for [FunctionOpInterface] in the .td file.
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 
 // Needed for [NoMemoryEffect] in the .td file.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
