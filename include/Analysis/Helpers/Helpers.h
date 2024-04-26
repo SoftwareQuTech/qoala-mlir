@@ -6,11 +6,13 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 
 using namespace mlir;
 
 namespace qoala::helpers {
     bool operationIsNotFromCommonDialects(Operation &);
+    std::string getAllowedDialectNames();
 }
 
 

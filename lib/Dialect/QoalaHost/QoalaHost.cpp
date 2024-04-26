@@ -65,8 +65,8 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
         if (operationIsNotFromCommonDialects(operation) && operationIsNotFromQoalaHost(operation)) {
             return this->emitError() << "'" << getOperationName() << "' "
-                                     << "op contains an operation that is not from 'arith', 'memref', "
-                                     << "'cf' or 'qoalahost' dialects: '" << operation << "'";
+                                     << "op contains an operation that is not from " << getAllowedDialectNames()
+                                     << "or 'qoalahost' dialects: '" << operation << "'";
         }
     }
     return success();

@@ -75,8 +75,8 @@ class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
                 for (Operation &operation : this->getBody().getOps()) {
                     if (operationIsNotFromCommonDialects(operation) && operationIsNotFromNetQASM(operation)) {
                         return this->emitError() << "'" << getOperationName() << "' "
-                                                 << "op contains an operation that is not from 'arith', 'memref',"
-                                                 << "'cf' or 'netqasm' dialects: '" << operation << "'";
+                                                 << "op contains an operation that is not from " << getAllowedDialectNames()
+                                                 << "or 'netqasm' dialects: '" << operation << "'";
                     }
                 }
                 return success();
