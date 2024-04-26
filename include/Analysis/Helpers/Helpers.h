@@ -5,11 +5,12 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 
 using namespace mlir;
 
 namespace qoala::helpers {
-    bool operationIsNotFromArithMemRefOrCFDialects(Operation &);
+    bool operationIsNotFromCommonDialects(Operation &);
 }
 
 

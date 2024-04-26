@@ -73,8 +73,8 @@ class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
         let extraClassDefinition = [{
             LogicalResult $cppClass::verifyRegions() {
                 for (Operation &operation : this->getBody().getOps()) {
-                    if (operationIsNotFromArithMemRefOrCFDialects(operation) || operationIsNotFromNetQASM(operation)) {
-                        return this->emitError() << "'" << getOperationName() << "'"
+                    if (operationIsNotFromCommonDialects(operation) && operationIsNotFromNetQASM(operation)) {
+                        return this->emitError() << "'" << getOperationName() << "' "
                                                  << "op contains an operation that is not from 'arith', 'memref',"
                                                  << "'cf' or 'netqasm' dialects: '" << operation << "'";
                     }

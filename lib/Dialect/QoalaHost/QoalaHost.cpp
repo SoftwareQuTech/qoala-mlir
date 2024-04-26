@@ -63,8 +63,8 @@ static bool operationIsNotFromQoalaHost(Operation &operation) {
 
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
-        if (operationIsNotFromArithMemRefOrCFDialects(operation) || operationIsNotFromQoalaHost(operation)) {
-            return this->emitError() << "'" << getOperationName() << "'"
+        if (operationIsNotFromCommonDialects(operation) && operationIsNotFromQoalaHost(operation)) {
+            return this->emitError() << "'" << getOperationName() << "' "
                                      << "op contains an operation that is not from 'arith', 'memref', "
                                      << "'cf' or 'qoalahost' dialects: '" << operation << "'";
         }
@@ -82,7 +82,7 @@ LogicalResult qoalahost::CallOp::verifySymbolUses(mlir::SymbolTableCollection &s
     if (symbolTable.lookupNearestSymbolFrom<netqasm::RequestRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
         return success();
     }
-    return this->emitOpError() << "'" << this->getCalleeAttr() << "'"
+    return this->emitOpError() << "'" << this->getCalleeAttr() << "' "
                                << "does not reference a valid defined by either netqasm.local_routine or "
                                << "netqasm.request_routine.";
 }
