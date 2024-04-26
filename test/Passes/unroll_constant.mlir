@@ -7,16 +7,16 @@
 // CHECK-NEXT:   %c2_i32 = arith.constant 2 : i32
 // CHECK-NEXT:   %c1_i32 = arith.constant 1 : i32
 // CHECK-NEXT:   %c0_i32 = arith.constant 0 : i32
-// CHECK-NEXT:   "netqasm.init"(%c0_i32) : (i32) -> ()
-// CHECK-NEXT:   "netqasm.cnot"(%c0_i32, %c1_i32) : (i32, i32) -> ()
-// CHECK-NEXT:   "netqasm.init"(%c0_i32) : (i32) -> ()
-// CHECK-NEXT:   "netqasm.cnot"(%c0_i32, %c2_i32) : (i32, i32) -> ()
-// CHECK-NEXT:   "netqasm.init"(%c0_i32) : (i32) -> ()
-// CHECK-NEXT:   "netqasm.cnot"(%c0_i32, %c3_i32) : (i32, i32) -> ()
-// CHECK-NEXT:   "netqasm.init"(%c0_i32) : (i32) -> ()
-// CHECK-NEXT:   "netqasm.cnot"(%c0_i32, %c4_i32) : (i32, i32) -> ()
-// CHECK-NEXT:   "netqasm.init"(%c0_i32) : (i32) -> ()
-// CHECK-NEXT:   "netqasm.cnot"(%c0_i32, %c5_i32) : (i32, i32) -> ()
+// CHECK-NEXT:   netqasm.init %c0_i32
+// CHECK-NEXT:   netqasm.cnot %c0_i32, %c1_i32
+// CHECK-NEXT:   netqasm.init %c0_i32
+// CHECK-NEXT:   netqasm.cnot %c0_i32, %c2_i32
+// CHECK-NEXT:   netqasm.init %c0_i32
+// CHECK-NEXT:   netqasm.cnot %c0_i32, %c3_i32
+// CHECK-NEXT:   netqasm.init %c0_i32
+// CHECK-NEXT:   netqasm.cnot %c0_i32, %c4_i32
+// CHECK-NEXT:   netqasm.init %c0_i32
+// CHECK-NEXT:   netqasm.cnot %c0_i32, %c5_i32
 // CHECK-NEXT:   return
 // CHECK-NEXT: }
 

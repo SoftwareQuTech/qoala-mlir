@@ -40,5 +40,6 @@ module {
 
       %m_init = memref.alloc() : memref<5xi1>
       %m = qoalahost.call @subrt2(%vqubits, %num, %denom, %m_init) : (tensor<5xi32>, i32, i32, memref<5xi1>) -> memref<5xi1>
+      qoalahost.return
     }
 }
