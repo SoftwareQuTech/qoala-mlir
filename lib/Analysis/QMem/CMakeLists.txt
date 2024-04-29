@@ -1,4 +1,5 @@
 add_mlir_dialect_library(MLIRQMemAnalysisLibs
+        Functionize.cpp
         FunctionizeQuantumOps.cpp
 
         ADDITIONAL_HEADER_DIRS
