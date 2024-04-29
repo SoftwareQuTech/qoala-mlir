@@ -63,3 +63,11 @@ namespace qoala::conversion {
 std::unique_ptr<mlir::Pass> mlir::createQoalaMIRToQoalaLIRPass() {
     return std::make_unique<qoala::conversion::QoalaMIRToQoalaLIRPass>();
 }
+
+std::unique_ptr<mlir::Pass> mlir::createLowerQMemToQoalaHostPass() {
+    return nullptr;
+}
+
+std::unique_ptr<mlir::Pass> mlir::createLowerQMemToNetQASMPass() {
+    return nullptr;
+}

@@ -2,7 +2,6 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
-using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 

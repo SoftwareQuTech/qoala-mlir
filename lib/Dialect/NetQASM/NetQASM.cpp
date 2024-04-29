@@ -4,7 +4,6 @@
 
 #include "Dialect/NetQASM/NetQASM.h"
 
-using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 
