@@ -1,5 +1,5 @@
-#ifndef QMEM_TO_QOALAHOST_H
-#define QMEM_TO_QOALAHOST_H
+#ifndef QOALAMIR_TO_QOALALIR_H
+#define QOALAMIR_TO_QOALALIR_H
 #include "mlir/Pass/Pass.h"
 
 // In the Lowering pass, we rely on both QMem and QoalaHost dialects
@@ -24,4 +24,4 @@ namespace mlir {
 
 } // namespace mlir
 
-#endif // QMEM_TO_QOALAHOST_H
+#endif // QOALAMIR_TO_QOALALIR_H

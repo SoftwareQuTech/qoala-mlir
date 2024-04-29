@@ -15,9 +15,9 @@ namespace mlir {
 } // namespace mlir
 
 /* MLIR magic: using the LLVM_DEBUG macro + this define, allows to selectively enable the debug output
- * To enable the prints, simply invoke `opt` with `--debug-only=functionize`, or any other string defined
+ * To enable the prints, simply invoke `opt` with `--debug-only=functionize-poc`, or any other string defined
  * as the "DEBUG_TYPE" macro */
-#define DEBUG_TYPE "functionize"
+#define DEBUG_TYPE "functionize-poc"
 
 using namespace mlir;
 using namespace qoala::dialects;

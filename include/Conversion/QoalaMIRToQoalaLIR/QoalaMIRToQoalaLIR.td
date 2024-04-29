@@ -29,7 +29,7 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
 // Transformation Pass from QMem to QoalaHost
 //===----------------------------------------------------------------------===//
 
-def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir:ModuleOp"> {
+def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to the qoalahost dialect";
     let constructor = "::mlir::createLowerQMemToQoalaHostPass()";
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects to create
@@ -42,7 +42,7 @@ def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir:ModuleOp"> {
 // Transformation Pass from QMem to NetQASM
 //===----------------------------------------------------------------------===//
 
-def LowerQMemToNetQASM : Pass<"lower-qmem-to-netqasm", "mlir:ModuleOp"> {
+def LowerQMemToNetQASM : Pass<"lower-qmem-to-netqasm", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to the NetQASM dialect";
     let constructor = "::mlir::createLowerQMemToNetQASMPass()";
     // Since we lower QMem to NetQASM, we need to depend on all those dialects to create

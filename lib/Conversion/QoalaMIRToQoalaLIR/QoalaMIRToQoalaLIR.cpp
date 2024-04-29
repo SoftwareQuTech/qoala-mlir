@@ -2,6 +2,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "llvm/Support/Debug.h"
 
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
@@ -12,7 +13,7 @@ namespace mlir {
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
 } // namespace mlir
 
-#include "llvm/Support/Debug.h"
+#define DEBUG_TYPE "mir-to-lir"
 
 using namespace mlir;
 using namespace llvm;
@@ -25,7 +26,7 @@ namespace qoala::conversion {
     };
 
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
-        MLIRContext &context = getContext();
+        MLIRContext &context = this->getContext();
         ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
 
         // Get a conversion target to define our target dialects
@@ -62,12 +63,4 @@ namespace qoala::conversion {
 
 std::unique_ptr<mlir::Pass> mlir::createQoalaMIRToQoalaLIRPass() {
     return std::make_unique<qoala::conversion::QoalaMIRToQoalaLIRPass>();
-}
-
-std::unique_ptr<mlir::Pass> mlir::createLowerQMemToQoalaHostPass() {
-    return nullptr;
-}
-
-std::unique_ptr<mlir::Pass> mlir::createLowerQMemToNetQASMPass() {
-    return nullptr;
 }
