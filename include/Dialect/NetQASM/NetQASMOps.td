@@ -130,7 +130,7 @@ def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
 def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
         IsolatedFromAbove, Symbol]> {
-    let summary = "Function declaration/definition for a netqasm local routine";
+    let summary = "Function declaration/definition for a netqasm request routine";
     let description = [{
         This function declaration operation differs from func.func operation in
         the sense that it supports function attributes that are not declared
@@ -171,7 +171,7 @@ def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
 }
 
 def ReturnOp: NetQASM_Op<"return", [Pure, ParentOneOf<["LocalRoutineOp", "RequestRoutineOp"]>, ReturnLike, Terminator]> {
-    let summary = "Function return operation for qoalahost.main_func bodies";
+    let summary = "Function return operation for NetQASM call function bodies";
     let arguments = (ins Variadic<AnyType>:$operands);
     let builders = [OpBuilder<(ins), [{
         build($_builder, $_state, std::nullopt);
