@@ -4,7 +4,8 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
-#include "Conversion/Helpers/Helpers.h"
+#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QMem/Functionize.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
@@ -20,6 +21,34 @@ using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
 
+/* Function copied from the "simple" functionization PoC. Since we will modify how we "group" operations
+ * to create the new functions, this function will disappear */
+static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
+    // A list fo the QMem operation types we would like to "functionize"
+    return llvm::isa<
+            qmem::CnotOp,
+            qmem::CrotXOp,
+            qmem::CzOp,
+            qmem::EprsMeasureOp,
+            qmem::EprsOp,
+            qmem::HadamardOp,
+            qmem::InitOp,
+            qmem::MeasureOp,
+            qmem::QAllocOp,
+            qmem::RecvFloatsOp,
+            qmem::RecvIntsOp,
+            qmem::RotateXOp,
+            qmem::RotateYOp,
+            qmem::RotateZOp,
+            qmem::SendFloatsOp,
+            qmem::SendIntsOp
+            // We don't want to functionize "Remotes", "Funcs" nor "Returns"
+//            qmem::RemoteOp,
+//            qmem::FuncOp,
+//            qmem::ReturnOp,
+    >(op);
+}
+
 namespace qoala::conversion {
     class QoalaMIRToQoalaLIRPass : public mlir::impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
         void runOnOperation() override;
@@ -31,31 +60,34 @@ namespace qoala::conversion {
 
         // Get a conversion target to define our target dialects
         ConversionTarget target(context);
-        // We add the legal dialects that we aim to keep in the target
         target.addLegalDialect<qoalahost::QoalaHostDialect>();
-        // We define the QNet dialect as "illegal", so the conversion will fail
-        // if there are any qnet operations in the converted IR
         target.addIllegalDialect<qmem::QMemDialect>();
-        // We also declare operations (classes) that can be declared legal in the target
-        // dialect. The `callback` argument (which receives the operation involved)
-        // can determine if it is legal to leave the operation or not.
-        target.addLegalOp<
-#define GET_OP_LIST
-#include "Dialect/QMem/QMem.cpp.inc"
-        >();
+        // There are NO legal options in QMem dialect after this pass
+        //target.addLegalOp<
+            // some::Class
+        //>();
 
         // We add the conversion pattern to the context
-        RewritePatternSet patterns(&context);
-        QoalaMIRToQoalaLIRTypeConverter typeConverter(&context);
-//        patterns.add<
-//                //TODO
-//        >(typeConverter, &context);
+        RewritePatternSet qMemToQoalaHostPatterns(&context);
+        RewritePatternSet qMemToNetQASMPatterns(&context);
+        NullTypeConverter typeConverter(&context);
+        populateQNetToQoalaHostPatterns(qMemToQoalaHostPatterns, typeConverter);
+        populateQNetToNetQASMPatterns(qMemToNetQASMPatterns, typeConverter);
 
-        // We finally apply a **partial** conversion, since there will be some
-        // operations that will stay... momentarily
-        LogicalResult result =
-            mlir::applyPartialConversion(operation, target, std::move(patterns));
-        if (mlir::failed(result)) {
+        // Stage 1: Functionize
+        qoala::analysis::functionizeModule(operation, qMemOpCanBeFunctionized);
+
+        // Stage 2: Apply the QMemToQoalaHost conversion patterns
+        LogicalResult qMemToQoalaHostResult =
+            mlir::applyPartialConversion(operation, target, std::move(qMemToQoalaHostPatterns));
+        if (mlir::failed(qMemToQoalaHostResult)) {
+            signalPassFailure();
+        }
+
+        // Stage 3: Apply the QMemToNetQASM conversion patterns
+        LogicalResult qMemToNetQASMResult =
+                mlir::applyPartialConversion(operation, target, std::move(qMemToNetQASMPatterns));
+        if (mlir::failed(qMemToNetQASMResult)) {
             signalPassFailure();
         }
     }

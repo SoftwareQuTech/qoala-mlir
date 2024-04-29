@@ -7,12 +7,27 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
 
 namespace qoala::helpers {
     bool operationIsNotFromCommonDialects(Operation &);
     std::string getAllowedDialectNames();
+
+    /* Helpers to expose the conversion patterns from QMemToQoalaHost
+     * and from QMemtoNetQASM
+     * WARNING: The definitions of these functions are in the respective CPP files,
+     * so they can be used both in the general MIR to LIR wrapper but also in the
+     * passes they belong to.
+     */
+    void populateQNetToQoalaHostPatterns(RewritePatternSet &, TypeConverter &);
+    void populateQNetToNetQASMPatterns(RewritePatternSet &, TypeConverter &);
+
+    class NullTypeConverter : public TypeConverter {
+    public:
+        explicit NullTypeConverter(MLIRContext *ctx);
+    };
 }
 
 

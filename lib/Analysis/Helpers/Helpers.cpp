@@ -40,3 +40,9 @@ std::string qoala::helpers::getAllowedDialectNames() {
                   + affine::AffineDialect::getDialectNamespace().str() + "' ";
     return result;
 }
+
+
+/* Implementation of the null types converter */
+NullTypeConverter::NullTypeConverter(MLIRContext *ctx) {
+    //We don't do anything here
+}

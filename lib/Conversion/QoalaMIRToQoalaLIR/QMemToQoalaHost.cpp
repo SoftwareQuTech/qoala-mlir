@@ -4,7 +4,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
-#include "Conversion/Helpers/Helpers.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 namespace mlir {
@@ -18,6 +18,14 @@ using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
+
+namespace qoala::helpers {
+    void populateQNetToQoalaHostPatterns(RewritePatternSet &patterns, TypeConverter &typeConverter) {
+//        patterns.add<
+        // TODO - To Implement
+//        >(typeConverter, context);
+    }
+}
 
 namespace qoala::conversion {
     class LowerQMemToQoalaHostPass : public mlir::impl::LowerQMemToQoalaHostBase<LowerQMemToQoalaHostPass> {
@@ -56,10 +64,8 @@ namespace qoala::conversion {
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
         // We don't need a type converter in this stage
-        //QoalaMIRToQoalaLIRTypeConverter typeConverter(&context);
-//        patterns.add<
-        // TODO - To Implement
-//        >(&context);
+        NullTypeConverter typeConverter(&context);
+        populateQNetToQoalaHostPatterns(patterns, typeConverter);
 
         LogicalResult result =
                 mlir::applyPartialConversion(operation, target, std::move(patterns));
