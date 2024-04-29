@@ -21,7 +21,7 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QMem/QMemDialect.td"
-include "Dialect/QMem/QMemInterface.td"
+include "Analysis/Helpers/SimpleCloneInterface.td"
 
 
 class QMem_Op<string mnemonic, list<Trait> traits = []> :

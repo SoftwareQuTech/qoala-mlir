@@ -80,7 +80,7 @@ func::FuncOp qoala::analysis::createNewFunctionWithOperations(
         std::vector<Value> resultValues;
         for (Operation *quantumOp: quantumOps) {
             LLVM_DEBUG(llvm::dbgs() << "original op: " << *quantumOp << "\n");
-            auto castedOldOp = dyn_cast<dialects::qmem::iface::SimpleCloneInterface>(quantumOp);
+            auto castedOldOp = dyn_cast<helpers::SimpleCloneInterface>(quantumOp);
             assert(castedOldOp); // We expect that the cast will succeed
 
             // New operations (including the clone) should be attached to the block of the new function

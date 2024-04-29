@@ -6,5 +6,6 @@ add_mlir_dialect_library(MLIRQMemAnalysisLibs
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QMem
 
         DEPENDS
+        MLIRSimpleCloneInterfaceIncGen
         MLIRQMemPassIncGen
 )

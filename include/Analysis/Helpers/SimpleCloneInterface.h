@@ -1,0 +1,6 @@
+#ifndef QOALA_MLIR_SIMPLECLONEINTERFACE_H
+#define QOALA_MLIR_SIMPLECLONEINTERFACE_H
+
+#include "Analysis/Helpers/SimpleCloneInterface.h.inc"
+
+#endif //QOALA_MLIR_SIMPLECLONEINTERFACE_H

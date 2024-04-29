@@ -14,7 +14,7 @@ using namespace qoala::dialects::qmem;
 #include "Dialect/QMem/QMemTypes.cpp.inc"
 
 // include generated "dispatcher" of the operation interface
-#include "Dialect/QMem/QMemInterfaces.cpp.inc"
+#include "Analysis/Helpers/SimpleCloneInterface.cpp.inc"
 
 
 /* Parse and print functions "ported" from func.func: parse and print */

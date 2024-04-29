@@ -7,7 +7,7 @@ def SimpleCloneInterface : OpInterface<"SimpleCloneInterface"> {
     let description = [{
         Interface for operations that can be cloned in a simple way
     }];
-    let cppNamespace = "::qoala::dialects::qmem::iface";
+    let cppNamespace = "::qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns a clone of this operation
