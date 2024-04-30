@@ -62,12 +62,8 @@ static bool operationIsNotFromQoalaHost(Operation &operation) {
 
 static bool opIsNotFromQoalaHostAllowedDialects(Operation &operation) {
     return !belongsToDialect<
-            arith::ArithDialect,
-            memref::MemRefDialect,
-            cf::ControlFlowDialect,
-            tensor::TensorDialect,
-            affine::AffineDialect,
-            qoalahost::QoalaHostDialect
+#define GET_ALLOWED_DIALECTS
+#include "Dialect/QoalaHost/QoalaHost.h"
             >(operation);
 }
 

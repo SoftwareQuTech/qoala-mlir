@@ -57,11 +57,7 @@ void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
 
 static bool opIsNotFromNetQASMAllowedDialects(Operation &operation) {
     return !belongsToDialect<
-            arith::ArithDialect,
-            memref::MemRefDialect,
-            cf::ControlFlowDialect,
-            tensor::TensorDialect,
-            affine::AffineDialect,
-            netqasm::NetQASMDialect
+#define GET_ALLOWED_DIALECTS
+#include "Dialect/NetQASM/NetQASM.h"
     >(operation);
 }

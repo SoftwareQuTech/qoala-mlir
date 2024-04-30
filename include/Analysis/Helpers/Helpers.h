@@ -13,6 +13,7 @@ using namespace mlir;
 
 namespace qoala::helpers {
 
+    // This templated function is inspired by the implementation of llvm::isa<>()
     /**
      * Determines if the given operations belongs to the template types dialect.
      * @param operation The operation to test.
@@ -24,6 +25,7 @@ namespace qoala::helpers {
         return isa<Dialect>(operationDialect);
     }
 
+    // This templated function is inspired by the implementation of llvm::isa<>()
     /**
      * Determines if the given operations belongs to one of the template types dialects.
      * @param operation The operation to test.
