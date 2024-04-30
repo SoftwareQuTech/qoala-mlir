@@ -20,7 +20,9 @@ using namespace qoala::helpers;
 using namespace qoala::dialects;
 
 namespace qoala::helpers {
-    void populateQNetToNetQASMPatterns(RewritePatternSet &patterns, TypeConverter &typeConverter) {
+    void populateQNetToNetQASMPatterns(
+            MLIRContext &context, RewritePatternSet &patterns,
+            TypeConverter &typeConverter) {
 //        patterns.add<
         // TODO - To Implement
 //        >(typeConverter, context);
@@ -50,7 +52,7 @@ namespace qoala::conversion {
         RewritePatternSet patterns(&context);
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
-        qoala::helpers::populateQNetToNetQASMPatterns(patterns, typeConverter);
+        qoala::helpers::populateQNetToNetQASMPatterns(context, patterns, typeConverter);
 
         LogicalResult result =
                 mlir::applyPartialConversion(operation, target, std::move(patterns));

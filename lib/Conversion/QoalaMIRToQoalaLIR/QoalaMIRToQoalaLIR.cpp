@@ -57,6 +57,8 @@ namespace qoala::conversion {
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
         MLIRContext &context = this->getContext();
         ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
+        assert(operation);
+        LLVM_DEBUG(llvm::dbgs() << "Converting MIR to LIR on module\n");
 
         // Get a conversion target to define our target dialects
         ConversionTarget target(context);
@@ -71,8 +73,8 @@ namespace qoala::conversion {
         RewritePatternSet qMemToQoalaHostPatterns(&context);
         RewritePatternSet qMemToNetQASMPatterns(&context);
         NullTypeConverter typeConverter(&context);
-        populateQNetToQoalaHostPatterns(qMemToQoalaHostPatterns, typeConverter);
-        populateQNetToNetQASMPatterns(qMemToNetQASMPatterns, typeConverter);
+        populateQNetToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
+        populateQNetToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
 
         // Stage 1: Functionize
         qoala::analysis::functionizeModule(operation, qMemOpCanBeFunctionized);

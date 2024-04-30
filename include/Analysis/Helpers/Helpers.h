@@ -12,18 +12,44 @@
 using namespace mlir;
 
 namespace qoala::helpers {
-    bool operationIsNotFromCommonDialects(Operation &);
+    /**
+     * Determines if the given operations belongs to one of the allowed dialects: 'arith',
+     * 'cf', 'memref', 'affine' or 'tensor'.
+     * @param operation
+     * @return
+     */
+    bool operationIsNotFromCommonDialects(Operation &operation);
     std::string getAllowedDialectNames();
 
-    /* Helpers to expose the conversion patterns from QMemToQoalaHost
-     * and from QMemtoNetQASM
+    /* Helper functions  to expose the conversion patterns from QMemToQoalaHost
+     * and QMemtoNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
      * WARNING: The definitions of these functions are in the respective CPP files,
      * so they can be used both in the general MIR to LIR wrapper but also in the
      * passes they belong to.
      */
-    void populateQNetToQoalaHostPatterns(RewritePatternSet &, TypeConverter &);
-    void populateQNetToNetQASMPatterns(RewritePatternSet &, TypeConverter &);
 
+    /**
+     * Adds the QNet to QoalaHost conversions patterns to the given rewrite pattern set.
+     * It also uses the given type converter.
+     * @param context The MLIRContext object.
+     * @param patterns The pattern set object to populate.
+     * @param typeConverter The type converter object used by the rewriter methods.
+     */
+    void populateQNetToQoalaHostPatterns(MLIRContext &context, RewritePatternSet &patterns, TypeConverter &typeConverter);
+
+    /**
+     * Adds the QNet to NetQASM conversions patterns to the given rewrite pattern set.
+     * It also uses the given type converter.
+     * @param context The MLIRContext object.
+     * @param patterns The pattern set object to populate.
+     * @param typeConverter The type converter object used by the rewriter methods.
+     */
+    void populateQNetToNetQASMPatterns(MLIRContext &context, RewritePatternSet &patterns, TypeConverter &typeConverter);
+
+    /**
+     * Simple "null" type converter for dialect conversion passes. This type
+     * converter simply returns the same type for any given type.
+     */
     class NullTypeConverter : public TypeConverter {
     public:
         explicit NullTypeConverter(MLIRContext *ctx);

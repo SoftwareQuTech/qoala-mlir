@@ -5,6 +5,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LLVM.h"
 #include "Analysis/QMem/Functionize.h"
+#include "llvm/Support/Debug.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
@@ -14,6 +15,8 @@ namespace mlir {
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
+
+#define DEBUG_TYPE "functionize"
 
 namespace qoala::analysis {
     class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
@@ -51,6 +54,7 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
 void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     assert(module); // We expect the cast to succeed
+    LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
     functionizeModule(module, qMemOpCanBeFunctionized);
 }
 

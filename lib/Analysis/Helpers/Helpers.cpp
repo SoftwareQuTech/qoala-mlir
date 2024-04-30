@@ -43,6 +43,7 @@ std::string qoala::helpers::getAllowedDialectNames() {
 
 
 /* Implementation of the null types converter */
-NullTypeConverter::NullTypeConverter(MLIRContext *ctx) {
-    //We don't do anything here
+qoala::helpers::NullTypeConverter::NullTypeConverter(MLIRContext *ctx) {
+    // For all types, we map it to the same instance
+    this->addConversion([](Type type) { return type; });
 }

@@ -20,7 +20,8 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
     let constructor = "::mlir::createQoalaMIRToQoalaLIRPass()";
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
-    let dependentDialects = ["::qoala::dialects::qmem::QMemDialect",
+    let dependentDialects = ["::mlir::func::FuncDialect",
+                             "::qoala::dialects::qmem::QMemDialect",
                              "::qoala::dialects::qoalahost::QoalaHostDialect",
                              "::qoala::dialects::netqasm::NetQASMDialect"];
 }
