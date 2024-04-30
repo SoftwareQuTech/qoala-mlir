@@ -12,13 +12,28 @@
 using namespace mlir;
 
 namespace qoala::helpers {
+
     /**
-     * Determines if the given operations belongs to one of the allowed dialects: 'arith',
-     * 'cf', 'memref', 'affine' or 'tensor'.
-     * @param operation
-     * @return
+     * Determines if the given operations belongs to the template types dialect.
+     * @param operation The operation to test.
+     * @return `true` if the operation belongs to the templated dialect type. `false` otherwise.
      */
-    bool operationIsNotFromCommonDialects(Operation &operation);
+    template<typename Dialect>
+    bool belongsToDialect(Operation &operation) {
+        mlir::Dialect *operationDialect = operation.getDialect();
+        return isa<Dialect>(operationDialect);
+    }
+
+    /**
+     * Determines if the given operations belongs to one of the template types dialects.
+     * @param operation The operation to test.
+     * @return `true` if the operation belongs to one of the templated dialect types. `false` otherwise.
+     */
+    template<typename DialectOne, typename DialectTwo, typename... RestDialects>
+    bool belongsToDialect(Operation &operation) {
+        mlir::Dialect *operationDialect = operation.getDialect();
+        return isa<DialectOne>(operationDialect) || belongsToDialect<DialectTwo, RestDialects...>(operation);
+    }
     std::string getAllowedDialectNames();
 
     /* Helper functions  to expose the conversion patterns from QMemToQoalaHost

@@ -10,7 +10,7 @@ using namespace qoala::helpers;
 // This is the declaration of function that is implemented below
 // This declaration is needed here, so the automatically generated verifiers
 // from "NetQASM.cpp.inc" can find the declaration.
-bool operationIsNotFromNetQASM(Operation &operation);
+static bool opIsNotFromNetQASMAllowedDialects(Operation &operation);
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 // include generated source code for operations
@@ -55,9 +55,13 @@ void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-bool operationIsNotFromNetQASM(Operation &operation) {
-    return ! (isa<
-#define GET_OP_LIST
-#include "Dialect/NetQASM/NetQASM.cpp.inc"
-    >(operation));
+static bool opIsNotFromNetQASMAllowedDialects(Operation &operation) {
+    return !belongsToDialect<
+            arith::ArithDialect,
+            memref::MemRefDialect,
+            cf::ControlFlowDialect,
+            tensor::TensorDialect,
+            affine::AffineDialect,
+            netqasm::NetQASMDialect
+    >(operation);
 }

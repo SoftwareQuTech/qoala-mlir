@@ -29,4 +29,6 @@ using namespace mlir;
 #define GET_OP_CLASSES
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
 
+#include "Dialect/QoalaHost/QoalaHostDialect.h"
+
 #endif // QOALAHOST_H

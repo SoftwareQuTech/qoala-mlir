@@ -33,4 +33,6 @@ using namespace mlir;
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.h.inc"
 
+#include "Dialect/NetQASM/NetQASMDialect.h"
+
 #endif // NETQASM_H

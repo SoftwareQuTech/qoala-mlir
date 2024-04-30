@@ -60,9 +60,21 @@ static bool operationIsNotFromQoalaHost(Operation &operation) {
               >(operation));
 }
 
+static bool opIsNotFromQoalaHostAllowedDialects(Operation &operation) {
+    return !belongsToDialect<
+            arith::ArithDialect,
+            memref::MemRefDialect,
+            cf::ControlFlowDialect,
+            tensor::TensorDialect,
+            affine::AffineDialect,
+            qoalahost::QoalaHostDialect
+            >(operation);
+}
+
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
-        if (operationIsNotFromCommonDialects(operation) && operationIsNotFromQoalaHost(operation)) {
+        auto name = operation.getName().getStringRef().str();
+        if (opIsNotFromQoalaHostAllowedDialects(operation)) {
             return this->emitError() << "'" << getOperationName() << "' "
                                      << "op contains an operation that is not from " << getAllowedDialectNames()
                                      << "or 'qoalahost' dialects: '" << operation << "'";
