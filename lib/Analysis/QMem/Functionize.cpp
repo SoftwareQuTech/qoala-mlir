@@ -99,6 +99,7 @@ func::FuncOp qoala::analysis::createNewFunctionWithOperations(
         // Create the "return" for the new operation
         auto returnOp = opBuilder->create<func::ReturnOp>(newFunc.getLoc(), resultValues);
         LLVM_DEBUG(llvm::dbgs() << "New Function: " << newFunc << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "Return op: " << returnOp << "\n");
         LLVM_DEBUG(llvm::dbgs() << "************************\n");
     }
     return newFunc;

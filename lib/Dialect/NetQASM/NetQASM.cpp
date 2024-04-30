@@ -7,11 +7,6 @@
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 
-// This is the declaration of function that is implemented below
-// This declaration is needed here, so the automatically generated verifiers
-// from "NetQASM.cpp.inc" can find the declaration.
-static bool opIsNotFromNetQASMAllowedDialects(Operation &operation);
-
 #include "Dialect/QoalaHost/QoalaHost.h"
 // include generated source code for operations
 #define GET_OP_CLASSES
@@ -55,9 +50,17 @@ void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-static bool opIsNotFromNetQASMAllowedDialects(Operation &operation) {
+/* Helper functions from the NetQASMDialect class */
+bool netqasm::NetQASMDialect::opIsNotFromAllowedDialects(Operation &operation) {
     return !belongsToDialect<
 #define GET_ALLOWED_DIALECTS
 #include "Dialect/NetQASM/NetQASM.h"
     >(operation);
+}
+
+std::string netqasm::NetQASMDialect::getAllowedDialectNames() {
+    return getDialectNamesList<
+#define GET_ALLOWED_DIALECTS
+#include "Dialect/NetQASM/NetQASM.h"
+    >();
 }
