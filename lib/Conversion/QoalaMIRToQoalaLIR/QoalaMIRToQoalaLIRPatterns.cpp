@@ -45,12 +45,36 @@ namespace qoala::conversion::mir {
         return rewriter.create<qoalahost::CallOp>(op.getLoc(), adaptor.getCallee(), op->getResultTypes(), op.getOperands());
     }
 
+    qoalahost::RecvIntsOp
+    RecvIntsOpLowering::createNewOp(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
+                                    ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        return rewriter.create<qoalahost::RecvIntsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+    }
+
+    qoalahost::RecvFloatsOp
+    RecvFloatsOpLowering::createNewOp(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
+                                      ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        return rewriter.create<qoalahost::RecvFloatsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+    }
+
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    netqasm::MeasureOp
+    MeasureOpLowering::createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
+                                   ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(op.getQ().getType());
+        auto newOp = rewriter.create<netqasm::MeasureOp>(op.getLoc(), convertedType, adaptor.getQ());
+        rewriter.replaceAllUsesWith(op.getResult(), newOp.getResult());
+        return newOp;
+    }
+
     netqasm::EprsOp
     EprsOpLowering::createNewOp(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
                                 ConversionPatternRewriter &rewriter) const {
         return rewriter.create<netqasm::EprsOp>(op.getLoc(), adaptor.getQ(), adaptor.getRemoteAttr());
     }
+
     netqasm::EprsMeasureOp
     EprsMeasureOpLowering::createNewOp(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const {
@@ -120,14 +144,6 @@ namespace qoala::conversion::mir {
         return rewriter.create<netqasm::RotateZOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
-    }
-
-    netqasm::MeasureOp
-    MeasureLowering::createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
-                                 ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
-        Type outcomeType = this->typeConverter->convertType(adaptor.getQ().getType());
-        return rewriter.create<netqasm::MeasureOp>(op.getLoc(), outcomeType, adaptor.getQ());
     }
 
     netqasm::HadamardOp

@@ -31,7 +31,9 @@ namespace qoala::helpers {
                 mir::RemoteOpLowering,
                 mir::FuncOpLowering,
                 mir::ReturnOpLowering,
-                mir::CallOpLowering
+                mir::CallOpLowering,
+                mir::RecvIntsOpLowering,
+                mir::RecvFloatsOpLowering
         >(typeConverter, &context);
     }
 }

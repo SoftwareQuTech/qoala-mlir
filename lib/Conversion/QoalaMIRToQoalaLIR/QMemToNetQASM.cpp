@@ -28,6 +28,7 @@ namespace qoala::helpers {
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
         patterns.add<
+                mir::MeasureOpLowering,
                 mir::EprsOpLowering,
                 mir::EprsMeasureOpLowering,
                 mir::NetQASMReturnOpLowering,
@@ -36,7 +37,6 @@ namespace qoala::helpers {
                 mir::RotateXLowering,
                 mir::RotateYLowering,
                 mir::RotateZLowering,
-                mir::MeasureLowering,
                 mir::HadamardLowering,
                 mir::CNotLowering,
                 mir::CzLowering,

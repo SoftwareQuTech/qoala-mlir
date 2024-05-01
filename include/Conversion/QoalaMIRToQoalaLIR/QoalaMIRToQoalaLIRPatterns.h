@@ -41,8 +41,26 @@ namespace qoala::conversion::mir {
         qoalahost::CallOp createNewOp(func::CallOp op, func::CallOp::Adaptor adaptor,
                                       ConversionPatternRewriter &rewriter) const override;
     };
+    class RecvIntsOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::RecvIntsOp, qoalahost::RecvIntsOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::RecvIntsOp createNewOp(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const override;
+    };
+    class RecvFloatsOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::RecvFloatsOp, qoalahost::RecvFloatsOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::RecvFloatsOp createNewOp(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const override;
+    };
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    class MeasureOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::MeasureOp, netqasm::MeasureOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        netqasm::MeasureOp createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
     class EprsOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::EprsOp, netqasm::EprsOp> {
     public:
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
@@ -101,14 +119,6 @@ namespace qoala::conversion::mir {
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
 
         netqasm::RotateZOp createNewOp(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const override;
-    };
-    class MeasureLowering : public SimpleOneToToOneLoweringTemplate<qmem::MeasureOp, netqasm::MeasureOp> {
-    public:
-        // Constructor simply matches the super class
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-
-        netqasm::MeasureOp createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const override;
     };
     class HadamardLowering : public SimpleOneToToOneLoweringTemplate<qmem::HadamardOp, netqasm::HadamardOp> {
