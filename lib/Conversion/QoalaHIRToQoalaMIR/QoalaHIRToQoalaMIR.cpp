@@ -3,7 +3,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
