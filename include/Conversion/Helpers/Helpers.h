@@ -1,7 +1,6 @@
 #ifndef QOALA_MLIR_HELPERS_H
 #define QOALA_MLIR_HELPERS_H
 
-#include "mlir/IR/Operation.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
@@ -108,28 +107,28 @@ namespace qoala::helpers {
         }
     };
 
+    namespace angle {
+        std::string angleConversionFunctionName("__qoala_convert_float_angle");
+
+        bool moduleContainsAngleConversionDeclaration(ModuleOp &module);
+        Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module);
+    } // namespace qoala::helpers::angle
+
     namespace print {
         /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
-        void printOperation(Operation *op);
-
-        void printRegion(Region &region);
-
-        void printBlock(Block &block);
-
         struct IdentRAII {
             int &indent;
-
             IdentRAII(int &indent) : indent(indent) {}
-
             ~IdentRAII() { --indent; }
         };
-
+        void printOperation(Operation *op);
+        void printRegion(Region &region);
+        void printBlock(Block &block);
         void resetIndent();
-
         IdentRAII pushIndent();
 
         llvm::raw_ostream &printIndent();
-    } //namespace qoala::helpers::print
+    } // namespace qoala::helpers::print
 } // namespace qoala::helpers
 
 #endif // QOALA_MLIR_HELPERS_H
