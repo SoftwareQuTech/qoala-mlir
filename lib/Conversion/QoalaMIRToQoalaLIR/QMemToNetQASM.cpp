@@ -7,6 +7,7 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_LOWERQMEMTONETQASM
@@ -19,15 +20,25 @@ using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
+using namespace qoala::conversion;
 using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
     void populateQMemToNetQASMPatterns(
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
-//        patterns.add<
-        // TODO - To Implement
-//        >(typeConverter, context);
+        patterns.add<
+                mir::QAllocLowering,
+                mir::QInitLowering,
+                mir::RotateXLowering,
+                mir::RotateYLowering,
+                mir::RotateZLowering,
+                mir::MeasureLowering,
+                mir::HadamardLowering,
+                mir::CNotLowering,
+                mir::CzLowering,
+                mir::CRotXLowering
+        >(typeConverter, &context);
     }
 }
 

@@ -72,8 +72,7 @@ namespace qoala::conversion {
         //>();
 
         // We add the conversion pattern to the context
-        RewritePatternSet qMemToQoalaHostPatterns(&context);
-        RewritePatternSet qMemToNetQASMPatterns(&context);
+        RewritePatternSet allPatterns(&context);
         NullTypeConverter typeConverter(&context);
         populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
         populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
@@ -82,21 +81,13 @@ namespace qoala::conversion {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-
         // Stage 1: Functionize
         qoala::analysis::functionizeModule(module, qMemOpCanBeFunctionized);
 
-        // Stage 2: Apply the QMemToQoalaHost conversion patterns
+        // Stage 2: Apply the QMemtoNetQASM and QMemToQoalaHost conversion patterns
         LogicalResult qMemToQoalaHostResult =
-            mlir::applyPartialConversion(module, target, std::move(qMemToQoalaHostPatterns));
+            mlir::applyPartialConversion(module, target, std::move(allPatterns));
         if (mlir::failed(qMemToQoalaHostResult)) {
-            signalPassFailure();
-        }
-
-        // Stage 3: Apply the QMemToNetQASM conversion patterns
-        LogicalResult qMemToNetQASMResult =
-                mlir::applyPartialConversion(module, target, std::move(qMemToNetQASMPatterns));
-        if (mlir::failed(qMemToNetQASMResult)) {
             signalPassFailure();
         }
     }
