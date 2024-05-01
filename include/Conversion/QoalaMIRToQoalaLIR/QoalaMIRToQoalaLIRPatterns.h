@@ -1,116 +1,86 @@
 #ifndef QMEM_TO_QOALAHOST_PATTERNS
 #define QMEM_TO_QOALAHOST_PATTERNS
+#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Dialect/QMem/QMem.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "Dialect/NetQASM/NetQASM.h"
 
 using namespace qoala::dialects;
+using namespace qoala::helpers;
 
-namespace qoala::conversion {
-    class QoalaMIRToQoalaLIRTypeConverter : public TypeConverter {
-      public:
-        explicit QoalaMIRToQoalaLIRTypeConverter(MLIRContext *ctx);
-    };
+namespace qoala::conversion::mir {
 
-    /**
-     * Simple class template used to convert an operation of class SourceOp to
-     * another one of class DestOp *in a one-to-one manner*.
-     * @tparam SourceOp The source class of the source dialect to convert from
-     * @tparam DestOp The destination class of the target dialect to covert to
-     */
-    template <typename SourceOp, typename DestOp>
-    class SimpleOneToToOneLoweringTemplate : public OpConversionPattern<SourceOp> {
-      public:
-        // Constructor simply matches the super class
-        using OpConversionPattern<SourceOp>::OpConversionPattern;
+    func::CallOp insertCallAngleTransform(Operation *operation,
+                                          ConversionPatternRewriter &rewriter,
+                                          Value angle);
 
-        /**
-         * Defines how to create an Operation on the destination dialect, using
-         * the data offered by the adaptor class of the source operation.
-         * Implementors of this signature are *highly* encouraged to use the
-         * `create` methods of the rewriter object to create instances of the
-         * operation on the target dialect. When using these methods, please be
-         * mindful that you need to "match" one of the target operations' class
-         * `build` methods with the arguments passed to the create:
-         * rewriter.create<DestOp>(op.getLoc(), <args_to_match_a_build_signature>...)
-         * In this sense, you might want to use the getters of the adaptor class
-         * to get the data (and types) to match any of the generated builders of the
-         * target operand class.
-         * IMPORTANT: The returned operation *MUST* yield the same number of values
-         * than the operation to replaced. If this is not the case, this class is not
-         * suitable for the purpose.
-         * @param op The operation on the source dialect to be replaced
-         * @param adaptor The adaptor of th source operation to get data from
-         * @param rewriter The rewriter object to easily create new operations on the
-         *                 target dialect
-         * @return An operation on the destination dialect
-         */
-        virtual DestOp createNewOp(SourceOp op, SourceOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const = 0;
-
-        LogicalResult
-        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        ConversionPatternRewriter &rewriter) const override {
-            auto newOp = createNewOp(op, adaptor, rewriter);
-            // We use the "replace op for op" method; This method check that the old and the new ops
-            // yield the same number of SSA results
-            rewriter.replaceOp(op, newOp);
-            return success();
-        }
-    };
-
-    /**
-     * Class template used to convert an operation of class SourceOp to
-     * another one of class DestOp, *where `DestOp` produces a different number
-     * of values than `SourceOp`*.
-     * @tparam SourceOp The source class of the source dialect to convert from
-     * @tparam DestOp The destination class of the target dialect to covert to
-     */
-    template <typename SourceOp, typename DestOp>
-    class DifferentValuesLoweringTemplate : public OpConversionPattern<SourceOp> {
+    /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
+    class RotateXLowering : public SimpleOneToToOneLoweringTemplate<qmem::RotateXOp, netqasm::RotateXOp> {
     public:
-        struct NewOpAndValues {
-            DestOp newOp;
-            ValueRange values;
-        };
         // Constructor simply matches the super class
-        using OpConversionPattern<SourceOp>::OpConversionPattern;
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
 
-        /**
-         * Defines how to create an Operation on the destination dialect, using
-         * the data offered by the adaptor class of the source operation.
-         * Implementors of this signature are *highly* encouraged to use the
-         * `create` methods of the rewriter object to create instances of the
-         * operation on the target dialect. When using these methods, please be
-         * mindful that you need to "match" one of the target operations' class
-         * `build` methods with the arguments passed to the create:
-         * rewriter.create<DestOp>(op.getLoc(), <args_to_match_a_build_signature>...)
-         * In this sense, you might want to use the getters of the adaptor class
-         * to get the data (and types) to match any of the generated builders of the
-         * target operand class.
-         * IMPORTANT: The returned operation *MUST* yield the same number of values
-         * than the operation to replaced. If this is not the case, this class is not
-         * suitable for the purpose.
-         * @param op The operation on the source dialect to be replaced
-         * @param adaptor The adaptor of th source operation to get data from
-         * @param rewriter The rewriter object to easily create new operations on the
-         *                 target dialect
-         * @return An operation on the destination dialect
-         */
-        virtual NewOpAndValues createNewOpAndValues(SourceOp op, SourceOp::Adaptor adaptor,
-                                                    ConversionPatternRewriter &rewriter) const = 0;
-
-        LogicalResult
-        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        ConversionPatternRewriter &rewriter) const override {
-            NewOpAndValues newOp = createNewOpAndValues(op, adaptor, rewriter);
-            // We use the "replace op for values" method; This method check that the old op
-            // yield the same number of SSA results as the given values
-            rewriter.replaceOp(op, newOp.values);
-            return success();
-        }
+        netqasm::RotateXOp createNewOp(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
     };
+    class RotateYLowering : public SimpleOneToToOneLoweringTemplate<qmem::RotateYOp, netqasm::RotateYOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
 
-} // namespace qoala::conversion
+        netqasm::RotateYOp createNewOp(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateZLowering : public SimpleOneToToOneLoweringTemplate<qmem::RotateZOp, netqasm::RotateZOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::RotateZOp createNewOp(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
+    class MeasureLowering : public SimpleOneToToOneLoweringTemplate<qmem::MeasureOp, netqasm::MeasureOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::MeasureOp createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const override;
+    };
+    class HadamardLowering : public SimpleOneToToOneLoweringTemplate<qmem::HadamardOp, netqasm::HadamardOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::HadamardOp createNewOp(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class CNotLowering : public SimpleOneToToOneLoweringTemplate<qmem::CnotOp, netqasm::CnotOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::CnotOp createNewOp(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
+                                    ConversionPatternRewriter &rewriter) const override;
+    };
+    class CzLowering : public SimpleOneToToOneLoweringTemplate<qmem::CzOp, netqasm::CzOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::CzOp createNewOp(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
+                                  ConversionPatternRewriter &rewriter) const override;
+    };
+    class CRotXLowering : public SimpleOneToToOneLoweringTemplate<qmem::CrotXOp, netqasm::CrotXOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::CrotXOp createNewOp(qmem::CrotXOp op, qmem::CrotXOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const override;
+    };
+} // namespace qoala::conversion::mir
 
 #endif // QMEM_TO_QOALAHOST_PATTERNS
