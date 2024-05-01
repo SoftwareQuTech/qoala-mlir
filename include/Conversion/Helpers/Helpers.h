@@ -108,7 +108,7 @@ namespace qoala::helpers {
     };
 
     namespace angle {
-        std::string angleConversionFunctionName("__qoala_convert_float_angle");
+        extern std::string angleConversionFunctionName;
 
         bool moduleContainsAngleConversionDeclaration(ModuleOp &module);
         Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module);

@@ -3,6 +3,9 @@
 
 
 namespace qoala::helpers::angle {
+
+    std::string angleConversionFunctionName("__qoala_convert_float_angle");
+
     bool moduleContainsAngleConversionDeclaration(ModuleOp &module) {
         auto functionDeclaration = module.lookupSymbol<func::FuncOp>(angleConversionFunctionName);
         return functionDeclaration;
