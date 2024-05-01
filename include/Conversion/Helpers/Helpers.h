@@ -108,20 +108,28 @@ namespace qoala::helpers {
         }
     };
 
-    /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
-    void printOperation(Operation *op);
-    void printRegion(Region &region);
-    void printBlock(Block &block);
+    namespace print {
+        /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
+        void printOperation(Operation *op);
 
-    struct IdentRAII {
-        int &indent;
-        IdentRAII(int &indent) : indent(indent) {}
-        ~IdentRAII() { --indent; }
-    };
+        void printRegion(Region &region);
 
-    void resetIndent();
-    IdentRAII pushIndent();
-    llvm::raw_ostream &printIndent();
+        void printBlock(Block &block);
+
+        struct IdentRAII {
+            int &indent;
+
+            IdentRAII(int &indent) : indent(indent) {}
+
+            ~IdentRAII() { --indent; }
+        };
+
+        void resetIndent();
+
+        IdentRAII pushIndent();
+
+        llvm::raw_ostream &printIndent();
+    } //namespace qoala::helpers::print
 } // namespace qoala::helpers
 
 #endif // QOALA_MLIR_HELPERS_H

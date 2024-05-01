@@ -1,6 +1,6 @@
 add_library(QoalaConversionHelpers
         STATIC
-        Helpers.cpp
+        PrintHelpers.cpp
 )
 
 target_include_directories(QoalaConversionHelpers
