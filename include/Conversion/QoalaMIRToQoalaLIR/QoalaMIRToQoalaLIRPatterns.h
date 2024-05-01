@@ -43,6 +43,18 @@ namespace qoala::conversion::mir {
     };
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    class EprsOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::EprsOp, netqasm::EprsOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        netqasm::EprsOp createNewOp(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
+                                    ConversionPatternRewriter &rewriter) const override;
+    };
+    class EprsMeasureOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::EprsMeasureOp, netqasm::EprsMeasureOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        netqasm::EprsMeasureOp createNewOp(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const override;
+    };
     class NetQASMReturnOpLowering : public SimpleOneToToOneLoweringTemplate<func::ReturnOp, netqasm::ReturnOp> {
     public:
         // Constructor simply matches the super class

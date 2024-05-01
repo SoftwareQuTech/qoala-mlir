@@ -46,6 +46,19 @@ namespace qoala::conversion::mir {
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    netqasm::EprsOp
+    EprsOpLowering::createNewOp(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<netqasm::EprsOp>(op.getLoc(), adaptor.getQ(), adaptor.getRemoteAttr());
+    }
+    netqasm::EprsMeasureOp
+    EprsMeasureOpLowering::createNewOp(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(adaptor.getQ().getType());
+        return rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), convertedType,
+                                                       adaptor.getQ(), adaptor.getRemoteAttr());
+    }
+
     netqasm::ReturnOp
     NetQASMReturnOpLowering::createNewOp(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
