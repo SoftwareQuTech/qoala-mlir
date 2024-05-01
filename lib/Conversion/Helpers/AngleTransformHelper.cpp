@@ -16,7 +16,14 @@ namespace qoala::helpers::angle {
         FunctionType functionType = builder.getFunctionType(
                 builder.getF32Type(),
                 {builder.getI32Type(), builder.getI32Type()});
-        auto funcDeclaration = builder.create<func::FuncOp>(module->getLoc(), StringRef{angleConversionFunctionName}, functionType);
+        auto funcDeclaration = builder.create<func::FuncOp>(
+                module->getLoc(),
+                StringRef{angleConversionFunctionName},
+                functionType);
+        // We set an attribute on the function, so we can recognize it later
+        Attribute attr = builder.getStringAttr("true");
+        funcDeclaration->setAttr("qoala-builtin", attr);
+        // Function declarations must have the private visibility
         funcDeclaration.setVisibility(func::FuncOp::Visibility::Private);
         return funcDeclaration;
     }
