@@ -10,7 +10,7 @@ namespace qoala::conversion::mir {
         return rewriter.create<func::CallOp>(operation->getLoc(), angleConversionFunction, angle);
     }
 
-    /* Lowering for operations that belong in the module */
+    /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
     qoalahost::RemoteOp
     RemoteOpLowering::createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const {
@@ -39,7 +39,19 @@ namespace qoala::conversion::mir {
         return rewriter.create<qoalahost::ReturnOp>(op.getLoc(), adaptor.getOperands());
     }
 
-    /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
+    qoalahost::CallOp
+    CallOpLowering::createNewOp(func::CallOp op, func::CallOp::Adaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<qoalahost::CallOp>(op.getLoc(), adaptor.getCallee(), op->getResultTypes(), op.getOperands());
+    }
+
+    /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    netqasm::ReturnOp
+    NetQASMReturnOpLowering::createNewOp(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
+                                         ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<netqasm::ReturnOp>(op.getLoc(), adaptor.getOperands());
+    }
+
     netqasm::QAllocOp
     QAllocLowering::createNewOp(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
                                 ConversionPatternRewriter &rewriter) const {

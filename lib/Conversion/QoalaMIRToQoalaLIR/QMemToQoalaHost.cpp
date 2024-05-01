@@ -30,7 +30,8 @@ namespace qoala::helpers {
         patterns.add<
                 mir::RemoteOpLowering,
                 mir::FuncOpLowering,
-                mir::ReturnOpLowering
+                mir::ReturnOpLowering,
+                mir::CallOpLowering
         >(typeConverter, &context);
     }
 }

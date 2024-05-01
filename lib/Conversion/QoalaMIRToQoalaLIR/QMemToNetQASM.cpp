@@ -28,6 +28,7 @@ namespace qoala::helpers {
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
         patterns.add<
+                mir::NetQASMReturnOpLowering,
                 mir::QAllocLowering,
                 mir::QInitLowering,
                 mir::RotateXLowering,

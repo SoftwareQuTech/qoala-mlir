@@ -16,7 +16,13 @@ namespace qoala::conversion::mir {
                                           ConversionPatternRewriter &rewriter,
                                           Value angle);
 
-    /* Lowering for operations that belong in the module */
+    /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
+    class RemoteOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::RemoteOp createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
     class FuncOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::FuncOp, qoalahost::MainFuncOp> {
     public:
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
@@ -29,14 +35,22 @@ namespace qoala::conversion::mir {
         qoalahost::ReturnOp createNewOp(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
-    class RemoteOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {
+    class CallOpLowering : public SimpleOneToToOneLoweringTemplate<func::CallOp, qoalahost::CallOp> {
     public:
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qoalahost::RemoteOp createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const override;
+        qoalahost::CallOp createNewOp(func::CallOp op, func::CallOp::Adaptor adaptor,
+                                      ConversionPatternRewriter &rewriter) const override;
     };
 
-    /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
+    /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
+    class NetQASMReturnOpLowering : public SimpleOneToToOneLoweringTemplate<func::ReturnOp, netqasm::ReturnOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::ReturnOp createNewOp(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
+                                      ConversionPatternRewriter &rewriter) const override;
+    };
     class QAllocLowering : public SimpleOneToToOneLoweringTemplate<qmem::QAllocOp, netqasm::QAllocOp> {
     public:
         // Constructor simply matches the super class

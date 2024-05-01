@@ -65,6 +65,7 @@ namespace qoala::conversion {
         // Get a conversion target to define our target dialects
         ConversionTarget target(context);
         target.addLegalDialect<qoalahost::QoalaHostDialect>();
+        target.addLegalDialect<netqasm::NetQASMDialect>();
         target.addIllegalDialect<qmem::QMemDialect>();
         // There are NO legal options in QMem dialect after this pass
         //target.addLegalOp<
