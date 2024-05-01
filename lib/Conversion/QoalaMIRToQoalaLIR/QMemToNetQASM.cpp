@@ -5,6 +5,7 @@
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 namespace mlir {
@@ -18,6 +19,7 @@ using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
+using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
     void populateQMemToNetQASMPatterns(
@@ -36,7 +38,9 @@ namespace qoala::conversion {
 
     void LowerQMemToNetQASMPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
+        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
+        assert(module);
+        LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
 
         ConversionTarget target(context);
         target.addLegalDialect<netqasm::NetQASMDialect>();
@@ -54,8 +58,12 @@ namespace qoala::conversion {
         NullTypeConverter typeConverter(&context);
         qoala::helpers::populateQMemToNetQASMPatterns(context, patterns, typeConverter);
 
+        if (!moduleContainsAngleConversionDeclaration(module)) {
+            insertAngleConversionFunctionDeclaration(module);
+        }
+
         LogicalResult result =
-                mlir::applyPartialConversion(operation, target, std::move(patterns));
+                mlir::applyPartialConversion(module, target, std::move(patterns));
         if (mlir::failed(result)) {
             signalPassFailure();
         }
