@@ -1,4 +1,5 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "llvm/Support/Debug.h"
 
 namespace qoala::conversion::mir {
     func::CallOp insertCallAngleTransform(Operation *operation, ConversionPatternRewriter &rewriter, Value angle) {
@@ -39,6 +40,21 @@ namespace qoala::conversion::mir {
     }
 
     /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
+    netqasm::QAllocOp
+    QAllocLowering::createNewOp(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const {
+        auto newAlloc = rewriter.create<netqasm::QAllocOp>(op.getLoc());
+        rewriter.replaceAllUsesWith(op.getResult(), newAlloc.getResult());
+        return newAlloc;
+    }
+
+    netqasm::QInitOp
+    QInitLowering::createNewOp(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
+                               ConversionPatternRewriter &rewriter) const {
+        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
+        return rewriter.create<netqasm::QInitOp>(op.getLoc(), adaptor.getQ());
+    }
+
     netqasm::RotateXOp
     RotateXLowering::createNewOp(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
                                  ConversionPatternRewriter &rewriter) const {

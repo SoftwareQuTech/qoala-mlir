@@ -1,5 +1,5 @@
-#ifndef QMEM_TO_QOALAHOST_PATTERNS
-#define QMEM_TO_QOALAHOST_PATTERNS
+#ifndef QOALAMIR_TO_QOALALIR_PATTERNS
+#define QOALAMIR_TO_QOALALIR_PATTERNS
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Conversion/Helpers/Helpers.h"
@@ -29,7 +29,6 @@ namespace qoala::conversion::mir {
         qoalahost::ReturnOp createNewOp(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
-
     class RemoteOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {
     public:
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
@@ -38,6 +37,22 @@ namespace qoala::conversion::mir {
     };
 
     /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
+    class QAllocLowering : public SimpleOneToToOneLoweringTemplate<qmem::QAllocOp, netqasm::QAllocOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::QAllocOp createNewOp(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
+                                      ConversionPatternRewriter &rewriter) const override;
+    };
+    class QInitLowering : public SimpleOneToToOneLoweringTemplate<qmem::InitOp, netqasm::QInitOp> {
+    public:
+        // Constructor simply matches the super class
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+
+        netqasm::QInitOp createNewOp(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const override;
+    };
     class RotateXLowering : public SimpleOneToToOneLoweringTemplate<qmem::RotateXOp, netqasm::RotateXOp> {
     public:
         // Constructor simply matches the super class
@@ -104,4 +119,4 @@ namespace qoala::conversion::mir {
     };
 } // namespace qoala::conversion::mir
 
-#endif // QMEM_TO_QOALAHOST_PATTERNS
+#endif // QOALAMIR_TO_QOALALIR_PATTERNS

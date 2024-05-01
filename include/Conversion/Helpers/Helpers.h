@@ -48,9 +48,11 @@ namespace qoala::helpers {
         matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
                         ConversionPatternRewriter &rewriter) const override {
             auto newOp = createNewOp(op, adaptor, rewriter);
-            // We use the "replace op for op" method; This method check that the old and the new ops
-            // yield the same number of SSA results
-            rewriter.replaceOp(op, newOp);
+            // We use the "replace op for op" method; ONLY if the creation managed to create the replacement oop,
+            // This `replaceOp` method check that the old and the new ops yield the same number of SSA results
+            if (newOp != nullptr) {
+                rewriter.replaceOp(op, newOp);
+            }
             return success();
         }
     };
