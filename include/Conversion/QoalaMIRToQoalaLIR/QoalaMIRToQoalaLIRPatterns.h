@@ -17,11 +17,17 @@ namespace qoala::conversion::mir {
                                           Value angle);
 
     /* Lowering for operations that belong in the module */
-    class FuncOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::FuncOp, qoalahost::MainFuncOp> {
+    class FuncOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::FuncOp, qoalahost::MainFuncOp> {
     public:
         using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
         qoalahost::MainFuncOp createNewOp(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const override;
+    };
+    class ReturnOpLowering : public SimpleOneToToOneLoweringTemplate<qmem::ReturnOp, qoalahost::ReturnOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::ReturnOp createNewOp(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
     };
 
     class RemoteOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {

@@ -32,6 +32,12 @@ namespace qoala::conversion::mir {
                 adaptor.getResAttrsAttr());
     }
 
+    qoalahost::ReturnOp
+    ReturnOpLowering::createNewOp(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
+                                  ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<qoalahost::ReturnOp>(op.getLoc(), adaptor.getOperands());
+    }
+
     /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
     netqasm::RotateXOp
     RotateXLowering::createNewOp(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
