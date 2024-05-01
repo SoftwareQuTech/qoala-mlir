@@ -8,7 +8,7 @@
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 
-namespace qoala::conversion {
+namespace qoala::conversion::hir {
     class QoalaHIRToQoalaMIRTypeConverter : public TypeConverter {
       public:
         explicit QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx);
@@ -156,6 +156,6 @@ namespace qoala::conversion {
                                             ConversionPatternRewriter &rewriter) const override;
     };
 
-} // namespace qoala::conversion
+} // namespace qoala::conversion::hir
 
 #endif // QNET_TO_QMEM_PATTERNS

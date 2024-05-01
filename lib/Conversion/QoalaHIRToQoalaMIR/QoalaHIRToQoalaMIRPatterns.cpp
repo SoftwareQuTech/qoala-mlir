@@ -1,7 +1,7 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
-namespace qoala::conversion {
+namespace qoala::conversion::hir {
     /* Implementation of the qoala types converter */
     QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
@@ -237,4 +237,4 @@ namespace qoala::conversion {
         Type outType = typeConverter->convertType(op.getCout().getType());
         return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
     }
-} // namespace qoala::conversion
+} // namespace qoala::conversion::hir
