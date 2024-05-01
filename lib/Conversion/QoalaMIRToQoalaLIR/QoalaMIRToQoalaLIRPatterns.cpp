@@ -9,6 +9,30 @@ namespace qoala::conversion::mir {
         return rewriter.create<func::CallOp>(operation->getLoc(), angleConversionFunction, angle);
     }
 
+    /* Lowering for operations that belong in the module */
+    qoalahost::RemoteOp
+    RemoteOpLowering::createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
+                                  ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<qoalahost::RemoteOp>(
+                op.getLoc(),
+                adaptor.getSymNameAttr(),
+                adaptor.getSymVisibilityAttr());
+    }
+
+
+    qoalahost::MainFuncOp
+    FuncOpLowering::createNewOp(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const {
+        return rewriter.create<qoalahost::MainFuncOp>(
+                op.getLoc(),
+                adaptor.getSymName(),
+                adaptor.getFunctionType(),
+                adaptor.getSymVisibilityAttr(),
+                adaptor.getArgAttrsAttr(),
+                adaptor.getResAttrsAttr());
+    }
+
+    /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
     netqasm::RotateXOp
     RotateXLowering::createNewOp(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
                                  ConversionPatternRewriter &rewriter) const {

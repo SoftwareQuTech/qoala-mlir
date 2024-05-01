@@ -16,6 +16,21 @@ namespace qoala::conversion::mir {
                                           ConversionPatternRewriter &rewriter,
                                           Value angle);
 
+    /* Lowering for operations that belong in the module */
+    class FuncOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::FuncOp, qoalahost::MainFuncOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::MainFuncOp createNewOp(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RemoteOpLowering: public SimpleOneToToOneLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {
+    public:
+        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
+        qoalahost::RemoteOp createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+
     /* Lowering for operations that can only belong to netqasm.local_routine or netqasm.request_routine */
     class RotateXLowering : public SimpleOneToToOneLoweringTemplate<qmem::RotateXOp, netqasm::RotateXOp> {
     public:
