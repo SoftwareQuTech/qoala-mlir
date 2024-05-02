@@ -73,8 +73,8 @@ namespace qoala::conversion {
         RewritePatternSet qMemToQoalaHostPatterns(&context);
         RewritePatternSet qMemToNetQASMPatterns(&context);
         NullTypeConverter typeConverter(&context);
-        populateQNetToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
-        populateQNetToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
+        populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
+        populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
 
         // Stage 1: Functionize
         qoala::analysis::functionizeModule(operation, qMemOpCanBeFunctionized);

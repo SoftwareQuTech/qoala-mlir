@@ -78,24 +78,24 @@ namespace qoala::helpers {
      */
 
     /**
-     * Adds the QNet to QoalaHost conversions patterns to the given rewrite pattern set.
+     * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
      * It also uses the given type converter.
      * @param context The MLIRContext object.
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQNetToQoalaHostPatterns(MLIRContext &context,
+    void populateQMemToQoalaHostPatterns(MLIRContext &context,
                                          RewritePatternSet &patterns,
                                          TypeConverter &typeConverter);
 
     /**
-     * Adds the QNet to NetQASM conversions patterns to the given rewrite pattern set.
+     * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
      * It also uses the given type converter.
      * @param context The MLIRContext object.
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQNetToNetQASMPatterns(MLIRContext &context,
+    void populateQMemToNetQASMPatterns(MLIRContext &context,
                                        RewritePatternSet &patterns,
                                        TypeConverter &typeConverter);
 
