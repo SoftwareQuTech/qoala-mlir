@@ -5,7 +5,7 @@
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
-#include "Analysis/QMem/Functionize.h"
+#include "Analysis/QMem/Conversion.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
@@ -83,10 +83,13 @@ namespace qoala::conversion {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-        // Stage 1: Functionize
-        qoala::analysis::functionizeModule(module, qMemOpCanBeFunctionized);
+        // Stage 1: Transform f32 type
 
-        // Stage 2: Apply the QMemtoNetQASM and QMemToQoalaHost conversion patterns
+        // Stage 2: Functionize
+        qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+        module.dump();
+
+        // Stage 3: Apply the QMemtoNetQASM and QMemToQoalaHost conversion patterns
         LogicalResult conversionResult =
             mlir::applyPartialConversion(module, target, std::move(allPatterns));
         if (mlir::failed(conversionResult)) {

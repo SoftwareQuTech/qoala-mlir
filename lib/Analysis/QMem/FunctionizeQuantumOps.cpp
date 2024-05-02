@@ -4,7 +4,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LLVM.h"
-#include "Analysis/QMem/Functionize.h"
+#include "Analysis/QMem/Conversion.h"
 #include "llvm/Support/Debug.h"
 
 namespace mlir {
@@ -56,7 +56,7 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     assert(module); // We expect the cast to succeed
     LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-    functionizeModule(module, qMemOpCanBeFunctionized);
+    functionize::functionizeModule(module, qMemOpCanBeFunctionized);
 }
 
 std::unique_ptr<Pass> mlir::createQMemSimpleFunctionize() {
