@@ -31,6 +31,7 @@ namespace qoala::helpers {
                 mir::MeasureOpLowering,
                 mir::EprsOpLowering,
                 mir::EprsMeasureOpLowering,
+                mir::NetQASMFunctionLowering,
                 mir::NetQASMReturnOpLowering,
                 mir::QAllocLowering,
                 mir::QInitLowering,

@@ -73,6 +73,15 @@ namespace qoala::conversion::mir {
         ValueRange createNewOpAndValues(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
+    class NetQASMFunctionLowering :
+            public OpLoweringTemplate<func::FuncOp,std::variant<netqasm::LocalRoutineOp, netqasm::RequestRoutineOp>> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(func::FuncOp op, func::FuncOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
     class NetQASMReturnOpLowering : public OpLoweringTemplate<func::ReturnOp, netqasm::ReturnOp> {
     public:
         // Constructor simply matches the super class

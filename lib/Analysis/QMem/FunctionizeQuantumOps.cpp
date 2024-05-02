@@ -37,13 +37,14 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
             qmem::InitOp,
             qmem::MeasureOp,
             qmem::QAllocOp,
-            qmem::RecvFloatsOp,
-            qmem::RecvIntsOp,
+            // Recv/Send Ints/Floats can stay in the main body
+//            qmem::RecvFloatsOp,
+//            qmem::RecvIntsOp,
+//            qmem::SendFloatsOp,
+//            qmem::SendIntsOp,
             qmem::RotateXOp,
             qmem::RotateYOp,
-            qmem::RotateZOp,
-            qmem::SendFloatsOp,
-            qmem::SendIntsOp
+            qmem::RotateZOp
             // We don't want to functionize "Remotes", "Funcs" nor "Returns"
 //            qmem::RemoteOp,
 //            qmem::FuncOp,

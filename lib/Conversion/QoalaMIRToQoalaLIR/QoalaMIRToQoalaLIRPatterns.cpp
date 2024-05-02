@@ -98,10 +98,39 @@ namespace qoala::conversion::mir {
 
     ValueRange
     EprsMeasureOpLowering::createNewOpAndValues(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const {
+                                                ConversionPatternRewriter &rewriter) const {
         auto newEprs = rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), rewriter.getI1Type(),
                                                        adaptor.getQ(), adaptor.getRemoteAttr());
         return newEprs->getResults();
+    }
+
+    ValueRange
+    NetQASMFunctionLowering::createNewOpAndValues(func::FuncOp op, func::FuncOp::Adaptor adaptor,
+                                                  ConversionPatternRewriter &rewriter) const {
+        StringAttr entangleAttr = dyn_cast_or_null<StringAttr>(op->getAttr("entangle"));
+        if (entangleAttr) {
+            auto newFunc = rewriter.create<netqasm::RequestRoutineOp>(
+                    op.getLoc(),
+                    adaptor.getSymName(),
+                    adaptor.getFunctionType(),
+                    adaptor.getSymVisibilityAttr(),
+                    adaptor.getArgAttrsAttr(),
+                    adaptor.getResAttrsAttr());
+            rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+            // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
+            return newFunc->getResults();
+        } else {
+            auto newFunc = rewriter.create<netqasm::LocalRoutineOp>(
+                    op.getLoc(),
+                    adaptor.getSymName(),
+                    adaptor.getFunctionType(),
+                    adaptor.getSymVisibilityAttr(),
+                    adaptor.getArgAttrsAttr(),
+                    adaptor.getResAttrsAttr());
+            rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+            // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
+            return newFunc->getResults();
+        }
     }
 
     ValueRange
