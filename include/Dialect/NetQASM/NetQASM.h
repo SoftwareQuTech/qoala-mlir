@@ -22,10 +22,28 @@ using namespace mlir;
 
 // NetQASM uses QoalaHost classes and vice versa; so we insert _forward_ class
 // declarations so this file compiles correctly
+// We insert these forward defines only because the `verifySymbolUses` function
+// generated from the tblgen file (NetQASMOps.td) requires the qoalahost::Remote
+// type to check the validity of the declared symbol
+// An idea for the future to break this (circular) dependency is to place the
+// remote declaration in a separate dialect.
 #define GET_OP_FWD_DEFINES
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
 
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.h.inc"
 
+#include "Dialect/NetQASM/NetQASMDialect.h"
+
 #endif // NETQASM_H
+
+#ifdef GET_ALLOWED_DIALECTS
+// List of dialects allowed by the NetQASM dialects
+#undef GET_ALLOWED_DIALECTS
+mlir::arith::ArithDialect,
+mlir::memref::MemRefDialect,
+mlir::cf::ControlFlowDialect,
+mlir::tensor::TensorDialect,
+mlir::affine::AffineDialect,
+qoala::dialects::netqasm::NetQASMDialect
+#endif

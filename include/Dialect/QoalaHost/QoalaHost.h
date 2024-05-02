@@ -29,4 +29,17 @@ using namespace mlir;
 #define GET_OP_CLASSES
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
 
+#include "Dialect/QoalaHost/QoalaHostDialect.h"
+
 #endif // QOALAHOST_H
+
+#ifdef GET_ALLOWED_DIALECTS
+// List of dialects allowed by the QoalaHost dialects
+#undef GET_ALLOWED_DIALECTS
+mlir::arith::ArithDialect,
+mlir::memref::MemRefDialect,
+mlir::cf::ControlFlowDialect,
+mlir::tensor::TensorDialect,
+mlir::affine::AffineDialect,
+qoala::dialects::qoalahost::QoalaHostDialect
+#endif

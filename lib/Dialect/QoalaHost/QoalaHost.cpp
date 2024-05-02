@@ -2,7 +2,6 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
-using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 
@@ -54,19 +53,14 @@ void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
 }
 
 /* Region verifiers for MainFuncOp */
-static bool operationIsNotFromQoalaHost(Operation &operation) {
-    return ! (isa<
-#define GET_OP_LIST
-#include "Dialect/QoalaHost/QoalaHost.cpp.inc"
-              >(operation));
-}
-
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
-        if (operationIsNotFromCommonDialects(operation) && operationIsNotFromQoalaHost(operation)) {
+        auto name = operation.getName().getStringRef().str();
+        if (QoalaHostDialect::opIsNotFromAllowedDialects(operation)) {
             return this->emitError() << "'" << getOperationName() << "' "
-                                     << "op contains an operation that is not from " << getAllowedDialectNames()
-                                     << "or 'qoalahost' dialects: '" << operation << "'";
+                                            << "op contains an operation that is not from  the allowed list of dialects: ["
+                                            << QoalaHostDialect::getAllowedDialectNames()
+                                            << "]. Operation: '" << operation << "'";
         }
     }
     return success();
@@ -85,4 +79,19 @@ LogicalResult qoalahost::CallOp::verifySymbolUses(mlir::SymbolTableCollection &s
     return this->emitOpError() << "'" << this->getCalleeAttr() << "' "
                                << "does not reference a valid defined by either netqasm.local_routine or "
                                << "netqasm.request_routine.";
+}
+
+/* Helper functions from the QoalaHostDialect class */
+bool qoalahost::QoalaHostDialect::opIsNotFromAllowedDialects(Operation &operation) {
+    return !belongsToDialect<
+#define GET_ALLOWED_DIALECTS
+#include "Dialect/QoalaHost/QoalaHost.h"
+    >(operation);
+}
+
+std::string qoalahost::QoalaHostDialect::getAllowedDialectNames() {
+    return getDialectNamesList<
+#define GET_ALLOWED_DIALECTS
+#include "Dialect/QoalaHost/QoalaHost.h"
+    >();
 }

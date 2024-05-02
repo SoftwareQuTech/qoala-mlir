@@ -1,5 +1,5 @@
-#ifndef QMEM_TO_QOALAHOST_H
-#define QMEM_TO_QOALAHOST_H
+#ifndef QOALAMIR_TO_QOALALIR_H
+#define QOALAMIR_TO_QOALALIR_H
 #include "mlir/Pass/Pass.h"
 
 // In the Lowering pass, we rely on both QMem and QoalaHost dialects
@@ -14,7 +14,9 @@ namespace mlir {
 #define GEN_PASS_DECL
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
 
-std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
+    std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
+    std::unique_ptr<mlir::Pass> createLowerQMemToQoalaHostPass();
+    std::unique_ptr<mlir::Pass> createLowerQMemToNetQASMPass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
@@ -22,4 +24,4 @@ std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
 
 } // namespace mlir
 
-#endif // QMEM_TO_QOALAHOST_H
+#endif // QOALAMIR_TO_QOALALIR_H
