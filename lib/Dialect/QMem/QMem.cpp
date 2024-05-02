@@ -131,3 +131,19 @@ Operation *SendFloatsOp::simpleClone(OpBuilder &builder, Location loc) {
 Operation *SendIntsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<SendIntsOp>(loc, getCin(), getRemoteAttr());
 }
+
+Operation *CrotXintOp::simpleClone(OpBuilder &builder, Location loc) {
+    return builder.create<CrotXintOp>(loc, getQin0(), getQin1(), getAngleNum(), getAngleDenom());
+}
+
+Operation *RotateXintOp::simpleClone(OpBuilder &builder, Location loc) {
+    return builder.create<RotateXintOp>(loc, getQ(), getAngleNum(), getAngleDenom());
+}
+
+Operation *RotateYintOp::simpleClone(OpBuilder &builder, Location loc) {
+    return builder.create<RotateYintOp>(loc, getQ(), getAngleNum(), getAngleDenom());
+}
+
+Operation *RotateZintOp::simpleClone(OpBuilder &builder, Location loc) {
+    return builder.create<RotateZintOp>(loc, getQ(), getAngleNum(), getAngleDenom());
+}
