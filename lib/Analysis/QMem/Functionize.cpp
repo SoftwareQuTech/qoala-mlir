@@ -1,4 +1,5 @@
 #include "Analysis/QMem/Functionize.h"
+#include "Dialect/QMem/EntangleTrait.h"
 #include "llvm/Support/Debug.h"
 
 /* MLIR magic: using the LLVM_DEBUG macro + this define, allows to selectively enable the debug output
@@ -66,6 +67,7 @@ func::FuncOp qoala::analysis::createNewFunctionWithOperations(
     FunctionType funType = opBuilder->getFunctionType(typesAndValues.argTypes, typesAndValues.resultTypes);
     auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
     Block *newBlock = newFunc.addEntryBlock();
+    bool hasEntanglementOp = false;
 
     LLVM_DEBUG(llvm::dbgs() << "************************\n");
     LLVM_DEBUG(llvm::dbgs() << "func type: " << funType << "\n");
@@ -93,12 +95,22 @@ func::FuncOp qoala::analysis::createNewFunctionWithOperations(
                 resultValues.push_back(clonedOp->getResult(resultIndex));
             }
             LLVM_DEBUG(llvm::dbgs() << "cloned op: " << *clonedOp << "\n");
+            if (quantumOp->hasTrait<mlir::OpTrait::Entangle>()) {
+                hasEntanglementOp = true;
+            }
+        }
+        if (hasEntanglementOp) {
+            // We "mark" the function declaration, so when lowering the func operation the pass can
+            // know that this particular function needs to be lowered to netqasm.request_routine
+            Attribute entangle = opBuilder->getStringAttr("true");
+            newFunc->setAttr("entangle", entangle);
         }
         LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
 
         // Create the "return" for the new operation
         auto returnOp = opBuilder->create<func::ReturnOp>(newFunc.getLoc(), resultValues);
         LLVM_DEBUG(llvm::dbgs() << "New Function: " << newFunc << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << hasEntanglementOp << "\n");
         LLVM_DEBUG(llvm::dbgs() << "Return op: " << returnOp << "\n");
         LLVM_DEBUG(llvm::dbgs() << "************************\n");
     }

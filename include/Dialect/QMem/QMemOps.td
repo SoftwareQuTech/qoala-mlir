@@ -105,6 +105,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
+/* Trait used to "mark" the operations that perform an entanglement operation */
+def Entangle: NativeOpTrait<"Entangle">;
 
 def RemoteOp: QMem_Op<"remote", [Symbol]> {
     let arguments = (ins Arg<SymbolNameAttr, "remote-name">:$sym_name,
@@ -114,11 +116,8 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
     }];
 }
 
-// This operation replaces the "init" for an entangled qubit
-// %0 = qmem.alloca : i32
-// ;; This op had the "semantics" of entangling the qubit
-// qmem.eprs %0
-def EprsOp: UsingRemote_Op<"eprs"> {
+/* The "eprs" operation will carry the "Entangle" trait */
+def EprsOp: UsingRemote_Op<"eprs", [Entangle]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict
