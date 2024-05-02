@@ -11,174 +11,186 @@ namespace qoala::conversion::mir {
     }
 
     /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
-    qoalahost::RemoteOp
-    RemoteOpLowering::createNewOp(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qoalahost::RemoteOp>(
+    ValueRange
+    RemoteOpLowering::createNewOpAndValues(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newReturn = rewriter.create<qoalahost::RemoteOp>(
                 op.getLoc(),
                 adaptor.getSymNameAttr(),
                 adaptor.getSymVisibilityAttr());
+        return newReturn->getResults();
     }
 
 
-    qoalahost::MainFuncOp
-    FuncOpLowering::createNewOp(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
-                                ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qoalahost::MainFuncOp>(
+    ValueRange
+    FuncOpLowering::createNewOpAndValues(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
+                                         ConversionPatternRewriter &rewriter) const {
+        auto newFunc = rewriter.create<qoalahost::MainFuncOp>(
                 op.getLoc(),
                 adaptor.getSymName(),
                 adaptor.getFunctionType(),
                 adaptor.getSymVisibilityAttr(),
                 adaptor.getArgAttrsAttr(),
                 adaptor.getResAttrsAttr());
+        rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+        return newFunc->getResults();
     }
 
-    qoalahost::ReturnOp
-    ReturnOpLowering::createNewOp(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qoalahost::ReturnOp>(op.getLoc(), adaptor.getOperands());
+    ValueRange
+    ReturnOpLowering::createNewOpAndValues(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newReturn = rewriter.create<qoalahost::ReturnOp>(
+                op.getLoc(),
+                adaptor.getOperands());
+        return newReturn->getResults();
     }
 
-    qoalahost::CallOp
-    CallOpLowering::createNewOp(func::CallOp op, func::CallOp::Adaptor adaptor,
-                                ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qoalahost::CallOp>(op.getLoc(), adaptor.getCallee(), op->getResultTypes(), op.getOperands());
+    ValueRange
+    CallOpLowering::createNewOpAndValues(func::CallOp op, func::CallOp::Adaptor adaptor,
+                                         ConversionPatternRewriter &rewriter) const {
+        auto newCall = rewriter.create<qoalahost::CallOp>(
+                op.getLoc(),
+                adaptor.getCallee(),
+                op->getResultTypes(),
+                op.getOperands());
+        return newCall->getResults();
     }
 
-    qoalahost::RecvIntsOp
-    RecvIntsOpLowering::createNewOp(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
-                                    ConversionPatternRewriter &rewriter) const {
+    ValueRange
+    RecvIntsOpLowering::createNewOpAndValues(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        return rewriter.create<qoalahost::RecvIntsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::RecvIntsOp>(
+                op.getLoc(),
+                convertedType,
+                adaptor.getRemoteAttr());
+        return newRecv->getResults();
     }
 
-    qoalahost::RecvFloatsOp
-    RecvFloatsOpLowering::createNewOp(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
-                                      ConversionPatternRewriter &rewriter) const {
+    ValueRange
+    RecvFloatsOpLowering::createNewOpAndValues(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
+                                               ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        return rewriter.create<qoalahost::RecvFloatsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::RecvFloatsOp>(
+                op.getLoc(),
+                convertedType,
+                adaptor.getRemoteAttr());
+        return newRecv->getResults();
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
-    netqasm::MeasureOp
-    MeasureOpLowering::createNewOp(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const {
-        Type convertedType = this->typeConverter->convertType(op.getQ().getType());
-        auto newOp = rewriter.create<netqasm::MeasureOp>(op.getLoc(), convertedType, adaptor.getQ());
-        rewriter.replaceAllUsesWith(op.getResult(), newOp.getResult());
-        return newOp;
+    ValueRange
+    MeasureOpLowering::createNewOpAndValues(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const {
+        auto newOp = rewriter.create<netqasm::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptor.getQ());
+        return newOp->getResults();
     }
 
-    netqasm::EprsOp
-    EprsOpLowering::createNewOp(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
-                                ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<netqasm::EprsOp>(op.getLoc(), adaptor.getQ(), adaptor.getRemoteAttr());
-    }
-
-    netqasm::EprsMeasureOp
-    EprsMeasureOpLowering::createNewOp(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const {
-        Type convertedType = this->typeConverter->convertType(adaptor.getQ().getType());
-        return rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), convertedType,
-                                                       adaptor.getQ(), adaptor.getRemoteAttr());
-    }
-
-    netqasm::ReturnOp
-    NetQASMReturnOpLowering::createNewOp(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
+    ValueRange
+    EprsOpLowering::createNewOpAndValues(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<netqasm::ReturnOp>(op.getLoc(), adaptor.getOperands());
+        auto newEprs = rewriter.create<netqasm::EprsOp>(
+                op.getLoc(),
+                adaptor.getQ(),
+                adaptor.getRemoteAttr());
+        return newEprs->getResults();
     }
 
-    netqasm::QAllocOp
-    QAllocLowering::createNewOp(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
-                                ConversionPatternRewriter &rewriter) const {
+    ValueRange
+    EprsMeasureOpLowering::createNewOpAndValues(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const {
+        auto newEprs = rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), rewriter.getI1Type(),
+                                                       adaptor.getQ(), adaptor.getRemoteAttr());
+        return newEprs->getResults();
+    }
+
+    ValueRange
+    NetQASMReturnOpLowering::createNewOpAndValues(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
+                                                  ConversionPatternRewriter &rewriter) const {
+        auto newReturn = rewriter.create<netqasm::ReturnOp>(op.getLoc(), adaptor.getOperands());
+        return newReturn->getResults();
+    }
+
+    ValueRange
+    QAllocLowering::createNewOpAndValues(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
+                                         ConversionPatternRewriter &rewriter) const {
         auto newAlloc = rewriter.create<netqasm::QAllocOp>(op.getLoc());
-        rewriter.replaceAllUsesWith(op.getResult(), newAlloc.getResult());
-        return newAlloc;
+        return newAlloc->getResults();
     }
 
-    netqasm::QInitOp
-    QInitLowering::createNewOp(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
-                               ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
-        return rewriter.create<netqasm::QInitOp>(op.getLoc(), adaptor.getQ());
+    ValueRange
+    QInitLowering::createNewOpAndValues(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const {
+        auto newQInit = rewriter.create<netqasm::QInitOp>(op.getLoc(), adaptor.getQ());
+        return newQInit->getResults();
     }
 
-    netqasm::RotateXOp
-    RotateXLowering::createNewOp(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
-                                 ConversionPatternRewriter &rewriter) const {
-        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
-        // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
+    ValueRange
+    RotateXLowering::createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        return rewriter.create<netqasm::RotateXOp>(
+        auto newRotate = rewriter.create<netqasm::RotateXOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+        return newRotate->getResults();
     }
 
-    netqasm::RotateYOp
-    RotateYLowering::createNewOp(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
-                                 ConversionPatternRewriter &rewriter) const {
-        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
-        // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
+    ValueRange
+    RotateYLowering::createNewOpAndValues(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        return rewriter.create<netqasm::RotateYOp>(
+        auto newRotate = rewriter.create<netqasm::RotateYOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+        return newRotate->getResults();
     }
 
-    netqasm::RotateZOp
-    RotateZLowering::createNewOp(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
-                                 ConversionPatternRewriter &rewriter) const {
-        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
-        // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
+    ValueRange
+    RotateZLowering::createNewOpAndValues(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        return rewriter.create<netqasm::RotateZOp>(
+        auto newRotate= rewriter.create<netqasm::RotateZOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+        return newRotate->getResults();
     }
 
-    netqasm::HadamardOp
-    HadamardLowering::createNewOp(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQ(), adaptor.getQ());
-        return rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
+    ValueRange
+    HadamardLowering::createNewOpAndValues(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newHadamard = rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
+        return newHadamard->getResults();
     }
 
-    netqasm::CnotOp
-    CNotLowering::createNewOp(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQin0(), adaptor.getQin0());
-        rewriter.replaceAllUsesWith(op.getQin1(), adaptor.getQin1());
-        return rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+    ValueRange
+    CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const {
+        auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        return newCnot->getResults();
     }
 
-    netqasm::CzOp
-    CzLowering::createNewOp(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
-                            mlir::ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQin0(), adaptor.getQin0());
-        rewriter.replaceAllUsesWith(op.getQin1(), adaptor.getQin1());
-        return rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+    ValueRange
+    CzLowering::createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const {
+        auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        return newCz->getResults();
     }
 
-    netqasm::CrotXOp
-    CRotXLowering::createNewOp(qmem::CrotXOp op, qmem::CrotXOp::Adaptor adaptor,
-                               mlir::ConversionPatternRewriter &rewriter) const {
-        rewriter.replaceAllUsesWith(op.getQin0(), adaptor.getQin0());
-        rewriter.replaceAllUsesWith(op.getQin1(), adaptor.getQin1());
+    ValueRange
+    CRotXLowering::createNewOpAndValues(qmem::CrotXOp op, qmem::CrotXOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        return rewriter.create<netqasm::CrotXOp>(
+        auto newCrotX = rewriter.create<netqasm::CrotXOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 angleConversionCall.getOperand(0), angleConversionCall.getOperand(1));
+        return newCrotX->getResults();
     }
 } // namespace qoala::conversion::mir
