@@ -8,11 +8,12 @@
 #include <set>
 
 namespace qoala::analysis {
+    using namespace mlir;
     namespace functionize {
         struct ArgTypesAndReturns {
-            std::vector<mlir::Type> argTypes;
-            std::vector<mlir::Type> resultTypes;
-            mlir::DenseMap<mlir::Operation *, std::set<uint32_t>> opResultsIndexes;
+            std::vector<Type> argTypes;
+            std::vector<Type> resultTypes;
+            llvm::DenseMap<Operation *, std::set<uint32_t>> opResultsIndexes;
         };
 
         /**
@@ -27,9 +28,9 @@ namespace qoala::analysis {
          * @return A `func::FuncOp` object, inserted at the insertion point of the given `OpBuilder`,
          *         whose body contains the given operations, and an extra return statement.
          */
-        mlir::func::FuncOp createNewFunctionWithOperations(
-                mlir::OpBuilder *opBuilder, mlir::StringRef funcName,
-                mlir::Location loc, llvm::SetVector<mlir::Operation *> &quantumOps);
+       func::FuncOp createNewFunctionWithOperations(
+                OpBuilder *opBuilder, StringRef funcName,
+                Location loc, llvm::SetVector<Operation *> &quantumOps);
 
         /**
          * Analyzes the given set of operations to determine the "arguments" and "results" of the given set.
@@ -41,7 +42,7 @@ namespace qoala::analysis {
          *         between an operation (within the given set) that produces a result, and the set of indexes
          *         of that operation's result that are considered a result of the given operations set.
          */
-        ArgTypesAndReturns computeArgTypesAndReturns(llvm::SetVector<mlir::Operation *> &operations);
+        ArgTypesAndReturns computeArgTypesAndReturns(llvm::SetVector<Operation *> &operations);
 
         /**
          * "Functionizes" the operations on the given module. For each one of the operations
@@ -51,11 +52,11 @@ namespace qoala::analysis {
          * @param opCanBeFunctionized A function that takes an operation, and determines if it
          *                            can be functionized or not.
          */
-        void functionizeModule(mlir::ModuleOp &module, bool (*opCanBeFunctionized)(mlir::Operation *));
+        void functionizeModule(ModuleOp &module, bool (*opCanBeFunctionized)(Operation *));
     }
 
     namespace flattening {
-        void flattenFloatInstances(mlir::ModuleOp &module);
+        void flattenFloatInstances(ModuleOp &module, bool (*operationUsesF32Angle)(Operation *));
     }
 }
 

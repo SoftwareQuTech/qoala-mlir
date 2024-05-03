@@ -175,6 +175,47 @@ namespace qoala::conversion::mir {
         return newCz->getResults();
     }
 
+    /* Lowering for "intermediate" operations that use the angle_num and angle_denom integers instead of float angle */
+    ValueRange
+    RotateXIntLowering::createNewOpAndValues(qmem::RotateXIntOp op, qmem::RotateXIntOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        // Use the integers coming from the "intermediate" operation
+        auto newRotate = rewriter.create<netqasm::RotateXOp>(
+                op.getLoc(), adaptor.getQ(),
+                adaptor.getAngleNum(), adaptor.getAngleDenom());
+        return newRotate->getResults();
+    }
+
+    ValueRange
+    RotateYIntLowering::createNewOpAndValues(qmem::RotateYIntOp op, qmem::RotateYIntOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        // Use the integers coming from the "intermediate" operation
+        auto newRotate = rewriter.create<netqasm::RotateYOp>(
+                op.getLoc(), adaptor.getQ(),
+                adaptor.getAngleNum(), adaptor.getAngleDenom());
+        return newRotate->getResults();
+    }
+
+    ValueRange
+    RotateZIntLowering::createNewOpAndValues(qmem::RotateZIntOp op, qmem::RotateZIntOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        // Use the integers coming from the "intermediate" operation
+        auto newRotate = rewriter.create<netqasm::RotateZOp>(
+                op.getLoc(), adaptor.getQ(),
+                adaptor.getAngleNum(), adaptor.getAngleDenom());
+        return newRotate->getResults();
+    }
+
+    ValueRange
+    CRotXIntLowering::createNewOpAndValues(qmem::CrotXIntOp op, qmem::CrotXIntOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+                adaptor.getAngleNum(), adaptor.getAngleDenom());
+        auto newCrotX = rewriter.create<netqasm::CrotXOp>(
+                op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
+                adaptor.getAngleNum(), adaptor.getAngleDenom());
+        return newCrotX->getResults();
+    }
+
     /* Lowering patterns for operations that should have been lowered by the "intra-dialect" lowering */
     ValueRange
     RotateXLowering::createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,

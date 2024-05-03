@@ -52,6 +52,15 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     >(op);
 }
 
+static bool operationUsesF32Angle(Operation *operation) {
+    return isa<
+            qmem::RotateXOp,
+            qmem::RotateYOp,
+            qmem::RotateZOp,
+            qmem::CrotXOp
+    >(operation);
+}
+
 namespace qoala::conversion {
     class QoalaMIRToQoalaLIRPass : public mlir::impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
         void runOnOperation() override;
@@ -83,7 +92,8 @@ namespace qoala::conversion {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-        // Stage 1: Transform f32 type
+        // Stage 1: Transform f32 type - This is done with an "intra-dialect" lowering
+        qoala::analysis::flattening::flattenFloatInstances(module, operationUsesF32Angle);
 
         // Stage 2: Functionize
         qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
