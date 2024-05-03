@@ -209,7 +209,6 @@ namespace qoala::conversion::mir {
     ValueRange
     CRotXIntLowering::createNewOpAndValues(qmem::CrotXIntOp op, qmem::CrotXIntOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
-                adaptor.getAngleNum(), adaptor.getAngleDenom());
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
