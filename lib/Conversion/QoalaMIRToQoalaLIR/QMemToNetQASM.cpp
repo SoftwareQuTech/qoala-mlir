@@ -28,10 +28,14 @@ namespace qoala::helpers {
         target.addLegalDialect<netqasm::NetQASMDialect>();
         target.addIllegalDialect<qmem::QMemDialect>();
         target.addLegalOp<
-                // Only the "qmem.func" and "qmem.return" operations are legal after this pass,
-                // because this pass modifies ALL the other operations but the main function
+                // We declare as "legal" all the operations that directly map to QoalaHost operations
                 qmem::FuncOp,
-                qmem::ReturnOp
+                qmem::ReturnOp,
+                qmem::RemoteOp,
+                qmem::RecvIntsOp,
+                qmem::RecvFloatsOp,
+                qmem::SendIntsOp,
+                qmem::SendFloatsOp
         >();
     }
     void populateQMemToNetQASMPatterns(
