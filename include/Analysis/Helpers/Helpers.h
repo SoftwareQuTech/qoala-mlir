@@ -78,6 +78,13 @@ namespace qoala::helpers {
      */
 
     /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the QMem to QoalaHost dialect conversion.
+     * @param target The ConversionTarget object to configure
+     */
+    void configureQMemToQoalaHostTarget(ConversionTarget &target);
+
+    /**
      * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
      * It also uses the given type converter.
      * @param context The MLIRContext object.
@@ -87,6 +94,13 @@ namespace qoala::helpers {
     void populateQMemToQoalaHostPatterns(MLIRContext &context,
                                          RewritePatternSet &patterns,
                                          TypeConverter &typeConverter);
+
+    /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the QMem to NetQASM dialect conversion.
+     * @param target The ConversionTarget object to configure
+     */
+    void configureQMemToNetQASMTarget(ConversionTarget &target);
 
     /**
      * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
@@ -99,6 +113,11 @@ namespace qoala::helpers {
                                        RewritePatternSet &patterns,
                                        TypeConverter &typeConverter);
 
+    /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the rotation operations conversion.
+     * @param target The ConversionTarget object to configure
+     */
     void configureF32LoweringTarget(ConversionTarget &target);
 
     /**

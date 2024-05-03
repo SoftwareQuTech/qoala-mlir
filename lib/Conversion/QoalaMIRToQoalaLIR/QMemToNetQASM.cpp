@@ -24,6 +24,16 @@ using namespace qoala::conversion;
 using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
+    void configureQMemToNetQASMTarget(ConversionTarget &target) {
+        target.addLegalDialect<netqasm::NetQASMDialect>();
+        target.addIllegalDialect<qmem::QMemDialect>();
+        target.addLegalOp<
+                // Only the "qmem.func" and "qmem.return" operations are legal after this pass,
+                // because this pass modifies ALL the other operations but the main function
+                qmem::FuncOp,
+                qmem::ReturnOp
+        >();
+    }
     void populateQMemToNetQASMPatterns(
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
@@ -58,19 +68,12 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
 
         ConversionTarget target(context);
-        target.addLegalDialect<netqasm::NetQASMDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
-        target.addLegalOp<
-                // Only the "qmem.func" and "qmem.return" operations are legal after this pass,
-                // because this pass modifies ALL the other operations but the main function
-                qmem::FuncOp,
-                qmem::ReturnOp
-        >();
-
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
+
+        qoala::helpers::configureQMemToNetQASMTarget(target);
         qoala::helpers::populateQMemToNetQASMPatterns(context, patterns, typeConverter);
 
         // TODO - Add the "intermediate" lowering stage here

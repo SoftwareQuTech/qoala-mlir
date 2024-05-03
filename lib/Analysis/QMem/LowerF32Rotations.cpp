@@ -25,15 +25,6 @@ using namespace qoala::conversion;
 
 #define DEBUG_TYPE "f32-flattening"
 
-static bool operationUsesF32Angle(Operation *operation) {
-    return isa<
-            qmem::RotateXOp,
-            qmem::RotateYOp,
-            qmem::RotateZOp,
-            qmem::CrotXOp
-    >(operation);
-}
-
 namespace qoala::helpers {
     void configureF32LoweringTarget(ConversionTarget &target) {
         // When converting F32 to I32 rotations, configure that after conversion all QMem operations are valid
