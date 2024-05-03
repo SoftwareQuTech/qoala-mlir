@@ -222,7 +222,7 @@ namespace qoala::conversion::mir {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<netqasm::RotateXOp>(
+        auto newRotate = rewriter.create<qmem::RotateXIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return newRotate->getResults();
@@ -234,7 +234,7 @@ namespace qoala::conversion::mir {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<netqasm::RotateYOp>(
+        auto newRotate = rewriter.create<qmem::RotateYIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return newRotate->getResults();
@@ -246,7 +246,7 @@ namespace qoala::conversion::mir {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate= rewriter.create<netqasm::RotateZOp>(
+        auto newRotate= rewriter.create<qmem::RotateZIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return newRotate->getResults();
@@ -258,7 +258,7 @@ namespace qoala::conversion::mir {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newCrotX = rewriter.create<netqasm::CrotXOp>(
+        auto newCrotX = rewriter.create<qmem::CrotXIntOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 angleConversionCall.getOperand(0), angleConversionCall.getOperand(1));
         return newCrotX->getResults();
