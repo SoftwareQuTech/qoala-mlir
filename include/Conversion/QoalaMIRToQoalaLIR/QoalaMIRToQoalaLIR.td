@@ -36,7 +36,8 @@ def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["::qoala::dialects::qmem::QMemDialect",
-                             "::qoala::dialects::qoalahost::QoalaHostDialect"];
+                             "::qoala::dialects::qoalahost::QoalaHostDialect",
+                             "::mlir::func::FuncDialect"];
 }
 
 //===----------------------------------------------------------------------===//
