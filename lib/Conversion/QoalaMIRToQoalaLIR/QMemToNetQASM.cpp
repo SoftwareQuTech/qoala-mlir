@@ -35,13 +35,13 @@ namespace qoala::helpers {
                 mir::NetQASMReturnOpLowering,
                 mir::QAllocLowering,
                 mir::QInitLowering,
-                mir::RotateXLowering,
-                mir::RotateYLowering,
-                mir::RotateZLowering,
                 mir::HadamardLowering,
                 mir::CNotLowering,
                 mir::CzLowering,
-                mir::CRotXLowering
+                mir::RotateXIntLowering,
+                mir::RotateYIntLowering,
+                mir::RotateZIntLowering,
+                mir::CRotXIntLowering
         >(typeConverter, &context);
     }
 }
@@ -72,6 +72,8 @@ namespace qoala::conversion {
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
         qoala::helpers::populateQMemToNetQASMPatterns(context, patterns, typeConverter);
+
+        // TODO - Add the "intermediate" lowering stage here
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);

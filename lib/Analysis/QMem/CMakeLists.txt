@@ -2,6 +2,7 @@ add_mlir_dialect_library(MLIRQMemAnalysisLibs
         Functionize.cpp
         FloatFlattening.cpp
         FunctionizeQuantumOps.cpp
+        LowerF32Rotationss.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QMem

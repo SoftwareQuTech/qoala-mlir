@@ -29,7 +29,6 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     // A list fo the QMem operation types we would like to "functionize"
     return llvm::isa<
             qmem::CnotOp,
-            qmem::CrotXOp,
             qmem::CzOp,
             qmem::EprsMeasureOp,
             qmem::EprsOp,
@@ -42,23 +41,24 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
 //            qmem::RecvIntsOp,
 //            qmem::SendFloatsOp,
 //            qmem::SendIntsOp,
-            qmem::RotateXOp,
-            qmem::RotateYOp,
-            qmem::RotateZOp
+            // We do not want to functionize any leftover rotation (if any)
+            // Since rotations use an f32 angle arg, they are lowered to intermediate rotations
+            // (so the f32 can be transformed into 2x i32),THEN to netqasm rotations
+            // This allows us to place the call to the builtin angle conversion function before functionizing
+//            qmem::RotateXOp,
+//            qmem::RotateYOp,
+//            qmem::RotateZOp,
+//            qmem::CrotXOp
+            // Instead, we need to functionize the
+            qmem::RotateXIntOp,
+            qmem::RotateYIntOp,
+            qmem::RotateZIntOp,
+            qmem::CrotXIntOp
             // We don't want to functionize "Remotes", "Funcs" nor "Returns"
 //            qmem::RemoteOp,
 //            qmem::FuncOp,
 //            qmem::ReturnOp,
     >(op);
-}
-
-static bool operationUsesF32Angle(Operation *operation) {
-    return isa<
-            qmem::RotateXOp,
-            qmem::RotateYOp,
-            qmem::RotateZOp,
-            qmem::CrotXOp
-    >(operation);
 }
 
 namespace qoala::conversion {
@@ -72,28 +72,41 @@ namespace qoala::conversion {
         assert(module);
         LLVM_DEBUG(llvm::dbgs() << "Converting MIR to LIR on module\n");
 
-        // Get a conversion target to define our target dialects
-        ConversionTarget target(context);
-        target.addLegalDialect<qoalahost::QoalaHostDialect>();
-        target.addLegalDialect<netqasm::NetQASMDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
+        // Get a conversion qMemLoweringTarget to define our qMemLoweringTarget dialects
+        ConversionTarget qMemLoweringTarget(context);
+        qMemLoweringTarget.addLegalDialect<qoalahost::QoalaHostDialect>();
+        qMemLoweringTarget.addLegalDialect<netqasm::NetQASMDialect>();
+        qMemLoweringTarget.addIllegalDialect<qmem::QMemDialect>();
         // There are NO legal options in QMem dialect after this pass
-        //target.addLegalOp<
+        //qMemLoweringTarget.addLegalOp<
             // some::Class
         //>();
+        ConversionTarget f32LoweringTarget(context);
+        f32LoweringTarget.addIllegalOp<
+                qmem::RotateXOp,
+                qmem::RotateYOp,
+                qmem::RotateZOp,
+                qmem::CrotXOp
+                >();
 
         // We add the conversion pattern to the context
         RewritePatternSet allPatterns(&context);
+        RewritePatternSet f32Patterns(&context);
         NullTypeConverter typeConverter(&context);
         populateQMemToQoalaHostPatterns(context, allPatterns, typeConverter);
         populateQMemToNetQASMPatterns(context, allPatterns, typeConverter);
+        populateQMemToIntermediateQMemPatterns(context, f32Patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
         // Stage 1: Transform f32 type - This is done with an "intra-dialect" lowering
-        qoala::analysis::flattening::flattenFloatInstances(module, operationUsesF32Angle);
+        LogicalResult f32LoweringResult =
+                mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
+        if (mlir::failed(f32LoweringResult)) {
+            signalPassFailure();
+        }
 
         // Stage 2: Functionize
         qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
@@ -101,7 +114,7 @@ namespace qoala::conversion {
 
         // Stage 3: Apply the QMemtoNetQASM and QMemToQoalaHost conversion patterns
         LogicalResult conversionResult =
-            mlir::applyPartialConversion(module, target, std::move(allPatterns));
+            mlir::applyPartialConversion(module, qMemLoweringTarget, std::move(allPatterns));
         if (mlir::failed(conversionResult)) {
             signalPassFailure();
         }

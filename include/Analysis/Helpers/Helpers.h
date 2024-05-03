@@ -100,6 +100,17 @@ namespace qoala::helpers {
                                        TypeConverter &typeConverter);
 
     /**
+     * Adds the QMem to _intermediate_ QMem conversions patterns to the given rewrite pattern set.
+     * It also uses the given type converter.
+     * @param context The MLIRContext object.
+     * @param patterns The pattern set object to populate.
+     * @param typeConverter The type converter object used by the rewriter methods.
+     */
+    void populateQMemToIntermediateQMemPatterns(MLIRContext &context,
+                                                RewritePatternSet &patterns,
+                                                TypeConverter &typeConverter);
+
+    /**
      * Simple "null" type converter for dialect conversion passes. This type
      * converter simply returns the same type for any given type.
      */
