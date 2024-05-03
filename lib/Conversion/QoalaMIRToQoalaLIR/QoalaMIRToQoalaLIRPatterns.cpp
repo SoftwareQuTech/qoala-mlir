@@ -78,6 +78,26 @@ namespace qoala::conversion::mir {
         return newRecv->getResults();
     }
 
+    ValueRange
+    SendIntsOpLowering::createNewOpAndValues(qmem::SendIntsOp op, qmem::SendIntsOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        auto newRecv = rewriter.create<qoalahost::SendIntsOp>(
+                op.getLoc(),
+                op.getCin(),
+                adaptor.getRemoteAttr());
+        return newRecv->getResults();
+    }
+
+    ValueRange
+    SendFloatsOpLowering::createNewOpAndValues(qmem::SendFloatsOp op, qmem::SendFloatsOp::Adaptor adaptor,
+                                               ConversionPatternRewriter &rewriter) const {
+        auto newRecv = rewriter.create<qoalahost::SendIntsOp>(
+                op.getLoc(),
+                op.getCin(),
+                adaptor.getRemoteAttr());
+        return newRecv->getResults();
+    }
+
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
     ValueRange
     MeasureOpLowering::createNewOpAndValues(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,

@@ -53,6 +53,18 @@ namespace qoala::conversion::mir {
         ValueRange createNewOpAndValues(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
+    class SendIntsOpLowering : public OpLoweringTemplate<qmem::SendIntsOp, qoalahost::SendIntsOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        ValueRange createNewOpAndValues(qmem::SendIntsOp op, qmem::SendIntsOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class SendFloatsOpLowering : public OpLoweringTemplate<qmem::SendFloatsOp, qoalahost::SendFloatsOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        ValueRange createNewOpAndValues(qmem::SendFloatsOp op, qmem::SendFloatsOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
     class MeasureOpLowering : public OpLoweringTemplate<qmem::MeasureOp, netqasm::MeasureOp> {
