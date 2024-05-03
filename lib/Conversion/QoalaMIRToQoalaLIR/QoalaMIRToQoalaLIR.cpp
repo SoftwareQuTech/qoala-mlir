@@ -70,49 +70,69 @@ namespace qoala::conversion {
         MLIRContext &context = this->getContext();
         ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
         assert(module);
-        LLVM_DEBUG(llvm::dbgs() << "Converting MIR to LIR on module\n");
-
-        // Get a conversion qMemLoweringTarget to define our qMemLoweringTarget dialects
-        ConversionTarget qMemLoweringTarget(context);
-        qMemLoweringTarget.addLegalDialect<qoalahost::QoalaHostDialect>();
-        qMemLoweringTarget.addLegalDialect<netqasm::NetQASMDialect>();
-        qMemLoweringTarget.addIllegalDialect<qmem::QMemDialect>();
-        // There are NO legal options in QMem dialect after this pass
-        //qMemLoweringTarget.addLegalOp<
-            // some::Class
-        //>();
+        LLVM_DEBUG(llvm::dbgs() << "*************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
         NullTypeConverter typeConverter(&context);
 
         ConversionTarget f32LoweringTarget(context);
-        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
         RewritePatternSet f32Patterns(&context);
-        populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
+        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
+        qoala::helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         // We add the conversion pattern to the context
-        RewritePatternSet allPatterns(&context);
-        populateQMemToQoalaHostPatterns(context, allPatterns, typeConverter);
-        populateQMemToNetQASMPatterns(context, allPatterns, typeConverter);
+        ConversionTarget qMemToQoalaHostTarget(context);
+        RewritePatternSet qMemToQoalaHostPatterns(&context);
+        qoala::helpers::configureQMemToQoalaHostTarget(qMemToQoalaHostTarget, true, false);
+        qoala::helpers::populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
 
+        ConversionTarget qMemToNetQASMTarget(context);
+        RewritePatternSet qMemToNetQASMPatterns(&context);
+        qoala::helpers::configureQMemToNetQASMTarget(qMemToNetQASMTarget);
+        qoala::helpers::populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
+
+        // Stage 1: Insert the declaration of the builtin angle conversion function
+        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Inserting builtin function declaration *\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-        // Stage 1: Transform f32 type - This is done with an "intra-dialect" lowering
+        // Stage 2: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
         LogicalResult f32LoweringResult =
                 mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
         if (mlir::failed(f32LoweringResult)) {
             signalPassFailure();
         }
 
-        // Stage 2: Functionize
+        // Stage 3: Functionize
+        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Functionizing quantum operations*\n");
+        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
         qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
-        module.dump();
 
-        // Stage 3: Apply the QMemtoNetQASM and QMemToQoalaHost conversion patterns
-        LogicalResult conversionResult =
-            mlir::applyPartialConversion(module, qMemLoweringTarget, std::move(allPatterns));
-        if (mlir::failed(conversionResult)) {
+        // Stage 4: Convert QMem to QoalaHost
+        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
+        LogicalResult qMemToQoalaHostResult =
+            mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
+        if (mlir::failed(qMemToQoalaHostResult)) {
+            signalPassFailure();
+        }
+
+        // Stage 5: Convert QMem to QoalaHost
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
+        LogicalResult qMemtoNetQASMResult =
+                mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
+        if (mlir::failed(qMemtoNetQASMResult)) {
             signalPassFailure();
         }
     }

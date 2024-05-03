@@ -24,30 +24,53 @@ using namespace qoala::conversion;
 using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
-    void configureQMemToQoalaHostTarget(ConversionTarget &target) {
+    void configureQMemToQoalaHostTarget(ConversionTarget &target,
+                                        bool intRotsAreLegal,
+                                        bool floatRotsAreLegal) {
         target.addLegalDialect<qoalahost::QoalaHostDialect>();
         target.addIllegalDialect<qmem::QMemDialect>();
         target.addLegalOp<
                 // Everything BUT qmem.func amd qmem.return is legal after this pass,
                 // because this pass does not modify these operations
                 qmem::CnotOp,
-                qmem::CrotXOp,
                 qmem::CzOp,
                 qmem::EprsMeasureOp,
                 qmem::EprsOp,
                 qmem::HadamardOp,
                 qmem::InitOp,
                 qmem::MeasureOp,
-                qmem::QAllocOp,
-                qmem::RecvFloatsOp,
-                qmem::RecvIntsOp,
-                qmem::RemoteOp,
-                qmem::RotateXOp,
-                qmem::RotateYOp,
-                qmem::RotateZOp,
-                qmem::SendFloatsOp,
-                qmem::SendIntsOp
+                qmem::QAllocOp
         >();
+        if (intRotsAreLegal) {
+            target.addLegalOp<
+                    qmem::RotateXIntOp,
+                    qmem::RotateYIntOp,
+                    qmem::RotateZIntOp,
+                    qmem::CrotXIntOp
+            >();
+        } else {
+            target.addIllegalOp<
+                    qmem::RotateXIntOp,
+                    qmem::RotateYIntOp,
+                    qmem::RotateZIntOp,
+                    qmem::CrotXIntOp
+            >();
+        }
+        if (floatRotsAreLegal) {
+            target.addLegalOp<
+                    qmem::RotateXOp,
+                    qmem::RotateYOp,
+                    qmem::RotateZOp,
+                    qmem::CrotXOp
+            >();
+        } else {
+            target.addIllegalOp<
+                    qmem::RotateXOp,
+                    qmem::RotateYOp,
+                    qmem::RotateZOp,
+                    qmem::CrotXOp
+            >();
+        }
     }
 
     void populateQMemToQoalaHostPatterns(
@@ -83,7 +106,7 @@ namespace qoala::conversion {
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
 
-        qoala::helpers::configureQMemToQoalaHostTarget(target);
+        qoala::helpers::configureQMemToQoalaHostTarget(target, true, true);
         qoala::helpers::populateQMemToQoalaHostPatterns(context, patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {

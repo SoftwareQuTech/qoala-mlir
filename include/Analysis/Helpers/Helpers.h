@@ -82,7 +82,9 @@ namespace qoala::helpers {
      * applying the QMem to QoalaHost dialect conversion.
      * @param target The ConversionTarget object to configure
      */
-    void configureQMemToQoalaHostTarget(ConversionTarget &target);
+    void configureQMemToQoalaHostTarget(ConversionTarget &target,
+                                        bool intRotsAreLegal,
+                                        bool floatRotsAreLegal);
 
     /**
      * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
