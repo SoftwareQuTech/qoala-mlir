@@ -99,6 +99,8 @@ namespace qoala::helpers {
                                        RewritePatternSet &patterns,
                                        TypeConverter &typeConverter);
 
+    void configureF32LoweringTarget(ConversionTarget &target);
+
     /**
      * Adds the QMem to _intermediate_ QMem conversions patterns to the given rewrite pattern set.
      * It also uses the given type converter.
@@ -106,9 +108,9 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToIntermediateQMemPatterns(MLIRContext &context,
-                                                RewritePatternSet &patterns,
-                                                TypeConverter &typeConverter);
+    void populateQMemF32ToInt32RotPatterns(MLIRContext &context,
+                                           RewritePatternSet &patterns,
+                                           TypeConverter &typeConverter);
 
     /**
      * Simple "null" type converter for dialect conversion passes. This type

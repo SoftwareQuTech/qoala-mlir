@@ -81,21 +81,18 @@ namespace qoala::conversion {
         //qMemLoweringTarget.addLegalOp<
             // some::Class
         //>();
+
+        NullTypeConverter typeConverter(&context);
+
         ConversionTarget f32LoweringTarget(context);
-        f32LoweringTarget.addIllegalOp<
-                qmem::RotateXOp,
-                qmem::RotateYOp,
-                qmem::RotateZOp,
-                qmem::CrotXOp
-                >();
+        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
+        RewritePatternSet f32Patterns(&context);
+        populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         // We add the conversion pattern to the context
         RewritePatternSet allPatterns(&context);
-        RewritePatternSet f32Patterns(&context);
-        NullTypeConverter typeConverter(&context);
         populateQMemToQoalaHostPatterns(context, allPatterns, typeConverter);
         populateQMemToNetQASMPatterns(context, allPatterns, typeConverter);
-        populateQMemToIntermediateQMemPatterns(context, f32Patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);

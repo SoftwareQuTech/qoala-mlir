@@ -2,6 +2,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Dialect/QMem/Passes.h"
 #include "Dialect/QMem/QMem.h"
 
@@ -34,7 +35,22 @@ static bool operationUsesF32Angle(Operation *operation) {
 }
 
 namespace qoala::helpers {
-    void populateQMemToIntermediateQMemPatterns(
+    void configureF32LoweringTarget(ConversionTarget &target) {
+        // When converting F32 to I32 rotations, configure that after conversion all QMem operations are valid
+        target.addLegalDialect<qmem::QMemDialect>();
+        // ... EXCEPT for the ones we want to convert
+        target.addIllegalOp<
+                qmem::RotateXOp,
+                qmem::RotateYOp,
+                qmem::RotateZOp,
+                qmem::CrotXOp
+        >();
+        // Call ops ARE ALSO allowed in this conversion
+        target.addLegalOp<func::CallOp>();
+    }
+
+
+    void populateQMemF32ToInt32RotPatterns(
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
         patterns.add<
@@ -59,15 +75,11 @@ namespace qoala::analysis {
         LLVM_DEBUG(llvm::dbgs() << "Lowering f32 rotation operations\n");
 
         ConversionTarget f32LoweringTarget(context);
-        f32LoweringTarget.addIllegalOp<
-                qmem::RotateXOp,
-                qmem::RotateYOp,
-                qmem::RotateZOp,
-                qmem::CrotXOp
-        >();
+        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
+
         RewritePatternSet f32Patterns(&context);
         NullTypeConverter typeConverter(&context);
-        populateQMemToIntermediateQMemPatterns(context, f32Patterns, typeConverter);
+        populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         LogicalResult f32ConversionResult =
                 mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
