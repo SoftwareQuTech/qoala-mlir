@@ -155,6 +155,28 @@ namespace qoala::conversion::mir {
     }
 
     ValueRange
+    HadamardLowering::createNewOpAndValues(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newHadamard = rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
+        return newHadamard->getResults();
+    }
+
+    ValueRange
+    CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const {
+        auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        return newCnot->getResults();
+    }
+
+    ValueRange
+    CzLowering::createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const {
+        auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        return newCz->getResults();
+    }
+
+    /* Lowering patterns for operations that should have been lowered by the "intra-dialect" lowering */
+    ValueRange
     RotateXLowering::createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
@@ -188,27 +210,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return newRotate->getResults();
-    }
-
-    ValueRange
-    HadamardLowering::createNewOpAndValues(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
-                                           ConversionPatternRewriter &rewriter) const {
-        auto newHadamard = rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
-        return newHadamard->getResults();
-    }
-
-    ValueRange
-    CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const {
-        auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
-        return newCnot->getResults();
-    }
-
-    ValueRange
-    CzLowering::createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
-                                     ConversionPatternRewriter &rewriter) const {
-        auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
-        return newCz->getResults();
     }
 
     ValueRange

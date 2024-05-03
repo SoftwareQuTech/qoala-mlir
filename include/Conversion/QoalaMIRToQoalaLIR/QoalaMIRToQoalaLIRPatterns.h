@@ -106,30 +106,6 @@ namespace qoala::conversion::mir {
         ValueRange createNewOpAndValues(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateXLowering : public OpLoweringTemplate<qmem::RotateXOp, netqasm::RotateXOp> {
-    public:
-        // Constructor simply matches the super class
-        using OpLoweringTemplate::OpLoweringTemplate;
-
-        ValueRange createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const override;
-    };
-    class RotateYLowering : public OpLoweringTemplate<qmem::RotateYOp, netqasm::RotateYOp> {
-    public:
-        // Constructor simply matches the super class
-        using OpLoweringTemplate::OpLoweringTemplate;
-
-        ValueRange createNewOpAndValues(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const override;
-    };
-    class RotateZLowering : public OpLoweringTemplate<qmem::RotateZOp, netqasm::RotateZOp> {
-    public:
-        // Constructor simply matches the super class
-        using OpLoweringTemplate::OpLoweringTemplate;
-
-        ValueRange createNewOpAndValues(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const override;
-    };
     class HadamardLowering : public OpLoweringTemplate<qmem::HadamardOp, netqasm::HadamardOp> {
     public:
         // Constructor simply matches the super class
@@ -153,6 +129,65 @@ namespace qoala::conversion::mir {
 
         ValueRange createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const override;
+    };
+    /* Lowering for "intermediate" operations that use the angle_num and angle_denom integers instead of float angle */
+    class RotateXIntLowering : public OpLoweringTemplate<qmem::RotateXIntOp, netqasm::RotateXOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateXIntOp op, qmem::RotateXIntOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateYIntLowering : public OpLoweringTemplate<qmem::RotateYIntOp, netqasm::RotateYOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateYIntOp op, qmem::RotateYIntOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateZIntLowering : public OpLoweringTemplate<qmem::RotateZIntOp, netqasm::RotateZOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateZIntOp op, qmem::RotateZIntOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class CRotXIntLowering : public OpLoweringTemplate<qmem::CrotXIntOp, netqasm::CrotXOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::CrotXIntOp op, qmem::CrotXIntOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+
+    /* Lowering patterns for operations that should have been lowered by the "intra-dialect" lowering */
+    class RotateXLowering : public OpLoweringTemplate<qmem::RotateXOp, netqasm::RotateXOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateYLowering : public OpLoweringTemplate<qmem::RotateYOp, netqasm::RotateYOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
+    };
+    class RotateZLowering : public OpLoweringTemplate<qmem::RotateZOp, netqasm::RotateZOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        ValueRange createNewOpAndValues(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const override;
     };
     class CRotXLowering : public OpLoweringTemplate<qmem::CrotXOp, netqasm::CrotXOp> {
     public:
