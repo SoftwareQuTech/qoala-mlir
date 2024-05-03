@@ -54,10 +54,6 @@ namespace qoala::analysis {
          */
         void functionizeModule(ModuleOp &module, bool (*opCanBeFunctionized)(Operation *));
     }
-
-    namespace flattening {
-        void flattenFloatInstances(ModuleOp &module, bool (*operationUsesF32Angle)(Operation *));
-    }
 }
 
 #endif //QOALA_MLIR_CONVERSION_H

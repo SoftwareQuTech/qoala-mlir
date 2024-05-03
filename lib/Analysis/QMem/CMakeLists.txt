@@ -1,6 +1,5 @@
 add_mlir_dialect_library(MLIRQMemAnalysisLibs
         Functionize.cpp
-        FloatFlattening.cpp
         FunctionizeQuantumOps.cpp
         LowerF32Rotations.cpp
 
