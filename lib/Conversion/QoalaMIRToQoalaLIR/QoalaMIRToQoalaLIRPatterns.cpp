@@ -1,6 +1,8 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 #include "llvm/Support/Debug.h"
 
+using namespace qoala::helpers;
+
 namespace qoala::conversion::mir {
     func::CallOp insertCallAngleTransform(Operation *operation, ConversionPatternRewriter &rewriter, Value angle) {
         // We also need to find the declaration of the angle conversion builtin
@@ -11,18 +13,19 @@ namespace qoala::conversion::mir {
     }
 
     /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RemoteOpLowering::createNewOpAndValues(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
         auto newReturn = rewriter.create<qoalahost::RemoteOp>(
                 op.getLoc(),
                 adaptor.getSymNameAttr(),
                 adaptor.getSymVisibilityAttr());
-        return newReturn->getResults();
+        return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
+
     }
 
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     FuncOpLowering::createNewOpAndValues(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
         auto newFunc = rewriter.create<qoalahost::MainFuncOp>(
@@ -33,19 +36,21 @@ namespace qoala::conversion::mir {
                 adaptor.getArgAttrsAttr(),
                 adaptor.getResAttrsAttr());
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
-        return newFunc->getResults();
+        return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     ReturnOpLowering::createNewOpAndValues(qmem::ReturnOp op, qmem::ReturnOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
         auto newReturn = rewriter.create<qoalahost::ReturnOp>(
                 op.getLoc(),
                 adaptor.getOperands());
-        return newReturn->getResults();
+        return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     CallOpLowering::createNewOpAndValues(func::CallOp op, func::CallOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
         auto newCall = rewriter.create<qoalahost::CallOp>(
@@ -53,10 +58,11 @@ namespace qoala::conversion::mir {
                 adaptor.getCallee(),
                 op->getResultTypes(),
                 op.getOperands());
-        return newCall->getResults();
+        return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RecvIntsOpLowering::createNewOpAndValues(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
@@ -64,10 +70,11 @@ namespace qoala::conversion::mir {
                 op.getLoc(),
                 convertedType,
                 adaptor.getRemoteAttr());
-        return newRecv->getResults();
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RecvFloatsOpLowering::createNewOpAndValues(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
                                                ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
@@ -75,56 +82,62 @@ namespace qoala::conversion::mir {
                 op.getLoc(),
                 convertedType,
                 adaptor.getRemoteAttr());
-        return newRecv->getResults();
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     SendIntsOpLowering::createNewOpAndValues(qmem::SendIntsOp op, qmem::SendIntsOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
         auto newRecv = rewriter.create<qoalahost::SendIntsOp>(
                 op.getLoc(),
                 op.getCin(),
                 adaptor.getRemoteAttr());
-        return newRecv->getResults();
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     SendFloatsOpLowering::createNewOpAndValues(qmem::SendFloatsOp op, qmem::SendFloatsOp::Adaptor adaptor,
                                                ConversionPatternRewriter &rewriter) const {
         auto newRecv = rewriter.create<qoalahost::SendIntsOp>(
                 op.getLoc(),
                 op.getCin(),
                 adaptor.getRemoteAttr());
-        return newRecv->getResults();
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
-    ValueRange
+    std::unique_ptr<OpAndValues>
     MeasureOpLowering::createNewOpAndValues(qmem::MeasureOp op, qmem::MeasureOp::Adaptor adaptor,
                                             ConversionPatternRewriter &rewriter) const {
         auto newOp = rewriter.create<netqasm::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptor.getQ());
-        return newOp->getResults();
+        return std::make_unique<OpAndValues>(newOp.getOperation(), newOp->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     EprsOpLowering::createNewOpAndValues(qmem::EprsOp op, qmem::EprsOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
         auto newEprs = rewriter.create<netqasm::EprsOp>(
                 op.getLoc(),
                 adaptor.getQ(),
                 adaptor.getRemoteAttr());
-        return newEprs->getResults();
+        return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     EprsMeasureOpLowering::createNewOpAndValues(qmem::EprsMeasureOp op, qmem::EprsMeasureOp::Adaptor adaptor,
                                                 ConversionPatternRewriter &rewriter) const {
         auto newEprs = rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), rewriter.getI1Type(),
                                                        adaptor.getQ(), adaptor.getRemoteAttr());
-        return newEprs->getResults();
+        return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     NetQASMFunctionLowering::createNewOpAndValues(func::FuncOp op, func::FuncOp::Adaptor adaptor,
                                                   ConversionPatternRewriter &rewriter) const {
         StringAttr entangleAttr = dyn_cast_or_null<StringAttr>(op->getAttr("entangle"));
@@ -138,7 +151,8 @@ namespace qoala::conversion::mir {
                     adaptor.getResAttrsAttr());
             rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
             // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
-            return newFunc->getResults();
+            return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
+
         } else {
             auto newFunc = rewriter.create<netqasm::LocalRoutineOp>(
                     op.getLoc(),
@@ -149,94 +163,105 @@ namespace qoala::conversion::mir {
                     adaptor.getResAttrsAttr());
             rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
             // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
-            return newFunc->getResults();
+            return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
+
         }
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     NetQASMReturnOpLowering::createNewOpAndValues(func::ReturnOp op, func::ReturnOp::Adaptor adaptor,
                                                   ConversionPatternRewriter &rewriter) const {
         auto newReturn = rewriter.create<netqasm::ReturnOp>(op.getLoc(), adaptor.getOperands());
-        return newReturn->getResults();
+        return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     QAllocLowering::createNewOpAndValues(qmem::QAllocOp op, qmem::QAllocOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
         auto newAlloc = rewriter.create<netqasm::QAllocOp>(op.getLoc());
-        return newAlloc->getResults();
+        return std::make_unique<OpAndValues>(newAlloc.getOperation(), newAlloc->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     QInitLowering::createNewOpAndValues(qmem::InitOp op, qmem::InitOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const {
         auto newQInit = rewriter.create<netqasm::QInitOp>(op.getLoc(), adaptor.getQ());
-        return newQInit->getResults();
+        return std::make_unique<OpAndValues>(newQInit.getOperation(), newQInit->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     HadamardLowering::createNewOpAndValues(qmem::HadamardOp op, qmem::HadamardOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
         auto newHadamard = rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
-        return newHadamard->getResults();
+        return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const {
         auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
-        return newCnot->getResults();
+        return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     CzLowering::createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
                                      ConversionPatternRewriter &rewriter) const {
         auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
-        return newCz->getResults();
+        return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getResults());
+
     }
 
     /* Lowering for "intermediate" operations that use the angle_num and angle_denom integers instead of float angle */
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateXIntLowering::createNewOpAndValues(qmem::RotateXIntOp op, qmem::RotateXIntOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateXOp>(
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateYIntLowering::createNewOpAndValues(qmem::RotateYIntOp op, qmem::RotateYIntOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateYOp>(
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateZIntLowering::createNewOpAndValues(qmem::RotateZIntOp op, qmem::RotateZIntOp::Adaptor adaptor,
                                              ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateZOp>(
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     CRotXIntLowering::createNewOpAndValues(qmem::CrotXIntOp op, qmem::CrotXIntOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
-        return newCrotX->getResults();
+        return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
+
     }
 
     /* Lowering patterns for operations that should have been lowered by the "intra-dialect" lowering */
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateXLowering::createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
@@ -245,10 +270,11 @@ namespace qoala::conversion::mir {
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateYLowering::createNewOpAndValues(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
@@ -257,10 +283,11 @@ namespace qoala::conversion::mir {
         auto newRotate = rewriter.create<qmem::RotateYIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     RotateZLowering::createNewOpAndValues(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
@@ -269,10 +296,11 @@ namespace qoala::conversion::mir {
         auto newRotate= rewriter.create<qmem::RotateZIntOp>(
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
-        return newRotate->getResults();
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+
     }
 
-    ValueRange
+    std::unique_ptr<OpAndValues>
     CRotXLowering::createNewOpAndValues(qmem::CrotXOp op, qmem::CrotXOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const {
         // The angle is a float, we need to transform it to 2 integers, using a builtin
@@ -281,6 +309,7 @@ namespace qoala::conversion::mir {
         auto newCrotX = rewriter.create<qmem::CrotXIntOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 angleConversionCall.getOperand(0), angleConversionCall.getOperand(1));
-        return newCrotX->getResults();
+        return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
+
     }
 } // namespace qoala::conversion::mir
