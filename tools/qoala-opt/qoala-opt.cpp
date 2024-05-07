@@ -12,6 +12,7 @@
 
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
+#include "Dialect/QRemote/QRemoteDialect.h"
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
@@ -25,6 +26,7 @@ int main(int argc, char **argv) {
     registry.insert<qoala::dialects::qmem::QMemDialect>();
     registry.insert<qoala::dialects::netqasm::NetQASMDialect>();
     registry.insert<qoala::dialects::qoalahost::QoalaHostDialect>();
+    registry.insert<qoala::dialects::qremote::QRemoteDialect>();
 
     // We also register all the passes from MLIR
     mlir::registerAllPasses();
