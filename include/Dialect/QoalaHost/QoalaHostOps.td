@@ -23,7 +23,6 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "Dialect/QoalaHost/QoalaHostDialect.td"
 
 
-
 class QoalaHost_Op<string mnemonic, list<Trait> traits = []> :
     Op<QoalaHost_Dialect, mnemonic, traits>;
 
