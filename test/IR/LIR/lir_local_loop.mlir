@@ -1,7 +1,7 @@
 // RUN: qoala-opt %s
 
 module {
-    qoalahost.remote @Bob
+    qremote.remote @Bob
 
     netqasm.local_routine @subrt1(%vqubits_tensor: tensor<5xi32>) -> tensor<5xi32> {
       %5 = arith.constant 5 : index

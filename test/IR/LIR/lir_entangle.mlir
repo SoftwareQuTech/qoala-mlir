@@ -1,7 +1,7 @@
 // RUN: qoala-opt %s
 
 module {
-    qoalahost.remote @Bob
+    qremote.remote @Bob
 
     netqasm.request_routine @req1() -> i32 {
       %vqubit = netqasm.qalloc : i32
