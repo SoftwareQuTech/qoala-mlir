@@ -70,7 +70,7 @@ module {
     // CHECK: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN2]]) : (i32) -> ()
     qmem.eprs %2 {remote = @Bob}
 
-    // CHECK: qoalahost.recv_floats {remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %3 = qmem.recv_floats  {length = 2 : i32, remote = @Bob} : tensor<2xf32>
 
     %c0 = arith.constant 0 : index
@@ -80,7 +80,7 @@ module {
     // CHECK-NEXT: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN2]], %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1) : (i32, i32, i32) -> ()
     qmem.rot_x %2, %extracted
 
-    // CHECK: qoalahost.recv_floats {remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %4 = qmem.recv_floats  {length = 2 : i32, remote = @Bob} : tensor<2xf32>
 
     %c1 = arith.constant 1 : index
