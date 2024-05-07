@@ -11,13 +11,12 @@ module {
   // CHECK-NEXT: netqasm.return %[[REG0_0]] : i32
 
   // CHECK: netqasm.request_routine @[[WRAPPER1:.*]](%[[ARG0_0:.*]]: i32)
-  // CHECK-NEXT: netqasm.eprs %arg0 {remote = @[[REMOTEBOB]]}
+  // CHECK-NEXT: netqasm.eprs %[[ARG0_0]] {remote = @[[REMOTEBOB]]}
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER2:.*]]() -> i32
   // CHECK-NEXT: %[[REG0_2:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.return %[[REG0_2]] : i32
-
 
   // CHECK: netqasm.request_routine @[[WRAPPER3:.*]](%[[ARG3_0:.*]]: i32)
   // CHECK-NEXT: netqasm.eprs %[[ARG3_0]] {remote = @[[REMOTEBOB]]}

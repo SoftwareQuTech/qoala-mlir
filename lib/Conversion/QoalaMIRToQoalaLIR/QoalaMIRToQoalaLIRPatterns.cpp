@@ -21,7 +21,6 @@ namespace qoala::conversion::mir {
                 adaptor.getSymNameAttr(),
                 adaptor.getSymVisibilityAttr());
         return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
-
     }
 
 
@@ -37,7 +36,6 @@ namespace qoala::conversion::mir {
                 adaptor.getResAttrsAttr());
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -47,7 +45,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(),
                 adaptor.getOperands());
         return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -59,7 +56,6 @@ namespace qoala::conversion::mir {
                 op->getResultTypes(),
                 op.getOperands());
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -71,7 +67,6 @@ namespace qoala::conversion::mir {
                 convertedType,
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -83,7 +78,6 @@ namespace qoala::conversion::mir {
                 convertedType,
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -94,7 +88,6 @@ namespace qoala::conversion::mir {
                 op.getCin(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -105,7 +98,6 @@ namespace qoala::conversion::mir {
                 op.getCin(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
-
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect */
@@ -114,7 +106,6 @@ namespace qoala::conversion::mir {
                                             ConversionPatternRewriter &rewriter) const {
         auto newOp = rewriter.create<netqasm::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptor.getQ());
         return std::make_unique<OpAndValues>(newOp.getOperation(), newOp->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -125,7 +116,6 @@ namespace qoala::conversion::mir {
                 adaptor.getQ(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -134,7 +124,6 @@ namespace qoala::conversion::mir {
         auto newEprs = rewriter.create<netqasm::EprsMeasureOp>(op.getLoc(), rewriter.getI1Type(),
                                                        adaptor.getQ(), adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -164,7 +153,6 @@ namespace qoala::conversion::mir {
             rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
             // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
             return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
-
         }
     }
 
@@ -173,7 +161,6 @@ namespace qoala::conversion::mir {
                                                   ConversionPatternRewriter &rewriter) const {
         auto newReturn = rewriter.create<netqasm::ReturnOp>(op.getLoc(), adaptor.getOperands());
         return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -181,7 +168,6 @@ namespace qoala::conversion::mir {
                                          ConversionPatternRewriter &rewriter) const {
         auto newAlloc = rewriter.create<netqasm::QAllocOp>(op.getLoc());
         return std::make_unique<OpAndValues>(newAlloc.getOperation(), newAlloc->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -189,7 +175,6 @@ namespace qoala::conversion::mir {
                                         ConversionPatternRewriter &rewriter) const {
         auto newQInit = rewriter.create<netqasm::QInitOp>(op.getLoc(), adaptor.getQ());
         return std::make_unique<OpAndValues>(newQInit.getOperation(), newQInit->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -197,7 +182,6 @@ namespace qoala::conversion::mir {
                                            ConversionPatternRewriter &rewriter) const {
         auto newHadamard = rewriter.create<netqasm::HadamardOp>(op.getLoc(), adaptor.getQ());
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -205,7 +189,6 @@ namespace qoala::conversion::mir {
                                        ConversionPatternRewriter &rewriter) const {
         auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
         return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -213,7 +196,6 @@ namespace qoala::conversion::mir {
                                      ConversionPatternRewriter &rewriter) const {
         auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
         return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getResults());
-
     }
 
     /* Lowering for "intermediate" operations that use the angle_num and angle_denom integers instead of float angle */
@@ -225,7 +207,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -236,7 +217,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -247,7 +227,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -257,7 +236,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
-
     }
 
     /* Lowering patterns for operations that should have been lowered by the "intra-dialect" lowering */
@@ -271,7 +249,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -284,7 +261,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -297,7 +273,6 @@ namespace qoala::conversion::mir {
                 op.getLoc(), adaptor.getQ(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -308,8 +283,7 @@ namespace qoala::conversion::mir {
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newCrotX = rewriter.create<qmem::CrotXIntOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
-                angleConversionCall.getOperand(0), angleConversionCall.getOperand(1));
+                angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
-
     }
 } // namespace qoala::conversion::mir
