@@ -187,14 +187,14 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
                                        ConversionPatternRewriter &rewriter) const {
-        auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
         return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getResults());
     }
 
     std::unique_ptr<OpAndValues>
     CzLowering::createNewOpAndValues(qmem::CzOp op, qmem::CzOp::Adaptor adaptor,
                                      ConversionPatternRewriter &rewriter) const {
-        auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin0());
+        auto newCz = rewriter.create<netqasm::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
         return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getResults());
     }
 
@@ -233,7 +233,7 @@ namespace qoala::conversion::mir {
     CRotXIntLowering::createNewOpAndValues(qmem::CrotXIntOp op, qmem::CrotXIntOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(
-                op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
+                op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
                 adaptor.getAngleNum(), adaptor.getAngleDenom());
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
     }
@@ -282,7 +282,7 @@ namespace qoala::conversion::mir {
         func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newCrotX = rewriter.create<qmem::CrotXIntOp>(
-                op.getLoc(), adaptor.getQin0(), adaptor.getQin0(),
+                op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
                 angleConversionCall.getResult(0), angleConversionCall.getResult(1));
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
     }
