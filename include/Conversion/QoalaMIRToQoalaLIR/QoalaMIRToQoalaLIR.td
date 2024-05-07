@@ -24,7 +24,7 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
                              "::qoala::dialects::qmem::QMemDialect",
                              "::qoala::dialects::qoalahost::QoalaHostDialect",
                              "::qoala::dialects::netqasm::NetQASMDialect",
-                             "::qoala::dialects::netqasm::QRemoteDialect"];
+                             "::qoala::dialects::qremote::QRemoteDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -39,7 +39,7 @@ def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
     let dependentDialects = ["::mlir::func::FuncDialect",
                              "::qoala::dialects::qmem::QMemDialect",
                              "::qoala::dialects::qoalahost::QoalaHostDialect",
-                             "::qoala::dialects::netqasm::QRemoteDialect"];
+                             "::qoala::dialects::qremote::QRemoteDialect"];
 }
 
 //===----------------------------------------------------------------------===//
