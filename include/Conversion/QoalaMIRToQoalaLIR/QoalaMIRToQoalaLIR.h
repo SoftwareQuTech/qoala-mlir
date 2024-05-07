@@ -19,6 +19,7 @@ namespace mlir {
     std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
     std::unique_ptr<mlir::Pass> createLowerQMemToQoalaHostPass();
     std::unique_ptr<mlir::Pass> createLowerQMemToNetQASMPass();
+    std::unique_ptr<mlir::Pass> createLowerQMemToQRemotePass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
