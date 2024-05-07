@@ -20,15 +20,8 @@
 
 using namespace mlir;
 
-// NetQASM uses QoalaHost classes and vice versa; so we insert _forward_ class
-// declarations so this file compiles correctly
-// We insert these forward defines only because the `verifySymbolUses` function
-// generated from the tblgen file (NetQASMOps.td) requires the qoalahost::Remote
-// type to check the validity of the declared symbol
-// An idea for the future to break this (circular) dependency is to place the
-// remote declaration in a separate dialect.
-#define GET_OP_FWD_DEFINES
-#include "Dialect/QoalaHost/QoalaHost.h.inc"
+// Remotes will be lowered to declarations in the qremote dialect
+#include "Dialect/QRemote/QRemote.h"
 
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.h.inc"

@@ -170,23 +170,14 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
                 if (!fnAttr)
                     return this->emitOpError("requires a 'remote' symbol reference attribute");
                 // Search the symbol in the parent SymbolTables
-                // The declared symbol MUST come from a qoalahost.remote operation
-                if (symbolTable.lookupNearestSymbolFrom<qoalahost::RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
+                // The declared symbol MUST come from a qremote.remote operation
+                if (symbolTable.lookupNearestSymbolFrom<qremote::RemoteOp>(this->getOperation(), this->getRemoteAttr())) {
                     return success();
                 }
                 return this->emitOpError() << "'" << fnAttr.getValue()
                                            << "' does not reference a valid remote node";
             }
         }];
-}
-
-
-def RemoteOp: QoalaHost_Op<"remote", [Symbol]> {
-    let arguments = (ins Arg<SymbolNameAttr, "remote-name">:$sym_name,
-                         Arg<OptionalAttr<StrAttr>, "visibility">:$sym_visibility);
-    let assemblyFormat = [{
-        attr-dict $sym_name
-    }];
 }
 
 def SendIntsOp : UsingRemote_Op<"send_ints"> {

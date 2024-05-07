@@ -21,6 +21,9 @@
 
 using namespace mlir;
 
+// Remotes will be lowered to declarations in the qremote dialect
+#include "Dialect/QRemote/QRemote.h"
+
 // QoalaHost uses NetQASM classes and vice versa; so we insert _forward_ class
 // declarations so this file compiles correctly
 #define GET_OP_FWD_DEFINES
