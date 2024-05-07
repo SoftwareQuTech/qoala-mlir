@@ -65,7 +65,8 @@ namespace qoala::conversion::mir {
         auto newRecv = rewriter.create<qoalahost::RecvIntsOp>(
                 op.getLoc(),
                 convertedType,
-                adaptor.getRemoteAttr());
+                adaptor.getRemoteAttr(),
+                adaptor.getLengthAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
@@ -76,7 +77,8 @@ namespace qoala::conversion::mir {
         auto newRecv = rewriter.create<qoalahost::RecvFloatsOp>(
                 op.getLoc(),
                 convertedType,
-                adaptor.getRemoteAttr());
+                adaptor.getRemoteAttr(),
+                adaptor.getLengthAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
