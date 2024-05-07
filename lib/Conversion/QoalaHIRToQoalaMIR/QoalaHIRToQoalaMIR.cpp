@@ -3,7 +3,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
@@ -44,26 +43,26 @@ namespace qoala::conversion {
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
-        QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);
+        hir::QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);
         patterns.add<
-                FuncOpLowering,
-                ReturnOpLowering,
-                EprsOpLowering,
-                EprsMeasureOpLowering,
-                NewQubitLowering,
-                RemoteOpLowering,
-                RecvIntsOpLowering,
-                RecvFloatsOpLowering,
-                SendIntsOpLowering,
-                SendFloatsOpLowering,
-                RotateXLowering,
-                RotateYLowering,
-                RotateZLowering,
-                HadamardLowering,
-                CNotLowering,
-                CzLowering,
-                CRotXLowering,
-                MeasureLowering
+                hir::FuncOpLowering,
+                hir::ReturnOpLowering,
+                hir::EprsOpLowering,
+                hir::EprsMeasureOpLowering,
+                hir::NewQubitLowering,
+                hir::RemoteOpLowering,
+                hir::RecvIntsOpLowering,
+                hir::RecvFloatsOpLowering,
+                hir::SendIntsOpLowering,
+                hir::SendFloatsOpLowering,
+                hir::RotateXLowering,
+                hir::RotateYLowering,
+                hir::RotateZLowering,
+                hir::HadamardLowering,
+                hir::CNotLowering,
+                hir::CzLowering,
+                hir::CRotXLowering,
+                hir::MeasureLowering
         >(typeConverter, &context);
 
         // We finally apply a **partial** conversion, since there will be some

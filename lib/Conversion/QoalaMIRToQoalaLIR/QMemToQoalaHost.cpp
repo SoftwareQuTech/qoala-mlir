@@ -5,7 +5,9 @@
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_LOWERQMEMTOQOALAHOST
@@ -18,14 +20,71 @@ using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
+using namespace qoala::conversion;
+using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
+    void configureQMemToQoalaHostTarget(ConversionTarget &target,
+                                        bool intRotsAreLegal,
+                                        bool floatRotsAreLegal) {
+        target.addLegalDialect<qoalahost::QoalaHostDialect>();
+        target.addIllegalDialect<qmem::QMemDialect>();
+        target.addLegalOp<
+                // We declare as "legal" all the operations that directly map to NetQASM operations
+                qmem::CnotOp,
+                qmem::CzOp,
+                qmem::EprsMeasureOp,
+                qmem::EprsOp,
+                qmem::HadamardOp,
+                qmem::InitOp,
+                qmem::MeasureOp,
+                qmem::QAllocOp
+        >();
+        if (intRotsAreLegal) {
+            target.addLegalOp<
+                    qmem::RotateXIntOp,
+                    qmem::RotateYIntOp,
+                    qmem::RotateZIntOp,
+                    qmem::CrotXIntOp
+            >();
+        } else {
+            target.addIllegalOp<
+                    qmem::RotateXIntOp,
+                    qmem::RotateYIntOp,
+                    qmem::RotateZIntOp,
+                    qmem::CrotXIntOp
+            >();
+        }
+        if (floatRotsAreLegal) {
+            target.addLegalOp<
+                    qmem::RotateXOp,
+                    qmem::RotateYOp,
+                    qmem::RotateZOp,
+                    qmem::CrotXOp
+            >();
+        } else {
+            target.addIllegalOp<
+                    qmem::RotateXOp,
+                    qmem::RotateYOp,
+                    qmem::RotateZOp,
+                    qmem::CrotXOp
+            >();
+        }
+    }
+
     void populateQMemToQoalaHostPatterns(
             MLIRContext &context, RewritePatternSet &patterns,
             TypeConverter &typeConverter) {
-//        patterns.add<
-        // TODO - To Implement
-//        >(typeConverter, context);
+        patterns.add<
+                mir::RemoteOpLowering,
+                mir::FuncOpLowering,
+                mir::ReturnOpLowering,
+                mir::CallOpLowering,
+                mir::RecvIntsOpLowering,
+                mir::RecvFloatsOpLowering,
+                mir::SendIntsOpLowering,
+                mir::SendFloatsOpLowering
+        >(typeConverter, &context);
     }
 }
 
@@ -36,41 +95,25 @@ namespace qoala::conversion {
 
     void LowerQMemToQoalaHostPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
+        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
+        assert(module);
+        LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
 
         ConversionTarget target(context);
-        target.addLegalDialect<netqasm::NetQASMDialect>();
-        target.addIllegalDialect<qoalahost::QoalaHostDialect>();
-        target.addLegalOp<
-                // Everything BUT qmem.func amd qmem.return is legal after this pass,
-                // because this pass does not modify these operations
-                qmem::CnotOp,
-                qmem::CrotXOp,
-                qmem::CzOp,
-                qmem::EprsMeasureOp,
-                qmem::EprsOp,
-                qmem::HadamardOp,
-                qmem::InitOp,
-                qmem::MeasureOp,
-                qmem::QAllocOp,
-                qmem::RecvFloatsOp,
-                qmem::RecvIntsOp,
-                qmem::RemoteOp,
-                qmem::RotateXOp,
-                qmem::RotateYOp,
-                qmem::RotateZOp,
-                qmem::SendFloatsOp,
-                qmem::SendIntsOp
-        >();
-
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
-        populateQMemToQoalaHostPatterns(context, patterns, typeConverter);
+
+        qoala::helpers::configureQMemToQoalaHostTarget(target, true, true);
+        qoala::helpers::populateQMemToQoalaHostPatterns(context, patterns, typeConverter);
+
+        if (!moduleContainsAngleConversionDeclaration(module)) {
+            insertAngleConversionFunctionDeclaration(module);
+        }
 
         LogicalResult result =
-                mlir::applyPartialConversion(operation, target, std::move(patterns));
+                mlir::applyPartialConversion(module, target, std::move(patterns));
         if (mlir::failed(result)) {
             signalPassFailure();
         }

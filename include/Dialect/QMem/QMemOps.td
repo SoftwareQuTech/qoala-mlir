@@ -105,6 +105,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
+/* Trait used to "mark" the operations that perform an entanglement operation */
+def Entangle: NativeOpTrait<"Entangle">;
 
 def RemoteOp: QMem_Op<"remote", [Symbol]> {
     let arguments = (ins Arg<SymbolNameAttr, "remote-name">:$sym_name,
@@ -114,11 +116,8 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
     }];
 }
 
-// This operation replaces the "init" for an entangled qubit
-// %0 = qmem.alloca : i32
-// ;; This op had the "semantics" of entangling the qubit
-// qmem.eprs %0
-def EprsOp: UsingRemote_Op<"eprs"> {
+/* The "eprs" operation will carry the "Entangle" trait */
+def EprsOp: UsingRemote_Op<"eprs", [Entangle]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict
@@ -231,6 +230,35 @@ def MeasureOp : QMem_Op<"measure"> {
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
         operands attr-dict `:` type($outcome)
+    }];
+}
+
+/* "Intermediate" operations that help in the process to "flattening" the f32 types */
+def CrotXIntOp : QMem_Op<"crot_x_int"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1, I32:$angle_num, I32:$angle_denom);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def RotateXIntOp : QMem_Op<"rot_x_int"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def RotateYIntOp : QMem_Op<"rot_y_int"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def RotateZIntOp : QMem_Op<"rot_z_int"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let assemblyFormat = [{
+        operands attr-dict
     }];
 }
 #endif // QMEM_OPS_TD

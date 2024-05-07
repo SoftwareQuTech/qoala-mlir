@@ -4,7 +4,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LLVM.h"
-#include "Analysis/QMem/Functionize.h"
+#include "Analysis/QMem/Conversion.h"
 #include "llvm/Support/Debug.h"
 
 namespace mlir {
@@ -37,13 +37,14 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
             qmem::InitOp,
             qmem::MeasureOp,
             qmem::QAllocOp,
-            qmem::RecvFloatsOp,
-            qmem::RecvIntsOp,
+            // Recv/Send Ints/Floats can stay in the main body
+//            qmem::RecvFloatsOp,
+//            qmem::RecvIntsOp,
+//            qmem::SendFloatsOp,
+//            qmem::SendIntsOp,
             qmem::RotateXOp,
             qmem::RotateYOp,
-            qmem::RotateZOp,
-            qmem::SendFloatsOp,
-            qmem::SendIntsOp
+            qmem::RotateZOp
             // We don't want to functionize "Remotes", "Funcs" nor "Returns"
 //            qmem::RemoteOp,
 //            qmem::FuncOp,
@@ -55,7 +56,7 @@ void QMemSimpleFunctionizePass::runOnOperation() {
     ModuleOp module = dyn_cast<ModuleOp>(getOperation());
     assert(module); // We expect the cast to succeed
     LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-    functionizeModule(module, qMemOpCanBeFunctionized);
+    functionize::functionizeModule(module, qMemOpCanBeFunctionized);
 }
 
 std::unique_ptr<Pass> mlir::createQMemSimpleFunctionize() {

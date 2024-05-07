@@ -1,8 +1,7 @@
+#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
 
-namespace qoala::conversion {
+namespace qoala::conversion::hir {
     /* Implementation of the qoala types converter */
     QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
@@ -34,8 +33,9 @@ namespace qoala::conversion {
         });
     }
 
-    qmem::FuncOp FuncOpLowering::createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
-                                             ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    FuncOpLowering::createNewOpAndValues(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
+                                         ConversionPatternRewriter &rewriter) const {
         auto newFunc = rewriter.create<qmem::FuncOp>(op.getLoc(), adaptor.getSymName(),
                                                      adaptor.getFunctionType(),
                                                      adaptor.getAttributes().getValue(),
@@ -45,18 +45,22 @@ namespace qoala::conversion {
         // This is inspired in the last part of the `convertFuncOpToLLVMFuncOp`
         // function in llvm/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
-        return newFunc;
+        return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
+
     }
 
-    qmem::ReturnOp ReturnOpLowering::createNewOp(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
-                                                 ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::ReturnOp>(op.getLoc(), adaptor.getOperands());
+    std::unique_ptr<OpAndValues>
+    ReturnOpLowering::createNewOpAndValues(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newReturn = rewriter.create<qmem::ReturnOp>(op.getLoc(), adaptor.getOperands());
+        return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
+
     }
 
     /* Implementation of the operations that entangle qubits */
-    EprsOpLowering::NewOpAndValues
+    std::unique_ptr<OpAndValues>
     EprsOpLowering::createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const {
+                                         ConversionPatternRewriter &rewriter) const {
         Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
@@ -65,23 +69,30 @@ namespace qoala::conversion {
         auto newEprsOp = rewriter.create<qmem::EprsOp>(loc, newAllocOp.getResult(), adaptor.getRemoteAttr());
         // We replace all the uses of the old qubit with the new value (what was passed as "q" operand to eprs)
         rewriter.replaceAllUsesWith(op.getQout(), newEprsOp.getQ());
-        return EprsOpLowering::NewOpAndValues(newEprsOp, ValueRange{newAllocOp.getResult()});
+        return std::make_unique<OpAndValues>(newEprsOp.getOperation(), newAllocOp.getResult());
+
     }
 
-    qmem::EprsMeasureOp EprsMeasureOpLowering::createNewOp(qnet::EprsMeasureOp op,
-                                                           qnet::EprsMeasureOp::Adaptor adaptor,
-                                                           ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    EprsMeasureOpLowering::createNewOpAndValues(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
+                                                ConversionPatternRewriter &rewriter) const {
         Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
         Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
-        return rewriter.create<qmem::EprsMeasureOp>(loc, mappedOutType, newAllocOp.getQ(), adaptor.getRemoteAttr());
+        auto newEprs = rewriter.create<qmem::EprsMeasureOp>(
+                loc,
+                mappedOutType,
+                newAllocOp.getQ(),
+                adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
+
     }
 
     /* Implementation of the lowering for the creation of new qubits */
-    qmem::QAllocOp
-    NewQubitLowering::createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    NewQubitLowering::createNewOpAndValues(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
         Location loc = op.getLoc();
         // First, we convert the qnet.qubit type into its mapped type
         Type mappedQubitType = typeConverter->convertType(op.getQout().getType());
@@ -91,72 +102,78 @@ namespace qoala::conversion {
 
         // Third, we introduce the "init" operation required by the allocation
         auto newInitOp = rewriter.create<qmem::InitOp>(loc, newAllocOp.getResult());
-        return dyn_cast<qmem::QAllocOp>(newInitOp.getQ().getDefiningOp());
+        auto qalloc = dyn_cast<qmem::QAllocOp>(newInitOp.getQ().getDefiningOp());
+        return std::make_unique<OpAndValues>(qalloc.getOperation(), qalloc->getResults());
+
     }
 
-    RotateXLowering::NewOpAndValues
-    RotateXLowering::createNewOpAndValues(
-            qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    RotateXLowering::createNewOpAndValues(qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return RotateXLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+
     }
 
-    RotateYLowering::NewOpAndValues
-    RotateYLowering::createNewOpAndValues(
-            qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    RotateYLowering::createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return RotateYLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+
     }
 
-    RotateZLowering::NewOpAndValues
-    RotateZLowering::createNewOpAndValues(
-            qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    RotateZLowering::createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return RotateZLowering::NewOpAndValues(newRotate, ValueRange{newRotate.getQ()});
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+
     }
 
-    HadamardLowering::NewOpAndValues
-    HadamardLowering::createNewOpAndValues(
-            qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    HadamardLowering::createNewOpAndValues(qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
         auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptor.getQin());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return HadamardLowering::NewOpAndValues(newHadamard, ValueRange{newHadamard.getQ()});
+        return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
+
     }
 
-    MeasureLowering::NewOpAndValues
-    MeasureLowering::createNewOpAndValues(
-            qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    MeasureLowering::createNewOpAndValues(qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor,
+                                          ConversionPatternRewriter &rewriter) const {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
-        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), mappedOutType, adaptor.getQin());
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptor.getQin());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return MeasureLowering::NewOpAndValues(newMeasure, ValueRange{newMeasure.getQ()});
+        return std::make_unique<OpAndValues>(newMeasure.getOperation(), adaptor.getQin());
+
     }
 
-    CNotLowering::NewOpAndValues
-    CNotLowering::createNewOpAndValues(
-            qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    CNotLowering::createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
+                                       ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason (probably a misuse of MLIR or a bug) , if we use the rewriter object for
@@ -167,12 +184,13 @@ namespace qoala::conversion {
         auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return CNotLowering::NewOpAndValues(newCnot, ValueRange{newCnot->getOperands()});
+        return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getOperands());
+
     }
 
-    CzLowering::NewOpAndValues
-    CzLowering::createNewOpAndValues(
-            qnet::CzOp op, qnet::CzOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    CzLowering::createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
+                                     ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
@@ -182,12 +200,13 @@ namespace qoala::conversion {
         auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return CzLowering::NewOpAndValues(newCz, ValueRange{newCz->getOperands()});
+        return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getOperands());
+
     }
 
-    CRotXLowering::NewOpAndValues
-    CRotXLowering::createNewOpAndValues(
-            qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor, ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    CRotXLowering::createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
+                                        ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
@@ -200,42 +219,63 @@ namespace qoala::conversion {
         // In this particular case we only need the first 2 operands
         auto opOperands = newCRotX->getOpOperands();
         OperandRange firstTwoOperands(opOperands.data(), 2);
-        return CRotXLowering::NewOpAndValues(newCRotX, ValueRange{firstTwoOperands});
+        return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
+
     }
 
     /* Implementation of the specific conversion between similar ops
      * These implementations do not need any special treatment, and mapping is quite straight forward */
-    qmem::RemoteOp
-    RemoteOpLowering::createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
-                                  ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::RemoteOp>(op.getLoc(), adaptor.getSymName(), adaptor.getSymVisibilityAttr());
+    std::unique_ptr<OpAndValues>
+    RemoteOpLowering::createNewOpAndValues(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
+                                           ConversionPatternRewriter &rewriter) const {
+        auto newRemote = rewriter.create<qmem::RemoteOp>(
+                op.getLoc(), adaptor.getSymName(),
+                adaptor.getSymVisibilityAttr());
+        return std::make_unique<OpAndValues>(newRemote.getOperation(), newRemote->getResults());
+
     }
 
-    qmem::SendIntsOp
-    SendIntsOpLowering::createNewOp(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
-                                    ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::SendIntsOp>(op.getLoc(), adaptor.getCin(), adaptor.getRemoteAttr());
+    std::unique_ptr<OpAndValues>
+    SendIntsOpLowering::createNewOpAndValues(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
+        auto newSend = rewriter.create<qmem::SendIntsOp>(
+                op.getLoc(), adaptor.getCin(),
+                adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+
     }
 
-    qmem::RecvIntsOp
-    RecvIntsOpLowering::createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
-                                    ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    RecvIntsOpLowering::createNewOpAndValues(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
+                                             ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
         Type outType = typeConverter->convertType(op.getCout().getType());
-        return rewriter.create<qmem::RecvIntsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
+        auto newRec = rewriter.create<qmem::RecvIntsOp>(
+                op.getLoc(), outType,
+                adaptor.getRemoteAttr(), adaptor.getLengthAttr());
+        return std::make_unique<OpAndValues>(newRec.getOperation(), newRec->getResults());
+
     }
 
-    qmem::SendFloatsOp
-    SendFloatsOpLowering::createNewOp(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
-                                      ConversionPatternRewriter &rewriter) const {
-        return rewriter.create<qmem::SendFloatsOp>(op.getLoc(), adaptor.getCin(), adaptor.getRemoteAttr());
+    std::unique_ptr<OpAndValues>
+    SendFloatsOpLowering::createNewOpAndValues(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
+                                               ConversionPatternRewriter &rewriter) const {
+        auto newSend = rewriter.create<qmem::SendFloatsOp>(
+                op.getLoc(), adaptor.getCin(),
+                adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+
     }
 
-    qmem::RecvFloatsOp
-    RecvFloatsOpLowering::createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
-                                      ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues>
+    RecvFloatsOpLowering::createNewOpAndValues(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
+                                               ConversionPatternRewriter &rewriter) const {
         // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
         Type outType = typeConverter->convertType(op.getCout().getType());
-        return rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(), adaptor.getLengthAttr());
+        auto newSend = rewriter.create<qmem::RecvFloatsOp>(
+                op.getLoc(), outType,
+                adaptor.getRemoteAttr(), adaptor.getLengthAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+
     }
-} // namespace qoala::conversion
+} // namespace qoala::conversion::hir

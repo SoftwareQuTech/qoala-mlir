@@ -8,8 +8,8 @@ namespace mlir {
 #define GEN_PASS_DECL
 #include "Dialect/QMem/Passes.h.inc"
 
-std::unique_ptr<Pass> createQMemFactorizeRemoteDeclsPass();
 std::unique_ptr<Pass> createQMemSimpleFunctionize();
+std::unique_ptr<Pass> createQMemF32RotationsConversion();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION

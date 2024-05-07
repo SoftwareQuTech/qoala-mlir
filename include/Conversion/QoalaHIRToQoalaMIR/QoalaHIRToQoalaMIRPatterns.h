@@ -3,256 +3,177 @@
 #include "Dialect/QNet/QNet.h"
 #include "Dialect/QMem/QMem.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "Conversion/Helpers/Helpers.h"
 
 using namespace qoala::dialects;
+using namespace qoala::helpers;
 
-namespace qoala::conversion {
+namespace qoala::conversion::hir {
     class QoalaHIRToQoalaMIRTypeConverter : public TypeConverter {
       public:
         explicit QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx);
     };
 
-    /**
-     * Simple class template used to convert an operation of class SourceOp to
-     * another one of class DestOp *in a one-to-one manner*.
-     * @tparam SourceOp The source class of the source dialect to convert from
-     * @tparam DestOp The destination class of the target dialect to covert to
-     */
-    template <typename SourceOp, typename DestOp>
-    class SimpleOneToToOneLoweringTemplate : public OpConversionPattern<SourceOp> {
-      public:
-        // Constructor simply matches the super class
-        using OpConversionPattern<SourceOp>::OpConversionPattern;
-
-        /**
-         * Defines how to create an Operation on the destination dialect, using
-         * the data offered by the adaptor class of the source operation.
-         * Implementors of this signature are *highly* encouraged to use the
-         * `create` methods of the rewriter object to create instances of the
-         * operation on the target dialect. When using these methods, please be
-         * mindful that you need to "match" one of the target operations' class
-         * `build` methods with the arguments passed to the create:
-         * rewriter.create<DestOp>(op.getLoc(), <args_to_match_a_build_signature>...)
-         * In this sense, you might want to use the getters of the adaptor class
-         * to get the data (and types) to match any of the generated builders of the
-         * target operand class.
-         * IMPORTANT: The returned operation *MUST* yield the same number of values
-         * than the operation to replaced. If this is not the case, this class is not
-         * suitable for the purpose.
-         * @param op The operation on the source dialect to be replaced
-         * @param adaptor The adaptor of th source operation to get data from
-         * @param rewriter The rewriter object to easily create new operations on the
-         *                 target dialect
-         * @return An operation on the destination dialect
-         */
-        virtual DestOp createNewOp(SourceOp op, SourceOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const = 0;
-
-        LogicalResult
-        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        ConversionPatternRewriter &rewriter) const override {
-            auto newOp = createNewOp(op, adaptor, rewriter);
-            // We use the "replace op for op" method; This method check that the old and the new ops
-            // yield the same number of SSA results
-            rewriter.replaceOp(op, newOp);
-            return success();
-        }
-    };
-
-    /**
-     * Class template used to convert an operation of class SourceOp to
-     * another one of class DestOp, *where `DestOp` produces a different number
-     * of values than `SourceOp`*.
-     * @tparam SourceOp The source class of the source dialect to convert from
-     * @tparam DestOp The destination class of the target dialect to covert to
-     */
-    template <typename SourceOp, typename DestOp>
-    class DifferentValuesLoweringTemplate : public OpConversionPattern<SourceOp> {
-    public:
-        struct NewOpAndValues {
-            DestOp newOp;
-            ValueRange values;
-        };
-        // Constructor simply matches the super class
-        using OpConversionPattern<SourceOp>::OpConversionPattern;
-
-        /**
-         * Defines how to create an Operation on the destination dialect, using
-         * the data offered by the adaptor class of the source operation.
-         * Implementors of this signature are *highly* encouraged to use the
-         * `create` methods of the rewriter object to create instances of the
-         * operation on the target dialect. When using these methods, please be
-         * mindful that you need to "match" one of the target operations' class
-         * `build` methods with the arguments passed to the create:
-         * rewriter.create<DestOp>(op.getLoc(), <args_to_match_a_build_signature>...)
-         * In this sense, you might want to use the getters of the adaptor class
-         * to get the data (and types) to match any of the generated builders of the
-         * target operand class.
-         * IMPORTANT: The returned operation *MUST* yield the same number of values
-         * than the operation to replaced. If this is not the case, this class is not
-         * suitable for the purpose.
-         * @param op The operation on the source dialect to be replaced
-         * @param adaptor The adaptor of th source operation to get data from
-         * @param rewriter The rewriter object to easily create new operations on the
-         *                 target dialect
-         * @return An operation on the destination dialect
-         */
-        virtual NewOpAndValues createNewOpAndValues(SourceOp op, SourceOp::Adaptor adaptor,
-                                                    ConversionPatternRewriter &rewriter) const = 0;
-
-        LogicalResult
-        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        ConversionPatternRewriter &rewriter) const override {
-            NewOpAndValues newOp = createNewOpAndValues(op, adaptor, rewriter);
-            // We use the "replace op for values" method; This method check that the old op
-            // yield the same number of SSA results as the given values
-            rewriter.replaceOp(op, newOp.values);
-            return success();
-        }
-    };
-
-    class FuncOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
+    class FuncOpLowering : public OpLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::FuncOp createNewOp(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
-                                 ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ReturnOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
+    class ReturnOpLowering : public OpLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::ReturnOp createNewOp(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
 
     /* Operations used to create entanglement */
-    class EprsOpLowering : public DifferentValuesLoweringTemplate<qnet::EprsOp, qmem::EprsOp> {
+    class EprsOpLowering : public OpLoweringTemplate<qnet::EprsOp, qmem::EprsOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
 
-    class EprsMeasureOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
+    class EprsMeasureOpLowering : public OpLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::EprsMeasureOp createNewOp(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
-                                        ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
 
     /* Remote operations can be mapped with a simple one-to-one operation */
-    class RemoteOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
+    class RemoteOpLowering : public OpLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::RemoteOp createNewOp(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class SendIntsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
+    class SendIntsOpLowering : public OpLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::SendIntsOp createNewOp(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
-                                     ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvIntsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
+    class RecvIntsOpLowering : public OpLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::RecvIntsOp createNewOp(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
-                                     ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class SendFloatsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
+    class SendFloatsOpLowering : public OpLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::SendFloatsOp createNewOp(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvFloatsOpLowering : public SimpleOneToToOneLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
+    class RecvFloatsOpLowering : public OpLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::RecvFloatsOp createNewOp(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
-                                       ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class NewQubitLowering : public SimpleOneToToOneLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
+    class NewQubitLowering : public OpLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
     public:
         // Constructor simply refers to the parent
-        using SimpleOneToToOneLoweringTemplate::SimpleOneToToOneLoweringTemplate;
-        qmem::QAllocOp createNewOp(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
-                                   ConversionPatternRewriter &rewriter) const override;
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateXLowering : public DifferentValuesLoweringTemplate<qnet::RotXOp, qmem::RotateXOp> {
+    class RotateXLowering : public OpLoweringTemplate<qnet::RotXOp, qmem::RotateXOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateYLowering : public DifferentValuesLoweringTemplate<qnet::RotYOp, qmem::RotateYOp> {
+    class RotateYLowering : public OpLoweringTemplate<qnet::RotYOp, qmem::RotateYOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateZLowering : public DifferentValuesLoweringTemplate<qnet::RotZOp, qmem::RotateZOp> {
+    class RotateZLowering : public OpLoweringTemplate<qnet::RotZOp, qmem::RotateZOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class MeasureLowering : public DifferentValuesLoweringTemplate<qnet::MeasureOp, qmem::MeasureOp> {
+    class MeasureLowering : public OpLoweringTemplate<qnet::MeasureOp, qmem::MeasureOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class HadamardLowering : public DifferentValuesLoweringTemplate<qnet::HadamardOp, qmem::HadamardOp> {
+    class HadamardLowering : public OpLoweringTemplate<qnet::HadamardOp, qmem::HadamardOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class CNotLowering : public DifferentValuesLoweringTemplate<qnet::CnotOp, qmem::CnotOp> {
+    class CNotLowering : public OpLoweringTemplate<qnet::CnotOp, qmem::CnotOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class CzLowering : public DifferentValuesLoweringTemplate<qnet::CzOp, qmem::CzOp> {
+    class CzLowering : public OpLoweringTemplate<qnet::CzOp, qmem::CzOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
-    class CRotXLowering : public DifferentValuesLoweringTemplate<qnet::CrotXOp, qmem::CrotXOp> {
+    class CRotXLowering : public OpLoweringTemplate<qnet::CrotXOp, qmem::CrotXOp> {
     public:
         // Constructor simply matches the super class
-        using DifferentValuesLoweringTemplate::DifferentValuesLoweringTemplate;
+        using OpLoweringTemplate::OpLoweringTemplate;
 
-        NewOpAndValues createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const override;
+        std::unique_ptr<OpAndValues>
+        createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
+                             ConversionPatternRewriter &rewriter) const override;
     };
 
-} // namespace qoala::conversion
+} // namespace qoala::conversion::hir
 
 #endif // QNET_TO_QMEM_PATTERNS

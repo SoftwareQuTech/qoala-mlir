@@ -78,6 +78,15 @@ namespace qoala::helpers {
      */
 
     /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the QMem to QoalaHost dialect conversion.
+     * @param target The ConversionTarget object to configure
+     */
+    void configureQMemToQoalaHostTarget(ConversionTarget &target,
+                                        bool intRotsAreLegal,
+                                        bool floatRotsAreLegal);
+
+    /**
      * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
      * It also uses the given type converter.
      * @param context The MLIRContext object.
@@ -87,6 +96,13 @@ namespace qoala::helpers {
     void populateQMemToQoalaHostPatterns(MLIRContext &context,
                                          RewritePatternSet &patterns,
                                          TypeConverter &typeConverter);
+
+    /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the QMem to NetQASM dialect conversion.
+     * @param target The ConversionTarget object to configure
+     */
+    void configureQMemToNetQASMTarget(ConversionTarget &target);
 
     /**
      * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
@@ -100,6 +116,24 @@ namespace qoala::helpers {
                                        TypeConverter &typeConverter);
 
     /**
+     * Configures the given ConversionTarget object to specify the valid state of the IR after
+     * applying the rotation operations conversion.
+     * @param target The ConversionTarget object to configure
+     */
+    void configureF32LoweringTarget(ConversionTarget &target);
+
+    /**
+     * Adds the QMem to _intermediate_ QMem conversions patterns to the given rewrite pattern set.
+     * It also uses the given type converter.
+     * @param context The MLIRContext object.
+     * @param patterns The pattern set object to populate.
+     * @param typeConverter The type converter object used by the rewriter methods.
+     */
+    void populateQMemF32ToInt32RotPatterns(MLIRContext &context,
+                                           RewritePatternSet &patterns,
+                                           TypeConverter &typeConverter);
+
+    /**
      * Simple "null" type converter for dialect conversion passes. This type
      * converter simply returns the same type for any given type.
      */
@@ -107,6 +141,16 @@ namespace qoala::helpers {
     public:
         explicit NullTypeConverter(MLIRContext *ctx);
     };
+
+    template<typename OpTy>
+    void moveOperationToTop(ModuleOp module, OpTy op) {
+        if (op->getPrevNode() != nullptr) {
+            // Simply remove the FuncOp, and insert it at the top of the module
+            OpBuilder kk = OpBuilder::atBlockBegin(&module.getBodyRegion().front());
+            op->remove();
+            kk.insert(op);
+        }
+    }
 }
 
 

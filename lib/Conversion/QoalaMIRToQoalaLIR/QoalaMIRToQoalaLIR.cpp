@@ -5,9 +5,9 @@
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
-#include "Analysis/QMem/Functionize.h"
+#include "Analysis/QMem/Conversion.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_QOALAMIRTOQOALALIR
@@ -20,6 +20,7 @@ using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
+using namespace qoala::helpers::angle;
 
 /* Function copied from the "simple" functionization PoC. Since we will modify how we "group" operations
  * to create the new functions, this function will disappear */
@@ -27,7 +28,6 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     // A list fo the QMem operation types we would like to "functionize"
     return llvm::isa<
             qmem::CnotOp,
-            qmem::CrotXOp,
             qmem::CzOp,
             qmem::EprsMeasureOp,
             qmem::EprsOp,
@@ -35,13 +35,24 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
             qmem::InitOp,
             qmem::MeasureOp,
             qmem::QAllocOp,
-            qmem::RecvFloatsOp,
-            qmem::RecvIntsOp,
-            qmem::RotateXOp,
-            qmem::RotateYOp,
-            qmem::RotateZOp,
-            qmem::SendFloatsOp,
-            qmem::SendIntsOp
+            // Recv/Send Ints/Floats can stay in the main body
+//            qmem::RecvFloatsOp,
+//            qmem::RecvIntsOp,
+//            qmem::SendFloatsOp,
+//            qmem::SendIntsOp,
+            // We do not want to functionize any leftover rotation (if any)
+            // Since rotations use an f32 angle arg, they are lowered to intermediate rotations
+            // (so the f32 can be transformed into 2x i32),THEN to netqasm rotations
+            // This allows us to place the call to the builtin angle conversion function before functionizing
+//            qmem::RotateXOp,
+//            qmem::RotateYOp,
+//            qmem::RotateZOp,
+//            qmem::CrotXOp
+            // Instead, we need to functionize the
+            qmem::RotateXIntOp,
+            qmem::RotateYIntOp,
+            qmem::RotateZIntOp,
+            qmem::CrotXIntOp
             // We don't want to functionize "Remotes", "Funcs" nor "Returns"
 //            qmem::RemoteOp,
 //            qmem::FuncOp,
@@ -56,40 +67,82 @@ namespace qoala::conversion {
 
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp operation = dyn_cast<ModuleOp>(getOperation());
-        assert(operation);
-        LLVM_DEBUG(llvm::dbgs() << "Converting MIR to LIR on module\n");
+        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
+        assert(module);
+        LLVM_DEBUG(llvm::dbgs() << "*************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
-        // Get a conversion target to define our target dialects
-        ConversionTarget target(context);
-        target.addLegalDialect<qoalahost::QoalaHostDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
-        // There are NO legal options in QMem dialect after this pass
-        //target.addLegalOp<
-            // some::Class
-        //>();
+        NullTypeConverter typeConverter(&context);
+
+        ConversionTarget f32LoweringTarget(context);
+        RewritePatternSet f32Patterns(&context);
+        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
+        qoala::helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         // We add the conversion pattern to the context
+        ConversionTarget qMemToQoalaHostTarget(context);
         RewritePatternSet qMemToQoalaHostPatterns(&context);
+        qoala::helpers::configureQMemToQoalaHostTarget(qMemToQoalaHostTarget, true, false);
+        qoala::helpers::populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
+
+        ConversionTarget qMemToNetQASMTarget(context);
         RewritePatternSet qMemToNetQASMPatterns(&context);
-        NullTypeConverter typeConverter(&context);
-        populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
-        populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
+        qoala::helpers::configureQMemToNetQASMTarget(qMemToNetQASMTarget);
+        qoala::helpers::populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
 
-        // Stage 1: Functionize
-        qoala::analysis::functionizeModule(operation, qMemOpCanBeFunctionized);
+        // Stage 1: Insert the declaration of the builtin angle conversion function
+        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        if (!moduleContainsAngleConversionDeclaration(module)) {
+            insertAngleConversionFunctionDeclaration(module);
+        }
 
-        // Stage 2: Apply the QMemToQoalaHost conversion patterns
+        // Stage 2: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 2. Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
+        LogicalResult f32LoweringResult =
+                mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
+        if (mlir::failed(f32LoweringResult)) {
+            signalPassFailure();
+        }
+
+        // Stage 3: Functionize
+        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations*\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
+        qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+        // Correct the positions of the remote and builtin declaration
+        module.walk([&](func::FuncOp funcDecl) {
+            if (funcDecl.getSymName() != qoala::helpers::angle::angleConversionFunctionName) {
+                WalkResult::advance();
+            } else {
+                qoala::helpers::moveOperationToTop(module, funcDecl);
+            }
+        });
+        module.walk([&](qmem::RemoteOp remote) {
+            qoala::helpers::moveOperationToTop(module, remote);
+        });
+
+        // Stage 4: Convert QMem to QoalaHost
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 4. Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LogicalResult qMemToQoalaHostResult =
-            mlir::applyPartialConversion(operation, target, std::move(qMemToQoalaHostPatterns));
+            mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
         if (mlir::failed(qMemToQoalaHostResult)) {
             signalPassFailure();
         }
 
-        // Stage 3: Apply the QMemToNetQASM conversion patterns
-        LogicalResult qMemToNetQASMResult =
-                mlir::applyPartialConversion(operation, target, std::move(qMemToNetQASMPatterns));
-        if (mlir::failed(qMemToNetQASMResult)) {
+        // Stage 5: Convert QMem to QoalaHost
+        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 5. Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
+        LogicalResult qMemtoNetQASMResult =
+                mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
+        if (mlir::failed(qMemtoNetQASMResult)) {
             signalPassFailure();
         }
     }
