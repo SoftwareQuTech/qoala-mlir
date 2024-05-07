@@ -93,7 +93,7 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     SendFloatsOpLowering::createNewOpAndValues(qmem::SendFloatsOp op, qmem::SendFloatsOp::Adaptor adaptor,
                                                ConversionPatternRewriter &rewriter) const {
-        auto newRecv = rewriter.create<qoalahost::SendIntsOp>(
+        auto newRecv = rewriter.create<qoalahost::SendFloatsOp>(
                 op.getLoc(),
                 op.getCin(),
                 adaptor.getRemoteAttr());
