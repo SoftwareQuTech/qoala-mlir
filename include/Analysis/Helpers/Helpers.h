@@ -141,6 +141,16 @@ namespace qoala::helpers {
     public:
         explicit NullTypeConverter(MLIRContext *ctx);
     };
+
+    template<typename OpTy>
+    void moveOperationToTop(ModuleOp module, OpTy op) {
+        if (op->getPrevNode() != nullptr) {
+            // Simply remove the FuncOp, and insert it at the top of the module
+            OpBuilder kk = OpBuilder::atBlockBegin(&module.getBodyRegion().front());
+            op->remove();
+            kk.insert(op);
+        }
+    }
 }
 
 

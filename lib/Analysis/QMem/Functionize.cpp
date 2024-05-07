@@ -118,7 +118,7 @@ namespace qoala::analysis::functionize {
         return newFunc;
     }
 
-// Identifier to make the names of the new function definitions unique
+    // Identifier to make the names of the new function definitions unique
     static int identifier = 0;
 
     void functionizeModule(ModuleOp &module, bool (*opCanBeFunctionized)(Operation *)) {

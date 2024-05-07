@@ -8,7 +8,6 @@
 #include "Analysis/QMem/Conversion.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 namespace mlir {
 #define GEN_PASS_DEF_QOALAMIRTOQOALALIR
@@ -93,17 +92,17 @@ namespace qoala::conversion {
         qoala::helpers::populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
-        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Inserting builtin function declaration *\n");
-        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
         // Stage 2: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
-        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Lowering f32 rotations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 2. Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
         LogicalResult f32LoweringResult =
                 mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
         if (mlir::failed(f32LoweringResult)) {
@@ -111,15 +110,26 @@ namespace qoala::conversion {
         }
 
         // Stage 3: Functionize
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Functionizing quantum operations*\n");
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations*\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
         qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+        // Correct the positions of the remote and builtin declaration
+        module.walk([&](func::FuncOp funcDecl) {
+            if (funcDecl.getSymName() != qoala::helpers::angle::angleConversionFunctionName) {
+                WalkResult::advance();
+            } else {
+                qoala::helpers::moveOperationToTop(module, funcDecl);
+            }
+        });
+        module.walk([&](qmem::RemoteOp remote) {
+            qoala::helpers::moveOperationToTop(module, remote);
+        });
 
         // Stage 4: Convert QMem to QoalaHost
-        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
-        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 4. Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LogicalResult qMemToQoalaHostResult =
             mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
         if (mlir::failed(qMemToQoalaHostResult)) {
@@ -127,9 +137,9 @@ namespace qoala::conversion {
         }
 
         // Stage 5: Convert QMem to QoalaHost
-        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to NetQASM *\n");
-        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 5. Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         LogicalResult qMemtoNetQASMResult =
                 mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
         if (mlir::failed(qMemtoNetQASMResult)) {
