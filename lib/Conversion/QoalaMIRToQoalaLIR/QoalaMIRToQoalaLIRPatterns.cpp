@@ -16,7 +16,7 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     RemoteOpLowering::createNewOpAndValues(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
                                            ConversionPatternRewriter &rewriter) const {
-        auto newReturn = rewriter.create<qoalahost::RemoteOp>(
+        auto newReturn = rewriter.create<qremote::RemoteOp>(
                 op.getLoc(),
                 adaptor.getSymNameAttr(),
                 adaptor.getSymVisibilityAttr());

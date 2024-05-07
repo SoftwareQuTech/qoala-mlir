@@ -4,6 +4,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/QMem/QMem.h"
+#include "Dialect/QRemote/QRemote.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
@@ -17,7 +18,7 @@ namespace qoala::conversion::mir {
                                           Value angle);
 
     /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
-    class RemoteOpLowering: public OpLoweringTemplate<qmem::RemoteOp, qoalahost::RemoteOp> {
+    class RemoteOpLowering: public OpLoweringTemplate<qmem::RemoteOp, qremote::RemoteOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<OpAndValues>

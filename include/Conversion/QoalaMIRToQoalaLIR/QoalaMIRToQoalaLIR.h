@@ -9,6 +9,8 @@
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/NetQASM/NetQASMDialect.h"
+#include "Dialect/QRemote/QRemote.h"
+#include "Dialect/QRemote/QRemoteDialect.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
