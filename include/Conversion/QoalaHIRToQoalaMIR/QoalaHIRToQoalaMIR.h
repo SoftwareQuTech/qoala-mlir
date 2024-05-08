@@ -8,11 +8,9 @@
 #include "Dialect/QMem/QMem.h"
 #include "Dialect/QMem/QMemDialect.h"
 
-namespace mlir {
+namespace qoala::conversion {
 #define GEN_PASS_DECL
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
-
-std::unique_ptr<mlir::Pass> createQoalaHIRToQoalaMIRPass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION

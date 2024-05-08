@@ -6,18 +6,17 @@
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_QOALAHIRTOQOALAMIR
-#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
-} // namespace mlir
-
 using namespace mlir;
 using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
-    class QoalaHIRToQoalaMIRPass : public mlir::impl::QoalaHIRToQoalaMIRBase<QoalaHIRToQoalaMIRPass> {
+#define GEN_PASS_DEF_QOALAHIRTOQOALAMIR
+#include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h.inc"
+
+    class QoalaHIRToQoalaMIRPass : public impl::QoalaHIRToQoalaMIRBase<QoalaHIRToQoalaMIRPass> {
+        using QoalaHIRToQoalaMIRBase::QoalaHIRToQoalaMIRBase;
         void runOnOperation() override;
     };
 
@@ -74,7 +73,3 @@ namespace qoala::conversion {
         }
     }
 } /* namespace qoala::conversion */
-
-std::unique_ptr<mlir::Pass> mlir::createQoalaHIRToQoalaMIRPass() {
-    return std::make_unique<qoala::conversion::QoalaHIRToQoalaMIRPass>();
-}

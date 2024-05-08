@@ -7,23 +7,11 @@
 #include "Analysis/QMem/Conversion.h"
 #include "llvm/Support/Debug.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
-#include "Dialect/QMem/Passes.h.inc"
-} // namespace mlir
-
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 #define DEBUG_TYPE "functionize"
-
-namespace qoala::analysis {
-    class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
-    public:
-        void runOnOperation() override;
-    };
-}
 
 static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     // A list fo the QMem operation types we would like to "functionize"
@@ -52,13 +40,20 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     >(op);
 }
 
-void QMemSimpleFunctionizePass::runOnOperation() {
-    ModuleOp module = dyn_cast<ModuleOp>(getOperation());
-    assert(module); // We expect the cast to succeed
-    LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-    functionize::functionizeModule(module, qMemOpCanBeFunctionized);
-}
+namespace qoala::analysis {
+#define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
+#include "Dialect/QMem/Passes.h.inc"
 
-std::unique_ptr<Pass> mlir::createQMemSimpleFunctionize() {
-    return std::make_unique<qoala::analysis::QMemSimpleFunctionizePass>();
-}
+    class QMemSimpleFunctionizePass : public impl::QMemSimpleFunctionizeBase<QMemSimpleFunctionizePass> {
+    public:
+        using QMemSimpleFunctionizeBase::QMemSimpleFunctionizeBase;
+        void runOnOperation() override;
+    };
+
+    void QMemSimpleFunctionizePass::runOnOperation() {
+        ModuleOp module = dyn_cast<ModuleOp>(getOperation());
+        assert(module); // We expect the cast to succeed
+        LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
+        functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+    }
+} /* namespace qoala::analysis */

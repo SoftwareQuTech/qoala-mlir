@@ -31,10 +31,10 @@ int main(int argc, char **argv) {
     // We also register all the passes from MLIR
     mlir::registerAllPasses();
     // And also the passes from QNet
-    mlir::registerQNetPasses();
-    mlir::registerQMemPasses();
+    qoala::analysis::registerQNetPasses();
+    qoala::analysis::registerQMemPasses();
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
-    mlir::registerQoalaHIRToQoalaMIRPasses();
+    qoala::conversion::registerQoalaHIRToQoalaMIRPasses();
     // And the pass that converts QMem to QoalaHost dialect
     qoala::conversion::registerQoalaMIRToQoalaLIRPasses();
 
