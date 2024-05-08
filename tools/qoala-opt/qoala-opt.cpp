@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
     mlir::registerQoalaHIRToQoalaMIRPasses();
     // And the pass that converts QMem to QoalaHost dialect
-    mlir::registerQoalaMIRToQoalaLIRPasses();
+    qoala::conversion::registerQoalaMIRToQoalaLIRPasses();
 
     mlir::registerViewOpGraphPass();
 
@@ -44,6 +44,6 @@ int main(int argc, char **argv) {
 
     mlir::PassManager pm(&context);
 
-    return failed(
+    return mlir::asMainReturnCode(
         mlir::MlirOptMain(argc, argv, "Qoala IR optimizer\n", registry));
 }

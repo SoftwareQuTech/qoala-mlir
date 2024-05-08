@@ -9,11 +9,6 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_LOWERQMEMTOQOALAHOST
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-} // namespace mlir
-
 #define DEBUG_TYPE "qmem-to-qoalahost"
 
 using namespace mlir;
@@ -89,7 +84,11 @@ namespace qoala::helpers {
 }
 
 namespace qoala::conversion {
-    class LowerQMemToQoalaHostPass : public mlir::impl::LowerQMemToQoalaHostBase<LowerQMemToQoalaHostPass> {
+#define GEN_PASS_DEF_LOWERQMEMTOQOALAHOST
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+
+    class LowerQMemToQoalaHostPass : public impl::LowerQMemToQoalaHostBase<LowerQMemToQoalaHostPass> {
+        using LowerQMemToQoalaHostBase::LowerQMemToQoalaHostBase;
         void runOnOperation() override;
     };
 
@@ -118,8 +117,4 @@ namespace qoala::conversion {
             signalPassFailure();
         }
     }
-}
-
-std::unique_ptr<mlir::Pass> mlir::createLowerQMemToQoalaHostPass() {
-    return std::make_unique<qoala::conversion::LowerQMemToQoalaHostPass>();
-}
+} /* namespace qoala::conversion */

@@ -9,11 +9,6 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_QOALAMIRTOQOALALIR
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-} // namespace mlir
-
 #define DEBUG_TYPE "mir-to-lir"
 
 using namespace mlir;
@@ -61,7 +56,12 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
 }
 
 namespace qoala::conversion {
-    class QoalaMIRToQoalaLIRPass : public mlir::impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
+#define GEN_PASS_DEF_QOALAMIRTOQOALALIR
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+
+    class QoalaMIRToQoalaLIRPass : public impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
+    public:
+        using QoalaMIRToQoalaLIRBase::QoalaMIRToQoalaLIRBase;
         void runOnOperation() override;
     };
 
@@ -117,6 +117,9 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations*\n");
         LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
+        if (this->useSimpleFunctionize) {
+            LLVM_DEBUG(llvm::dbgs() << "HERE\n");
+        }
         qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
@@ -161,7 +164,3 @@ namespace qoala::conversion {
         }
     }
 } /* namespace qoala::conversion */
-
-std::unique_ptr<mlir::Pass> mlir::createQoalaMIRToQoalaLIRPass() {
-    return std::make_unique<qoala::conversion::QoalaMIRToQoalaLIRPass>();
-}
