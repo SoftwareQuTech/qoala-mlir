@@ -4,6 +4,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Analysis/Helpers/SimpleCloneInterface.h"
+#include "Dialect/QMem/QMem.h"
 
 #include <set>
 
@@ -24,7 +25,8 @@ namespace qoala::analysis {
             DenseMap<Value, int> replacementMap;
         };
 
-        using BucketsTy = std::vector<std::vector<Operation *>>;
+        using QuantumOpsGroupTy = std::vector<Operation *>;
+        using ClassifierFnTy = std::vector<QuantumOpsGroupTy> (*)(dialects::qmem::FuncOp &);
 
         /**
          * Creates a "wrapper" function around the given list of operations.
@@ -66,10 +68,20 @@ namespace qoala::analysis {
          * on the module, the given callback will be executed to determine if the involved
          * operation can be functionized or not.
          * @param module The module to analyze
-         * @param opCanBeFunctionized A function that takes an operation, and determines if it
-         *                            can be functionized or not.
+         * @param operationsClassifier A function of type std::vector<QuantumOpsGroupTy> (*)(dialects::qmem::FuncOp &).
+         *                             This function should iterate over all the operations of the given FuncOp and
+         *                             classify them into a collection of QuantumOpsGroupTy. Each one of the operation
+         *                             groups will be converted into a single function.
          */
-        void functionizeModule(ModuleOp &module, BucketsTy (*classifyOperations)(ModuleOp *));
+        void functionizeModule(ModuleOp &module, ClassifierFnTy operationsClassifier);
+
+        /**
+         * Classifier to create *simple* groups, i.e., each group will contain _a single quantum operation_.
+         * This classifier is used with the simple functionization
+         * @param module The module on which run the grouping
+         * @return A collection of quantum groups.
+         */
+        std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &module);
     }
 }
 

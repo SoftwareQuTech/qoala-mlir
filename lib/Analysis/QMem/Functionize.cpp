@@ -65,7 +65,7 @@ namespace qoala::analysis::functionize {
                 } else {
                     // If any of the result usages is not in the quantumOps (and that index is not on
                     // the already marked for return), then it needs to be returned
-                    for (auto &usage: opResult.getUses()) {
+                    for (OpOperand &usage: opResult.getUses()) {
                         if (!quantumOps.contains(usage.getOwner()) && !returnIndexesForOp.contains(resultIndex)) {
                             resultValues.push_back(opResult);
                             resultTypes.push_back(opResult.getType());
@@ -82,12 +82,12 @@ namespace qoala::analysis::functionize {
     }
 
     static inline void mapOriginalResultsInClonedOp(ResultRange originalResults, Operation *clonedOp,
-                                                    SetVector<Value> &results,
+                                                    SetVector<Value> &externalResults,
                                                     DenseMap<OpResult, OpResult> &externalResultsMap,
                                                     DenseMap<Value, Value> &internalResultMap) {
         for (OpResult originalResult : originalResults) {
             OpResult correspondingNewResult = clonedOp->getResult(originalResult.getResultNumber());
-            if (results.contains(originalResult)) {
+            if (externalResults.contains(originalResult)) {
                 /* External usage of the result: Map the result of the old op to the corresponding results of the cloned op */
                 externalResultsMap.insert(std::pair{originalResult, correspondingNewResult});
             }
@@ -97,13 +97,12 @@ namespace qoala::analysis::functionize {
     }
 
     static inline void mapOriginalOperandsInClonedOp(MutableArrayRef<OpOperand> originalOpOperands,
-                                                     Operation *clonedOp, SetVector<Value> &arguments,
+                                                     SetVector<Value> &externalArguments,
                                                      std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc,
                                                      DenseMap<Value, Value> internalResultMap) {
         for (OpOperand &originalOperand : originalOpOperands) {
             unsigned int originalOpIdx = originalOperand.getOperandNumber();
-            Value newArgument = clonedOp->getOperand(originalOpIdx);
-            if (arguments.contains(originalOperand.get())) {
+            if (externalArguments.contains(originalOperand.get())) {
                 /* Use of an external operand (argument): use the argument of the new function as operand */
                 clonedOpOperands.push_back(newFunc.getArgument(originalOpIdx));
             } else {
@@ -112,14 +111,6 @@ namespace qoala::analysis::functionize {
                 clonedOpOperands.push_back(internalResultMap[origOpValue]);
             }
         }
-    }
-
-    static ValueRange consolidateResults(DenseMap<Value, Value> &internalResultMap) {
-        std::vector<Value> functionResults;
-        for (auto resultMapPair : internalResultMap) {
-            functionResults.push_back(resultMapPair.getSecond());
-        }
-        return {functionResults};
     }
 
     void createNewFunctionWithOperations(FunctionizeData &data,
@@ -135,7 +126,7 @@ namespace qoala::analysis::functionize {
         FunctionType funType = opBuilder->getFunctionType(data.argTypes, data.resultTypes);
         auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
         Block *newBlock = newFunc.addEntryBlock();
-        bool hasEntanglementOp = false;
+        bool functionHasEPRSOp = false;
 
         LLVM_DEBUG(llvm::dbgs() << "************************\n");
         LLVM_DEBUG(llvm::dbgs() << "func type: " << funType << "\n");
@@ -147,7 +138,6 @@ namespace qoala::analysis::functionize {
         {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
             OpBuilder::InsertionGuard g(*opBuilder);
-            std::vector<Value> resultValues;
             for (Operation *originalQuantumOp : quantumOpsGroup) {
                 LLVM_DEBUG(llvm::dbgs() << "original op: " << *originalQuantumOp << "\n");
 
@@ -157,11 +147,10 @@ namespace qoala::analysis::functionize {
                 // New operations (including the clone) should be attached to the block of the new function
                 opBuilder->setInsertionPointToStart(newBlock);
                 Operation *clonedOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
-                clonedOperations.push_back(clonedOp);
-                std::vector<Value> clonedOpOperands;
 
                 /* Process the operands of the old op */
-                mapOriginalOperandsInClonedOp(originalQuantumOp->getOpOperands(), clonedOp,
+                std::vector<Value> clonedOpOperands;
+                mapOriginalOperandsInClonedOp(originalQuantumOp->getOpOperands(),
                                               data.argumentValues, clonedOpOperands,
                                               newFunc, internalResultMap);
 
@@ -175,12 +164,12 @@ namespace qoala::analysis::functionize {
                 // If the current operation has the "Entangle" trait, then the function wrapper needs
                 // to have the "entangle" attribute. This will be used later when lowering to NetQASM
                 if (originalQuantumOp->hasTrait<mlir::OpTrait::Entangle>()) {
-                    hasEntanglementOp = true;
+                    functionHasEPRSOp = true;
                 }
 
                 LLVM_DEBUG(llvm::dbgs() << "cloned op: " << *clonedOp << "\n");
             }
-            if (hasEntanglementOp) {
+            if (functionHasEPRSOp) {
                 // We "mark" the function declaration, so when lowering the func operation the pass can
                 // know that this particular function needs to be lowered to netqasm.request_routine
                 Attribute entangle = opBuilder->getStringAttr("true");
@@ -188,7 +177,10 @@ namespace qoala::analysis::functionize {
             }
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
 
-            // Create the "return" for the new operation
+            // Consolidate the external results of the function, mapping the original result with the index of the
+            // operand in the return instruction. This index will map 1-to-1 to the results of the "call" op.
+            // At this time, we also consolidate the external function results (values) that will be used as
+            // operands of the return operation.
             std::vector<Value> functionResults;
             for (auto resultMapPair : externalResultsMap) {
                 Value originalResult = resultMapPair.getFirst();
@@ -197,61 +189,110 @@ namespace qoala::analysis::functionize {
                 data.replacementMap.insert(std::pair{originalResult, functionResults.size()});
                 functionResults.push_back(functionResult);
             }
+            // Create the "return" for the new operation
             auto returnOp = opBuilder->create<func::ReturnOp>(newFunc.getLoc(),
                                                               functionResults);
             LLVM_DEBUG(llvm::dbgs() << "New Function: " << newFunc << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << hasEntanglementOp << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << functionHasEPRSOp << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Return op: " << returnOp << "\n");
             LLVM_DEBUG(llvm::dbgs() << "************************\n");
         }
         data.newFunction = newFunc;
     }
 
-    void functionizeModule(ModuleOp &module, BucketsTy (*classifyOperations)(ModuleOp *)) {
-        std::map<std::vector<Operation *>, func::FuncOp> mappedFunctions;
-        BucketsTy functionGroups = classifyOperations(&module);
+    void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations) {
+        std::map<QuantumOpsGroupTy, func::FuncOp> mappedFunctions;
+
+        auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
+        dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
+        std::vector<QuantumOpsGroupTy> functionGroups = classifyOperations(mainFunction);
 
         // We start building our new functions at the start of the body of the module
         OpBuilder opBuilder(module.getBodyRegion());
         Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
 
-        for (std::vector<Operation *> opGroup : functionGroups) {
+        for (QuantumOpsGroupTy quantumOpsGroup : functionGroups) {
             FunctionizeData data;
             std::string newFuncName = getNewFunctionName();
 
             // We create a new function that will contain the single operation in its body (+ a return statement)
             SetVector<Operation *> operations;
-            operations.insert(opGroup.begin(), opGroup.end());
+            operations.insert(quantumOpsGroup.begin(), quantumOpsGroup.end());
             createNewFunctionWithOperations(
                     data, &opBuilder, newFuncName, topLocation, operations
             );
             auto insertedSymbol = module.lookupSymbol<func::FuncOp>(data.newFunction.getNameAttr());
-            mappedFunctions.insert(std::pair{opGroup, insertedSymbol});
+            mappedFunctions.insert(std::pair{quantumOpsGroup, insertedSymbol});
 
             // Create a "call" operation in place of the original operations
             OpBuilder::InsertionGuard g(opBuilder);
-            opBuilder.setInsertionPointAfter(opGroup[0]);
+            opBuilder.setInsertionPointAfter(quantumOpsGroup[0]);
             auto callOp = opBuilder.create<func::CallOp>(
-                    opGroup[0]->getLoc(), mappedFunctions[opGroup],
+                    quantumOpsGroup[0]->getLoc(), mappedFunctions[quantumOpsGroup],
                     /*args=*/data.argumentValues.getArrayRef()
             );
 
             // Finally, replace the usages of the old operation with the result of the "call"
             // and delete the old operation
-            for (Operation *quantumOp : opGroup) {
+            for (Operation *quantumOp : quantumOpsGroup) {
                 LLVM_DEBUG(llvm::dbgs() << "Replacing: " << *quantumOp << "\n");
             }
             LLVM_DEBUG(llvm::dbgs() << "With: " << callOp << "\n");
             // Replace the uses of the functionized operations with the results returned by the call operation
-            auto callResults = callOp->getResults();
             for (auto pair : data.replacementMap) {
                 Value oldValue = pair.getFirst();
                 oldValue.replaceAllUsesWith(callOp.getResult(pair.getSecond()));
             }
             // Finally, delete all the operations of the group
-            for (Operation *op : opGroup) {
-                op->erase();
+            std::for_each(quantumOpsGroup.begin(), quantumOpsGroup.end(), [](Operation *op) {op->erase();});
+        }
+    }
+
+    static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
+        // A list fo the QMem operation types we would like to "functionize"
+        return llvm::isa<
+                dialects::qmem::CnotOp,
+                dialects::qmem::CzOp,
+                dialects::qmem::EprsMeasureOp,
+                dialects::qmem::EprsOp,
+                dialects::qmem::HadamardOp,
+                dialects::qmem::InitOp,
+                dialects::qmem::MeasureOp,
+                dialects::qmem::QAllocOp,
+                // Recv/Send Ints/Floats can stay in the main body
+//            dialects::qmem::RecvFloatsOp,
+//            dialects::qmem::RecvIntsOp,
+//            dialects::qmem::SendFloatsOp,
+//            dialects::qmem::SendIntsOp,
+                // We do not want to functionize any leftover rotation (if any)
+                // Since rotations use an f32 angle arg, they are lowered to intermediate rotations
+                // (so the f32 can be transformed into 2x i32),THEN to netqasm rotations
+                // This allows us to place the call to the builtin angle conversion function before functionizing
+//            dialects::qmem::RotateXOp,
+//            dialects::qmem::RotateYOp,
+//            dialects::qmem::RotateZOp,
+//            dialects::qmem::CrotXOp
+                // Instead, we need to functionize the
+                dialects::qmem::RotateXIntOp,
+                dialects::qmem::RotateYIntOp,
+                dialects::qmem::RotateZIntOp,
+                dialects::qmem::CrotXIntOp
+                // We don't want to functionize "Remotes", "Funcs" nor "Returns"
+//            dialects::qmem::RemoteOp,
+//            dialects::qmem::FuncOp,
+//            dialects::qmem::ReturnOp,
+        >(op);
+    }
+
+    std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction) {
+        std::vector<std::vector<Operation *>> result;
+        for (Operation &op : mainFunction.getOps()) {
+            if (qMemOpCanBeFunctionized(&op)) {
+                std::vector<Operation *> intermediate;
+                intermediate.push_back(&op);
+                result.push_back(intermediate);
             }
         }
+        return result;
     }
 }
