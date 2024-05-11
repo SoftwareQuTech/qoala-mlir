@@ -55,6 +55,23 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     >(op);
 }
 
+static qoala::analysis::functionize::BucketsTy simpleOpClassifier(ModuleOp *module) {
+    std::vector<Region *> foundRegion;
+    module->walk([&](qmem::FuncOp mainFunc) {
+        foundRegion.push_back(&mainFunc.getBody());
+    });
+
+    std::vector<std::vector<Operation *>> result;
+    for (Operation &op : foundRegion[0]->getOps()) {
+        if (qMemOpCanBeFunctionized(&op)) {
+            std::vector<Operation *> intermediate;
+            intermediate.push_back(&op);
+            result.push_back(intermediate);
+        }
+    }
+    return result;
+}
+
 namespace qoala::conversion {
 #define GEN_PASS_DEF_QOALAMIRTOQOALALIR
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
@@ -114,13 +131,17 @@ namespace qoala::conversion {
         }
 
         // Stage 3: Functionize
-        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations*\n");
-        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+
         if (this->useSimpleFunctionize) {
             LLVM_DEBUG(llvm::dbgs() << "HERE\n");
+            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
+        } else {
+            // TODO
+            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
         }
-        qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
             if (funcDecl.getSymName() != qoala::helpers::angle::angleConversionFunctionName) {
@@ -132,6 +153,7 @@ namespace qoala::conversion {
         module.walk([&](qmem::RemoteOp remote) {
             qoala::helpers::moveOperationToTop(module, remote);
         });
+        module.dump();
 
         // Stage 4: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");

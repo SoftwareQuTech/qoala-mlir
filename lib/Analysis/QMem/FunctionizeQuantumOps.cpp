@@ -40,6 +40,24 @@ static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
     >(op);
 }
 
+static functionize::BucketsTy simpleOpClassifier(ModuleOp *module) {
+    std::vector<Region *> foundRegion;
+    module->walk([&](qmem::FuncOp mainFunc) {
+        foundRegion.push_back(&mainFunc.getBody());
+    });
+
+    std::vector<std::vector<Operation *>> result;
+    // We simply put one quantum function inside its own group
+    for (Operation &op : foundRegion[0]->getOps()) {
+        if (qMemOpCanBeFunctionized(&op)) {
+            std::vector<Operation *> intermediate;
+            intermediate.push_back(&op);
+            result.push_back(intermediate);
+        }
+    }
+    return result;
+}
+
 namespace qoala::analysis {
 #define GEN_PASS_DEF_QMEMSIMPLEFUNCTIONIZE
 #include "Dialect/QMem/Passes.h.inc"
@@ -54,6 +72,6 @@ namespace qoala::analysis {
         ModuleOp module = dyn_cast<ModuleOp>(getOperation());
         assert(module); // We expect the cast to succeed
         LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-        functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+        functionize::functionizeModule(module, simpleOpClassifier);
     }
 } /* namespace qoala::analysis */
