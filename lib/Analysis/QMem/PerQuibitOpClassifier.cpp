@@ -95,6 +95,11 @@ namespace qoala::analysis::functionize {
             currentOpsGroup.push_back(&op);
             LLVM_DEBUG(llvm::dbgs() << " - op: " << op << "\n");
         }
+        // After iterating all the instructions, the last group was NOT added
+        if (!currentOpsGroup.empty()) {
+            opsGroups.push_back(currentOpsGroup);
+            currentOpsGroup.clear();
+        }
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%" << "\n");
         return opsGroups;
     }

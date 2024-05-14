@@ -101,8 +101,6 @@ namespace qoala::conversion {
             qoala::helpers::moveOperationToTop(module, remote);
         });
 
-        module->dump();
-
         // Stage 4: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 4. Lowering Remote declarations *\n");
