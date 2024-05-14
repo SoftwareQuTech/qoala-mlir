@@ -9,6 +9,8 @@
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/NetQASM/NetQASMDialect.h"
+#include "Dialect/QRemote/QRemote.h"
+#include "Dialect/QRemote/QRemoteDialect.h"
 
 namespace mlir {
 #define GEN_PASS_DECL
@@ -17,6 +19,7 @@ namespace mlir {
     std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
     std::unique_ptr<mlir::Pass> createLowerQMemToQoalaHostPass();
     std::unique_ptr<mlir::Pass> createLowerQMemToNetQASMPass();
+    std::unique_ptr<mlir::Pass> createLowerQMemToQRemotePass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION

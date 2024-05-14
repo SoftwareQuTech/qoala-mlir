@@ -80,7 +80,6 @@ namespace qoala::conversion {
         qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
         qoala::helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
-        // We add the conversion pattern to the context
         ConversionTarget qMemToQoalaHostTarget(context);
         RewritePatternSet qMemToQoalaHostPatterns(&context);
         qoala::helpers::configureQMemToQoalaHostTarget(qMemToQoalaHostTarget, true, false);
@@ -90,6 +89,11 @@ namespace qoala::conversion {
         RewritePatternSet qMemToNetQASMPatterns(&context);
         qoala::helpers::configureQMemToNetQASMTarget(qMemToNetQASMTarget);
         qoala::helpers::populateQMemToNetQASMPatterns(context, qMemToNetQASMPatterns, typeConverter);
+
+        ConversionTarget qMemToQRemoteTarget(context);
+        RewritePatternSet qMemToQRemotePatterns(&context);
+        qoala::helpers::configureQMemToQRemoteTarget(qMemToQRemoteTarget);
+        qoala::helpers::populateQMemToQRemotePatterns(context, qMemToQRemotePatterns, typeConverter);
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
         LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
@@ -126,9 +130,19 @@ namespace qoala::conversion {
             qoala::helpers::moveOperationToTop(module, remote);
         });
 
-        // Stage 4: Convert QMem to QoalaHost
+        // Stage 4: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 4. Lowering Remote declarations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        LogicalResult remotesLoweringResult =
+                mlir::applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns));
+        if (mlir::failed(remotesLoweringResult)) {
+            signalPassFailure();
+        }
+
+        // Stage 5: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 4. Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 5. Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LogicalResult qMemToQoalaHostResult =
             mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
@@ -136,9 +150,9 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 5: Convert QMem to QoalaHost
+        // Stage 6: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 5. Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         LogicalResult qMemtoNetQASMResult =
                 mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));

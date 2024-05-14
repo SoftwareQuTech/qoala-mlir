@@ -2,7 +2,7 @@
 
 // CHECK: module
 module {
-  // CHECK: qoalahost.remote @[[REMOTEBOB:.*]]
+  // CHECK: qremote.remote @[[REMOTEBOB:.*]]
   qmem.remote @Bob
 
   // CHECK: qoalahost.main_func @test_remote_quantum_program()

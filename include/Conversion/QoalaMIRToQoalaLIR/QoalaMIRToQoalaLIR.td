@@ -23,7 +23,8 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
     let dependentDialects = ["::mlir::func::FuncDialect",
                              "::qoala::dialects::qmem::QMemDialect",
                              "::qoala::dialects::qoalahost::QoalaHostDialect",
-                             "::qoala::dialects::netqasm::NetQASMDialect"];
+                             "::qoala::dialects::netqasm::NetQASMDialect",
+                             "::qoala::dialects::qremote::QRemoteDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -35,9 +36,10 @@ def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
     let constructor = "::mlir::createLowerQMemToQoalaHostPass()";
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
-    let dependentDialects = ["::qoala::dialects::qmem::QMemDialect",
+    let dependentDialects = ["::mlir::func::FuncDialect",
+                             "::qoala::dialects::qmem::QMemDialect",
                              "::qoala::dialects::qoalahost::QoalaHostDialect",
-                             "::mlir::func::FuncDialect"];
+                             "::qoala::dialects::qremote::QRemoteDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -49,9 +51,21 @@ def LowerQMemToNetQASM : Pass<"lower-qmem-to-netqasm", "mlir::ModuleOp"> {
     let constructor = "::mlir::createLowerQMemToNetQASMPass()";
     // Since we lower QMem to NetQASM, we need to depend on all those dialects to create
     // valid MLIR
-    let dependentDialects = ["::qoala::dialects::qmem::QMemDialect",
-                             "::qoala::dialects::netqasm::NetQASMDialect",
-                             "::mlir::func::FuncDialect"];
+    let dependentDialects = ["::mlir::func::FuncDialect",
+                             "::qoala::dialects::qmem::QMemDialect",
+                             "::qoala::dialects::netqasm::NetQASMDialect"];
+}
+
+//===----------------------------------------------------------------------===//
+// Transformation Pass from QMem to QRemote
+//===----------------------------------------------------------------------===//
+
+def LowerQMemToQRemote : Pass<"lower-qmem-to-qremote", "mlir::ModuleOp"> {
+    let summary = "Lower all the instances of qmem operations that can be lowered to the QRemote dialect";
+    let constructor = "::mlir::createLowerQMemToQRemotePass()";
+    // Since we lower QMem to QRemote, we need to depend on all those dialects to create
+    // valid MLIR
+    let dependentDialects = ["::qoala::dialects::qremote::QRemoteDialect"];
 }
 
 #endif /* QMEM_TO_QOALAHOST_PASS */

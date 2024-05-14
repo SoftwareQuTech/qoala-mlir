@@ -2,7 +2,7 @@
 
 // CHECK: module
 module {
-  // CHECK: qoalahost.remote @[[REMOTEBOB:.*]]
+  // CHECK: qremote.remote @[[REMOTEBOB:.*]]
   qmem.remote @Bob
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
