@@ -87,7 +87,7 @@ namespace qoala::conversion {
             qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
         } else {
             // TODO - Implement the proper way to classify the quantum ops
-            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
+            qoala::analysis::functionize::functionizeModule(module, functionizeOpClassifier);
         }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
@@ -100,6 +100,8 @@ namespace qoala::conversion {
         module.walk([&](qmem::RemoteOp remote) {
             qoala::helpers::moveOperationToTop(module, remote);
         });
+
+        module->dump();
 
         // Stage 4: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");

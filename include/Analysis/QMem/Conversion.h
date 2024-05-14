@@ -78,10 +78,18 @@ namespace qoala::analysis {
         /**
          * Classifier to create *simple* groups, i.e., each group will contain _a single quantum operation_.
          * This classifier is used with the simple functionization
-         * @param module The module on which run the grouping
+         * @param mainFunction The function on which run the grouping
          * @return A collection of quantum groups.
          */
-        std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &module);
+        std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction);
+
+        /**
+         * Operation classifier that follows the rules of the compiler specifications. This method creates
+         * operation groups based on the criteria specified in https://gitlab.tudelft.nl/qoala/qoala-compiler-spec/-/blob/master/design/translations/MIR_to_LIR.md
+         * @param mainFunction The function on which run the grouping
+         * @return A collection of quantum groups.
+         */
+        std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction);
     }
 }
 

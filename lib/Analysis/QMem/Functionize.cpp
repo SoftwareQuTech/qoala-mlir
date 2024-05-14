@@ -195,7 +195,7 @@ namespace qoala::analysis::functionize {
             LLVM_DEBUG(llvm::dbgs() << "New Function: " << newFunc << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << functionHasEPRSOp << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Return op: " << returnOp << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "************************\n");
+            LLVM_DEBUG(llvm::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@\n");
         }
         data.newFunction = newFunc;
     }
@@ -248,7 +248,8 @@ namespace qoala::analysis::functionize {
         }
     }
 
-    static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
+    // Helper function to determine if the operation can be functionized, used by "simpleOpClassifier"
+    static bool qMemOpCanBeSimplyFunctionized(Operation &op) {
         // A list fo the QMem operation types we would like to "functionize"
         return llvm::isa<
                 dialects::qmem::CnotOp,
@@ -259,40 +260,94 @@ namespace qoala::analysis::functionize {
                 dialects::qmem::InitOp,
                 dialects::qmem::MeasureOp,
                 dialects::qmem::QAllocOp,
-                // Recv/Send Ints/Floats can stay in the main body
-//            dialects::qmem::RecvFloatsOp,
-//            dialects::qmem::RecvIntsOp,
-//            dialects::qmem::SendFloatsOp,
-//            dialects::qmem::SendIntsOp,
-                // We do not want to functionize any leftover rotation (if any)
-                // Since rotations use an f32 angle arg, they are lowered to intermediate rotations
-                // (so the f32 can be transformed into 2x i32),THEN to netqasm rotations
-                // This allows us to place the call to the builtin angle conversion function before functionizing
-//            dialects::qmem::RotateXOp,
-//            dialects::qmem::RotateYOp,
-//            dialects::qmem::RotateZOp,
-//            dialects::qmem::CrotXOp
-                // Instead, we need to functionize the
+                /* We do not want to functionize any (leftover) float rotation (if any)
+                 * Since rotations use a f32 angle arg, they are lowered to intermediate rotations
+                 * (so the f32 can be transformed into 2xi32), THEN to netqasm rotations
+                 * This allows us to place the call to the builtin angle conversion function before functionizing
+                dialects::qmem::RotateXOp,
+                dialects::qmem::RotateYOp,
+                dialects::qmem::RotateZOp,
+                dialects::qmem::CrotXOp
+                 */
+                /* Instead, we need to functionize the "integer" version of the rotations */
                 dialects::qmem::RotateXIntOp,
                 dialects::qmem::RotateYIntOp,
                 dialects::qmem::RotateZIntOp,
                 dialects::qmem::CrotXIntOp
-                // We don't want to functionize "Remotes", "Funcs" nor "Returns"
-//            dialects::qmem::RemoteOp,
-//            dialects::qmem::FuncOp,
-//            dialects::qmem::ReturnOp,
+                /* Recv/Send Ints/Floats can stay in the main body
+                dialects::qmem::RecvFloatsOp,
+                dialects::qmem::RecvIntsOp,
+                dialects::qmem::SendFloatsOp,
+                dialects::qmem::SendIntsOp,
+                 */
+                /* We don't want to functionize "Remotes", "Funcs" nor "Returns"
+                dialects::qmem::RemoteOp,
+                dialects::qmem::FuncOp,
+                dialects::qmem::ReturnOp
+                */
         >(op);
     }
 
     std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction) {
-        std::vector<std::vector<Operation *>> result;
+        std::vector<QuantumOpsGroupTy> opsGroups;
         for (Operation &op : mainFunction.getOps()) {
-            if (qMemOpCanBeFunctionized(&op)) {
-                std::vector<Operation *> intermediate;
-                intermediate.push_back(&op);
-                result.push_back(intermediate);
+            if (qMemOpCanBeSimplyFunctionized(op)) {
+                QuantumOpsGroupTy currentOpsGroup;
+                currentOpsGroup.push_back(&op);
+                opsGroups.push_back(currentOpsGroup);
             }
         }
-        return result;
+        return opsGroups;
+    }
+
+    static bool operationBelongsToQMemDialect(Operation &op) {
+        return llvm::isa<
+#define GET_OP_LIST
+#include "Dialect/QMem/QMem.cpp.inc"
+        >(op);
+    }
+
+    static bool qMemOpShoudlRemainInBody(Operation &op) {
+        return llvm::isa<
+                dialects::qmem::RecvFloatsOp,
+                dialects::qmem::RecvIntsOp
+        >(op);
+    }
+
+    static bool qMemIsEPRSOperation(Operation &op) {
+        return llvm::isa<dialects::qmem::EprsOp>(op);
+    }
+
+    static bool qMemAllocatesQubit(Operation &op) {
+        return llvm::isa<dialects::qmem::QAllocOp>(op);
+    }
+
+    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction) {
+        std::vector<QuantumOpsGroupTy> opsGroups;
+        std::map<Value, QuantumOpsGroupTy> perQubitGroup;
+        QuantumOpsGroupTy currentOpsGroup;
+
+        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%" << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "% CLASSIFIER %" << "\n");
+        for (Operation &op : mainFunction.getOps()) {
+            if (!operationBelongsToQMemDialect(op)) {
+                continue;
+            }
+
+            if (qMemOpShoudlRemainInBody(op)) {
+                // This function should stay in the main body... commit the current state of the group iff it-s not empty
+                if (!currentOpsGroup.empty()) {
+                    opsGroups.push_back(currentOpsGroup);
+                    currentOpsGroup.clear();
+                    LLVM_DEBUG(llvm::dbgs() << " - New Group" << "\n");
+                }
+                continue;
+            }
+
+            currentOpsGroup.push_back(&op);
+            LLVM_DEBUG(llvm::dbgs() << " - op: " << op << "\n");
+        }
+        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%" << "\n");
+        return opsGroups;
     }
 }
