@@ -244,8 +244,13 @@ namespace qoala::analysis::functionize {
                 Value oldValue = pair.getFirst();
                 oldValue.replaceAllUsesWith(callOp.getResult(pair.getSecond()));
             }
-            // Finally, delete all the operations of the group
-            std::for_each(quantumOpsGroup.begin(), quantumOpsGroup.end(), [](Operation *op) {op->erase();});
+            // Finally, delete all the operations of the group IN REVERSE ORDER to avoid leaving
+            // operations using deleted values in the middle of the deletion (MLIR will complain about that)
+            std::reverse(quantumOpsGroup.begin(), quantumOpsGroup.end());
+            for (Operation *op : quantumOpsGroup) {
+                LLVM_DEBUG(llvm::dbgs() << "Deleting op: " << *op << "\n");
+                op->erase();
+            }
         }
     }
 }
