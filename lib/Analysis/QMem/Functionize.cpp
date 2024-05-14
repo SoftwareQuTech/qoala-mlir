@@ -139,14 +139,14 @@ namespace qoala::analysis::functionize {
         {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
             OpBuilder::InsertionGuard g(*opBuilder);
+            // New operations (including the clone) should be attached to the block of the new function
+            opBuilder->setInsertionPointToStart(newBlock);
+
             for (Operation *originalQuantumOp : quantumOpsGroup) {
                 LLVM_DEBUG(llvm::dbgs() << "original op: " << *originalQuantumOp << "\n");
 
                 auto castedOldOp = dyn_cast<helpers::SimpleCloneInterface>(originalQuantumOp);
                 assert(castedOldOp); // We expect that the cast will succeed
-
-                // New operations (including the clone) should be attached to the block of the new function
-                opBuilder->setInsertionPointToStart(newBlock);
                 Operation *clonedOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
 
                 /* Process the operands of the old op */
