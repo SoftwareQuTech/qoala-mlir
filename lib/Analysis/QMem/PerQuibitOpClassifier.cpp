@@ -41,8 +41,9 @@ namespace qoala::analysis::functionize {
         QuantumOpsGroupTy currentOpsGroup;
         std::set<Operation *> groupedOps;
 
-        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%" << "\n");
-        LLVM_DEBUG(llvm::dbgs() << "% CLASSIFIER %" << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
+        LLVM_DEBUG(llvm::dbgs() << "%      CLASSIFIER      %\n");
+        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
         /* Usual lifecycle of a qubit:
          * QAlloc -> QInit/EPRS_init -> Gate(s) -> (EPRS_)Measure
@@ -53,7 +54,9 @@ namespace qoala::analysis::functionize {
          * assumption allows us to simplify the analysis
          */
         auto qAllocOperations = mainFunction.getOps<dialects::qmem::QAllocOp>();
+        unsigned int groupNum = 0;
         for (dialects::qmem::QAllocOp qAllocOp : qAllocOperations) {
+            LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum << " :\n");
             // Special case: qalloc operation has a single use, and it is only for eprs_measure
             bool opIsQAllocEPRSMeasurePair = false;
             if (llvm::hasSingleElement(qAllocOp->getUsers())) {
@@ -64,16 +67,17 @@ namespace qoala::analysis::functionize {
             for (Operation *user : qAllocOp->getUsers()) {
                 if (opIsQAllocEPRSMeasurePair || qMemOpInitsQubit(user)) {
                     // Found: Group both ops in a single group and mark the operations as grouped
-                    LLVM_DEBUG(llvm::dbgs() << " - op: " << qAllocOp << "\n");
-                    LLVM_DEBUG(llvm::dbgs() << " - op: " << *user << "\n");
-                    LLVM_DEBUG(llvm::dbgs() << " - New Group" << "\n");
+                    LLVM_DEBUG(llvm::dbgs() << "   - op: " << qAllocOp << "\n");
+                    LLVM_DEBUG(llvm::dbgs() << "   - op: " << *user << "\n");
                     opsGroups.push_back({qAllocOp, user});
                     groupedOps.insert(qAllocOp.getOperation());
                     groupedOps.insert(user);
                     break;
                 }
             }
+            groupNum++;
         }
+        LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum++ << " :\n");
 
         // Iterate over all the operations of the main function
         for (Operation &op : mainFunction.getOps()) {
@@ -87,20 +91,19 @@ namespace qoala::analysis::functionize {
                 if (!currentOpsGroup.empty()) {
                     opsGroups.push_back(currentOpsGroup);
                     currentOpsGroup.clear();
-                    LLVM_DEBUG(llvm::dbgs() << " - New Group" << "\n");
+                    LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum++ << " :\n");
                 }
                 continue;
             }
 
             currentOpsGroup.push_back(&op);
-            LLVM_DEBUG(llvm::dbgs() << " - op: " << op << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "   - op: " << op << "\n");
         }
         // After iterating all the instructions, the last group was NOT added
         if (!currentOpsGroup.empty()) {
             opsGroups.push_back(currentOpsGroup);
             currentOpsGroup.clear();
         }
-        LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%" << "\n");
         return opsGroups;
     }
 }

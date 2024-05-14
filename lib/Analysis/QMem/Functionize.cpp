@@ -129,8 +129,8 @@ namespace qoala::analysis::functionize {
         Block *newBlock = newFunc.addEntryBlock();
         bool functionHasEPRSOp = false;
 
-        LLVM_DEBUG(llvm::dbgs() << "************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "func type: " << funType << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
+        LLVM_DEBUG(llvm::dbgs() << "Discovered func type: " << funType << "\n");
 
         // Create a new operation of the same type that the original one, that uses
         // the function arguments instead of dialect results of other ops
@@ -138,12 +138,13 @@ namespace qoala::analysis::functionize {
         // it is possible to invoke "simpleClone" on that operation
         {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
+            LLVM_DEBUG(llvm::dbgs() << "Cloning ops:\n");
             OpBuilder::InsertionGuard g(*opBuilder);
             // New operations (including the clone) should be attached to the block of the new function
             opBuilder->setInsertionPointToStart(newBlock);
 
             for (Operation *originalQuantumOp : quantumOpsGroup) {
-                LLVM_DEBUG(llvm::dbgs() << "original op: " << *originalQuantumOp << "\n");
+                LLVM_DEBUG(llvm::dbgs() << " - original op: " << *originalQuantumOp << "\n");
 
                 auto castedOldOp = dyn_cast<helpers::SimpleCloneInterface>(originalQuantumOp);
                 assert(castedOldOp); // We expect that the cast will succeed
@@ -168,7 +169,7 @@ namespace qoala::analysis::functionize {
                     functionHasEPRSOp = true;
                 }
 
-                LLVM_DEBUG(llvm::dbgs() << "cloned op: " << *clonedOp << "\n");
+                LLVM_DEBUG(llvm::dbgs() << " * cloned op: " << *clonedOp << "\n");
             }
             if (functionHasEPRSOp) {
                 // We "mark" the function declaration, so when lowering the func operation the pass can
@@ -193,16 +194,17 @@ namespace qoala::analysis::functionize {
             // Create the "return" for the new operation
             auto returnOp = opBuilder->create<func::ReturnOp>(newFunc.getLoc(),
                                                               functionResults);
-            LLVM_DEBUG(llvm::dbgs() << "New Function: " << newFunc << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << functionHasEPRSOp << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "Return op: " << returnOp << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@\n");
+            LLVM_DEBUG(llvm::dbgs() << "New Function:\n" << newFunc << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << (functionHasEPRSOp ? "Yes" : "No") << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "Return op:\n - " << returnOp << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
         }
         data.newFunction = newFunc;
     }
 
     void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations) {
         std::map<QuantumOpsGroupTy, func::FuncOp> mappedFunctions;
+        unsigned int groupNum = 0;
 
         auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
         dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
@@ -213,6 +215,8 @@ namespace qoala::analysis::functionize {
         Location topLocation = module.getBodyRegion().front().getOperations().front().getLoc();
 
         for (QuantumOpsGroupTy quantumOpsGroup : functionGroups) {
+            LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
+            LLVM_DEBUG(llvm::dbgs() << "Process group #" << groupNum << "\n");
             FunctionizeData data;
             std::string newFuncName = getNewFunctionName();
 
@@ -235,10 +239,11 @@ namespace qoala::analysis::functionize {
 
             // Finally, replace the usages of the old operation with the result of the "call"
             // and delete the old operation
+            LLVM_DEBUG(llvm::dbgs() << "Replacing operations in group #" << groupNum++ << ":\n");
             for (Operation *quantumOp : quantumOpsGroup) {
-                LLVM_DEBUG(llvm::dbgs() << "Replacing: " << *quantumOp << "\n");
+                LLVM_DEBUG(llvm::dbgs() << " -> " << *quantumOp << "\n");
             }
-            LLVM_DEBUG(llvm::dbgs() << "With: " << callOp << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "With:\n * " << callOp << "\n");
             // Replace the uses of the functionized operations with the results returned by the call operation
             for (auto pair : data.replacementMap) {
                 Value oldValue = pair.getFirst();
@@ -248,7 +253,6 @@ namespace qoala::analysis::functionize {
             // operations using deleted values in the middle of the deletion (MLIR will complain about that)
             std::reverse(quantumOpsGroup.begin(), quantumOpsGroup.end());
             for (Operation *op : quantumOpsGroup) {
-                LLVM_DEBUG(llvm::dbgs() << "Deleting op: " << *op << "\n");
                 op->erase();
             }
         }
