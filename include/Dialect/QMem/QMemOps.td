@@ -124,7 +124,7 @@ def EprsOp: UsingRemote_Op<"eprs", [Entangle]> {
     }];
 }
 
-def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
+def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
