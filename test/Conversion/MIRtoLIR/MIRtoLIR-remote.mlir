@@ -1,5 +1,7 @@
 // RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
 
+// There is NO quantum instructions here, so we don't expect any "functionization" effect
+
 // CHECK: module
 module {
   // CHECK: qremote.remote @[[REMOTEBOB:.*]]
