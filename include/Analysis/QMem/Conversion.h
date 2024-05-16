@@ -16,8 +16,10 @@ namespace qoala::analysis {
             std::vector<Type> argTypes;
             std::vector<Type> resultTypes;
             /* Values of the external arguments and external results discovered */
-            SetVector<Value> argumentValues;
-            SetVector<Value> resultValues;
+            SetVector<Value> externalArgsVals;
+            SetVector<Value> externalResVals;
+            /* Map between the external arguments and the corresponding argument index of the new function */
+            DenseMap<Value, unsigned int> externalArgValsIdxMap;
             /* The new function created */
             func::FuncOp newFunction;
             /* Map between the results of the functionized group (original results) and the _index_
