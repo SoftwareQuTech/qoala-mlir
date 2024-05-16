@@ -62,4 +62,45 @@ implementing the grouping algorithm.
 
 ### MLIR operations "closure"
 
-TODO 
+The funcitonization process shown in the `qoala-compiler-specs` describes how to form a group of operations that
+will be placed in an isolated function within the same translation unit. When moving these operations to it own
+function declaration, we treat this group of operations as a _"operations closure"_ due to its similarities with
+the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
+
+In this document, we understand an _operations closure_ (or simply a _closure_) as a group of operations that:
+
+- May use a set of values (arguments) from _outside_ the group of operation; we call these _external arguments_.
+- May produce a set of values (results) that are used _outside_ the same group of operations; we call these
+  _external results_.
+- May use a set of values _produced by operations within the same group_; we call these _internal arguments_.
+- May produce a set of values _used by operations within the same group_; we call these _internal results_.
+
+We will use these concepts when describing the implementation of the process that creates the function definition
+for a given set of operations.
+
+
+## High level design of the functionization algorithm
+
+TODO
+
+
+## Implementation details
+
+TODO
+
+
+## Known issues
+
+### Deletion of original operations in wrong order
+
+TODO
+
+
+### Insertion of new (cloned) operations in the wrong order
+
+TODO
+
+
+### Incorrect handling of the function arguments when using multiple rotations
+
+TODO
