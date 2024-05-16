@@ -175,7 +175,32 @@ discovering the _external_ arguments and return values (and their types) of a gi
 
 ## Function type discovery
 
-TODO
+The final level of nesting in the functionzation algorithm is the discovery of the _external_ results and values
+(and their respective types) of a given operations closure. This process is implemented in the `computeArgTypesAndReturns`
+method, lcoated in the file `lib/Analysis/QMem/Functionize.cpp`. This is where the _closure_ concept becomes more relevant
+to understand the logic behind this computation.
+
+The `computeArgTypesAndReturns` receives the following arguments:
+
+1. Declare a `FunctionizeData` structure that will contain the external results and values, together with the types.
+2. An _ordered_ set containing the operations to analyze.
+
+The implementation of the discovery algorithm will simply iterate over each of the given operations, and compute:
+
+1. Get the operands (which are values) of the operation. For each one of them:
+   1. Check if the operation that defines the operand value is _outside_ the set of operations. If so, the operand is
+      an _external_ argument, so we add that value (and the type) to the set of external values (and external types).
+2. Get the results of the operation. For each one of them:
+   1. Check if the results has any uses (another operation _somewhere_ uses the current result of the current operation):
+      1. If there are no uses, we still mark the value as a return value, and its type.
+      2. If there are uses, then we iterate over the value users (operations):
+         1. If the operation that uses the value is not in the operations closure set, then we discovered an _external_
+            result of the operations closure, so we add that value (and the type) to the set of external values (and
+            external types). In this step we also check that the value was not identified before as an external result.
+            This can happen since a value can be used by multiple operations outside the operations closure. To achieve
+            this extra check, we use the index of the result in the current operation.
+3. Populate the `FunctionizeData` structure with the discovered external arguments and result values, and their
+   respective types.
 
 
 ## Known issues
