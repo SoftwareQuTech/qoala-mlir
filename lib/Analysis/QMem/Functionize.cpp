@@ -44,10 +44,10 @@ namespace qoala::analysis::functionize {
         std::vector<Value> resultValues;
 
         for (Operation *quantumOp : quantumOps) {
-            auto opOperands = quantumOp->getOperands();
+            OperandRange opOperands = quantumOp->getOperands();
             for (Value opOperand: opOperands) {
                 if (!quantumOps.contains(opOperand.getDefiningOp())) {
-                    // We discovered an argument of the group
+                    // We discovered an external argument of the group
                     argumentValues.push_back(opOperand);
                     argTypes.push_back(opOperand.getType());
                 }
@@ -68,6 +68,7 @@ namespace qoala::analysis::functionize {
                     // the already marked for return), then it needs to be returned
                     for (OpOperand &usage: opResult.getUses()) {
                         if (!quantumOps.contains(usage.getOwner()) && !returnIndexesForOp.contains(resultIndex)) {
+                            // We discovered an external result of the group
                             resultValues.push_back(opResult);
                             resultTypes.push_back(opResult.getType());
                             returnIndexesForOp.insert(resultIndex);
@@ -115,7 +116,7 @@ namespace qoala::analysis::functionize {
     }
 
     void createNewFunctionWithOperations(FunctionizeData &data,
-                                         OpBuilder *opBuilder, StringRef funcName,
+                                         OpBuilder &opBuilder, StringRef funcName,
                                          Location loc, SetVector<Operation *> &quantumOpsGroup) {
         std::vector<Operation *> clonedOperations;
         DenseMap<OpResult, OpResult> externalResultsMap;
@@ -124,8 +125,8 @@ namespace qoala::analysis::functionize {
         computeArgTypesAndReturns(data, quantumOpsGroup);
 
         // Create the new function, and attach a block to it
-        FunctionType funType = opBuilder->getFunctionType(data.argTypes, data.resultTypes);
-        auto newFunc = opBuilder->create<func::FuncOp>(loc, funcName, funType);
+        FunctionType funType = opBuilder.getFunctionType(data.argTypes, data.resultTypes);
+        auto newFunc = opBuilder.create<func::FuncOp>(loc, funcName, funType);
         Block *newBlock = newFunc.addEntryBlock();
         bool functionHasEPRSOp = false;
 
@@ -139,16 +140,16 @@ namespace qoala::analysis::functionize {
         {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
             LLVM_DEBUG(llvm::dbgs() << "Cloning ops:\n");
-            OpBuilder::InsertionGuard g(*opBuilder);
+            OpBuilder::InsertionGuard g(opBuilder);
             // New operations (including the clone) should be attached to the block of the new function
-            opBuilder->setInsertionPointToStart(newBlock);
+            opBuilder.setInsertionPointToStart(newBlock);
 
             for (Operation *originalQuantumOp : quantumOpsGroup) {
                 LLVM_DEBUG(llvm::dbgs() << " - original op: " << *originalQuantumOp << "\n");
 
                 auto castedOldOp = dyn_cast<helpers::SimpleCloneInterface>(originalQuantumOp);
                 assert(castedOldOp); // We expect that the cast will succeed
-                Operation *clonedOp = castedOldOp.simpleClone(*opBuilder, newFunc.getLoc());
+                Operation *clonedOp = castedOldOp.simpleClone(opBuilder, newFunc.getLoc());
 
                 /* Process the operands of the old op */
                 std::vector<Value> clonedOpOperands;
@@ -174,7 +175,7 @@ namespace qoala::analysis::functionize {
             if (functionHasEPRSOp) {
                 // We "mark" the function declaration, so when lowering the func operation the pass can
                 // know that this particular function needs to be lowered to netqasm.request_routine
-                Attribute entangle = opBuilder->getStringAttr("true");
+                Attribute entangle = opBuilder.getStringAttr("true");
                 newFunc->setAttr("entangle", entangle);
             }
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
@@ -192,7 +193,7 @@ namespace qoala::analysis::functionize {
                 functionResults.push_back(functionResult);
             }
             // Create the "return" for the new operation
-            auto returnOp = opBuilder->create<func::ReturnOp>(newFunc.getLoc(),
+            auto returnOp = opBuilder.create<func::ReturnOp>(newFunc.getLoc(),
                                                               functionResults);
             LLVM_DEBUG(llvm::dbgs() << "New Function:\n" << newFunc << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << (functionHasEPRSOp ? "Yes" : "No") << "\n");
@@ -203,10 +204,12 @@ namespace qoala::analysis::functionize {
     }
 
     void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations) {
-        std::map<QuantumOpsGroupTy, func::FuncOp> mappedFunctions;
         unsigned int groupNum = 0;
 
         auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
+        // We expect at least one qmem::FuncOp operation in the module
+        assert(!mainFunctions.empty());
+        // We assume that the main function to analyze is just the first one (lexicographically) in the module
         dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
         std::vector<QuantumOpsGroupTy> functionGroups = classifyOperations(mainFunction);
 
@@ -217,6 +220,8 @@ namespace qoala::analysis::functionize {
         for (QuantumOpsGroupTy quantumOpsGroup : functionGroups) {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
             LLVM_DEBUG(llvm::dbgs() << "Process group #" << groupNum << "\n");
+
+            // The container structure for the funcitonize data
             FunctionizeData data;
             std::string newFuncName = getNewFunctionName();
 
@@ -224,31 +229,31 @@ namespace qoala::analysis::functionize {
             SetVector<Operation *> operations;
             operations.insert(quantumOpsGroup.begin(), quantumOpsGroup.end());
             createNewFunctionWithOperations(
-                    data, &opBuilder, newFuncName, topLocation, operations
+                    data, opBuilder, newFuncName, topLocation, operations
             );
+            // Search for the symbol (func.func object) that we just inserted
             auto insertedSymbol = module.lookupSymbol<func::FuncOp>(data.newFunction.getNameAttr());
-            mappedFunctions.insert(std::pair{quantumOpsGroup, insertedSymbol});
 
             // Create a "call" operation in place of the original operations
             OpBuilder::InsertionGuard g(opBuilder);
             opBuilder.setInsertionPointAfter(quantumOpsGroup[0]);
             auto callOp = opBuilder.create<func::CallOp>(
-                    quantumOpsGroup[0]->getLoc(), mappedFunctions[quantumOpsGroup],
+                    quantumOpsGroup[0]->getLoc(), insertedSymbol,
                     /*args=*/data.argumentValues.getArrayRef()
             );
 
-            // Finally, replace the usages of the old operation with the result of the "call"
-            // and delete the old operation
             LLVM_DEBUG(llvm::dbgs() << "Replacing operations in group #" << groupNum++ << ":\n");
             for (Operation *quantumOp : quantumOpsGroup) {
                 LLVM_DEBUG(llvm::dbgs() << " -> " << *quantumOp << "\n");
             }
             LLVM_DEBUG(llvm::dbgs() << "With:\n * " << callOp << "\n");
+
             // Replace the uses of the functionized operations with the results returned by the call operation
             for (auto pair : data.replacementMap) {
                 Value oldValue = pair.getFirst();
                 oldValue.replaceAllUsesWith(callOp.getResult(pair.getSecond()));
             }
+
             // Finally, delete all the operations of the group IN REVERSE ORDER to avoid leaving
             // operations using deleted values in the middle of the deletion (MLIR will complain about that)
             std::reverse(quantumOpsGroup.begin(), quantumOpsGroup.end());
