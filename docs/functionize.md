@@ -16,14 +16,14 @@ The `qoala-compiler-specs` repository provides a "hands-on" description about ho
 must select the operations that belongs to a group, and place them in a separate function.
 This description does not provide a full specification about the algorithm, but it helps to understand how the
 operations are grouped together and how classical communications acts as _barriers_ that define the end of a
-partilly-filled quantum operations group.
+partially-filled quantum operations group.
 
 Despite this, the compiler specification limits the description only to how the operations are classified into
 an operations group. In this description, once certain  conditions are met, the group is considered "complete"
 and the operations are "placed into a separate function, replacing the original locations of the functionized
 operations with the respective `call` operation".
 
-From this description, we can identify the first 2 big steps of the functionzation:
+From this description, we can identify the first 2 big steps of the functionization:
 
 1. Classify the operations with the objective of forming the groups.
 2. For each of the groups, place all the instructions in its own function definition (within the same translation
@@ -64,7 +64,7 @@ implementing the grouping algorithm.
 
 The funcitonization process shown in the `qoala-compiler-specs` describes how to form a group of operations that
 will be placed in an isolated function within the same translation unit. When moving these operations to it own
-function declaration, we treat this group of operations as a _"operations closure"_ due to its similarities with
+function declaration, we treat this group of operations as an _"operations closure"_ due to its similarities with
 the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
 
 In this document, we understand an _operations closure_ (or simply a _closure_) as a group of operations that:
@@ -82,7 +82,7 @@ for a given set of operations.
 ## High level design of the functionization algorithm
 
 The method `qoala::analysis::functionize::functionizeModule` located in the file `lib/Analysis/QMem/Functionize.cpp`
-is the main entry point of the funcitonization algorithm. This method receives:
+is the main entry point of the functionization algorithm. This method receives:
 
 1. The MLIR _module_ object that contains the main function to process its operations.
 2. A `classifyOperations` function, whose responsibility is process all the operations inside the main function
@@ -109,6 +109,71 @@ operation group
 
 
 ## Creation of a new function in the module
+
+The `qoala::analysis::functionize::createNewFunctionWithOperations` located in the file `lib/Analysis/QMem/Functionize.cpp`
+contains the implementation of how to create a new function with a given group of operations. This method receives
+(among other not-so-relevant arguments):
+
+1. The `FunctionizeData` instance used to leave the mapping data needed in the `functioneModule` method.
+2. An `OpBuilder` object, which will be used to create new operations and _clone_ the ones in the group.
+3. An _ordered set_ containing the operations of the current group. The order of this set establishes the
+   order on which these operations need to be inserted in the new body. Additionally, we will start treating
+   set as an _operations closure_.
+
+It is important to remark that despite the fact that we need to "simply move" operations from the main body
+to the body of a function that will be created, _moving an operation outside its scope is not an easy thing
+to do_. This is due to the fact the in order to move teh operation to a new body _we effectively break the
+data dependencies of the function_, i.e., the values used by that function and operations using values from
+the operation _would need to be moved with the operation under move_. The `createNewFunctionWithOperations`
+method solves this issue by _partially cloning_ the original operations.
+
+To this end, the QMem operations implement the `qoala::helpers::SimpleCloneInterface` declared in the file
+`include/Analysis/Helpers/SimpleCloneInterface.td`. Any operation implementing this interface (i.e., all
+operations from the QMem dialect, see the `QMem_Op` class definition in teh  `include/Dialect/QMem/QMemOps.td`
+file) _are forced_ to implement the `simpleClone` method, which provides a simple way to create new operation
+_with the same operands and attributes as the original_, but not linked in any way to the original function block,
+and, in particular, not used (yet) by any other function. After "simple cloning" an operation the
+`createNewFunctionWithOperations` function will have to update the operands, to use the ones that come from
+operations _within the new body_.
+
+To help the creation of the cloned operations in the new function body, the `createNewFunctionWithOperations` method
+keeps two maps between original operations results and the cloned operations results. One map contains translations
+for the _internal results_ and the second for the _external results_ of the new function.
+
+Additionally, the  map of the _external values_ is used to populate the `FunctionizeData` map that correlate the
+original external result value with the index of the respective value that is placed in the return statement.
+Naturally, these indexes will match 1-to-1 with the index of the returned values on the `call` operation placed in
+the main body by `functionizeModule`.
+
+Finally, the `createNewFunctionWithOperations` method achieve all these goals in the following steps:
+
+1. Compute the arguments and values and types of the given operations set by calling the method
+   `computeArgTypesAndReturns`. These results are placed in the `FunctionizeData` struct.
+2. Create a new Function declaration (`func.func` operation), using the functionize data collected before for function
+   arguments and results types. 
+3. Create a new `OpBuilder` object, setting the insertion point at the beginning of the body block of the newly-created
+   function definition.
+4. For each one of the operations in the given set:
+   1. Create a simple clone of the operation.
+   2. Compute the new operands of the cloned operation (call to `mapOriginalOperandsInClonedOp`). This is achieved by
+      using the information of the external values discovered before, and a map between the original internal results,
+      and the new internal results. It is possible to assume that the new internal result value exists, since the
+      operations set is iterated _in the order they appear in the original body_, so all the original values used by
+      an operation are _already_ mapped to the new value at this point of the execution.
+   3. Process the results of the cloned operation (call to `mapOriginalResultsInClonedOp`). This is necessary to update
+      both the internal and external results maps. This is done so subsequent operations will know how to map the old
+      operation result with the new one returned by the cloned operation, and help creating the external results map
+      between the original values and their respective index in the return statement of the new function.
+   4. Update the operands of the new operations using the recent computation.
+5. Use the map of the external operations to: (1) identify the values that need to be used as operands of the `return`
+   statement, and (2) correlate the original values with their index on the `return` statement.
+6. Create the return statement and set its operands with the ones computed in the previous step.
+
+The following section will go a bit deeper on the step 1. The `computeArgTypesAndReturns` method is in charge of
+discovering the _external_ arguments and return values (and their types) of a given operations closure.
+
+
+## Function type discovery
 
 TODO
 
