@@ -40,15 +40,17 @@ namespace qoala::analysis::functionize {
         // "outsider", hence it's a result of the quantumOps set.
         std::vector<Type> argTypes;
         std::vector<Type> resultTypes;
-        std::vector<Value> argumentValues;
-        std::vector<Value> resultValues;
+        llvm::SetVector<Value> argumentValues;
+        llvm::SetVector<Value> resultValues;
 
         for (Operation *quantumOp : quantumOps) {
             OperandRange opOperands = quantumOp->getOperands();
             for (Value opOperand: opOperands) {
-                if (!quantumOps.contains(opOperand.getDefiningOp())) {
+                // We check if the operation defining the current value is not within the same quantumOpsGroup
+                // and if the current value was not discovered as an external value already.
+                if (!quantumOps.contains(opOperand.getDefiningOp()) && !argumentValues.contains(opOperand)) {
                     // We discovered an external argument of the group
-                    argumentValues.push_back(opOperand);
+                    argumentValues.insert(opOperand);
                     argTypes.push_back(opOperand.getType());
                 }
             }
@@ -60,7 +62,7 @@ namespace qoala::analysis::functionize {
 
                 if (opResult.getUses().empty()) {
                     // If there are no uses, we still need to return the "unused" result
-                    resultValues.push_back(opResult);
+                    resultValues.insert(opResult);
                     resultTypes.push_back(opResult.getType());
                     returnIndexesForOp.insert(resultIndex);
                 } else {
@@ -69,7 +71,7 @@ namespace qoala::analysis::functionize {
                     for (OpOperand &usage: opResult.getUses()) {
                         if (!quantumOps.contains(usage.getOwner()) && !returnIndexesForOp.contains(resultIndex)) {
                             // We discovered an external result of the group
-                            resultValues.push_back(opResult);
+                            resultValues.insert(opResult);
                             resultTypes.push_back(opResult.getType());
                             returnIndexesForOp.insert(resultIndex);
                         }
