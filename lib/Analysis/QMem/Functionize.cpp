@@ -240,7 +240,9 @@ namespace qoala::analysis::functionize {
 
             // Create a "call" operation in place of the original operations
             OpBuilder::InsertionGuard g(opBuilder);
-            opBuilder.setInsertionPointAfter(quantumOpsGroup[0]);
+            // IMPORTANT: We insert the call operation _AFTER_ the last operation of the group.
+            // By placing it there, we are sure that all data dependencies are fulfilled.
+            opBuilder.setInsertionPointAfter(*quantumOpsGroup.rbegin());
             auto callOp = opBuilder.create<func::CallOp>(
                     quantumOpsGroup[0]->getLoc(), insertedSymbol,
                     /*args=*/data.externalArgsVals.getArrayRef()
