@@ -93,7 +93,7 @@ namespace qoala::analysis::functionize {
 
     static inline void mapOriginalResultsInClonedOp(ResultRange originalResults, Operation *clonedOp,
                                                     SetVector<Value> &externalResults,
-                                                    DenseMap<OpResult, OpResult> &externalResultsMap,
+                                                    llvm::MapVector<OpResult, OpResult> &externalResultsMap,
                                                     DenseMap<Value, Value> &internalResultMap) {
         for (OpResult originalResult : originalResults) {
             OpResult correspondingNewResult = clonedOp->getResult(originalResult.getResultNumber());
@@ -126,7 +126,7 @@ namespace qoala::analysis::functionize {
                                          OpBuilder &opBuilder, StringRef funcName,
                                          Location loc, SetVector<Operation *> &quantumOpsGroup) {
         std::vector<Operation *> clonedOperations;
-        DenseMap<OpResult, OpResult> externalResultsMap;
+        llvm::MapVector<OpResult, OpResult> externalResultsMap;
         DenseMap<Value, Value> internalResultMap;
 
         computeArgTypesAndReturns(data, quantumOpsGroup);
@@ -193,8 +193,8 @@ namespace qoala::analysis::functionize {
             // operands of the return operation.
             std::vector<Value> functionResults;
             for (auto resultMapPair : externalResultsMap) {
-                Value originalResult = resultMapPair.getFirst();
-                Value functionResult = resultMapPair.getSecond();
+                Value originalResult = resultMapPair.first;
+                Value functionResult = resultMapPair.second;
                 // Hack: the position of this argument will be exactly the current size of the functionResults vector
                 data.replacementMap.insert(std::pair{originalResult, functionResults.size()});
                 functionResults.push_back(functionResult);
