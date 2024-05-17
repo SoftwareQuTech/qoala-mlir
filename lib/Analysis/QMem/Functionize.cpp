@@ -51,7 +51,10 @@ namespace qoala::analysis::functionize {
                 // and if the current value was not discovered as an external value already.
                 if (!quantumOps.contains(opOperand.getDefiningOp()) && !argumentValues.contains(opOperand)) {
                     // We discovered an external argument of the group
+                    // Map the discovered value to the function argument index that will correspond to the same value
+                    // Luckily we know that its position will be exactly the current size of the argumentValues vector
                     externalArgsIdxMap.insert(std::pair{opOperand, argumentValues.size()});
+                    // Add the value and its type to the discovered sets
                     argumentValues.insert(opOperand);
                     argTypes.push_back(opOperand.getType());
                 }

@@ -1,7 +1,5 @@
 // RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
 
-// TODO - converting this code generates invalid assembly: error: operand #3 does not dominate this use "qmem.rot_x %0, %cst_0"
-
 // CHECK: module
 module {
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
