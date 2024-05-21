@@ -33,14 +33,6 @@ namespace qoala::translate {
                     return success();
                 },
                 [](DialectRegistry &registry) {
-                    registry.insert<
-                            func::FuncDialect,
-                            arith::ArithDialect,
-                            tensor::TensorDialect,
-                            qoalahost::QoalaHostDialect,
-                            netqasm::NetQASMDialect,
-                            qremote::QRemoteDialect
-                    >();
                     registerAllQoalaTranslations(registry);
                     registerAllQoalaSupportTranslations(registry);
                 });

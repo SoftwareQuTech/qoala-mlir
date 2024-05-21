@@ -1,5 +1,5 @@
-#ifndef OALATRANSFORMATIONINTERFACE_H
-#define OALATRANSFORMATIONINTERFACE_H
+#ifndef QOALATRANSLATIONINTERFACE_H
+#define QOALATRANSLATIONINTERFACE_H
 
 #include "mlir/IR/DialectInterface.h"
 #include "mlir/Support/LogicalResult.h"
@@ -22,4 +22,4 @@ public:
     }
 };
 
-#endif //OALATRANSFORMATIONINTERFACE_H
+#endif //QOALATRANSLATIONINTERFACE_H
