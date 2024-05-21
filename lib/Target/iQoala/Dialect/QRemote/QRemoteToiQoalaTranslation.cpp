@@ -9,7 +9,8 @@ using namespace qoala::dialects;
 
 static LogicalResult translateQRemoteOperation(Operation *operation) {
     // TODO - Implement this method
-    llvm::dbgs() << "******** AQUI! *********\n";
+    operation->dump();
+    llvm::dbgs() << "******** QRemote - AQUI! *********\n";
     return success();
 }
 

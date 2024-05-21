@@ -2,24 +2,21 @@
 #include "Target/iQoala/QoalaTranslations.h"
 #include "Target/iQoala/Export.h"
 
-/* Include the dialects that we insert in the dialect registry */
-/* First, the dialects that come from MLIR */
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-/* Second, the dialects defined by us */
-#include "Dialect/QoalaHost/QoalaHost.h"
-#include "Dialect/NetQASM/NetQASM.h"
-#include "Dialect/QRemote/QRemote.h"
-
 using namespace mlir;
-using namespace qoala::dialects;
 
 namespace qoala::translate {
     void registerToiQoalaTranslations() {
+        /* Registration is "simple".
+         * The created object receives 2 callbacks: "function" and "dialectRegistration"
+         * - "dialectRegistration" is the second one, and it gets called when initializing the tool.
+         *   This callback simply registers the respective dialects and the translation interfaces
+         * - "function" is the "entry point" of the translation process, and gets called when starting
+         *   the process of translation. This function should act as a "dispatcher" to fully translate
+         *   all the nested operations into the iQoala format.
+         */
         [[maybe_unused]]
         TranslateFromMLIRRegistration registration(
-                "mlir-to-iqoala", "Translate MLIR to iQoala",
+                "mlir-to-iqoala", "Translate MLIR to iQoala", // Command line arg, and description
                 [](Operation *op, raw_ostream &output) -> LogicalResult {
                     // TODO - Double check that we are passing the right arguments:
                     //  It seems we need to pass the operation (the full module), but also a "context" object,
@@ -33,7 +30,9 @@ namespace qoala::translate {
                     return success();
                 },
                 [](DialectRegistry &registry) {
+                    // Translation of "qoala dialects" to iQoala
                     registerAllQoalaTranslations(registry);
+                    // Translations of "support dialects" (such as arith, func, and tensor) to iQoala
                     registerAllQoalaSupportTranslations(registry);
                 });
     }

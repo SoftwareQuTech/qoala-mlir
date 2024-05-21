@@ -1,1 +1,3 @@
 add_subdirectory(QRemote)
+add_subdirectory(QoalaHost)
+add_subdirectory(NetQASM)

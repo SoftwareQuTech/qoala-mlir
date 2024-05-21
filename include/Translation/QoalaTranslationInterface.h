@@ -9,7 +9,7 @@ using namespace mlir;
 class QoalaTranslationDialectInterface
         : public DialectInterface::Base<QoalaTranslationDialectInterface> {
 public:
-    QoalaTranslationDialectInterface(Dialect *dialect) : Base(dialect) {}
+    explicit QoalaTranslationDialectInterface(Dialect *dialect) : Base(dialect) {}
 
     /// Hook for derived dialect interface to provide translation of the
     /// operations to iQoala
