@@ -1,5 +1,6 @@
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "Target/iQoala/QoalaTranslations.h"
+#include "Target/iQoala/Export.h"
 
 /* Include the dialects that we insert in the dialect registry */
 /* First, the dialects that come from MLIR */
@@ -20,17 +21,15 @@ namespace qoala::translate {
         TranslateFromMLIRRegistration registration(
                 "mlir-to-iqoala", "Translate MLIR to iQoala",
                 [](Operation *op, raw_ostream &output) -> LogicalResult {
-                    // TODO - Check when does this method get executed and correctly implement it
+                    // TODO - Double check that we are passing the right arguments:
                     //  It seems we need to pass the operation (the full module), but also a "context" object,
                     //  which will aid the process of exporting the MLIR
-                    /*
-                    llvm::LLVMContext llvmContext;
-                    auto llvmModule = translateModuleToLLVMIR(op, llvmContext);
-                    if (!llvmModule)
+                    qoala::iqoala::iQoalaContext iQoalaContext;
+                    auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
+                    if (!iQoalaModule) {
                         return failure();
+                    }
 
-                    llvmModule->print(output, nullptr);
-                     */
                     return success();
                 },
                 [](DialectRegistry &registry) {
