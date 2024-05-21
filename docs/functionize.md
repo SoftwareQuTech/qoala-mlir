@@ -196,7 +196,7 @@ The implementation of the discovery algorithm will simply iterate over each of t
       value was not discovered before as a value coming from outside the group (to avoid duplication of values). If
       that is the case, we discovered an _external argument_, then we do some things:
       1. First, we keep track of how this value will be passes as an argument to the new function, so we map the
-         original value with teh position on the arguments list that will correspond.
+         original value with the position on the arguments list that will correspond.
       2. Second, we add that value (and the type) to the set of external values (and external types).
 2. Get the results of the operation. For each one of them:
    1. Check if the results has any uses (another operation _somewhere_ uses the current result of the current operation):
@@ -373,7 +373,7 @@ qmem.rot_x %qubit, %cst_0, %cst_1
 qmem.rot_y %qubit, %cst_0, %cst_2
 ```
   If we functionize this part of the IR, then both rotations should go in the same groups, and the `call` operation
-  would be placed right after the first operation of teh group, which is `qmem.rot_x`. Functionizing would yield the
+  would be placed right after the first operation of the group, which is `qmem.rot_x`. Functionizing would yield the
   following result:
 ```mlir
 func.func @__qoala_wrapper(%arg0: i32, %arg1: i32, %arg2: i32, %arg3: i32) {

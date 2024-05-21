@@ -18,7 +18,7 @@ module {
   %qptr4 = "qmem.qalloc"() : () -> i32
   "qmem.init"(%qptr0) : (i32) -> ()
 
-  // To test the loop, we will manually create a tensor with teh alloc'd qubits
+  // To test the loop, we will manually create a tensor with the alloc'd qubits
   %qptrs = tensor.from_elements %qptr0, %qptr1, %qptr2, %qptr3, %qptr4 : tensor<5xi32>
 
   %floats1 = "qmem.recv_floats"() {"remote" = @Bob, "length" = 1 : i32} : () -> tensor<1xf32>
