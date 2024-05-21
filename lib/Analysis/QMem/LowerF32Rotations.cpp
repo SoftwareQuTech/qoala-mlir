@@ -13,8 +13,6 @@
 #include "llvm/Support/Debug.h"
 
 namespace mlir {
-#define GEN_PASS_DEF_QMEMCONVERTINTEGERTOFLOATROTATIONS
-#include "Dialect/QMem/Passes.h.inc"
 } // namespace mlir
 
 using namespace mlir;
@@ -54,8 +52,12 @@ namespace qoala::helpers {
 }
 
 namespace qoala::analysis {
+#define GEN_PASS_DEF_QMEMCONVERTINTEGERTOFLOATROTATIONS
+#include "Dialect/QMem/Passes.h.inc"
+
     class LowerF32RotationsPass : public impl::QMemConvertIntegerToFloatRotationsBase<LowerF32RotationsPass> {
     public:
+        using QMemConvertIntegerToFloatRotationsBase::QMemConvertIntegerToFloatRotationsBase;
         void runOnOperation() override;
     };
 
@@ -79,9 +81,3 @@ namespace qoala::analysis {
         }
     }
 } /* namespace qoala::analysis */
-
-
-std::unique_ptr<Pass> mlir::createQMemF32RotationsConversion() {
-    return std::make_unique<qoala::analysis::LowerF32RotationsPass>();
-}
-

@@ -9,11 +9,6 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_LOWERQMEMTOQREMOTE
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-} // namespace mlir
-
 #define DEBUG_TYPE "qmem-to-qremote"
 
 using namespace mlir;
@@ -48,7 +43,11 @@ namespace qoala::helpers {
 }
 
 namespace qoala::conversion {
-    class LowerQMemToQRemotePass : public mlir::impl::LowerQMemToQRemoteBase<LowerQMemToQRemotePass> {
+#define GEN_PASS_DEF_LOWERQMEMTOQREMOTE
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+
+    class LowerQMemToQRemotePass : public impl::LowerQMemToQRemoteBase<LowerQMemToQRemotePass> {
+        using LowerQMemToQRemoteBase::LowerQMemToQRemoteBase;
         void runOnOperation() override;
     };
 
@@ -73,8 +72,4 @@ namespace qoala::conversion {
             signalPassFailure();
         }
     }
-}
-
-std::unique_ptr<mlir::Pass> mlir::createLowerQMemToQRemotePass() {
-    return std::make_unique<qoala::conversion::LowerQMemToQRemotePass>();
-}
+} /* namespace qoala::conversion */

@@ -9,11 +9,6 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_LOWERQMEMTONETQASM
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-} // namespace mlir
-
 #define DEBUG_TYPE "qmem-to-netqasm"
 
 using namespace mlir;
@@ -61,7 +56,11 @@ namespace qoala::helpers {
 }
 
 namespace qoala::conversion {
-    class LowerQMemToNetQASMPass : public mlir::impl::LowerQMemToNetQASMBase<LowerQMemToNetQASMPass> {
+#define GEN_PASS_DEF_LOWERQMEMTONETQASM
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+
+    class LowerQMemToNetQASMPass : public impl::LowerQMemToNetQASMBase<LowerQMemToNetQASMPass> {
+        using LowerQMemToNetQASMBase::LowerQMemToNetQASMBase;
         void runOnOperation() override;
     };
 
@@ -105,8 +104,5 @@ namespace qoala::conversion {
             signalPassFailure();
         }
     }
-}
+} /* namespace qoala::conversion */
 
-std::unique_ptr<mlir::Pass> mlir::createLowerQMemToNetQASMPass() {
-    return std::make_unique<qoala::conversion::LowerQMemToNetQASMPass>();
-}

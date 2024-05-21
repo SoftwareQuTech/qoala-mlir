@@ -12,19 +12,14 @@
 #include "Dialect/QRemote/QRemote.h"
 #include "Dialect/QRemote/QRemoteDialect.h"
 
-namespace mlir {
+namespace qoala::conversion {
 #define GEN_PASS_DECL
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-
-    std::unique_ptr<mlir::Pass> createQoalaMIRToQoalaLIRPass();
-    std::unique_ptr<mlir::Pass> createLowerQMemToQoalaHostPass();
-    std::unique_ptr<mlir::Pass> createLowerQMemToNetQASMPass();
-    std::unique_ptr<mlir::Pass> createLowerQMemToQRemotePass();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
 
-} // namespace mlir
+} // namespace qoala::conversion
 
 #endif // QOALAMIR_TO_QOALALIR_H

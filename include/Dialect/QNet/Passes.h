@@ -4,13 +4,11 @@
 #include "Dialect/QNet/QNetDialect.h"
 #include "mlir/Pass/Pass.h"
 
-namespace mlir {
+namespace qoala::analysis {
 #define GEN_PASS_DECL
 #include "Dialect/QNet/Passes.h.inc"
-
-std::unique_ptr<Pass> createQNetCheckLinearPass();
-
 /// Generate the code for registering passes.
+
 #define GEN_PASS_REGISTRATION
 #include "Dialect/QNet/Passes.h.inc"
 

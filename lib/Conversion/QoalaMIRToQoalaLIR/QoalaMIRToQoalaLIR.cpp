@@ -9,11 +9,6 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
-namespace mlir {
-#define GEN_PASS_DEF_QOALAMIRTOQOALALIR
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
-} // namespace mlir
-
 #define DEBUG_TYPE "mir-to-lir"
 
 using namespace mlir;
@@ -21,47 +16,15 @@ using namespace llvm;
 using namespace qoala::helpers;
 using namespace qoala::dialects;
 using namespace qoala::helpers::angle;
-
-/* Function copied from the "simple" functionization PoC. Since we will modify how we "group" operations
- * to create the new functions, this function will disappear */
-static bool qMemOpCanBeFunctionized(mlir::Operation *op) {
-    // A list fo the QMem operation types we would like to "functionize"
-    return llvm::isa<
-            qmem::CnotOp,
-            qmem::CzOp,
-            qmem::EprsMeasureOp,
-            qmem::EprsOp,
-            qmem::HadamardOp,
-            qmem::InitOp,
-            qmem::MeasureOp,
-            qmem::QAllocOp,
-            // Recv/Send Ints/Floats can stay in the main body
-//            qmem::RecvFloatsOp,
-//            qmem::RecvIntsOp,
-//            qmem::SendFloatsOp,
-//            qmem::SendIntsOp,
-            // We do not want to functionize any leftover rotation (if any)
-            // Since rotations use an f32 angle arg, they are lowered to intermediate rotations
-            // (so the f32 can be transformed into 2x i32),THEN to netqasm rotations
-            // This allows us to place the call to the builtin angle conversion function before functionizing
-//            qmem::RotateXOp,
-//            qmem::RotateYOp,
-//            qmem::RotateZOp,
-//            qmem::CrotXOp
-            // Instead, we need to functionize the
-            qmem::RotateXIntOp,
-            qmem::RotateYIntOp,
-            qmem::RotateZIntOp,
-            qmem::CrotXIntOp
-            // We don't want to functionize "Remotes", "Funcs" nor "Returns"
-//            qmem::RemoteOp,
-//            qmem::FuncOp,
-//            qmem::ReturnOp,
-    >(op);
-}
+using namespace qoala::analysis::functionize;
 
 namespace qoala::conversion {
-    class QoalaMIRToQoalaLIRPass : public mlir::impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
+#define GEN_PASS_DEF_QOALAMIRTOQOALALIR
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+
+    class QoalaMIRToQoalaLIRPass : public impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
+    public:
+        using QoalaMIRToQoalaLIRBase::QoalaMIRToQoalaLIRBase;
         void runOnOperation() override;
     };
 
@@ -75,6 +38,7 @@ namespace qoala::conversion {
 
         NullTypeConverter typeConverter(&context);
 
+        // Configuration of the conversion targets and patterns for each stage
         ConversionTarget f32LoweringTarget(context);
         RewritePatternSet f32Patterns(&context);
         qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
@@ -114,10 +78,17 @@ namespace qoala::conversion {
         }
 
         // Stage 3: Functionize
-        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations*\n");
-        LLVM_DEBUG(llvm::dbgs() << "**************************************\n");
-        qoala::analysis::functionize::functionizeModule(module, qMemOpCanBeFunctionized);
+        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 3. Functionizing quantum operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+
+        if (this->useSimpleFunctionize) {
+            LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
+            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
+        } else {
+            // TODO - Implement the proper way to classify the quantum ops
+            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
+        }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
             if (funcDecl.getSymName() != qoala::helpers::angle::angleConversionFunctionName) {
@@ -154,14 +125,10 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
-        LogicalResult qMemtoNetQASMResult =
+        LogicalResult qMemToNetQASMResult =
                 mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
-        if (mlir::failed(qMemtoNetQASMResult)) {
+        if (mlir::failed(qMemToNetQASMResult)) {
             signalPassFailure();
         }
     }
 } /* namespace qoala::conversion */
-
-std::unique_ptr<mlir::Pass> mlir::createQoalaMIRToQoalaLIRPass() {
-    return std::make_unique<qoala::conversion::QoalaMIRToQoalaLIRPass>();
-}

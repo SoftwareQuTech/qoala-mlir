@@ -17,7 +17,16 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
         passes in that order. Considering that, this pass is intended to be a syntax sugar
         for final users of the qoala compiler.
     }];
-    let constructor = "::mlir::createQoalaMIRToQoalaLIRPass()";
+    /*
+     *IMPORTANT: To use this option, the help suggests that is can be used as an argument
+     * of the "opt" tool, i.e. "--use-simple-functionize". However, THIS WILL NOT WORK.
+     * To correctly use this option, it needs to be invoked _as an argument of the pass option_:
+     * i.e. "--lower-qoala-mir-to-lir=use-simple-functionize"
+     */
+    let options = [
+        Option<"useSimpleFunctionize", "use-simple-functionize", "bool", /*default=*/"false",
+               "WARNING: Use simple functionize; use a single quantum operation in a function wrapper.">
+    ];
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["::mlir::func::FuncDialect",
@@ -33,7 +42,6 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
 
 def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to the qoalahost dialect";
-    let constructor = "::mlir::createLowerQMemToQoalaHostPass()";
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["::mlir::func::FuncDialect",
@@ -48,7 +56,6 @@ def LowerQMemToQoalaHost : Pass<"lower-qmem-to-qoalahost", "mlir::ModuleOp"> {
 
 def LowerQMemToNetQASM : Pass<"lower-qmem-to-netqasm", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to the NetQASM dialect";
-    let constructor = "::mlir::createLowerQMemToNetQASMPass()";
     // Since we lower QMem to NetQASM, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["::mlir::func::FuncDialect",
@@ -62,7 +69,6 @@ def LowerQMemToNetQASM : Pass<"lower-qmem-to-netqasm", "mlir::ModuleOp"> {
 
 def LowerQMemToQRemote : Pass<"lower-qmem-to-qremote", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to the QRemote dialect";
-    let constructor = "::mlir::createLowerQMemToQRemotePass()";
     // Since we lower QMem to QRemote, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["::qoala::dialects::qremote::QRemoteDialect"];
