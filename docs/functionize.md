@@ -3,7 +3,7 @@
 
 ## Introduction
 
-As part of the lowering from Qoala Middle to Lower Intermedia Representation (MIR to HIR), the program operations
+As part of the lowering from Qoala Middle to Lower Intermediate Representation (MIR to HIR), the program operations
 need to overcome in a major reorganization. In particular, all quantum instructions that live inside the "main"
 function need to be according to certain rules and places inside their own functions. These function wrappers will
 be called from the main body of the program to maintain the logic of the program.
@@ -45,7 +45,7 @@ In general, we could observe that any quantum program using qubits would use the
 2. Initialize the qubit (using the `init` operation), create entanglement (using the `eprs` operation) _or_
    immediately measure an entanglement measure (using the `eprs_measure` operation).
 3. Perform a set of gates on the qubit.
-4. Measure the state of teh qubit using either the `measure` or the `eprs_measure` operations.
+4. Measure the state of the qubit using either the `measure` or the `eprs_measure` operations.
 
 After measuring the qubit, it is no longer useful to apply more operations on the same qubit without going through 
 the lifecycle once again.
@@ -62,7 +62,7 @@ implementing the grouping algorithm.
 
 ### MLIR operations "closure"
 
-The funcitonization process shown in the `qoala-compiler-specs` describes how to form a group of operations that
+The functionization process shown in the `qoala-compiler-specs` describes how to form a group of operations that
 will be placed in an isolated function within the same translation unit. When moving these operations to it own
 function declaration, we treat this group of operations as an _"operations closure"_ due to its similarities with
 the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
@@ -115,7 +115,7 @@ The `qoala::analysis::functionize::createNewFunctionWithOperations` located in t
 contains the implementation of how to create a new function with a given group of operations. This method receives
 (among other not-so-relevant arguments):
 
-1. The `FunctionizeData` instance used to leave the mapping data needed in the `functioneModule` method.
+1. The `FunctionizeData` instance used to leave the mapping data needed in the `functionizeModule` method.
 2. An `OpBuilder` object, which will be used to create new operations and _clone_ the ones in the group.
 3. An _ordered set_ containing the operations of the current group. The order of this set establishes the
    order on which these operations need to be inserted in the new body. Additionally, we will start treating
@@ -123,14 +123,14 @@ contains the implementation of how to create a new function with a given group o
 
 It is important to remark that despite the fact that we need to "simply move" operations from the main body
 to the body of a function that will be created, _moving an operation outside its scope is not an easy thing
-to do_. This is due to the fact the in order to move teh operation to a new body _we effectively break the
+to do_. This is due to the fact the in order to move the operation to a new body _we effectively break the
 data dependencies of the function_, i.e., the values used by that function and operations using values from
 the operation _would need to be moved with the operation under move_. The `createNewFunctionWithOperations`
 method solves this issue by _partially cloning_ the original operations.
 
 To this end, the QMem operations implement the `qoala::helpers::SimpleCloneInterface` declared in the file
 `include/Analysis/Helpers/SimpleCloneInterface.td`. Any operation implementing this interface (i.e., all
-operations from the QMem dialect, see the `QMem_Op` class definition in teh  `include/Dialect/QMem/QMemOps.td`
+operations from the QMem dialect, see the `QMem_Op` class definition in the  `include/Dialect/QMem/QMemOps.td`
 file) _are forced_ to implement the `simpleClone` method, which provides a simple way to create new operation
 _with the same operands and attributes as the original_, but not linked in any way to the original function block,
 and, in particular, not used (yet) by any other function. After "simple cloning" an operation the
@@ -178,7 +178,7 @@ discovering the _external_ arguments and return values (and their types) of a gi
 
 The final level of nesting in the functionzation algorithm is the discovery of the _external_ results and values
 (and their respective types) of a given operations closure. This process is implemented in the `computeArgTypesAndReturns`
-method, lcoated in the file `lib/Analysis/QMem/Functionize.cpp`. This is where the _closure_ concept becomes more relevant
+method, located in the file `lib/Analysis/QMem/Functionize.cpp`. This is where the _closure_ concept becomes more relevant
 to understand the logic behind this computation.
 
 The `computeArgTypesAndReturns` receives the following arguments:
@@ -227,7 +227,7 @@ fixed in f5326817d7cd15bb3c221e724e1e4c6ff869150c by simply deleting operations 
 
 ### Insertion of new (cloned) operations in the wrong order
 
-When creating the clones of the operations, the clones are inserted in reverse order, and teh return statement is placed
+When creating the clones of the operations, the clones are inserted in reverse order, and the return statement is placed
 in second-to-last position. This leads to MLIR failing the validation of the return operations, which is not the last
 operation in the function body:
 
@@ -343,7 +343,7 @@ A few observations:
   method is not capable or recognizing the `%0` is the same argument used in the three functionized operations, hence it
   creates a function that passes that value 3 times (once per usage in the operations closure).
 * By checking the created function body, we see all the arguments of the function (despite there must be duplicates),
-  but all the operations _only_ use teh first 3. This could hint that the matching of the arguments and their values is
+  but all the operations _only_ use the first 3. This could hint that the matching of the arguments and their values is
   not correctly implemented.
 
 These issues will be addressed as soon as possible.

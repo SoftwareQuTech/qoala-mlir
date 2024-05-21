@@ -215,7 +215,7 @@ namespace qoala::analysis::functionize {
             FunctionizeData data;
             std::string newFuncName = getNewFunctionName();
 
-            // We create a new function that will contain the single operation in its body (+ a return statement)
+            // We create a new function that will contain all the operations in its body (+ a return statement)
             SetVector<Operation *> operations;
             operations.insert(quantumOpsGroup.begin(), quantumOpsGroup.end());
             createNewFunctionWithOperations(
