@@ -1,4 +1,4 @@
-add_mlir_conversion_library(MLIRQMemToQoalaHostPass
+add_mlir_conversion_library(MLIRMIRToLIRPass
         QoalaMIRToQoalaLIR.cpp
         QoalaMIRToQoalaLIRPatterns.cpp
         QMemToQoalaHost.cpp
@@ -13,6 +13,7 @@ add_mlir_conversion_library(MLIRQMemToQoalaHostPass
 
         LINK_LIBS
         QoalaConversionHelpers
+        MLIRQMemAnalysisLibs
 
         DEPENDS
         QoalaConversionHelpers
