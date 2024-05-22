@@ -1,9 +1,11 @@
 #include "mlir/IR/Operation.h"
-#include "Translation/QoalaTranslationInterface.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 #include "llvm/Support/Debug.h"
 
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
+
+using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {
     // TODO - Implement this method
@@ -16,8 +18,7 @@ namespace qoala::translate {
     class TensorToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
     public:
         using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult
-        convertOperation(Operation *op) const final {
+        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
             return translateNetQASMOperation(op);
         }
 

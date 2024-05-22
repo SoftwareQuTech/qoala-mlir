@@ -1,11 +1,12 @@
 #include "mlir/IR/Operation.h"
-#include "Translation/QoalaTranslationInterface.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 #include "llvm/Support/Debug.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 using namespace qoala::dialects;
+using namespace qoala::iqoala;
 
 static LogicalResult translateQoalaHostOperation(Operation *operation) {
     // TODO - Implement this method
@@ -19,8 +20,7 @@ namespace qoala::translate {
     public:
         using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
 
-        LogicalResult
-        convertOperation(Operation *op) const final {
+        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
             return translateQoalaHostOperation(op);
         }
 
