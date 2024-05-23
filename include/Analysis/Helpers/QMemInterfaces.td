@@ -16,4 +16,17 @@ def SimpleCloneInterface : OpInterface<"SimpleCloneInterface"> {
         >
     ];
 }
+
+def OpQubitInterface : OpInterface<"OpQubitInterface"> {
+    let description = [{
+        Interface used to simply return the qubit value of the operation
+    }];
+    let cppNamespace = "::qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Returns a clone of this operation
+        }], "::mlir::Value", "getOperationQubit"
+        >
+    ];
+}
 #endif // QMEM_IFACE_TD

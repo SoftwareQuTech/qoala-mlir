@@ -3,7 +3,7 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "Analysis/Helpers/SimpleCloneInterface.h"
+#include "Analysis/Helpers/QMemInterfaces.h"
 #include "Dialect/QMem/QMem.h"
 
 #include <set>

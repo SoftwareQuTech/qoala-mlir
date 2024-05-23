@@ -21,11 +21,12 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QMem/QMemDialect.td"
-include "Analysis/Helpers/SimpleCloneInterface.td"
+include "Analysis/Helpers/QMemInterfaces.td"
 
 
 class QMem_Op<string mnemonic, list<Trait> traits = []> :
-    Op<QMem_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<SimpleCloneInterface>]>;
+    Op<QMem_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<SimpleCloneInterface>,
+                                         DeclareOpInterfaceMethods<OpQubitInterface>]>;
 
 /* Func and Return operations similar to the ones present un QNet */
 def FuncOp: QMem_Op<"func", [

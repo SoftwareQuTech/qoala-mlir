@@ -18,7 +18,7 @@
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 
-#include "Analysis/Helpers/SimpleCloneInterface.h"
+#include "Analysis/Helpers/QMemInterfaces.h"
 #include "Dialect/QMem/EntangleTrait.h"
 
 #define GET_OP_CLASSES

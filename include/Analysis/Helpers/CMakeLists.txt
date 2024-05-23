@@ -1,1 +1,1 @@
-add_mlir_interface(SimpleCloneInterface)
+add_mlir_interface(QMemInterfaces)
