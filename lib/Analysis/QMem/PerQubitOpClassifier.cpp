@@ -94,6 +94,15 @@ namespace qoala::analysis::functionize {
             std::vector<Operation *> involvedQubits = qubitOp.getOpsAllocatingUsedQubits();
             assert(!involvedQubits.empty());
 
+            // TODO - Check this solution
+            if (involvedQubits.size() > 1) {
+                // The current operation depends on more than one qubit; commit both groups if
+                // necessary (i.e. there is only a single group for that qubit).
+                for (Operation *involvedQubit : involvedQubits) {
+                    qubitGroupsMap[involvedQubit].emplace_back();
+                }
+            }
+
             // We choose one of the involved qubits to attach this op to its group. In particular
             // the first qubit that appears lexicographically
             Operation *baseQubitOperation = involvedQubits[0];
