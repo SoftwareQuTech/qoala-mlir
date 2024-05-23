@@ -17,15 +17,15 @@ def SimpleCloneInterface : OpInterface<"SimpleCloneInterface"> {
     ];
 }
 
-def OpQubitInterface : OpInterface<"OpQubitInterface"> {
+def OpQubitsInterface : OpInterface<"OpQubitsInterface"> {
     let description = [{
-        Interface used to simply return the qubit value of the operation
+        Interface used to simply return the qubit values of the operation
     }];
     let cppNamespace = "::qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns a clone of this operation
-        }], "::mlir::Value", "getOperationQubit"
+        }], "::mlir::ValueRange", "getOperationQubits"
         >
     ];
 }

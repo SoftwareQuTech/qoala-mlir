@@ -26,7 +26,7 @@ include "Analysis/Helpers/QMemInterfaces.td"
 
 class QMem_Op<string mnemonic, list<Trait> traits = []> :
     Op<QMem_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<SimpleCloneInterface>,
-                                         DeclareOpInterfaceMethods<OpQubitInterface>]>;
+                                         DeclareOpInterfaceMethods<OpQubitsInterface>]>;
 
 /* Func and Return operations similar to the ones present un QNet */
 def FuncOp: QMem_Op<"func", [

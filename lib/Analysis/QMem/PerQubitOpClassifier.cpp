@@ -78,7 +78,7 @@ namespace qoala::analysis::functionize {
             }
             if (qMemOpIsClassicalCommunication(op)) {
                 // This operation should stay in the main body...
-                // Additionally, this op acts as a "barrier", so we start a new group
+                // Additionally, this op acts as a "barrier", so we start a new, empty group
                 // for each of the involved qubits
                 for (auto &qubitGroupsEntry : qubitGroupsMap) {
                     // IMPORTANT: We need to get *a reference* of the group entry.
@@ -90,8 +90,8 @@ namespace qoala::analysis::functionize {
                 continue;
             }
             // We get the last operations group for the involved qubit
-            auto qubitOp = dyn_cast<qoala::helpers::OpQubitInterface>(op);
-            Value involvedQubit = qubitOp.getOperationQubit();
+            auto qubitOp = dyn_cast<qoala::helpers::OpQubitsInterface>(op);
+            Value involvedQubit = qubitOp.getOperationQubits()[0];
             // Similar as before, we need to *get a reference* of the group to insert the operation
             // If we don't declare the group as a reference, then *it gets copied* into the local variable
             // so the operation will not be inserted in the respective group

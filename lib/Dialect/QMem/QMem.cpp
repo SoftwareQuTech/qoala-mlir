@@ -58,31 +58,31 @@ Operation *CnotOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CnotOp>(loc, getQin0(), getQin1());
 }
 
-Value CnotOp::getOperationQubit() {
-    return this->getQin0();
+ValueRange CnotOp::getOperationQubits() {
+    return {this->getQin0(), this->getQin1()};
 }
 
 Operation *CrotXOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CrotXOp>(loc, getQin0(), getQin1(), getAngle());
 }
 
-Value CrotXOp::getOperationQubit() {
-    return this->getQin0();
+ValueRange CrotXOp::getOperationQubits() {
+    return {this->getQin0(), this->getQin1()};
 }
 
 Operation *CzOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CzOp>(loc, getQin0(), getQin1());
 }
 
-Value CzOp::getOperationQubit() {
-    return this->getQin0();
+ValueRange CzOp::getOperationQubits() {
+    return {this->getQin0(), this->getQin1()};
 }
 
 Operation *EprsMeasureOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<EprsMeasureOp>(loc, getOutcome().getType(), getQ(), getRemoteAttr());
 }
 
-Value EprsMeasureOp::getOperationQubit() {
+ValueRange EprsMeasureOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -90,7 +90,7 @@ Operation *EprsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<EprsOp>(loc, getQ(), getRemoteAttr());
 }
 
-Value EprsOp::getOperationQubit() {
+ValueRange EprsOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -100,15 +100,15 @@ Operation *FuncOp::simpleClone(OpBuilder &builder, Location loc) {
                                   getArgAttrsAttr(), getResAttrsAttr());
 }
 
-Value FuncOp::getOperationQubit() {
-    return nullptr;
+ValueRange FuncOp::getOperationQubits() {
+    return {};
 }
 
 Operation *HadamardOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<HadamardOp>(loc, getQ());
 }
 
-Value HadamardOp::getOperationQubit() {
+ValueRange HadamardOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -116,7 +116,7 @@ Operation *InitOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<InitOp>(loc, getQ());
 }
 
-Value InitOp::getOperationQubit() {
+ValueRange InitOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -124,7 +124,7 @@ Operation *MeasureOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<MeasureOp>(loc, getQ());
 }
 
-Value MeasureOp::getOperationQubit() {
+ValueRange MeasureOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -132,7 +132,7 @@ Operation *QAllocOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<QAllocOp>(loc, getQ().getType());
 }
 
-Value QAllocOp::getOperationQubit() {
+ValueRange QAllocOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -140,39 +140,39 @@ Operation *RecvFloatsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RecvFloatsOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
 }
 
-Value RecvFloatsOp::getOperationQubit() {
-    return nullptr;
+ValueRange RecvFloatsOp::getOperationQubits() {
+    return {};
 }
 
 Operation *RecvIntsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RecvIntsOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
 }
 
-Value RecvIntsOp::getOperationQubit() {
-    return nullptr;
+ValueRange RecvIntsOp::getOperationQubits() {
+    return {};
 }
 
 Operation *RemoteOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RemoteOp>(loc, getSymNameAttr(), getSymVisibilityAttr());
 }
 
-Value RemoteOp::getOperationQubit() {
-    return nullptr;
+ValueRange RemoteOp::getOperationQubits() {
+    return {};
 }
 
 Operation *ReturnOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<ReturnOp>(loc, getOperands());
 }
 
-Value ReturnOp::getOperationQubit() {
-    return nullptr;
+ValueRange ReturnOp::getOperationQubits() {
+    return {};
 }
 
 Operation *RotateXOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateXOp>(loc, getQ(), getAngle());
 }
 
-Value RotateXOp::getOperationQubit() {
+ValueRange RotateXOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -180,7 +180,7 @@ Operation *RotateYOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateYOp>(loc, getQ(), getAngle());
 }
 
-Value RotateYOp::getOperationQubit() {
+ValueRange RotateYOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -188,7 +188,7 @@ Operation *RotateZOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateZOp>(loc, getQ(), getAngle());
 }
 
-Value RotateZOp::getOperationQubit() {
+ValueRange RotateZOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -196,31 +196,31 @@ Operation *SendFloatsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<SendFloatsOp>(loc, getCin(), getRemoteAttr());
 }
 
-Value SendFloatsOp::getOperationQubit() {
-    return nullptr;
+ValueRange SendFloatsOp::getOperationQubits() {
+    return {};
 }
 
 Operation *SendIntsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<SendIntsOp>(loc, getCin(), getRemoteAttr());
 }
 
-Value SendIntsOp::getOperationQubit() {
-    return nullptr;
+ValueRange SendIntsOp::getOperationQubits() {
+    return {};
 }
 
 Operation *CrotXIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CrotXIntOp>(loc, getQin0(), getQin1(), getAngleNum(), getAngleDenom());
 }
 
-Value CrotXIntOp::getOperationQubit() {
-    return this->getQin0();
+ValueRange CrotXIntOp::getOperationQubits() {
+    return {this->getQin0(), this->getQin1()};
 }
 
 Operation *RotateXIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateXIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-Value RotateXIntOp::getOperationQubit() {
+ValueRange RotateXIntOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -228,7 +228,7 @@ Operation *RotateYIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateYIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-Value RotateYIntOp::getOperationQubit() {
+ValueRange RotateYIntOp::getOperationQubits() {
     return this->getQ();
 }
 
@@ -236,6 +236,6 @@ Operation *RotateZIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateZIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-Value RotateZIntOp::getOperationQubit() {
+ValueRange RotateZIntOp::getOperationQubits() {
     return this->getQ();
 }
