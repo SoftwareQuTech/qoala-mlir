@@ -21,18 +21,18 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[REG0_2]] {remote = @[[REMOTEBOB]]}
   // CHECK-NEXT: netqasm.return %[[REG0_2]] : i32
 
-  // CHECK: netqasm.request_routine @[[WRAPPER3:.*]]() -> i1
-  // CHECK-NEXT: %[[REG0_3:.*]] = netqasm.qalloc : i32
-  // CHECK-NEXT: %[[REG1_3:.*]] = netqasm.eprs_measure %[[REG0_3]] {remote = @[[REMOTEBOB]]} : i1
-  // CHECK-NEXT: netqasm.return %[[REG1_3]] : i1
+  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG0_3:.*]]: i32, %[[ARG1_3:.*]]: i32, %[[ARG2_3:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_x %[[ARG0_3]], %[[ARG1_3]], %[[ARG2_3]]
+  // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_4:.*]]: i32, %[[ARG1_4:.*]]: i32, %[[ARG2_4:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_x %[[ARG0_4]], %[[ARG1_4]], %[[ARG2_4]]
+  // CHECK-NEXT: netqasm.rot_y %[[ARG0_4]], %[[ARG1_4]], %[[ARG2_4]]
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_5:.*]]: i32, %[[ARG1_5:.*]]: i32, %[[ARG2_5:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_y %[[ARG0_5]], %[[ARG1_5]], %[[ARG2_5]]
-  // CHECK-NEXT: netqasm.return
+  // CHECK: netqasm.request_routine @[[WRAPPER5:.*]]() -> i1
+  // CHECK-NEXT: %[[REG0_5:.*]] = netqasm.qalloc : i32
+  // CHECK-NEXT: %[[REG1_5:.*]] = netqasm.eprs_measure %[[REG0_5]] {remote = @[[REMOTEBOB]]} : i1
+  // CHECK-NEXT: netqasm.return %[[REG1_5]] : i1
 
   // CHECK: qoalahost.main_func @test_entangle_quantum_program()
   qmem.func @test_entangle_quantum_program() {
@@ -56,7 +56,7 @@ module {
     %extracted = tensor.extract %3[%c0] : tensor<2xf32>
 
     // CHECK: %[[REG_MAIN2:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[EXTRACTED]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]], %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1) : (i32, i32, i32) -> ()
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]], %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1) : (i32, i32, i32) -> ()
     qmem.rot_x %2, %extracted
 
     // CHECK: %[[REG_MAIN3:.*]] = qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
@@ -67,10 +67,10 @@ module {
     %extracted_0 = tensor.extract %4[%c1] : tensor<2xf32>
 
     // CHECK: %[[REG_MAIN4:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[EXTRACTED_0]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]], %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1) : (i32, i32, i32) -> ()
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]], %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1) : (i32, i32, i32) -> ()
     qmem.rot_y %2, %extracted_0
 
-    // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER3]]() : () -> i1
+    // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER5]]() : () -> i1
     %6 = qmem.qalloc : i32
     %7 = qmem.eprs_measure %6 {remote = @Bob} : i1
 
