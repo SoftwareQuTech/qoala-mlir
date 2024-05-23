@@ -23,7 +23,8 @@ namespace qoala::analysis::functionize {
     static bool qMemOpInitsQubit(Operation *op) {
         return llvm::isa<
                 dialects::qmem::EprsOp,
-                dialects::qmem::InitOp
+                dialects::qmem::InitOp,
+                dialects::qmem::EprsMeasureOp
         >(op);
     }
 
@@ -57,15 +58,10 @@ namespace qoala::analysis::functionize {
         unsigned int groupNum = 0;
         for (dialects::qmem::QAllocOp qAllocOp : qAllocOperations) {
             LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum << " :\n");
-            // Special case: qalloc operation has a single use, and it is only for eprs_measure
-            bool opIsQAllocEPRSMeasurePair = false;
-            if (llvm::hasSingleElement(qAllocOp->getUsers())) {
-                opIsQAllocEPRSMeasurePair = true;
-            }
 
             // Look for the "init" operation of the current qalloc
             for (Operation *user : qAllocOp->getUsers()) {
-                if (opIsQAllocEPRSMeasurePair || qMemOpInitsQubit(user)) {
+                if (qMemOpInitsQubit(user)) {
                     // Found: Group both ops in a single group and mark the operations as grouped
                     LLVM_DEBUG(llvm::dbgs() << "   - op: " << qAllocOp << "\n");
                     LLVM_DEBUG(llvm::dbgs() << "   - op: " << *user << "\n");
