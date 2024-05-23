@@ -17,7 +17,7 @@ namespace qoala::translate {
         ModuleTranslation(Operation *module,
                           std::unique_ptr<iqoala::Module> iQoalaModule);
         ~ModuleTranslation() = default;
-        LogicalResult convertOperation(Operation &op, bool recordInsertions = false);
+        LogicalResult convertOperation(Operation &op);
 
         /* Class fields */
         Operation *mlirModule;

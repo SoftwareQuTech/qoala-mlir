@@ -1,17 +1,18 @@
 #include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "mlir/IR/BuiltinOps.h"
 
 using namespace qoala;
+using namespace qoala::iqoala;
 
 ModuleTranslation::ModuleTranslation (Operation *module,
                                       std::unique_ptr<iqoala::Module> iQoalaModule)
                                       : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
-                                      iface(module->getContext()) {
-    // TODO
-}
+                                      iface(module->getContext()) {/* TODO */}
 
-LogicalResult ModuleTranslation::convertOperation(mlir::Operation &op, bool recordInsertions) {
-    return success();
+LogicalResult ModuleTranslation::convertOperation(Operation &op) {
+    const QoalaTranslationDialectInterface *opIface = iface.getInterfaceFor(&op);
+    return opIface->convertOperation(&op, *this);
 }
 
 
@@ -22,11 +23,13 @@ static inline Block &getModuleBody(Operation &module) {
 
 
 std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
-        mlir::Operation *originalModule, qoala::iqoala::iQoalaContext &iQoalaContext,
-        llvm::StringRef name) {
+        Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
     // TODO - Entry point for the transformations
     ModuleTranslation moduleTranslation(originalModule, nullptr);
     for (Operation &op : getModuleBody(*originalModule).getOperations()) {
+        if (failed(moduleTranslation.convertOperation(op))) {
+            return nullptr;
+        }
     }
     return nullptr;
 }
