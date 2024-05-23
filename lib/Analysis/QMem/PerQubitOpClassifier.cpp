@@ -1,4 +1,5 @@
 #include "Analysis/QMem/Conversion.h"
+#include "Analysis/Helpers/QMemInterfaces.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "op-classifier"
@@ -38,8 +39,7 @@ namespace qoala::analysis::functionize {
 
     std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction) {
         std::vector<QuantumOpsGroupTy> opsGroups;
-        std::map<Value, QuantumOpsGroupTy> perQubitGroup;
-        QuantumOpsGroupTy currentOpsGroup;
+        std::map<Operation *, std::vector<QuantumOpsGroupTy>> qubitGroupsMap;
         std::set<Operation *> groupedOps;
 
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
@@ -47,33 +47,28 @@ namespace qoala::analysis::functionize {
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
         /* Usual lifecycle of a qubit:
-         * QAlloc -> QInit/EPRS_init -> Gate(s) -> (EPRS_)Measure
+         * QAlloc -> QInit/EPRS_init/EPRS_measure -> Gate(s) -> Measure
          * In this lifecycle, a qubit "is not usable" until it is (eprs) initialized.
          * WARNING - It is possible that there are quite some operations between the qalloc and
          * the init/eprs operation. *This implementation makes that assumption that the qinit/eprs
          * operation can be moved as close as it can to its respective qalloc operation*. This
-         * assumption allows us to simplify the analysis
+         * assumption allows us to simplify the analysis.
          */
         auto qAllocOperations = mainFunction.getOps<dialects::qmem::QAllocOp>();
-        unsigned int groupNum = 0;
         for (dialects::qmem::QAllocOp qAllocOp : qAllocOperations) {
-            LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum << " :\n");
+            // We will setup the "base" groups here, containing the qalloc + init operations
 
             // Look for the "init" operation of the current qalloc
             for (Operation *user : qAllocOp->getUsers()) {
                 if (qMemOpInitsQubit(user)) {
                     // Found: Group both ops in a single group and mark the operations as grouped
-                    LLVM_DEBUG(llvm::dbgs() << "   - op: " << qAllocOp << "\n");
-                    LLVM_DEBUG(llvm::dbgs() << "   - op: " << *user << "\n");
-                    opsGroups.push_back({qAllocOp, user});
-                    groupedOps.insert(qAllocOp.getOperation());
-                    groupedOps.insert(user);
+                    QuantumOpsGroupTy newGroup{qAllocOp, user};
+                    qubitGroupsMap.insert({qAllocOp.getOperation(), {newGroup}});
+                    groupedOps.insert({qAllocOp.getOperation(), user});
                     break;
                 }
             }
-            groupNum++;
         }
-        LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum++ << " :\n");
 
         // Iterate over all the operations of the main function
         for (Operation &op : mainFunction.getOps()) {
@@ -81,24 +76,44 @@ namespace qoala::analysis::functionize {
                 // Operation is not QMem or it was already grouped
                 continue;
             }
-
             if (qMemOpIsClassicalCommunication(op)) {
-                // This function should stay in the main body... commit the current state of the group iff it's not empty
-                if (!currentOpsGroup.empty()) {
-                    opsGroups.push_back(currentOpsGroup);
-                    currentOpsGroup.clear();
-                    LLVM_DEBUG(llvm::dbgs() << " - New Group #" << groupNum++ << " :\n");
+                // This operation should stay in the main body...
+                // Additionally, this op acts as a "barrier", so we start a new group
+                // for each of the involved qubits
+                for (auto &qubitGroupsEntry : qubitGroupsMap) {
+                    // IMPORTANT: We need to get *a reference* of the group entry.
+                    // If we don't declare the entry as a reference, then *it gets copied* to the
+                    // local variable, and the newly-created empty group will not be present in the
+                    // original map
+                    qubitGroupsEntry.second.emplace_back();
                 }
                 continue;
             }
-
+            // We get the last operations group for the involved qubit
+            auto qubitOp = dyn_cast<qoala::helpers::OpQubitInterface>(op);
+            Value involvedQubit = qubitOp.getOperationQubit();
+            // Similar as before, we need to *get a reference* of the group to insert the operation
+            // If we don't declare the group as a reference, then *it gets copied* into the local variable
+            // so the operation will not be inserted in the respective group
+            QuantumOpsGroupTy &currentOpsGroup = *qubitGroupsMap[involvedQubit.getDefiningOp()].rbegin();
+            // We insert the operation in the group
             currentOpsGroup.push_back(&op);
-            LLVM_DEBUG(llvm::dbgs() << "   - op: " << op << "\n");
         }
-        // After iterating all the instructions, the last group was NOT added
-        if (!currentOpsGroup.empty()) {
-            opsGroups.push_back(currentOpsGroup);
-            currentOpsGroup.clear();
+
+        // After iterating all the instructions, commit all the discovered groups
+        unsigned int groupNum = 0;
+        for (auto qubitGroupsEntry : qubitGroupsMap) {
+            for (QuantumOpsGroupTy operationsGroup : qubitGroupsEntry.second) {
+                if (!operationsGroup.empty()) {
+                    LLVM_DEBUG(llvm::dbgs() << " - Discovered Group #" << groupNum++ << " :\n");
+                    for (Operation *operation : operationsGroup) {
+                        LLVM_DEBUG(llvm::dbgs() << "   - op: " << *operation << "\n");
+                    }
+                    QuantumOpsGroupTy newOpGroup;
+                    opsGroups.emplace_back(operationsGroup.begin(), operationsGroup.end());
+                }
+            }
+            qubitGroupsEntry.second.clear();
         }
         return opsGroups;
     }
