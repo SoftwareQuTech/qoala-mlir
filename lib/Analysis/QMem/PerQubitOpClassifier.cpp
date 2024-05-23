@@ -91,11 +91,16 @@ namespace qoala::analysis::functionize {
             }
             // We get the last operations group for the involved qubit
             auto qubitOp = dyn_cast<qoala::helpers::OpQubitsInterface>(op);
-            Value involvedQubit = qubitOp.getOperationQubits()[0];
+            std::vector<Operation *> involvedQubits = qubitOp.getOpsAllocatingUsedQubits();
+            assert(!involvedQubits.empty());
+
+            // We choose one of the involved qubits to attach this op to its group. In particular
+            // the first qubit that appears lexicographically
+            Operation *baseQubitOperation = involvedQubits[0];
             // Similar as before, we need to *get a reference* of the group to insert the operation
             // If we don't declare the group as a reference, then *it gets copied* into the local variable
             // so the operation will not be inserted in the respective group
-            QuantumOpsGroupTy &currentOpsGroup = *qubitGroupsMap[involvedQubit.getDefiningOp()].rbegin();
+            QuantumOpsGroupTy &currentOpsGroup = *qubitGroupsMap[baseQubitOperation].rbegin();
             // We insert the operation in the group
             currentOpsGroup.push_back(&op);
         }

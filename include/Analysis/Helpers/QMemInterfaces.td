@@ -25,7 +25,7 @@ def OpQubitsInterface : OpInterface<"OpQubitsInterface"> {
     let methods = [
         InterfaceMethod<[{
             Returns a clone of this operation
-        }], "::mlir::ValueRange", "getOperationQubits"
+        }], "std::vector<mlir::Operation *>", "getOpsAllocatingUsedQubits"
         >
     ];
 }

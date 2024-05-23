@@ -58,40 +58,40 @@ Operation *CnotOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CnotOp>(loc, getQin0(), getQin1());
 }
 
-ValueRange CnotOp::getOperationQubits() {
-    return {this->getQin0(), this->getQin1()};
+std::vector<Operation *> CnotOp::getOpsAllocatingUsedQubits() {
+    return {this->getQin0().getDefiningOp(), this->getQin1().getDefiningOp()};
 }
 
 Operation *CrotXOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CrotXOp>(loc, getQin0(), getQin1(), getAngle());
 }
 
-ValueRange CrotXOp::getOperationQubits() {
-    return {this->getQin0(), this->getQin1()};
+std::vector<Operation *> CrotXOp::getOpsAllocatingUsedQubits() {
+    return {this->getQin0().getDefiningOp(), this->getQin1().getDefiningOp()};
 }
 
 Operation *CzOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CzOp>(loc, getQin0(), getQin1());
 }
 
-ValueRange CzOp::getOperationQubits() {
-    return {this->getQin0(), this->getQin1()};
+std::vector<Operation *> CzOp::getOpsAllocatingUsedQubits() {
+    return {this->getQin0().getDefiningOp(), this->getQin1().getDefiningOp()};
 }
 
 Operation *EprsMeasureOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<EprsMeasureOp>(loc, getOutcome().getType(), getQ(), getRemoteAttr());
 }
 
-ValueRange EprsMeasureOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> EprsMeasureOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *EprsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<EprsOp>(loc, getQ(), getRemoteAttr());
 }
 
-ValueRange EprsOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> EprsOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *FuncOp::simpleClone(OpBuilder &builder, Location loc) {
@@ -100,7 +100,7 @@ Operation *FuncOp::simpleClone(OpBuilder &builder, Location loc) {
                                   getArgAttrsAttr(), getResAttrsAttr());
 }
 
-ValueRange FuncOp::getOperationQubits() {
+std::vector<Operation *> FuncOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -108,39 +108,39 @@ Operation *HadamardOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<HadamardOp>(loc, getQ());
 }
 
-ValueRange HadamardOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> HadamardOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *InitOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<InitOp>(loc, getQ());
 }
 
-ValueRange InitOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> InitOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *MeasureOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<MeasureOp>(loc, getQ());
 }
 
-ValueRange MeasureOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> MeasureOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *QAllocOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<QAllocOp>(loc, getQ().getType());
 }
 
-ValueRange QAllocOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> QAllocOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *RecvFloatsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RecvFloatsOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
 }
 
-ValueRange RecvFloatsOp::getOperationQubits() {
+std::vector<Operation *> RecvFloatsOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -148,7 +148,7 @@ Operation *RecvIntsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RecvIntsOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
 }
 
-ValueRange RecvIntsOp::getOperationQubits() {
+std::vector<Operation *> RecvIntsOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -156,7 +156,7 @@ Operation *RemoteOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RemoteOp>(loc, getSymNameAttr(), getSymVisibilityAttr());
 }
 
-ValueRange RemoteOp::getOperationQubits() {
+std::vector<Operation *> RemoteOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -164,7 +164,7 @@ Operation *ReturnOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<ReturnOp>(loc, getOperands());
 }
 
-ValueRange ReturnOp::getOperationQubits() {
+std::vector<Operation *> ReturnOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -172,31 +172,31 @@ Operation *RotateXOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateXOp>(loc, getQ(), getAngle());
 }
 
-ValueRange RotateXOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateXOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *RotateYOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateYOp>(loc, getQ(), getAngle());
 }
 
-ValueRange RotateYOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateYOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *RotateZOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateZOp>(loc, getQ(), getAngle());
 }
 
-ValueRange RotateZOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateZOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *SendFloatsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<SendFloatsOp>(loc, getCin(), getRemoteAttr());
 }
 
-ValueRange SendFloatsOp::getOperationQubits() {
+std::vector<Operation *> SendFloatsOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -204,7 +204,7 @@ Operation *SendIntsOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<SendIntsOp>(loc, getCin(), getRemoteAttr());
 }
 
-ValueRange SendIntsOp::getOperationQubits() {
+std::vector<Operation *> SendIntsOp::getOpsAllocatingUsedQubits() {
     return {};
 }
 
@@ -212,30 +212,30 @@ Operation *CrotXIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<CrotXIntOp>(loc, getQin0(), getQin1(), getAngleNum(), getAngleDenom());
 }
 
-ValueRange CrotXIntOp::getOperationQubits() {
-    return {this->getQin0(), this->getQin1()};
+std::vector<Operation *> CrotXIntOp::getOpsAllocatingUsedQubits() {
+    return {this->getQin0().getDefiningOp(), this->getQin1().getDefiningOp()};
 }
 
 Operation *RotateXIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateXIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-ValueRange RotateXIntOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateXIntOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *RotateYIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateYIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-ValueRange RotateYIntOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateYIntOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
 
 Operation *RotateZIntOp::simpleClone(OpBuilder &builder, Location loc) {
     return builder.create<RotateZIntOp>(loc, getQ(), getAngleNum(), getAngleDenom());
 }
 
-ValueRange RotateZIntOp::getOperationQubits() {
-    return this->getQ();
+std::vector<Operation *> RotateZIntOp::getOpsAllocatingUsedQubits() {
+    return {this->getQ().getDefiningOp()};
 }
