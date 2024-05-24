@@ -6,12 +6,13 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/BuiltinDialect.h"
 
+#define DEBUG_TYPE "builtin-translation"
+
 using namespace qoala::iqoala;
 
 static LogicalResult translateBuiltinOperation(Operation *operation) {
-    // TODO - Implement this method
-    operation->dump();
-    llvm::dbgs() << "******** Builtin - AQUI! *********\n";
+    // TODO - Implement this dispatcher
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
 }
 

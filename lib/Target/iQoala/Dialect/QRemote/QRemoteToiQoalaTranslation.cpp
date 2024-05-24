@@ -1,18 +1,30 @@
 #include "mlir/IR/Operation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 
 #include "Dialect/QRemote/QRemote.h"
 
-using namespace qoala::dialects;
+#define DEBUG_TYPE "qremote-translation"
+
+using namespace qoala::dialects::qremote;
 using namespace qoala::iqoala;
 
-static LogicalResult translateQRemoteOperation(Operation *operation) {
-    // TODO - Implement this method
-    operation->dump();
-    llvm::dbgs() << "******** QRemote - AQUI! *********\n";
+static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp) {
+    // TODO - Implement this translator method
     return success();
+}
+
+static LogicalResult translateQRemoteOperation(Operation *operation) {
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
+    return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
+            .Case([](RemoteOp op)-> LogicalResult {
+                return translateQRemoteOperation(op);
+            })
+            .Default([](Operation *op) -> LogicalResult {
+                return op->emitOpError("Unknown way to translate a QRemote operation to iQoala: '") << *op << "'\n";
+            });
 }
 
 namespace qoala::translate {
@@ -26,8 +38,8 @@ namespace qoala::translate {
     };
 
     void registerQMemToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<qremote::QRemoteDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, qremote::QRemoteDialect *dialect) {
+        registry.insert<QRemoteDialect>();
+        registry.addExtension(+[](MLIRContext *ctx, QRemoteDialect *dialect) {
             dialect->addInterfaces<QRemoteToiQoalaTranslationInterface>();
         });
     }

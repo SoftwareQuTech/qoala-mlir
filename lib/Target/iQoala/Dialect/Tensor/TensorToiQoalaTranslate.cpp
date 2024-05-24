@@ -5,12 +5,13 @@
 
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 
+#define DEBUG_TYPE "tensor-translation"
+
 using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {
-    // TODO - Implement this method
-    operation->dump();
-    llvm::dbgs() << "******** Tensor - AQUI! *********\n";
+    // TODO - Implement this dispatcher
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
 }
 

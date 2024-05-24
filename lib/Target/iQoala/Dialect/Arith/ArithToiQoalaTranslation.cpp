@@ -5,12 +5,13 @@
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
+#define DEBUG_TYPE "arith-translation"
+
 using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {
-    // TODO - Implement this method
-    operation->dump();
-    llvm::dbgs() << "******** Arith - AQUI! *********\n";
+    // TODO - Implement this dispatcher
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
 }
 

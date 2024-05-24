@@ -5,13 +5,14 @@
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 
+#define DEBUG_TYPE "qoalahost-translation"
+
 using namespace qoala::dialects;
 using namespace qoala::iqoala;
 
 static LogicalResult translateQoalaHostOperation(Operation *operation) {
-    // TODO - Implement this method
-    operation->dump();
-    llvm::dbgs() << "******** QoalaHost - AQUI! *********\n";
+    // TODO - Implement this dispatcher
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
 }
 

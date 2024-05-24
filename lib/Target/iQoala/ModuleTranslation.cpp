@@ -1,9 +1,12 @@
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "llvm/Support/Debug.h"
 
 using namespace qoala;
 using namespace qoala::iqoala;
+
+#define DEBUG_TYPE "module-translate"
 
 ModuleTranslation::ModuleTranslation (Operation *module,
                                       std::unique_ptr<iqoala::Module> iQoalaModule)
@@ -30,9 +33,11 @@ static inline Block &getModuleBody(Operation &module) {
 
 std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
-    // TODO - Entry point for the transformations
+    // Entry point for the transformations
     ModuleTranslation moduleTranslation(originalModule, nullptr);
     // First, we translate the module itself
+    LLVM_DEBUG(llvm::dbgs() << "******** Translating module '" << originalModule->getName() << "' *********\n");
+    LLVM_DEBUG(originalModule->dump());
     if (failed(moduleTranslation.convertOperation(*originalModule))){
         return nullptr;
     }
