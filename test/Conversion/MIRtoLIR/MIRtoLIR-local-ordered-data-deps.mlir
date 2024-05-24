@@ -4,35 +4,26 @@
 module {
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
-  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]() -> i32
+  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]](%[[ARG0_2:.*]]: i32, %[[ARG1_2:.*]]: i32, %[[ARG2_2:.*]]: i32, %[[ARG3_2:.*]]: i32, %[[ARG4_2:.*]]: i32, %[[ARG5_2:.*]]: i32, %[[ARG6_2:.*]]: i32, %[[ARG7_2:.*]]: i32) -> (i1, i1)
   // CHECK-NEXT: %[[REG0_0:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.init %[[REG0_0]]
-  // CHECK-NEXT: netqasm.return %[[REG0_0]] : i32
-
-  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]]() -> i32
-  // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.qalloc : i32
-  // CHECK-NEXT: netqasm.init %[[REG0_1]]
-  // CHECK-NEXT: netqasm.return
-
-  // CHECK: netqasm.local_routine @[[WRAPPER2:.*]](%[[ARG0_2:.*]]: i32, %[[ARG1_2:.*]]: i32, %[[ARG2_2:.*]]: i32, %[[ARG3_2:.*]]: i32, %[[ARG4_2:.*]]: i32, %[[ARG5_2:.*]]: i32, %[[ARG6_2:.*]]: i32, %[[ARG7_2:.*]]: i32, %[[ARG8_2:.*]]: i32, %[[ARG9_2:.*]]: i32) -> (i1, i1)
-  // CHECK-NEXT: netqasm.rot_x %[[ARG0_2]], %[[ARG1_2]], %[[ARG2_2]]
-  // CHECK-NEXT: netqasm.rot_y %[[ARG0_2]], %[[ARG3_2]], %[[ARG4_2]]
-  // CHECK-NEXT: netqasm.rot_z %[[ARG0_2]], %[[ARG5_2]], %[[ARG6_2]]
-  // CHECK-NEXT: netqasm.hadamard %[[ARG7_2]]
-  // CHECK-NEXT: netqasm.cnot %[[ARG0_2]], %[[ARG7_2]]
-  // CHECK-NEXT: netqasm.cz %[[ARG0_2]], %[[ARG7_2]]
-  // CHECK-NEXT: netqasm.crot_x %[[ARG0_2]], %[[ARG7_2]], %[[ARG8_2]], %[[ARG9_2]]
-  // CHECK-NEXT: %[[REG0_0:.*]] = netqasm.measure %[[ARG0_2]] : i1
-  // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.measure %[[ARG7_2]] : i1
-  // CHECK-NEXT: netqasm.return %[[REG0_0]], %[[REG0_1]] : i1, i1
+  // CHECK-NEXT: %[[REG1_0:.*]] = netqasm.qalloc : i32
+  // CHECK-NEXT: netqasm.init %[[REG1_0]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0_0]], %[[ARG0_2]], %[[ARG1_2]]
+  // CHECK-NEXT: netqasm.rot_y %[[REG0_0]], %[[ARG2_2]], %[[ARG3_2]]
+  // CHECK-NEXT: netqasm.rot_z %[[REG0_0]], %[[ARG4_2]], %[[ARG5_2]]
+  // CHECK-NEXT: netqasm.hadamard %[[REG1_0]]
+  // CHECK-NEXT: netqasm.cnot %[[REG0_0]], %[[REG1_0]]
+  // CHECK-NEXT: netqasm.cz %[[REG0_0]], %[[REG1_0]]
+  // CHECK-NEXT: netqasm.crot_x %[[REG0_0]], %[[REG1_0]], %[[ARG6_2]], %[[ARG7_2]]
+  // CHECK-NEXT: %[[REG2_0:.*]] = netqasm.measure %[[REG0_0]] : i1
+  // CHECK-NEXT: %[[REG3_0:.*]] = netqasm.measure %[[REG1_0]] : i1
+  // CHECK-NEXT: netqasm.return %[[REG2_0]], %[[REG3_0]] : i1, i1
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
-    // CHECK: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
     qmem.init %0
-
-    // CHECK: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
     %1 = qmem.qalloc : i32
     qmem.init %1
 
@@ -46,11 +37,11 @@ module {
     // CHECK: %[[CST_2:.*]] = arith.constant
     %cst_2 = arith.constant 2.710000e+00 : f32
 
-    // CHECK: %[[REG_MAIN2:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_0]]) : (f32) -> (i32, i32)
-    // CHECK: %[[REG_MAIN3:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_1]]) : (f32) -> (i32, i32)
-    // CHECK: %[[REG_MAIN4:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST]]) : (f32) -> (i32, i32)
-    // CHECK: %[[REG_MAIN5:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_2]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: %[[REG_MAIN6:.*]]:2 = qoalahost.call @[[WRAPPER2]](%[[REG_MAIN0]], %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1, %[[REG_MAIN3]]#0, %[[REG_MAIN3]]#1, %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1, %[[REG_MAIN1]], %[[REG_MAIN5]]#0, %[[REG_MAIN5]]#1) : (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32) -> (i1, i1)
+    // CHECK: %[[REG_MAIN0:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_0]]) : (f32) -> (i32, i32)
+    // CHECK: %[[REG_MAIN1:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_1]]) : (f32) -> (i32, i32)
+    // CHECK: %[[REG_MAIN2:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST]]) : (f32) -> (i32, i32)
+    // CHECK: %[[REG_MAIN3:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_2]]) : (f32) -> (i32, i32)
+    // CHECK-NEXT: %[[REG_MAIN4:.*]]:2 = qoalahost.call @[[WRAPPER0]](%[[REG_MAIN0]]#0, %[[REG_MAIN0]]#1, %[[REG_MAIN1]]#0, %[[REG_MAIN1]]#1, %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1, %[[REG_MAIN3]]#0, %[[REG_MAIN3]]#1) : (i32, i32, i32, i32, i32, i32, i32, i32) -> (i1, i1)
     qmem.rot_x %0, %cst_0
     qmem.rot_y %0, %cst_1
     qmem.rot_z %0, %cst
