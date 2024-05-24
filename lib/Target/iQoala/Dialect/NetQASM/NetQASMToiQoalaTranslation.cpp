@@ -40,6 +40,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             .Case([&](LocalRoutineOp op) -> LogicalResult {
                 LLVM_DEBUG(llvm::dbgs() << "Saw a local routine with name '" << op.getName() << "'\n");
                 if (op.isExternal()) {
+                    // This case is, most likely, the "__qoala_convert_float_angle" builtin runtime function declaration
                     return convertiQoalaRuntimeFunctionDeclaration(op);
                 } else {
                     return convertLocalRoutineOp(op, moduleTranslation);
