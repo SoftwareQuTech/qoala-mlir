@@ -12,6 +12,12 @@ ModuleTranslation::ModuleTranslation (Operation *module,
 
 LogicalResult ModuleTranslation::convertOperation(Operation &op) {
     const QoalaTranslationDialectInterface *opIface = iface.getInterfaceFor(&op);
+    if (!opIface) {
+        return op.emitError("cannot be converted to iQoala: missing "
+                            "`QoalaTranslationDialectInterface` registration for "
+                            "dialect for op: ")
+                << op.getName();
+    }
     return opIface->convertOperation(&op, *this);
 }
 
@@ -26,6 +32,12 @@ std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
     // TODO - Entry point for the transformations
     ModuleTranslation moduleTranslation(originalModule, nullptr);
+    // First, we translate the module itself
+    if (failed(moduleTranslation.convertOperation(*originalModule))){
+        return nullptr;
+    }
+
+    // Then we explore all the operations in the body
     for (Operation &op : getModuleBody(*originalModule).getOperations()) {
         if (failed(moduleTranslation.convertOperation(op))) {
             return nullptr;

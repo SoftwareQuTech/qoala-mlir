@@ -5,6 +5,7 @@
 #include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
+#include "Target/iQoala/Dialect/Builtin/BuiltinToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 
 namespace mlir {
@@ -25,6 +26,7 @@ namespace qoala::translate {
         // We insert the translation of other "helper" dialects
         // TODO - Add translation registrations here
         registerArithToiQoalaTranslations(registry);
+        registerBuiltinToiQoalaTranslations(registry);
         registerTensorToiQoalaTranslations(registry);
     }
 }
