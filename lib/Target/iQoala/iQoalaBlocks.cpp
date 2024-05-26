@@ -1,19 +1,19 @@
 #include "Target/iQoala/iQoala.h"
 
 namespace qoala::iqoala {
-    void CLBlock::print() {
+    void CLBlock::print(raw_ostream &os) const {
         // TODO
     }
 
-    void CCBlock::print() {
+    void CCBlock::print(raw_ostream &os) const {
         // TODO
     }
 
-    void QLBlock::print() {
+    void QLBlock::print(raw_ostream &os) const {
         // TODO
     }
 
-    void QCBlock::print() {
+    void QCBlock::print(raw_ostream &os) const {
         // TODO
     }
 }

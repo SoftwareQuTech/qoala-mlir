@@ -25,7 +25,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &op) {
 }
 
 
-static inline Block &getModuleBody(Operation &module) {
+static inline mlir::Block &getModuleBody(Operation &module) {
     assert(llvm::isa<ModuleOp>(module));
     return module.getRegion(0).front();
 }
