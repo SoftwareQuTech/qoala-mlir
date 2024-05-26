@@ -13,13 +13,15 @@ using namespace llvm;
  */
 namespace qoala::iqoala {
 
+    extern std::string tabStr;
+
     struct PrintInterface {
     public:
         PrintInterface() = default;
         virtual ~PrintInterface() = default;
         virtual void print(raw_ostream &os) const = 0;
     };
-    
+
     raw_ostream &operator<<(raw_ostream &os, const PrintInterface &printable);
 
     struct QuantumRoutine : public PrintInterface {

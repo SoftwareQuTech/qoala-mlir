@@ -2,6 +2,8 @@
 
 namespace qoala::iqoala {
 
+    std::string tabStr = "    ";
+
     raw_ostream &operator<<(raw_ostream &os, const PrintInterface &printable) {
         printable.print(os);
         return os;
