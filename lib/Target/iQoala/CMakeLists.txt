@@ -1,5 +1,6 @@
 add_mlir_translation_library(MLIRTargetiQoalaExport
         ConvertToiQoala.cpp
+        Module.cpp
         ModuleTranslation.cpp
 
         ADDITIONAL_HEADER_DIRS

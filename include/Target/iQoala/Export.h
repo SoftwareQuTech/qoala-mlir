@@ -2,22 +2,9 @@
 #define QOALA_MLIR_EXPORT_H
 
 #include "llvm/ADT/StringRef.h"
+#include "Target/iQoala/Module.h"
+#include "Target/iQoala/iQoalaContext.h"
 #include <memory>
-
-namespace qoala::iqoala {
-    // TODO - Fully implement these classes
-
-    class iQoalaContext {
-    public:
-        iQoalaContext() {}
-        ~iQoalaContext() {}
-    };
-    class Module {
-    public:
-        Module() {}
-        ~Module() {}
-    };
-} // namespace qoala::iqoala
 
 namespace mlir {
     class Operation;
