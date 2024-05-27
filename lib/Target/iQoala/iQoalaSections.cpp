@@ -7,7 +7,6 @@ namespace qoala::iqoala {
         for (auto &entry : socketsMap) {
             result << entry.second << " -> " << entry.first << ", ";
         }
-        result << "";
         std::string partialResult = result.str();
         return partialResult.substr(0, partialResult.length() - 2);
     }
@@ -37,6 +36,13 @@ namespace qoala::iqoala {
     }
 
     void NetQASMSection::print(raw_ostream &os) const {
+        // Iteratively print all the routines:
+        for (const QuantumRoutine &routine : this->routines) {
+            os << routine;
+        }
+    }
+
+    void RequestSection::print(llvm::raw_ostream &os) const {
         // Iteratively print all the routines:
         for (const QuantumRoutine &routine : this->routines) {
             os << routine;

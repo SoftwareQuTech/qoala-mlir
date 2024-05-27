@@ -92,7 +92,17 @@ namespace qoala::iqoala {
         std::vector<Block> hostBlocks;
     };
 
+    /* These are the LOCAL quantum routines to be executed by the CPS */
     struct NetQASMSection : public iQoalaSection {
+    public:
+        void print(raw_ostream &os) const override;
+    private:
+        // TODO - Check this
+        std::vector<QuantumRoutine> routines;
+    };
+
+    /* These are the REMOTE REQUEST quantum routines to be executed by the CPS */
+    struct RequestSection : public iQoalaSection {
     public:
         void print(raw_ostream &os) const override;
     private:
@@ -111,6 +121,7 @@ namespace qoala::iqoala {
         MetaSection metaSection;
         HostSection hostSection;
         NetQASMSection netQASMSection;
+        RequestSection requestSection;
     };
 } // namespace qoala::iqoala
 
