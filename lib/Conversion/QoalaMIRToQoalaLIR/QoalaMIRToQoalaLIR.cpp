@@ -86,8 +86,7 @@ namespace qoala::conversion {
             LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
             qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
         } else {
-            // TODO - Implement the proper way to classify the quantum ops
-            qoala::analysis::functionize::functionizeModule(module, simpleOpClassifier);
+            qoala::analysis::functionize::functionizeModule(module, functionizeOpClassifier);
         }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {

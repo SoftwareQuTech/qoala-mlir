@@ -3,7 +3,7 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "Analysis/Helpers/SimpleCloneInterface.h"
+#include "Analysis/Helpers/QMemInterfaces.h"
 #include "Dialect/QMem/QMem.h"
 
 #include <set>
@@ -15,9 +15,11 @@ namespace qoala::analysis {
             /* Types for the arguments and results */
             std::vector<Type> argTypes;
             std::vector<Type> resultTypes;
-            /* Values of the arguments and results discovered */
-            SetVector<Value> argumentValues;
-            SetVector<Value> resultValues;
+            /* Values of the external arguments and external results discovered */
+            SetVector<Value> externalArgsVals;
+            SetVector<Value> externalResVals;
+            /* Map between the external arguments and the corresponding argument index of the new function */
+            DenseMap<Value, unsigned int> externalArgValsIdxMap;
             /* The new function created */
             func::FuncOp newFunction;
             /* Map between the results of the functionized group (original results) and the _index_
@@ -43,9 +45,10 @@ namespace qoala::analysis {
          * @param opBuilder An `OpBuilder` object used to clone the given operations.
          * @param funcName The name of the function to be created.
          * @param loc The location to use as an attribute for the new operations created.
-         * @param quantumOpsGroup An `ArrayRef` object containing the set of operations to wrap.
+         * @param quantumOpsGroup An ordered `SetVector` object containing the set of operations to wrap, in the
+         *                        order they need to be inserted in the new body.
          */
-         void createNewFunctionWithOperations(FunctionizeData &data, OpBuilder *opBuilder,
+         void createNewFunctionWithOperations(FunctionizeData &data, OpBuilder &opBuilder,
                                               StringRef funcName, Location loc,
                                               llvm::SetVector<Operation *> &quantumOpsGroup);
 
@@ -59,7 +62,7 @@ namespace qoala::analysis {
          *             the set of indexes of that operation's result that are considered a result of the
          *             given operations set. After calling this function, any other member of this struct
          *             are not guaranteed to be set or initialized.
-         * @param operations The ser of operations to analyze.
+         * @param operations An _ordered_ set of of operations to analyze.
          */
         void computeArgTypesAndReturns(FunctionizeData &data, llvm::SetVector<Operation *> &operations);
 
@@ -78,10 +81,18 @@ namespace qoala::analysis {
         /**
          * Classifier to create *simple* groups, i.e., each group will contain _a single quantum operation_.
          * This classifier is used with the simple functionization
-         * @param module The module on which run the grouping
+         * @param mainFunction The function on which run the grouping
          * @return A collection of quantum groups.
          */
-        std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &module);
+        std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction);
+
+        /**
+         * Operation classifier that follows the rules of the compiler specifications. This method creates
+         * operation groups based on the criteria specified in https://gitlab.tudelft.nl/qoala/qoala-compiler-spec/-/blob/master/design/translations/MIR_to_LIR.md
+         * @param mainFunction The function on which run the grouping
+         * @return A collection of quantum groups.
+         */
+        std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction);
     }
 }
 
