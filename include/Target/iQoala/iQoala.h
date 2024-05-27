@@ -79,7 +79,8 @@ namespace qoala::iqoala {
         void print(raw_ostream &os) const override;
     private:
         llvm::StringRef name;
-        std::vector<int> globalParams; // TODO - Check the type of the globalParams
+        // Can be i32 or f32m but for some reason, these are just "strings" in the examples from qoala-sim
+        std::vector<std::string> globalParams;
         std::map<std::string, unsigned int> classicalSocketsMap;
         std::map<std::string, unsigned int> eprsSocketsMap;
     };
