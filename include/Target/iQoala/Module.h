@@ -11,7 +11,6 @@ namespace qoala::iqoala {
     class Module {
     public:
         Module(StringRef name, iQoalaContext &context);
-        ~Module() = default;
         void print(raw_ostream &os);
 
         iQoalaProgram &getiQoalaProgram() {

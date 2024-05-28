@@ -9,7 +9,7 @@ using namespace qoala::iqoala;
 #define DEBUG_TYPE "module-translate"
 
 ModuleTranslation::ModuleTranslation (Operation *module,
-                                      std::unique_ptr<iqoala::Module> iQoalaModule)
+                                      std::unique_ptr<iqoala::Module> &iQoalaModule)
                                       : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
                                       iface(module->getContext()) {/* TODO */}
 
@@ -34,7 +34,8 @@ static inline mlir::Block &getModuleBody(Operation &module) {
 std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
     // Entry point for the transformations
-    ModuleTranslation moduleTranslation(originalModule, nullptr);
+    auto iQoalaModule = std::make_unique<iqoala::Module>(name, iQoalaContext);
+    ModuleTranslation moduleTranslation(originalModule, iQoalaModule);
     // First, we translate the module itself
     LLVM_DEBUG(llvm::dbgs() << "******** Translating module '" << originalModule->getName() << "' *********\n");
     LLVM_DEBUG(originalModule->dump());

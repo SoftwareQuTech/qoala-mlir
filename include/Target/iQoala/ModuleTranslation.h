@@ -15,8 +15,7 @@ namespace qoala::translate {
                                                   llvm::StringRef name);
     private:
         ModuleTranslation(Operation *module,
-                          std::unique_ptr<iqoala::Module> iQoalaModule);
-        ~ModuleTranslation() = default;
+                          std::unique_ptr<iqoala::Module> &iQoalaModule);
 
         /* Class fields */
         Operation *mlirModule;
