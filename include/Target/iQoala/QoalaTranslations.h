@@ -17,7 +17,7 @@ using namespace mlir;
 namespace qoala::translate {
     inline void registerAllQoalaTranslations(DialectRegistry &registry) {
         // Simply insert the qoala dialects and the translation interfaces for exporting Qoala LIR
-        registerQMemToiQoalaTranslations(registry);
+        registerQRemoteToiQoalaTranslations(registry);
         registerNetQASMToiQoalaTranslations(registry);
         registerQoalaHostToiQoalaTranslations(registry);
     }

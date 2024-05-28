@@ -37,7 +37,7 @@ namespace qoala::translate {
 
     };
 
-    void registerQMemToiQoalaTranslations(DialectRegistry &registry) {
+    void registerQRemoteToiQoalaTranslations(DialectRegistry &registry) {
         registry.insert<QRemoteDialect>();
         registry.addExtension(+[](MLIRContext *ctx, QRemoteDialect *dialect) {
             dialect->addInterfaces<QRemoteToiQoalaTranslationInterface>();

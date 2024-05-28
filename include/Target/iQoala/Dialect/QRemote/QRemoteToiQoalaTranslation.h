@@ -6,7 +6,7 @@ namespace mlir {
 }
 
 namespace qoala::translate {
-    void registerQMemToiQoalaTranslations(mlir::DialectRegistry &registry);
+    void registerQRemoteToiQoalaTranslations(mlir::DialectRegistry &registry);
 }
 
 #endif //QREMOTETOIQOALATRANSLATION_H

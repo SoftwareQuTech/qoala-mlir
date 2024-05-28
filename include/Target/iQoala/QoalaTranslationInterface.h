@@ -33,7 +33,7 @@ namespace qoala::iqoala {
     public:
         using Base::Base;
 
-        /// Translates the given operation to LLVM IR using the interface implemented
+        /// Translates the given operation to iQoala using the interface implemented
         /// by the op's dialect.
         virtual LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
             if (const QoalaTranslationDialectInterface *iface = getInterfaceFor(op))
