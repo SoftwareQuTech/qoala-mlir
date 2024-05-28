@@ -1,6 +1,7 @@
 #include "mlir/IR/Operation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
+#include "Target/iQoala/ModuleTranslation.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 
@@ -11,16 +12,17 @@
 using namespace qoala::dialects::qremote;
 using namespace qoala::iqoala;
 
-static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp) {
-    // TODO - Implement this translator method
+static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, ModuleTranslation &moduleTranslation) {
+    moduleTranslation.addRemoteDeclaration(remoteOp.getSymNameAttr());
+    LLVM_DEBUG(llvm::dbgs() << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
     return success();
 }
 
-static LogicalResult translateQRemoteOperation(Operation *operation) {
+static LogicalResult translateQRemoteOperation(Operation *operation, ModuleTranslation &moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
-            .Case([](RemoteOp op)-> LogicalResult {
-                return translateQRemoteOperation(op);
+            .Case([&](RemoteOp op)-> LogicalResult {
+                return translateRemoteDeclaration(op, moduleTranslation);
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QRemote operation to iQoala: '") << *op << "'\n";
@@ -32,7 +34,7 @@ namespace qoala::translate {
     public:
         using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
         LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateQRemoteOperation(op);
+            return translateQRemoteOperation(op, moduleTranslation);
         }
 
     };

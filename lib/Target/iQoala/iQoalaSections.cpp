@@ -3,12 +3,12 @@
 
 namespace qoala::iqoala {
     void MetaSection::print(raw_ostream &os) const {
-        os << "META START";
-        os << tabStr << "name: " << this->name;
-        os << tabStr << "parameters: " << qoala::helpers::formatVector(this->globalParams);
-        os << tabStr << "csockets: " << qoala::helpers::formatMap(this->classicalSocketsMap);
-        os << tabStr << "epr_sockets: " << qoala::helpers::formatMap(this->eprsSocketsMap);
-        os << "META END";
+        os << "META START\n";
+        os << tabStr << "name: " << this->name << "\n";
+        os << tabStr << "parameters: " << qoala::helpers::formatVector(this->globalParams) << "\n";
+        os << tabStr << "csockets: " << qoala::helpers::formatMap(this->classicalSocketsMap) << "\n";
+        os << tabStr << "epr_sockets: " << qoala::helpers::formatMap(this->eprsSocketsMap) << "\n";
+        os << "META END\n";
     }
 
     void HostSection::print(raw_ostream &os) const {

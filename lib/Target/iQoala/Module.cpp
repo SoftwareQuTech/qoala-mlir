@@ -11,4 +11,9 @@ namespace qoala::iqoala {
     void Module::print(raw_ostream &os) {
         os << this->iQoalaProgram;
     }
+
+    void Module::addRemoteDeclaration(llvm::StringRef remoteName) {
+        std::string temp = remoteName.str();
+        this->iQoalaProgram.addRemoteDeclaration(temp);
+    }
 }

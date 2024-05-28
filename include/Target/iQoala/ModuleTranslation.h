@@ -17,13 +17,13 @@ namespace qoala::translate {
         ModuleTranslation(Operation *module,
                           std::unique_ptr<iqoala::Module> &iQoalaModule);
 
-        /* Class fields */
         Operation *mlirModule;
         std::unique_ptr<iqoala::Module> iQoalaModule;
         iqoala::QoalaTranslationInterfaces iface;
         // TODO - Define the public functions that we need to place in this class
     public:
         LogicalResult convertOperation(Operation &op);
+        void addRemoteDeclaration(StringRef remoteName);
     };
 }
 

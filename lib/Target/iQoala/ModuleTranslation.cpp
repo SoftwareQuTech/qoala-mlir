@@ -11,7 +11,7 @@ using namespace qoala::iqoala;
 ModuleTranslation::ModuleTranslation (Operation *module,
                                       std::unique_ptr<iqoala::Module> &iQoalaModule)
                                       : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
-                                      iface(module->getContext()) {/* TODO */}
+                                      iface(module->getContext()) { }
 
 LogicalResult ModuleTranslation::convertOperation(Operation &op) {
     const QoalaTranslationDialectInterface *opIface = iface.getInterfaceFor(&op);
@@ -22,6 +22,10 @@ LogicalResult ModuleTranslation::convertOperation(Operation &op) {
                 << op.getName();
     }
     return opIface->convertOperation(&op, *this);
+}
+
+void ModuleTranslation::addRemoteDeclaration(llvm::StringRef remoteName) {
+    this->iQoalaModule->addRemoteDeclaration(remoteName);
 }
 
 
@@ -49,5 +53,5 @@ std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
             return nullptr;
         }
     }
-    return nullptr;
+    return std::move(moduleTranslation.iQoalaModule);
 }

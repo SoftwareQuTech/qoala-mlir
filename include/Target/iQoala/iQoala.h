@@ -110,21 +110,19 @@ namespace qoala::iqoala {
     struct Block : public PrintInterface {
     public:
         void print(raw_ostream &os) const override;
-        // TODO
     private:
         BlockType type;
         std::vector<QoalaHostInstruction> instructions;
     };
 
-    struct iQoalaSection : public PrintInterface {
-        // TODO
-    };
+    struct iQoalaSection : public PrintInterface { };
 
     struct MetaSection : public iQoalaSection {
     public:
         void print(raw_ostream &os) const override;
+        void addRemote(std::string &remoteName);
     private:
-        llvm::StringRef name;
+        std::string name;
         // Can be i32 or f32m but for some reason, these are just "strings" in the examples from qoala-sim
         std::vector<std::string> globalParams;
         std::map<std::string, unsigned int> classicalSocketsMap;
@@ -143,7 +141,6 @@ namespace qoala::iqoala {
     public:
         void print(raw_ostream &os) const override;
     private:
-        // TODO - Check this
         std::vector<QuantumRoutine> routines;
     };
 
@@ -152,7 +149,6 @@ namespace qoala::iqoala {
     public:
         void print(raw_ostream &os) const override;
     private:
-        // TODO - Check this
         std::vector<QuantumRoutine> routines;
     };
 
@@ -163,6 +159,7 @@ namespace qoala::iqoala {
     struct iQoalaProgram : public PrintInterface {
     public:
         void print(raw_ostream &os) const override;
+        void addRemoteDeclaration(std::string &remoteName);
     private:
         MetaSection metaSection;
         HostSection hostSection;
