@@ -24,9 +24,11 @@ add_mlir_translation_library(MLIRTargetiQoalaExport
         #MLIRDLTIDialect
         #MLIRLLVMDialect
         #MLIRLLVMIRTransforms
+        MLIRiQoalaMCLib
         QoalaAnalysisHelpers
         MLIRTranslateLib
         MLIRTransformUtils
 )
 
 add_subdirectory(Dialect)
+add_subdirectory(MC)

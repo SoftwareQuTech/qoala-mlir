@@ -2,21 +2,18 @@
 #define QOALA_MLIR_ASM_H
 
 #include "llvm/Support/raw_ostream.h"
-#include "Analysis/Helpers/Helpers.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 
 using namespace llvm;
-using namespace qoala::helpers;
 
 namespace qoala::assembly {
-    class ASMInstruction : public PrintInterface { };
-
-    class NetQASMInstruction : public ASMInstruction {
+    class NetQASMInstruction : public iQoalaMCInstruction {
     public:
         void print(raw_ostream &os) const override {};
         // TODO
     };
 
-    class QoalaHostInstruction : public ASMInstruction {
+    class QoalaHostInstruction : public iQoalaMCInstruction {
     public:
         void print(raw_ostream &os) const override {};
         // TODO
