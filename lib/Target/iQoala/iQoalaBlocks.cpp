@@ -1,19 +1,30 @@
 #include "Target/iQoala/iQoala.h"
 
 namespace qoala::iqoala {
-    void CLBlock::print(raw_ostream &os) const {
-        // TODO
+    raw_ostream &operator<<(raw_ostream &os, const BlockType &block) {
+        switch (block.type) {
+            case BlockType::BlockTypeTy::CC:
+                os << "CC";
+                break;
+            case BlockType::BlockTypeTy::CL:
+                os << "CL";
+                break;
+            case BlockType::BlockTypeTy::QC:
+                os << "QC";
+                break;
+            case BlockType::BlockTypeTy::QL:
+                os << "QL";
+                break;
+        }
+        return os;
     }
 
-    void CCBlock::print(raw_ostream &os) const {
-        // TODO
-    }
+    unsigned int blockNumber = 0;
 
-    void QLBlock::print(raw_ostream &os) const {
-        // TODO
-    }
-
-    void QCBlock::print(raw_ostream &os) const {
-        // TODO
+    void Block::print(raw_ostream &os) const {
+        os << "b" << blockNumber << " { type = " << this->type << " }\n";
+        for (const QoalaHostInstruction &instruction : this->instructions) {
+            os << tabStr << instruction << "\n";
+        }
     }
 }

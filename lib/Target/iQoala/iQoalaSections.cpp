@@ -1,9 +1,7 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
-#include "sstream"
 
 namespace qoala::iqoala {
-
     void MetaSection::print(raw_ostream &os) const {
         os << "META START";
         os << tabStr << "name: " << this->name;

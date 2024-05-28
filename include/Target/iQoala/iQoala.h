@@ -44,10 +44,7 @@ namespace qoala::iqoala {
 
     struct RequestCallback {
     public:
-        enum RequestCallbackType {
-            SEQUENTIAL,
-            WAIT_ALL
-        };
+        enum RequestCallbackType { SEQUENTIAL, WAIT_ALL };
         RequestCallback() : type(SEQUENTIAL) { };
         RequestCallback(RequestCallbackType type) : type(type) { };
     private:
@@ -57,11 +54,7 @@ namespace qoala::iqoala {
 
     struct VirtualIDs {
     public:
-        enum VirtualIDType {
-            ALL,
-            INCREMENT,
-            CUSTOM
-        };
+        enum VirtualIDType { ALL, INCREMENT, CUSTOM };
         VirtualIDs() : type(ALL) { };
         VirtualIDs(VirtualIDType type) : type(type) { };
     private:
@@ -72,11 +65,7 @@ namespace qoala::iqoala {
 
     struct RequestType {
     public:
-        enum RequestTypeTy {
-            CREATE_KEEP,
-            MEASURE_DIRECTLY,
-            RSP
-        };
+        enum RequestTypeTy { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
         RequestType() : type(CREATE_KEEP) { };
         RequestType(RequestTypeTy type) : type(type) { };
     private:
@@ -86,10 +75,7 @@ namespace qoala::iqoala {
 
     struct RequestRole {
     public:
-        enum RequestRoleType {
-            CREATE,
-            RECEIVE
-        };
+        enum RequestRoleType { CREATE, RECEIVE };
         RequestRole() : type(CREATE) { };
         RequestRole(RequestRoleType type) : type(type) { };
     private:
@@ -115,34 +101,21 @@ namespace qoala::iqoala {
         std::vector<NetQASMInstruction> instructions;
     };
 
+    struct BlockType {
+    public:
+        enum BlockTypeTy { CL, CC, QL, QC };
+    private:
+        BlockTypeTy type;
+        friend raw_ostream &operator<<(raw_ostream &os, const BlockType &blockType);
+    };
+
     struct Block : public PrintInterface {
+    public:
+        void print(raw_ostream &os) const override;
         // TODO
     private:
+        BlockType type;
         std::vector<QoalaHostInstruction> instructions;
-    };
-
-    struct CLBlock : public Block {
-    public:
-        void print(raw_ostream &os) const override;
-        // TODO
-    };
-
-    struct CCBlock : public Block {
-    public:
-        void print(raw_ostream &os) const override;
-        // TODO
-    };
-
-    struct QLBlock : public Block {
-    public:
-        void print(raw_ostream &os) const override;
-        // TODO
-    };
-
-    struct QCBlock : public Block {
-    public:
-        void print(raw_ostream &os) const override;
-        // TODO
     };
 
     struct iQoalaSection : public PrintInterface {
@@ -204,6 +177,7 @@ namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const RequestCallback &requestCallback);
     raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs);
     raw_ostream &operator<<(raw_ostream &os, const RequestType &virtualIDs);
+    raw_ostream &operator<<(raw_ostream &os, const BlockType &block);
 } // namespace qoala::iqoala
 
 #endif //QOALA_MLIR_IQOALA_H
