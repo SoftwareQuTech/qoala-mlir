@@ -16,4 +16,9 @@ namespace qoala::iqoala {
         std::string temp = remoteName.str();
         this->iQoalaProgram.addRemoteDeclaration(temp);
     }
+
+    void Module::setModuleName(llvm::StringRef moduleName) {
+        std::string temp = moduleName.str();
+        this->iQoalaProgram.setProgramName(temp);
+    }
 }

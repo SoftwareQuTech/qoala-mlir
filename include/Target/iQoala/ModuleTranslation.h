@@ -24,6 +24,7 @@ namespace qoala::translate {
     public:
         LogicalResult convertOperation(Operation &op);
         void addRemoteDeclaration(StringRef remoteName);
+        void setModuleName(StringRef moduleName);
     };
 }
 

@@ -21,7 +21,15 @@ namespace qoala::iqoala {
         this->eprsSocketsMap.insert(std::pair{remoteName, 0});
     }
 
+    void MetaSection::setName(std::string &programName) {
+        this->name = programName;
+    }
+
     void iQoalaProgram::addRemoteDeclaration(std::string &remoteName) {
         this->metaSection.addRemote(remoteName);
+    }
+
+    void iQoalaProgram::setProgramName(std::string &programName) {
+        this->metaSection.setName(programName);
     }
 }

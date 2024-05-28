@@ -18,6 +18,7 @@ namespace qoala::iqoala {
         }
 
         void addRemoteDeclaration(StringRef remoteName);
+        void setModuleName(StringRef moduleName);
 
     private:
         StringRef moduleName;

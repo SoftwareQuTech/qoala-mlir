@@ -28,6 +28,10 @@ void ModuleTranslation::addRemoteDeclaration(llvm::StringRef remoteName) {
     this->iQoalaModule->addRemoteDeclaration(remoteName);
 }
 
+void ModuleTranslation::setModuleName(llvm::StringRef moduleName) {
+    this->iQoalaModule->setModuleName(moduleName);
+}
+
 
 static inline mlir::Block &getModuleBody(Operation &module) {
     assert(llvm::isa<ModuleOp>(module));

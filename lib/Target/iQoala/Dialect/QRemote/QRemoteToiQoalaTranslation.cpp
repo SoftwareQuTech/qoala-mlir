@@ -14,12 +14,10 @@ using namespace qoala::iqoala;
 
 static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, ModuleTranslation &moduleTranslation) {
     moduleTranslation.addRemoteDeclaration(remoteOp.getSymNameAttr());
-    LLVM_DEBUG(llvm::dbgs() << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
     return success();
 }
 
 static LogicalResult translateQRemoteOperation(Operation *operation, ModuleTranslation &moduleTranslation) {
-    LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](RemoteOp op)-> LogicalResult {
                 return translateRemoteDeclaration(op, moduleTranslation);

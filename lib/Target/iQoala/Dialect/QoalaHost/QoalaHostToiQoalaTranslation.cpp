@@ -13,6 +13,7 @@ using namespace qoala::dialects::qoalahost;
 using namespace qoala::iqoala;
 
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation &moduleTranslation) {
+    moduleTranslation.setModuleName(mainFuncOP.getName());
     for (Operation &op : mainFuncOP.getFunctionBody().getOps()) {
         if (failed(moduleTranslation.convertOperation(op))) {
             return op.emitOpError("cannot convert the operation '") << op << "'\n";

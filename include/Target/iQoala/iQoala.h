@@ -121,6 +121,7 @@ namespace qoala::iqoala {
     public:
         void print(raw_ostream &os) const override;
         void addRemote(std::string &remoteName);
+        void setName(std::string &programName);
     private:
         std::string name;
         // Can be i32 or f32m but for some reason, these are just "strings" in the examples from qoala-sim
@@ -160,6 +161,7 @@ namespace qoala::iqoala {
     public:
         void print(raw_ostream &os) const override;
         void addRemoteDeclaration(std::string &remoteName);
+        void setProgramName(std::string &programName);
     private:
         MetaSection metaSection;
         HostSection hostSection;
