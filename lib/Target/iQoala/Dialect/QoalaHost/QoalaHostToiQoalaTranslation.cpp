@@ -12,11 +12,21 @@
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::iqoala;
 
+static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation &moduleTranslation) {
+    for (Operation &op : block.getOperations()) {
+        if (failed(moduleTranslation.convertOperation(op))) {
+            return op.emitOpError("cannot covert operation '") << op << "'\n";
+        }
+    }
+    return success();
+}
+
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation &moduleTranslation) {
     moduleTranslation.setModuleName(mainFuncOP.getName());
-    for (Operation &op : mainFuncOP.getFunctionBody().getOps()) {
-        if (failed(moduleTranslation.convertOperation(op))) {
-            return op.emitOpError("cannot convert the operation '") << op << "'\n";
+    for (mlir::Block &block: mainFuncOP.getBlocks()) {
+        if (failed(translateBlock(block, moduleTranslation))) {
+            return mainFuncOP->emitOpError("cannot convert a block inside function '")
+                    << mainFuncOP.getSymName() << "'\n";
         }
     }
     return success();
