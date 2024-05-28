@@ -24,6 +24,7 @@ add_mlir_translation_library(MLIRTargetiQoalaExport
         #MLIRDLTIDialect
         #MLIRLLVMDialect
         #MLIRLLVMIRTransforms
+        QoalaAnalysisHelpers
         MLIRTranslateLib
         MLIRTransformUtils
 )

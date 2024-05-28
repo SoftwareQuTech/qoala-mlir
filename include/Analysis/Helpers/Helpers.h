@@ -169,6 +169,52 @@ namespace qoala::helpers {
             kk.insert(op);
         }
     }
+
+
+    /**
+     * Helper function that returns a string containing the "string" representation of each entry of
+     * the given map, separated by a comma. Each entry is printed in the "{first} -> {second}" format.
+     * To this end, the parametric types of the map members *must* implement the "<<" operator for the given type.
+     * This must happen both for the Key and Value types.
+     * @tparam PrintableTy
+     * @param vector An std::map instance of `PrintableTy` type.
+     * @return A string with all the members printed, separated with commas.
+     */
+    template<typename KeyPrintableTy, typename ValPrintableTy>
+    std::string formatMap(const std::map<KeyPrintableTy, ValPrintableTy> &socketsMap) {
+        std::stringstream result;
+        for (auto &entry : socketsMap) {
+            result << entry.second << " -> " << entry.first << ", ";
+        }
+        std::string partialResult = result.str();
+        if (partialResult.empty()) {
+            return partialResult;
+        } else {
+            return partialResult.substr(0, partialResult.length() - 2);
+        }
+    }
+
+    /**
+     * Helper function that returns a string containing the "string" representation of each member of
+     * the given vector, separated by a comma. To this end, the parametric type of the vector members
+     * *must* implement the "<<" operator for the given type.
+     * @tparam PrintableTy
+     * @param vector An std::vector instance of `PrintableTy` type.
+     * @return A string with all the members printed, separated with commas.
+     */
+    template <typename PrintableTy>
+    std::string formatVector(const std::vector<PrintableTy> &vector) {
+        std::stringstream result;
+        for (const PrintableTy &member : vector) {
+            result << member << ", ";
+        }
+        std::string partialResult = result.str();
+        if (partialResult.empty()) {
+            return partialResult;
+        } else {
+            return partialResult.substr(0, partialResult.length() - 2);
+        }
+    }
 }
 
 
