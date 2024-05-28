@@ -2,20 +2,13 @@
 #define QOALA_MLIR_ASM_H
 
 #include "llvm/Support/raw_ostream.h"
+#include "Analysis/Helpers/Helpers.h"
 
 using namespace llvm;
-
-namespace qoala {
-    struct PrintInterface {
-    public:
-        PrintInterface() = default;
-        virtual ~PrintInterface() = default;
-        virtual void print(raw_ostream &os) const = 0;
-    };
-}
+using namespace qoala::helpers;
 
 namespace qoala::assembly {
-    class ASMInstruction : public qoala::PrintInterface { };
+    class ASMInstruction : public PrintInterface { };
 
     class NetQASMInstruction : public ASMInstruction {
     public:

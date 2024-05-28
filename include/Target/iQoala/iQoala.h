@@ -8,8 +8,6 @@
 #include <vector>
 #include <map>
 
-using namespace llvm;
-using namespace qoala;
 using namespace qoala::assembly;
 
 /**

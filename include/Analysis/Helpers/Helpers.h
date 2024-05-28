@@ -170,6 +170,15 @@ namespace qoala::helpers {
         }
     }
 
+    /**
+     * Simple interface that defines a "print" method
+     */
+    struct PrintInterface {
+    public:
+        PrintInterface() = default;
+        virtual ~PrintInterface() = default;
+        virtual void print(raw_ostream &os) const = 0;
+    };
 
     /**
      * Helper function that returns a string containing the "string" representation of each entry of
