@@ -71,6 +71,7 @@ namespace qoala::assembly {
                 break;
             case LOCAL_REGISTER:
                 os << "%" << this->localRegNum;
+                break;
             case EXPRESSION:
                 os << this->expression;
                 break;

@@ -32,6 +32,7 @@ namespace qoala::iqoala {
             : public mlir::DialectInterfaceCollection<QoalaTranslationDialectInterface> {
     public:
         using Base::Base;
+        explicit QoalaTranslationInterfaces(MLIRContext *ctx) : DialectInterfaceCollection(ctx) {}
 
         /// Translates the given operation to iQoala using the interface implemented
         /// by the op's dialect.
