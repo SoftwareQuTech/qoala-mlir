@@ -1,24 +1,54 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
 
 namespace qoala::assembly {
+    /* General functions for the ASM classes */
+    bool iQoalaExpr::isValid() { return kind != INVALID; }
+    bool iQoalaExpr::isSymbolRef() { return kind == SYMBOL_REFERENCE; }
+    bool iQoalaExpr::isConstant() { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+
+    bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
+    bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
+    bool iQoalaMCOperand::isRegister() const { return kind == REGISTER; }
+
+    void iQoalaMCInstruction::setOpcode(unsigned int newOpCode) { this->opCode = newOpCode; }
+    unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
+
+    const iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) { return operands[i]; }
+    unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
+
+    void iQoalaMCInstruction::addOperand(const iQoalaMCOperand &op) { operands.push_back(op); }
+
     void iQoalaExpr::print(raw_ostream &os) const {
-        // TODO
+        switch(this->kind) {
+            case INVALID:
+                assert(false && "Expression is of invalid kind.\n");
+            case SYMBOL_REFERENCE:
+                os << this->symbolName;
+                break;
+            case CONSTANT_I32:
+                os << this->i32ConstVal;
+                break;
+            case CONSTANT_F32:
+                os << this->f32ConstVal;
+                break;
+        }
     }
 
-    static std::string formatRegister(const iQoalaMCOperand::iQoalaRegReference &registerRef) {
+    static std::string formatRegister(const iQoalaMCOperand::iQoalaRegReference *registerRef) {
         std::stringstream formattedRegStr;
-        switch (registerRef.type) {
+        switch (registerRef->type) {
             case R:
-                formattedRegStr << "R" << registerRef.num;
+                formattedRegStr << "R" << registerRef->num;
                 break;
             case C:
-                formattedRegStr << "C" << registerRef.num;
+                formattedRegStr << "C" << registerRef->num;
                 break;
             case M:
-                formattedRegStr << "M" << registerRef.num;
+                formattedRegStr << "M" << registerRef->num;
                 break;
             case Q:
-                formattedRegStr << "Q" << registerRef.num;
+                formattedRegStr << "Q" << registerRef->num;
                 break;
         }
         return formattedRegStr.str();
@@ -38,7 +68,8 @@ namespace qoala::assembly {
                 os << formatRegister(this->regRef);
                 break;
             case EXPRESSION:
-                assert(false && "Using an expression as operand is not supported yet!\n");
+                os << this->expression;
+                break;
         }
     }
 }

@@ -20,7 +20,6 @@ namespace qoala::iqoala {
     struct QuantumRoutine : public PrintInterface {
     public:
         // TODO
-        [[nodiscard]]
         std::string getName() const { return name; }
     protected:
         std::string name;
@@ -44,7 +43,7 @@ namespace qoala::iqoala {
     public:
         enum RequestCallbackType { SEQUENTIAL, WAIT_ALL };
         RequestCallback() : type(SEQUENTIAL) { };
-        RequestCallback(RequestCallbackType type) : type(type) { };
+        explicit RequestCallback(RequestCallbackType type) : type(type) { };
     private:
         friend raw_ostream &operator<<(raw_ostream &os, const RequestCallback &requestCallback);
         RequestCallbackType type;
@@ -54,7 +53,7 @@ namespace qoala::iqoala {
     public:
         enum VirtualIDType { ALL, INCREMENT, CUSTOM };
         VirtualIDs() : type(ALL) { };
-        VirtualIDs(VirtualIDType type) : type(type) { };
+        explicit VirtualIDs(VirtualIDType type) : type(type) { };
     private:
         friend raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
@@ -65,7 +64,7 @@ namespace qoala::iqoala {
     public:
         enum RequestTypeTy { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
         RequestType() : type(CREATE_KEEP) { };
-        RequestType(RequestTypeTy type) : type(type) { };
+        explicit RequestType(RequestTypeTy type) : type(type) { };
     private:
         friend raw_ostream &operator<<(raw_ostream &os, const RequestType &virtualIDs);
         RequestTypeTy type;
@@ -75,7 +74,7 @@ namespace qoala::iqoala {
     public:
         enum RequestRoleType { CREATE, RECEIVE };
         RequestRole() : type(CREATE) { };
-        RequestRole(RequestRoleType type) : type(type) { };
+        explicit RequestRole(RequestRoleType type) : type(type) { };
     private:
         friend raw_ostream &operator<<(raw_ostream &os, const RequestRole &virtualIDs);
         RequestRoleType type;

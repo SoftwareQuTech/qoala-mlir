@@ -20,7 +20,8 @@ namespace qoala::assembly {
         enum ExprKind {
             INVALID,
             SYMBOL_REFERENCE,
-            CONSTANT
+            CONSTANT_I32,
+            CONSTANT_F32
         };
         ExprKind kind;
         union {
@@ -31,9 +32,9 @@ namespace qoala::assembly {
 
         iQoalaExpr() : kind(INVALID), i32ConstVal(0) { };
 
-        bool isValid() { return kind != INVALID; }
-        bool isSymbolRef() { return kind == SYMBOL_REFERENCE; }
-        bool isConstant() { return kind == CONSTANT; }
+        bool isValid();
+        bool isSymbolRef();
+        bool isConstant();
     public:
         void print(raw_ostream &os) const override;
 
@@ -46,14 +47,14 @@ namespace qoala::assembly {
 
         static iQoalaExpr createConstant(uint32_t value) {
             iQoalaExpr expr;
-            expr.kind = CONSTANT;
+            expr.kind = CONSTANT_I32;
             expr.i32ConstVal = value;
             return expr;
         }
 
         static iQoalaExpr createConstant(float value) {
             iQoalaExpr expr;
-            expr.kind = CONSTANT;
+            expr.kind = CONSTANT_F32;
             expr.f32ConstVal = value;
             return expr;
         }
@@ -69,6 +70,7 @@ namespace qoala::assembly {
             iQoalaRegReference(iQoalaRegType type, uint32_t num) : type(type), num(num) { }
             ~iQoalaRegReference() = default;
         };
+
         enum OperandKind {
             INVALID,
             IMMEDIATE_I32,
@@ -76,18 +78,20 @@ namespace qoala::assembly {
             REGISTER,
             EXPRESSION
         };
+
         OperandKind kind;
         union {
             uint32_t integerVal;
             float floatingPointVal;
-            iQoalaRegReference regRef;
+            iQoalaRegReference *regRef;
+            iQoalaExpr *expression;
         };
 
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
-        ~iQoalaMCOperand() = default;
-        bool isValid() const { return kind != INVALID; }
-        bool isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
-        bool isRegister() const { return kind == REGISTER; }
+        ~iQoalaMCOperand() override { };
+        bool isValid() const;
+        bool isImmediate() const;
+        bool isRegister() const;
     public:
         void print(raw_ostream &os) const override;
 
@@ -105,29 +109,37 @@ namespace qoala::assembly {
             return operand;
         }
 
-        static iQoalaMCOperand createRegister(iQoalaRegType regType, uint32_t regNum) {
+        static iQoalaMCOperand createRegister(iQoalaRegReference *regRef) {
             iQoalaMCOperand operand;
             operand.kind = REGISTER;
-            operand.regRef = {regType, regNum};
+            operand.regRef = regRef;
+            return operand;
+        }
+
+        static iQoalaMCOperand createExpr(iQoalaExpr *expr) {
+            iQoalaMCOperand operand;
+            operand.kind = EXPRESSION;
+            operand.expression = expr;
             return operand;
         }
     };
 
     class iQoalaMCInstruction : public PrintInterface {
     public:
-        iQoalaMCInstruction() = default;
+        /* The first declaration of all op codes is assumed to mean "unknown" */
+        explicit iQoalaMCInstruction(Operation *op) : originalOp(op), opCode(0) { };
 
-        void setOpcode(unsigned int opCode) { this->opCode = opCode; }
-        unsigned int getOpcode() const { return opCode; }
+        void setOpcode(unsigned int opCode);
+        unsigned int getOpcode() const;
 
-        const iQoalaMCOperand &getOperand(unsigned i) const { return operands[i]; }
-        iQoalaMCOperand &getOperand(unsigned i) { return operands[i]; }
-        unsigned int getNumOperands() const { return operands.size(); }
+        const iQoalaMCOperand &getOperand(unsigned i) const;
+        iQoalaMCOperand &getOperand(unsigned i);
+        unsigned int getNumOperands() const;
 
-        void addOperand(const iQoalaMCOperand op) { operands.push_back(op); }
+        void addOperand(const iQoalaMCOperand &op);
     protected:
         Operation *originalOp;
-        unsigned int opCode = 0; /*the first declaration of all op codes is assumed to mean "unknown" */
+        unsigned int opCode;
         llvm::SmallVector<iQoalaMCOperand, 10> operands;
     };
 }
