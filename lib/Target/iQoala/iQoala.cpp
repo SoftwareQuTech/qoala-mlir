@@ -11,7 +11,10 @@ namespace qoala::iqoala {
 
     void iQoalaProgram::print(raw_ostream &os) const {
         // Call the "print" functions in the sections of the executable
-        os << this->metaSection << "\n" << this->hostSection << "\n" << this->netQASMSection << "\n";
+        os << this->metaSection << "\n"
+           << this->hostSection << "\n"
+           << this->netQASMSection << "\n"
+           << this->requestSection << "\n";
     }
 
     void MetaSection::addRemote(std::string &remoteName) {
