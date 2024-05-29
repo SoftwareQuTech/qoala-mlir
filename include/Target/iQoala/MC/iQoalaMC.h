@@ -17,12 +17,12 @@ namespace qoala::assembly {
     enum iQoalaRegType { R, C, M, Q };
 
     class iQoalaExpr : PrintInterface {
-        enum iQoalaExprType {
+        enum ExprKind {
             INVALID,
             SYMBOL_REFERENCE,
             CONSTANT
         };
-        iQoalaExprType kind;
+        ExprKind kind;
         union {
             char *symbolName;
             uint32_t i32ConstVal;
@@ -60,19 +60,23 @@ namespace qoala::assembly {
     };
 
     class iQoalaMCOperand : PrintInterface {
-    private:
+    public:
         struct iQoalaRegReference {
             iQoalaRegType type;
             uint32_t num;
+        public :
+            iQoalaRegReference() : type(iQoalaRegType::R), num(0) { }
+            iQoalaRegReference(iQoalaRegType type, uint32_t num) : type(type), num(num) { }
+            ~iQoalaRegReference() = default;
         };
-    public:
-        enum iQoalaMCOperandType {
+        enum OperandKind {
             INVALID,
-            IMMEDIATE,
+            IMMEDIATE_I32,
+            IMMEDIATE_F32,
             REGISTER,
             EXPRESSION
         };
-        iQoalaMCOperandType kind;
+        OperandKind kind;
         union {
             uint32_t integerVal;
             float floatingPointVal;
@@ -80,22 +84,23 @@ namespace qoala::assembly {
         };
 
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
+        ~iQoalaMCOperand() = default;
         bool isValid() const { return kind != INVALID; }
-        bool isImmediate() const { return kind == IMMEDIATE; }
+        bool isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
         bool isRegister() const { return kind == REGISTER; }
     public:
         void print(raw_ostream &os) const override;
 
         static iQoalaMCOperand createImmediate(uint32_t val) {
             iQoalaMCOperand operand;
-            operand.kind = IMMEDIATE;
+            operand.kind = IMMEDIATE_I32;
             operand.integerVal = val;
             return operand;
         }
 
         static iQoalaMCOperand createImmediate(float val) {
             iQoalaMCOperand operand;
-            operand.kind = IMMEDIATE;
+            operand.kind = IMMEDIATE_F32;
             operand.floatingPointVal = val;
             return operand;
         }
