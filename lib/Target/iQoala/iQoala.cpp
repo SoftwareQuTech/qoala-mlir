@@ -15,7 +15,7 @@ namespace qoala::iqoala {
     }
 
     void MetaSection::addRemote(std::string &remoteName) {
-        std::string newStr(remoteName + "_id");
+        std::string newStr(remoteName);
         this->globalParams.push_back(newStr);
         this->classicalSocketsMap.insert(std::pair{remoteName, 0});
         this->eprsSocketsMap.insert(std::pair{remoteName, 0});

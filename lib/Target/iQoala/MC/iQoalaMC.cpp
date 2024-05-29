@@ -8,8 +8,4 @@ namespace qoala::assembly {
     void iQoalaMCOperand::print(llvm::raw_ostream &os) const {
         // TODO
     }
-
-    void iQoalaMCInstruction::print(raw_ostream &os) const {
-        // TODO
-    }
 }

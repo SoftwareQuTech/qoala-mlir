@@ -80,6 +80,9 @@ namespace qoala::assembly {
         };
 
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
+        bool isValid() const { return kind != INVALID; }
+        bool isImmediate() const { return kind == IMMEDIATE; }
+        bool isRegister() const { return kind == REGISTER; }
     public:
         void print(raw_ostream &os) const override;
 
@@ -108,7 +111,6 @@ namespace qoala::assembly {
     class iQoalaMCInstruction : public PrintInterface {
     public:
         iQoalaMCInstruction() = default;
-        void print(raw_ostream &os) const override;
 
         void setOpcode(unsigned int opCode) { this->opCode = opCode; }
         unsigned int getOpcode() const { return opCode; }
@@ -118,7 +120,8 @@ namespace qoala::assembly {
         unsigned int getNumOperands() const { return operands.size(); }
 
         void addOperand(const iQoalaMCOperand op) { operands.push_back(op); }
-    private:
+    protected:
+        Operation *originalOp;
         unsigned int opCode = 0; /*the first declaration of all op codes is assumed to mean "unknown" */
         llvm::SmallVector<iQoalaMCOperand, 10> operands;
     };
