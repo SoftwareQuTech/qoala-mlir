@@ -76,6 +76,7 @@ namespace qoala::assembly {
             IMMEDIATE_I32,
             IMMEDIATE_F32,
             REGISTER,
+            LOCAL_REGISTER,
             EXPRESSION
         };
 
@@ -85,6 +86,7 @@ namespace qoala::assembly {
             float floatingPointVal;
             iQoalaRegReference *regRef;
             iQoalaExpr *expression;
+            uint32_t localRegNum;
         };
 
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
@@ -92,6 +94,8 @@ namespace qoala::assembly {
         bool isValid() const;
         bool isImmediate() const;
         bool isRegister() const;
+        bool isLocalRegister() const;
+        bool isExpression() const;
     public:
         void print(raw_ostream &os) const override;
 
@@ -140,7 +144,7 @@ namespace qoala::assembly {
     protected:
         Operation *originalOp;
         unsigned int opCode;
-        llvm::SmallVector<iQoalaMCOperand, 10> operands;
+        std::vector<iQoalaMCOperand> operands;
     };
 }
 

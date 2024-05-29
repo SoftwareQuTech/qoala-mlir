@@ -36,7 +36,7 @@ namespace qoala::iqoala {
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
-        std::vector<NetQASMInstruction> instructions;
+        std::vector<NetQASMBaseInstr> instructions;
     };
 
     struct RequestCallback {
@@ -95,7 +95,7 @@ namespace qoala::iqoala {
         float fidelity;
         RequestType type;
         RequestRole requestRole;
-        std::vector<NetQASMInstruction> instructions;
+        std::vector<NetQASMBaseInstr> instructions;
     };
 
     struct BlockType {
@@ -111,7 +111,7 @@ namespace qoala::iqoala {
         void print(raw_ostream &os) const override;
     private:
         BlockType type;
-        std::vector<QoalaHostInstruction> instructions;
+        std::vector<QoalaHostInstr> instructions;
     };
 
     struct iQoalaSection : public PrintInterface { };

@@ -7,7 +7,7 @@
 using namespace llvm;
 
 namespace qoala::assembly {
-    class NetQASMInstruction : public iQoalaMCInstruction {
+    class NetQASMBaseInstr : public iQoalaMCInstruction {
     public:
         enum OpCode {
             OP_UNKNOWN = 0,
@@ -27,11 +27,12 @@ namespace qoala::assembly {
         };
 
         void print(raw_ostream &os) const override;
+    private:
         virtual void printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const = 0;
         virtual void printStoreOrLoad(raw_ostream &os) const = 0;
     };
 
-    class QoalaHostInstruction : public iQoalaMCInstruction {
+    class QoalaHostInstr : public iQoalaMCInstruction {
     public:
         enum OpCode {
             OP_UNKNOWN = 0,
@@ -54,7 +55,10 @@ namespace qoala::assembly {
         };
 
         void print(raw_ostream &os) const override;
-        virtual void printInstruction(std::string &mnemonic, raw_ostream &os) const = 0;
+    private:
+        void printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
+                                       const iQoalaMCOperand *ssaLocalReg = nullptr,
+                                       const iQoalaMCOperand *immediateExpr = nullptr) const;
     };
 
     raw_ostream &operator<<(raw_ostream &os, const iQoalaMCInstruction &instr);

@@ -23,7 +23,7 @@ namespace qoala::iqoala {
 
     void Block::print(raw_ostream &os) const {
         os << "b" << blockNumber << " { type = " << this->type << " }\n";
-        for (const QoalaHostInstruction &instruction : this->instructions) {
+        for (const QoalaHostInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
     }

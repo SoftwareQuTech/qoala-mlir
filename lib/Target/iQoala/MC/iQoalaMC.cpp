@@ -9,6 +9,8 @@ namespace qoala::assembly {
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
     bool iQoalaMCOperand::isRegister() const { return kind == REGISTER; }
+    bool iQoalaMCOperand::isLocalRegister() const { return kind == LOCAL_REGISTER; }
+    bool iQoalaMCOperand::isExpression() const { return kind == EXPRESSION; }
 
     void iQoalaMCInstruction::setOpcode(unsigned int newOpCode) { this->opCode = newOpCode; }
     unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
@@ -67,6 +69,8 @@ namespace qoala::assembly {
             case REGISTER:
                 os << formatRegister(this->regRef);
                 break;
+            case LOCAL_REGISTER:
+                os << "%" << this->localRegNum;
             case EXPRESSION:
                 os << this->expression;
                 break;
