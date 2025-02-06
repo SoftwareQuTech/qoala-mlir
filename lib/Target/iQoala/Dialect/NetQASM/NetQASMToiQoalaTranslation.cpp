@@ -22,6 +22,9 @@ static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, ModuleTranslation
 }
 
 static LogicalResult convertiQoalaRuntimeFunctionDeclaration(LocalRoutineOp &op) {
+    assert(op.getName() == "__qoala_convert_float_angle");
+    // We don't need to do anything specific here; simply "ignore" this declaration, since
+    // the definition will be provided by the runtime
     return success();
 }
 
@@ -29,7 +32,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     // Use this example for applying different behavior depending on the type of the operation under analysis
-    // This is the main "dispatcher" for translating operations belonging yo NetQASM dialect
+    // This is the main "dispatcher" for translating operations belonging to NetQASM dialect
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([](QAllocOp op) -> LogicalResult {
                 return success();
@@ -42,9 +45,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 if (op.isExternal()) {
                     // This case is, most likely, the "__qoala_convert_float_angle" builtin runtime function declaration
                     return convertiQoalaRuntimeFunctionDeclaration(op);
-                } else {
-                    return convertLocalRoutineOp(op, moduleTranslation);
                 }
+                return convertLocalRoutineOp(op, moduleTranslation);
             })
             .Case([](RequestRoutineOp op) -> LogicalResult {
                 LLVM_DEBUG(llvm::dbgs() << "Saw a request routine with name '" << op.getName() << "'\n");
