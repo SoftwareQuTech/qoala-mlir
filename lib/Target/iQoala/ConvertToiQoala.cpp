@@ -22,11 +22,13 @@ namespace qoala::translate {
                     //  It seems we need to pass the operation (the full module), but also a "context" object,
                     //  which will aid the process of exporting the MLIR
                     qoala::iqoala::iQoalaContext iQoalaContext;
-                    // TODO - Maybe pass the output stream to the translate function?
                     auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
                     if (!iQoalaModule) {
                         return failure();
                     }
+
+                    // Print the module on the output stream
+                    iQoalaModule->print(output);
 
                     return success();
                 },

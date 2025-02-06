@@ -6,9 +6,9 @@ using namespace llvm;
 
 namespace qoala::iqoala {
     Module::Module(llvm::StringRef name, qoala::iqoala::iQoalaContext &context) :
-    moduleName(name) , iQoalaCtx(context) { }
+    moduleName(name), iQoalaProgram(), iQoalaCtx(context) { }
 
     void Module::print(raw_ostream &os) {
-        // TODO - Implement this print
+        os << this->iQoalaProgram;
     }
 }
