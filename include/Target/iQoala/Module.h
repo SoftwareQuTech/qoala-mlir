@@ -8,13 +8,16 @@
 using namespace llvm;
 
 namespace qoala::iqoala {
-    class Module {
+    class iQoalaModule {
     public:
-        Module(StringRef name, iQoalaContext &context);
+        iQoalaModule(StringRef name, iQoalaContext &context);
         void print(raw_ostream &os);
 
         iQoalaProgram &getiQoalaProgram() {
             return iQoalaProgram;
+        }
+        iQoalaContext &getiQoalaContext() {
+            return iQoalaCtx;
         }
 
         void addRemoteDeclaration(StringRef remoteName);

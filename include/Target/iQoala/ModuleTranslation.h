@@ -10,21 +10,22 @@ using namespace qoala;
 
 namespace qoala::translate {
     class ModuleTranslation {
-        friend std::unique_ptr<iqoala::Module>
-        qoala::translate::translateModuleToiQoala(Operation *module, iqoala::iQoalaContext &iQoalaContext,
+        friend std::unique_ptr<iqoala::iQoalaModule>
+        qoala::translate::translateModuleToiQoala(Operation *originalModule, iqoala::iQoalaContext &iQoalaContext,
                                                   llvm::StringRef name);
     private:
-        ModuleTranslation(Operation *module,
-                          std::unique_ptr<iqoala::Module> &iQoalaModule);
-
-        Operation *mlirModule;
-        std::unique_ptr<iqoala::Module> iQoalaModule;
+        ModuleTranslation(ModuleOp *module,
+                          std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
+        ModuleOp *mlirModule;
+        std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         iqoala::QoalaTranslationInterfaces iface;
         // TODO - Define the public functions that we need to place in this class
     public:
         LogicalResult convertOperation(Operation &op);
-        void addRemoteDeclaration(StringRef remoteName);
-        void setModuleName(StringRef moduleName);
+        void addRemoteDeclaration(const StringRef remoteName) const;
+        void setModuleName(const StringRef moduleName) const;
+
+        ModuleOp *getModule() const { return mlirModule; }
     };
 }
 

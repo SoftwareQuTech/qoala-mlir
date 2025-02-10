@@ -8,12 +8,15 @@ using namespace qoala::iqoala;
 
 #define DEBUG_TYPE "module-translate"
 
-ModuleTranslation::ModuleTranslation (Operation *module,
-                                      std::unique_ptr<iqoala::Module> &iQoalaModule)
+ModuleTranslation::ModuleTranslation (ModuleOp *module,
+                                      std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)
                                       : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
                                       iface(module->getContext()) { }
 
 LogicalResult ModuleTranslation::convertOperation(Operation &op) {
+    // This is the entry point of the translation of any operation.
+    // It simply tries to get a registered translation class for the operation (type)
+    // and invokes the "convertOperation" method on it.
     const QoalaTranslationDialectInterface *opIface = iface.getInterfaceFor(&op);
     if (!opIface) {
         return op.emitError("cannot be converted to iQoala: missing "
@@ -24,11 +27,11 @@ LogicalResult ModuleTranslation::convertOperation(Operation &op) {
     return opIface->convertOperation(&op, *this);
 }
 
-void ModuleTranslation::addRemoteDeclaration(llvm::StringRef remoteName) {
+void ModuleTranslation::addRemoteDeclaration(const llvm::StringRef remoteName) const {
     this->iQoalaModule->addRemoteDeclaration(remoteName);
 }
 
-void ModuleTranslation::setModuleName(llvm::StringRef moduleName) {
+void ModuleTranslation::setModuleName(const llvm::StringRef moduleName) const {
     this->iQoalaModule->setModuleName(moduleName);
 }
 
@@ -39,11 +42,12 @@ static inline mlir::Block &getModuleBody(Operation &module) {
 }
 
 
-std::unique_ptr<iqoala::Module> qoala::translate::translateModuleToiQoala(
+std::unique_ptr<iqoala::iQoalaModule> qoala::translate::translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
     // Entry point for the transformations
-    auto iQoalaModule = std::make_unique<iqoala::Module>(name, iQoalaContext);
-    ModuleTranslation moduleTranslation(originalModule, iQoalaModule);
+    auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, iQoalaContext);
+    auto mlirModule = dyn_cast<ModuleOp>(originalModule);
+    ModuleTranslation moduleTranslation(&mlirModule, iQoalaModule);
     // First, we translate the module itself
     LLVM_DEBUG(llvm::dbgs() << "******** Translating module '" << originalModule->getName() << "' *********\n");
     LLVM_DEBUG(originalModule->dump());

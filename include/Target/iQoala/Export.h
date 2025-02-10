@@ -11,7 +11,7 @@ namespace mlir {
 }
 
 namespace qoala::translate {
-    std::unique_ptr<qoala::iqoala::Module>
+    std::unique_ptr<qoala::iqoala::iQoalaModule>
     translateModuleToiQoala(mlir::Operation *module, qoala::iqoala::iQoalaContext &iQoalaContext,
                             llvm::StringRef name = "iQoalaModule");
 }
