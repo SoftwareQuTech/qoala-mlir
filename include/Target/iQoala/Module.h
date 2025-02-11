@@ -21,7 +21,8 @@ namespace qoala::iqoala {
         }
 
         void addRemoteDeclaration(StringRef remoteName);
-        void setModuleName(StringRef moduleName);
+        void setModuleName(StringRef newModuleName);
+        void addRoutine(QuantumRoutine &newLocalRoutine);
 
     private:
         StringRef moduleName;

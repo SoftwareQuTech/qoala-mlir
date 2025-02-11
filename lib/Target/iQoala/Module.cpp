@@ -22,4 +22,8 @@ namespace qoala::iqoala {
         this->moduleName = newModuleName;
         this->iQoalaProgram.setProgramName(temp);
     }
+
+    void iQoalaModule::addRoutine(QuantumRoutine &newLocalRoutine) {
+        this->iQoalaProgram.addRoutine(newLocalRoutine);
+    }
 }

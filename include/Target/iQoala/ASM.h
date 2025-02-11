@@ -26,10 +26,12 @@ namespace qoala::assembly {
             OP_STORE
         };
 
+        NetQASMBaseInstr();
+
         void print(raw_ostream &os) const override;
     private:
-        virtual void printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const = 0;
-        virtual void printStoreOrLoad(raw_ostream &os) const = 0;
+        void printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const;
+        void printStoreOrLoad(raw_ostream &os) const;
     };
 
     class QoalaHostInstr : public iQoalaMCInstruction {

@@ -1,12 +1,20 @@
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
+#include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
 using namespace qoala;
 using namespace qoala::iqoala;
+using namespace qoala::dialects::netqasm;
 
 #define DEBUG_TYPE "module-translate"
+
+// A helper function to obtain the body of given module
+static inline mlir::Block &getModuleBody(Operation &module) {
+    assert(llvm::isa<ModuleOp>(module));
+    return module.getRegion(0).front();
+}
 
 ModuleTranslation::ModuleTranslation (ModuleOp *module,
                                       std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)
@@ -35,10 +43,20 @@ void ModuleTranslation::setModuleName(const llvm::StringRef moduleName) const {
     this->iQoalaModule->setModuleName(moduleName);
 }
 
-
-static inline mlir::Block &getModuleBody(Operation &module) {
-    assert(llvm::isa<ModuleOp>(module));
-    return module.getRegion(0).front();
+LogicalResult ModuleTranslation::convertFunctionSignatures() const {
+    for (auto localRoutine : getModuleBody(*mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
+        // TODO - Implement how to handle the conversion of local routines
+        if (localRoutine.getName() == "__qoala_convert_float_angle") {
+            // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
+        } else {
+            LocalQuantumRoutine routine{};
+            iQoalaModule->addRoutine(routine);
+        }
+    }
+    for (auto localRoutine : getModuleBody(*mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+        // TODO - Implement how to handle the conversion of request routines
+    }
+    return success();
 }
 
 
@@ -54,6 +72,13 @@ std::unique_ptr<iqoala::iQoalaModule> qoala::translate::translateModuleToiQoala(
     if (failed(moduleTranslation.convertOperation(*originalModule))){
         return nullptr;
     }
+
+    // Second, we translate the function signatures
+    if (failed(moduleTranslation.convertFunctionSignatures())) {
+        return nullptr;
+    }
+
+    // TODO - We might need to explore other module-level operations separately
 
     // Then we explore all the operations in the body
     for (Operation &op : getModuleBody(*originalModule).getOperations()) {

@@ -1,4 +1,5 @@
 #include "Target/iQoala/iQoala.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 namespace qoala::iqoala {
 
@@ -17,22 +18,41 @@ namespace qoala::iqoala {
            << this->requestSection << "\n";
     }
 
-    void MetaSection::addRemote(std::string &remoteName) {
+    void NetQASMSection::addRoutine(LocalQuantumRoutine &routine) {
+        this->routines.push_back(routine);
+    }
+
+    void RequestSection::addRoutine(RequestQuantumRoutine &routine) {
+        this->routines.push_back(routine);
+    }
+
+    void MetaSection::addRemote(const std::string &remoteName) {
         std::string newStr(remoteName);
         this->globalParams.push_back(newStr);
         this->classicalSocketsMap.insert(std::pair{remoteName, 0});
         this->eprsSocketsMap.insert(std::pair{remoteName, 0});
     }
 
-    void MetaSection::setName(std::string &programName) {
+    void MetaSection::setName(const std::string &programName) {
         this->name = programName;
     }
 
-    void iQoalaProgram::addRemoteDeclaration(std::string &remoteName) {
+    void iQoalaProgram::addRemoteDeclaration(const std::string &remoteName) {
         this->metaSection.addRemote(remoteName);
     }
 
-    void iQoalaProgram::setProgramName(std::string &programName) {
+    void iQoalaProgram::setProgramName(const std::string &programName) {
         this->metaSection.setName(programName);
+    }
+
+    void iQoalaProgram::addRoutine(QuantumRoutine &routine) {
+        if (auto localRoutine = static_cast<LocalQuantumRoutine *>(&routine)) {
+            this->netQASMSection.addRoutine(*localRoutine);
+            return;
+        }
+        if (auto requestRoutine = static_cast<RequestQuantumRoutine *>(&routine)) {
+            this->requestSection.addRoutine(*requestRoutine);
+            return;
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace qoala::assembly {
         }
     }
 
-    void NetQASMBaseInstr::printStoreOrLoad(llvm::raw_ostream &os) const {
+    void NetQASMBaseInstr::printStoreOrLoad(raw_ostream &os) const {
         // Specific case: store and loads have a slightly different format:
         switch (this->opCode) {
             case OP_STORE:

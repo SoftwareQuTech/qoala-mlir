@@ -2,9 +2,9 @@
 
 namespace qoala::assembly {
     /* General functions for the ASM classes */
-    bool iQoalaExpr::isValid() { return kind != INVALID; }
-    bool iQoalaExpr::isSymbolRef() { return kind == SYMBOL_REFERENCE; }
-    bool iQoalaExpr::isConstant() { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+    bool iQoalaExpr::isValid() const { return kind != INVALID; }
+    bool iQoalaExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
+    bool iQoalaExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
 
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }

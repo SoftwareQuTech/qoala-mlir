@@ -22,9 +22,11 @@ namespace qoala::translate {
         // TODO - Define the public functions that we need to place in this class
     public:
         LogicalResult convertOperation(Operation &op);
-        void addRemoteDeclaration(const StringRef remoteName) const;
-        void setModuleName(const StringRef moduleName) const;
+        LogicalResult convertFunctionSignatures() const;
+        void addRemoteDeclaration(StringRef remoteName) const;
+        void setModuleName(StringRef moduleName) const;
 
+        [[nodiscard]]
         ModuleOp *getModule() const { return mlirModule; }
     };
 }

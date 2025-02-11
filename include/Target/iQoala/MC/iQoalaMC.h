@@ -32,9 +32,9 @@ namespace qoala::assembly {
 
         iQoalaExpr() : kind(INVALID), i32ConstVal(0) { };
 
-        bool isValid();
-        bool isSymbolRef();
-        bool isConstant();
+        bool isValid() const;
+        bool isSymbolRef() const;
+        bool isConstant() const;
     public:
         void print(raw_ostream &os) const override;
 
@@ -131,7 +131,10 @@ namespace qoala::assembly {
     class iQoalaMCInstruction : public PrintInterface {
     public:
         /* The first declaration of all op codes is assumed to mean "unknown" */
-        explicit iQoalaMCInstruction(Operation *op) : originalOp(op), opCode(0) { };
+        iQoalaMCInstruction(Operation *op) : originalOp(op), opCode(0) { }
+        iQoalaMCInstruction(Operation *op, const uint32_t opCode) : originalOp(op), opCode(opCode), operands({}) { }
+        iQoalaMCInstruction(const iQoalaMCInstruction &inst) : originalOp(inst.originalOp), opCode(inst.opCode), operands(inst.operands) { }
+        ~iQoalaMCInstruction() override = default;
 
         void setOpcode(unsigned int opCode);
         unsigned int getOpcode() const;
