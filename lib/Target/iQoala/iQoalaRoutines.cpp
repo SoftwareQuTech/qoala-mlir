@@ -62,10 +62,10 @@ namespace qoala::iqoala {
 
     void LocalQuantumRoutine::print(raw_ostream &os) const {
         os << "SUBROUTINE " << this->name << "\n";
-        os << "params:" << qoala::helpers::formatVector(this->params) << "\n";
-        os << "returns:" << qoala::helpers::formatVector(this->returns) << "\n";
-        os << "uses:" << qoala::helpers::formatVector(this->usesQubits) << "\n";
-        os << "keeps:" << qoala::helpers::formatVector(this->keepsQubits) << "\n";
+        os << "params:" << helpers::formatVector(this->params) << "\n";
+        os << "returns:" << helpers::formatVector(this->returns) << "\n";
+        os << "uses:" << helpers::formatVector(this->usesQubits) << "\n";
+        os << "keeps:" << helpers::formatVector(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::NetQASMBaseInstr &instruction : this->instructions) {
@@ -78,7 +78,7 @@ namespace qoala::iqoala {
         os << "REQUEST " << this->name << "\n";
         os << "callback_type: " << this->requestCallback << "\n";
         os << "callback: " << this->callback.getName() << "\n";
-        os << "return_vars: " << qoala::helpers::formatVector(this->returns) << "\n";
+        os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
         os << "num_pairs: " << this->numPairs << "\n";

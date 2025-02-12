@@ -6,25 +6,32 @@
 #include "llvm/Support/raw_ostream.h"
 
 namespace qoala::iqoala {
-    class iQoalaModule {
+    class iQoalaModule : public helpers::PrintInterface{
     public:
-        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name),iQoalaCtx(context) { }
-        void print(mlir::raw_ostream &os) const;
+        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name), iQoalaCtx(context) { }
+        void print(mlir::raw_ostream &os) const override;
 
-        iQoalaProgram &getiQoalaProgram() {
-            return iQoalaProgram;
-        }
         iQoalaContext &getiQoalaContext() {
             return iQoalaCtx;
         }
 
         void addRemoteDeclaration(mlir::StringRef remoteName);
         void setModuleName(mlir::StringRef newModuleName);
-        void addRoutine(QuantumRoutine &newLocalRoutine);
+        void addRoutine(QuantumRoutine &newRoutine);
 
     private:
         mlir::StringRef moduleName;
-        iQoalaProgram iQoalaProgram;
+
+        /**
+         * Struct that represents the program in iQoala format
+         * It contains section objects that store all the "MC" objects of the qoala program
+         */
+        struct {
+            MetaSection metaSection;
+            HostSection hostSection;
+            NetQASMSection netQASMSection;
+            RequestSection requestSection;
+        } iQoalaProgram;
         iQoalaContext iQoalaCtx;
     };
 }

@@ -178,6 +178,8 @@ namespace qoala::helpers {
         virtual void print(mlir::raw_ostream &os) const = 0;
     };
 
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const PrintInterface &printable);
+
     /**
      * Helper function that returns a string containing the "string" representation of each entry of
      * the given map, separated by a comma. Each entry is printed in the "{first} -> {second}" format.

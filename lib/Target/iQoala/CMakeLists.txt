@@ -3,7 +3,6 @@ add_mlir_translation_library(MLIRTargetiQoalaExport
         ConvertToiQoala.cpp
         ModuleTranslation.cpp
         Module.cpp
-        iQoala.cpp
         iQoalaSections.cpp
         iQoalaBlocks.cpp
         iQoalaRoutines.cpp

@@ -216,29 +216,7 @@ namespace qoala::iqoala {
     private:
         std::vector<RequestQuantumRoutine> routines;
     };
-
-    /**
-     * Class that represents the program in iQoala format
-     * The main entry point of the "print" function is here.
-     */
-    struct iQoalaProgram : public helpers::PrintInterface {
-    public:
-        iQoalaProgram() = default;
-        iQoalaProgram(const iQoalaProgram &program) = default;
-
-        void print(mlir::raw_ostream &os) const override;
-        void addRemoteDeclaration(const std::string &remoteName);
-        void setProgramName(const std::string &programName);
-        void addRoutine(QuantumRoutine &routine);
-    private:
-        MetaSection metaSection;
-        HostSection hostSection;
-        NetQASMSection netQASMSection;
-        RequestSection requestSection;
-    };
-
     // Extra declarations for "<<" operator
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const helpers::PrintInterface &printable);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestCallback &requestCallback);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestType &virtualIDs);
