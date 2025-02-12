@@ -1,7 +1,7 @@
 #ifndef QOALA_MLIR_IQOALA_H
 #define QOALA_MLIR_IQOALA_H
 
-#include "Target/iQoala/ASM.h"
+#include "Target/iQoala/MC/ASM.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
@@ -11,12 +11,15 @@
 
 /**
  * This file is the main implementation of the iQoala format.
+ * The classes here also inherit from the "MC" base object, since they
+ * are "ready" to be formatted as iQoala ASM. This also implies that all
+ * these concrete classes *need* to implement the "print" method
  */
 namespace qoala::iqoala {
 
     extern std::string tabStr;
 
-    struct QuantumRoutine : public helpers::PrintInterface {
+    class QuantumRoutine : public assembly::iQoalaMC {
     public:
         // Enum used as discriminant for subtypes.
         // This is required to use LLVM's RTTI library (dyn_cast, isa) instead oc C++'s
@@ -45,7 +48,7 @@ namespace qoala::iqoala {
         std::string name;
     };
 
-    struct LocalQuantumRoutine : public QuantumRoutine {
+    class LocalQuantumRoutine : public QuantumRoutine {
     public:
         LocalQuantumRoutine() : QuantumRoutine(QRK_Local) {}
         explicit LocalQuantumRoutine(const mlir::StringRef newName) :
@@ -71,7 +74,6 @@ namespace qoala::iqoala {
     };
 
     struct RequestCallback {
-    public:
         enum RequestCallbackType { SEQUENTIAL, WAIT_ALL };
         RequestCallback() : type(SEQUENTIAL) { }
         RequestCallback(const RequestCallback &r) = default;
@@ -82,7 +84,6 @@ namespace qoala::iqoala {
     };
 
     struct VirtualIDs {
-    public:
         enum VirtualIDType { ALL, INCREMENT, CUSTOM };
         VirtualIDs() : type(ALL) { }
         VirtualIDs(const VirtualIDs &vids) = default;
@@ -94,7 +95,6 @@ namespace qoala::iqoala {
     };
 
     struct RequestType {
-    public:
         enum RequestTypeTy { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
         RequestType() : type(CREATE_KEEP) { }
         RequestType(const RequestType &type) = default;
@@ -105,7 +105,6 @@ namespace qoala::iqoala {
     };
 
     struct RequestRole {
-    public:
         enum RequestRoleType { CREATE, RECEIVE };
         RequestRole() : type(CREATE) { }
         RequestRole(const RequestRole &role) = default;
@@ -115,7 +114,7 @@ namespace qoala::iqoala {
         RequestRoleType type;
     };
 
-    struct RequestQuantumRoutine : public QuantumRoutine {
+    class RequestQuantumRoutine : public QuantumRoutine {
     public:
         RequestQuantumRoutine() : QuantumRoutine(QRK_Quantum) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
@@ -145,7 +144,6 @@ namespace qoala::iqoala {
     };
 
     struct BlockType {
-    public:
         enum BlockTypeTy { CL, CC, QL, QC };
         BlockType() : type(CL) { }
         BlockType(const BlockType &blockType) = default;
@@ -154,7 +152,7 @@ namespace qoala::iqoala {
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const BlockType &blockType);
     };
 
-    struct Block : public helpers::PrintInterface {
+    class Block : public assembly::iQoalaMC {
     public:
         Block() = default;
         Block(const Block &b) = default;
@@ -162,12 +160,12 @@ namespace qoala::iqoala {
         void print(mlir::raw_ostream &os) const override;
     private:
         BlockType type;
+        std::string name;
         std::vector<assembly::QoalaHostInstr> instructions;
     };
 
-    struct iQoalaSection : public helpers::PrintInterface { };
-
-    struct MetaSection : public iQoalaSection {
+    /* Sections of the iQoala program */
+    class MetaSection : public assembly::iQoalaMC {
     public:
         MetaSection() = default;
         MetaSection(const MetaSection &section) = default;
@@ -183,7 +181,7 @@ namespace qoala::iqoala {
         std::map<std::string, unsigned int> eprsSocketsMap;
     };
 
-    struct HostSection : public iQoalaSection {
+    class HostSection : public assembly::iQoalaMC {
     public:
         HostSection() = default;
         HostSection(const HostSection &section) = default;
@@ -194,7 +192,7 @@ namespace qoala::iqoala {
     };
 
     /* These are the LOCAL quantum routines to be executed by the CPS */
-    struct NetQASMSection : public iQoalaSection {
+    class NetQASMSection : public assembly::iQoalaMC {
     public:
         NetQASMSection() = default;
         NetQASMSection(const NetQASMSection &section) = default;
@@ -206,7 +204,7 @@ namespace qoala::iqoala {
     };
 
     /* These are the REMOTE REQUEST quantum routines to be executed by the CPS */
-    struct RequestSection : public iQoalaSection {
+    class RequestSection : public assembly::iQoalaMC {
     public:
         RequestSection() = default;
         RequestSection(const RequestSection &section) = default;

@@ -14,7 +14,9 @@
 namespace qoala::assembly {
     enum iQoalaRegType { R, C, M, Q };
 
-    class iQoalaExpr : helpers::PrintInterface {
+    class iQoalaMC : public helpers::PrintInterface{ };
+
+    class iQoalaExpr : public helpers::PrintInterface {
         enum ExprKind {
             INVALID,
             SYMBOL_REFERENCE,
@@ -30,8 +32,11 @@ namespace qoala::assembly {
 
         iQoalaExpr() : kind(INVALID), i32ConstVal(0) { };
 
+        [[nodiscard]]
         bool isValid() const;
+        [[nodiscard]]
         bool isSymbolRef() const;
+        [[nodiscard]]
         bool isConstant() const;
     public:
         void print(mlir::raw_ostream &os) const override;
@@ -58,7 +63,7 @@ namespace qoala::assembly {
         }
     };
 
-    class iQoalaMCOperand : helpers::PrintInterface {
+    class iQoalaMCOperand : public iQoalaMC {
     public:
         struct iQoalaRegReference {
             iQoalaRegType type;
@@ -89,10 +94,15 @@ namespace qoala::assembly {
 
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
         ~iQoalaMCOperand() override { };
+        [[nodiscard]]
         bool isValid() const;
+        [[nodiscard]]
         bool isImmediate() const;
+        [[nodiscard]]
         bool isRegister() const;
+        [[nodiscard]]
         bool isLocalRegister() const;
+        [[nodiscard]]
         bool isExpression() const;
     public:
         void print(mlir::raw_ostream &os) const override;
@@ -126,7 +136,7 @@ namespace qoala::assembly {
         }
     };
 
-    class iQoalaMCInstruction : public helpers::PrintInterface {
+    class iQoalaMCInstruction : public iQoalaMC {
     public:
         /* The first declaration of all op codes is assumed to mean "unknown" */
         explicit iQoalaMCInstruction(mlir::Operation *op) : originalOp(op), opCode(0) { }
@@ -135,10 +145,13 @@ namespace qoala::assembly {
         ~iQoalaMCInstruction() override = default;
 
         void setOpcode(unsigned int opCode);
+        [[nodiscard]]
         unsigned int getOpcode() const;
 
+        [[nodiscard]]
         const iQoalaMCOperand &getOperand(unsigned i) const;
         iQoalaMCOperand &getOperand(unsigned i);
+        [[nodiscard]]
         unsigned int getNumOperands() const;
 
         void addOperand(const iQoalaMCOperand &op);

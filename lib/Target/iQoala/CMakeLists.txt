@@ -1,11 +1,7 @@
 add_mlir_translation_library(MLIRTargetiQoalaExport
-        ASM.cpp
         ConvertToiQoala.cpp
         ModuleTranslation.cpp
         Module.cpp
-        iQoalaSections.cpp
-        iQoalaBlocks.cpp
-        iQoalaRoutines.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/Target/iQoala
