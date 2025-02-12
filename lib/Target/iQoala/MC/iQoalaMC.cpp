@@ -21,7 +21,7 @@ namespace qoala::assembly {
 
     void iQoalaMCInstruction::addOperand(const iQoalaMCOperand &op) { operands.push_back(op); }
 
-    void iQoalaExpr::print(raw_ostream &os) const {
+    void iQoalaExpr::print(mlir::raw_ostream &os) const {
         switch(this->kind) {
             case INVALID:
                 assert(false && "Expression is of invalid kind.\n");

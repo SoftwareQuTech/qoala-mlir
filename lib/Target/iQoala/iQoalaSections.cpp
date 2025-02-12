@@ -1,6 +1,8 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
 
+using namespace mlir;
+
 namespace qoala::iqoala {
     void MetaSection::print(raw_ostream &os) const {
         os << "META START\n";

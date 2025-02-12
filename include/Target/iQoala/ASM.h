@@ -4,8 +4,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 
-using namespace llvm;
-
 namespace qoala::assembly {
     class NetQASMBaseInstr : public iQoalaMCInstruction {
     public:
@@ -28,10 +26,10 @@ namespace qoala::assembly {
 
         NetQASMBaseInstr();
 
-        void print(raw_ostream &os) const override;
+        void print(mlir::raw_ostream &os) const override;
     private:
-        void printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const;
-        void printStoreOrLoad(raw_ostream &os) const;
+        void printInstrInGenericForm(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printStoreOrLoad(mlir::raw_ostream &os) const;
     };
 
     class QoalaHostInstr : public iQoalaMCInstruction {
@@ -56,16 +54,18 @@ namespace qoala::assembly {
             OP_JOIN_ROUTINES
         };
 
-        void print(raw_ostream &os) const override;
+        QoalaHostInstr();
+
+        void print(mlir::raw_ostream &os) const override;
     private:
-        void printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
+        void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
                                        const iQoalaMCOperand *ssaLocalReg = nullptr,
                                        const iQoalaMCOperand *immediateExpr = nullptr) const;
     };
 
-    raw_ostream &operator<<(raw_ostream &os, const iQoalaMCInstruction &instr);
-    raw_ostream &operator<<(raw_ostream &os, const iQoalaMCOperand &oper);
-    raw_ostream &operator<<(raw_ostream &os, const iQoalaExpr &expr);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaExpr &expr);
 }
 
 #endif //QOALA_MLIR_ASM_H

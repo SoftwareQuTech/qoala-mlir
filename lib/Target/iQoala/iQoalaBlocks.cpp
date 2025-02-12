@@ -1,5 +1,7 @@
 #include "Target/iQoala/iQoala.h"
 
+using namespace mlir;
+
 namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const BlockType &block) {
         switch (block.type) {
@@ -23,7 +25,7 @@ namespace qoala::iqoala {
 
     void Block::print(raw_ostream &os) const {
         os << "b" << blockNumber << " { type = " << this->type << " }\n";
-        for (const QoalaHostInstr &instruction : this->instructions) {
+        for (const assembly::QoalaHostInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
     }

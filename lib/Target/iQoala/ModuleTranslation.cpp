@@ -4,6 +4,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
+using namespace mlir;
 using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
@@ -35,11 +36,11 @@ LogicalResult ModuleTranslation::convertOperation(Operation &op) {
     return opIface->convertOperation(&op, *this);
 }
 
-void ModuleTranslation::addRemoteDeclaration(const llvm::StringRef remoteName) const {
+void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
     this->iQoalaModule->addRemoteDeclaration(remoteName);
 }
 
-void ModuleTranslation::setModuleName(const llvm::StringRef moduleName) const {
+void ModuleTranslation::setModuleName(const StringRef moduleName) const {
     this->iQoalaModule->setModuleName(moduleName);
 }
 
@@ -49,7 +50,7 @@ LogicalResult ModuleTranslation::convertFunctionSignatures() const {
         if (localRoutine.getName() == "__qoala_convert_float_angle") {
             // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
         } else {
-            LocalQuantumRoutine routine{};
+            LocalQuantumRoutine routine(localRoutine.getName());
             iQoalaModule->addRoutine(routine);
         }
     }
@@ -60,7 +61,7 @@ LogicalResult ModuleTranslation::convertFunctionSignatures() const {
 }
 
 
-std::unique_ptr<iqoala::iQoalaModule> qoala::translate::translateModuleToiQoala(
+std::unique_ptr<iQoalaModule> translate::translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
     // Entry point for the transformations
     auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, iQoalaContext);

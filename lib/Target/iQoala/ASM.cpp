@@ -1,6 +1,8 @@
 #include "Target/iQoala/ASM.h"
 #include <iterator>
 
+using namespace mlir;
+
 namespace qoala::assembly {
     // Implementations of the "<<" operator
     raw_ostream &operator<<(raw_ostream &os, const iQoalaMCInstruction &instr) {

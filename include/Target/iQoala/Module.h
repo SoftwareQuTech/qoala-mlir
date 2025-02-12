@@ -5,13 +5,11 @@
 #include "Target/iQoala/iQoala.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace llvm;
-
 namespace qoala::iqoala {
     class iQoalaModule {
     public:
-        iQoalaModule(StringRef name, iQoalaContext &context);
-        void print(raw_ostream &os);
+        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name),iQoalaCtx(context) { }
+        void print(mlir::raw_ostream &os) const;
 
         iQoalaProgram &getiQoalaProgram() {
             return iQoalaProgram;
@@ -20,12 +18,12 @@ namespace qoala::iqoala {
             return iQoalaCtx;
         }
 
-        void addRemoteDeclaration(StringRef remoteName);
-        void setModuleName(StringRef newModuleName);
+        void addRemoteDeclaration(mlir::StringRef remoteName);
+        void setModuleName(mlir::StringRef newModuleName);
         void addRoutine(QuantumRoutine &newLocalRoutine);
 
     private:
-        StringRef moduleName;
+        mlir::StringRef moduleName;
         iQoalaProgram iQoalaProgram;
         iQoalaContext iQoalaCtx;
     };

@@ -5,9 +5,6 @@
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "mlir/IR/Operation.h"
 
-using namespace mlir;
-using namespace qoala;
-
 namespace qoala::translate {
     class ModuleTranslation {
         friend std::unique_ptr<iqoala::iQoalaModule>

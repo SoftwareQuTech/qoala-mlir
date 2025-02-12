@@ -9,8 +9,6 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace mlir;
-
 namespace qoala::helpers {
 
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -21,7 +19,7 @@ namespace qoala::helpers {
      * @return `true` if the operation belongs to the templated dialect type. `false` otherwise.
      */
     template<typename Dialect>
-    bool belongsToDialect(Operation &operation) {
+    bool belongsToDialect(mlir::Operation &operation) {
         mlir::Dialect *operationDialect = operation.getDialect();
         return isa<Dialect>(operationDialect);
     }
@@ -36,7 +34,7 @@ namespace qoala::helpers {
      * @return `true` if the operation belongs to one of the templated dialect types. `false` otherwise.
      */
     template<typename DialectOne, typename DialectTwo, typename... RestDialects>
-    bool belongsToDialect(Operation &operation) {
+    bool belongsToDialect(mlir::Operation &operation) {
         mlir::Dialect *operationDialect = operation.getDialect();
         return isa<DialectOne>(operationDialect) || belongsToDialect<DialectTwo, RestDialects...>(operation);
     }
@@ -82,7 +80,7 @@ namespace qoala::helpers {
      * applying the QMem to QoalaHost dialect conversion.
      * @param target The ConversionTarget object to configure
      */
-    void configureQMemToQoalaHostTarget(ConversionTarget &target,
+    void configureQMemToQoalaHostTarget(mlir::ConversionTarget &target,
                                         bool intRotsAreLegal,
                                         bool floatRotsAreLegal);
 
@@ -93,16 +91,16 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToQoalaHostPatterns(MLIRContext &context,
-                                         RewritePatternSet &patterns,
-                                         TypeConverter &typeConverter);
+    void populateQMemToQoalaHostPatterns(mlir::MLIRContext &context,
+                                         mlir::RewritePatternSet &patterns,
+                                         mlir::TypeConverter &typeConverter);
 
     /**
      * Configures the given ConversionTarget object to specify the valid state of the IR after
      * applying the QMem to NetQASM dialect conversion.
      * @param target The ConversionTarget object to configure
      */
-    void configureQMemToNetQASMTarget(ConversionTarget &target);
+    void configureQMemToNetQASMTarget(mlir::ConversionTarget &target);
 
     /**
      * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
@@ -111,16 +109,16 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToNetQASMPatterns(MLIRContext &context,
-                                       RewritePatternSet &patterns,
-                                       TypeConverter &typeConverter);
+    void populateQMemToNetQASMPatterns(mlir::MLIRContext &context,
+                                       mlir::RewritePatternSet &patterns,
+                                       mlir::TypeConverter &typeConverter);
 
     /**
      * Configures the given ConversionTarget object to specify the valid state of the IR after
      * applying the rotation operations conversion.
      * @param target The ConversionTarget object to configure
      */
-    void configureF32LoweringTarget(ConversionTarget &target);
+    void configureF32LoweringTarget(mlir::ConversionTarget &target);
 
     /**
      * Adds the QMem to _intermediate_ QMem conversions patterns to the given rewrite pattern set.
@@ -129,16 +127,16 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemF32ToInt32RotPatterns(MLIRContext &context,
-                                           RewritePatternSet &patterns,
-                                           TypeConverter &typeConverter);
+    void populateQMemF32ToInt32RotPatterns(mlir::MLIRContext &context,
+                                           mlir::RewritePatternSet &patterns,
+                                           mlir::TypeConverter &typeConverter);
 
     /**
      * Configures the given ConversionTarget object to specify the valid state of the IR after
      * converting QMem (remote) to QRemote dialect.
      * @param target The ConversionTarget object to configure
      */
-    void configureQMemToQRemoteTarget(ConversionTarget &target);
+    void configureQMemToQRemoteTarget(mlir::ConversionTarget &target);
 
     /**
      * Adds the QMem to QRemote conversions patterns to the given rewrite pattern set.
@@ -147,24 +145,24 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToQRemotePatterns(MLIRContext &context,
-                                       RewritePatternSet &patterns,
-                                       TypeConverter &typeConverter);
+    void populateQMemToQRemotePatterns(mlir::MLIRContext &context,
+                                       mlir::RewritePatternSet &patterns,
+                                       mlir::TypeConverter &typeConverter);
 
     /**
      * Simple "null" type converter for dialect conversion passes. This type
      * converter simply returns the same type for any given type.
      */
-    class NullTypeConverter : public TypeConverter {
+    class NullTypeConverter : public mlir::TypeConverter {
     public:
-        explicit NullTypeConverter(MLIRContext *ctx);
+        explicit NullTypeConverter(mlir::MLIRContext *ctx);
     };
 
     template<typename OpTy>
-    void moveOperationToTop(ModuleOp module, OpTy op) {
+    void moveOperationToTop(mlir::ModuleOp module, OpTy op) {
         if (op->getPrevNode() != nullptr) {
             // Simply remove the FuncOp, and insert it at the top of the module
-            OpBuilder kk = OpBuilder::atBlockBegin(&module.getBodyRegion().front());
+            mlir::OpBuilder kk = mlir::OpBuilder::atBlockBegin(&module.getBodyRegion().front());
             op->remove();
             kk.insert(op);
         }
@@ -177,7 +175,7 @@ namespace qoala::helpers {
     public:
         PrintInterface() = default;
         virtual ~PrintInterface() = default;
-        virtual void print(raw_ostream &os) const = 0;
+        virtual void print(mlir::raw_ostream &os) const = 0;
     };
 
     /**
