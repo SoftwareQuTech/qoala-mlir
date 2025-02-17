@@ -26,7 +26,7 @@ namespace qoala::iqoala {
                 os << "increment " << virtualIDs.args[0];
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
-                os << "custom " << qoala::helpers::formatVector(virtualIDs.args);
+                os << "custom " << helpers::formatVector(virtualIDs.args);
                 break;
         }
         return os;

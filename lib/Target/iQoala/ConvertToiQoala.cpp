@@ -22,7 +22,7 @@ namespace qoala::translate {
                     //  It seems we need to pass the operation (the full module), but also a "context" object,
                     //  which will aid the process of exporting the MLIR
                     assert (isa<ModuleOp>(*op));
-                    qoala::iqoala::iQoalaContext iQoalaContext;
+                    iqoala::iQoalaContext iQoalaContext;
                     auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
                     if (!iQoalaModule) {
                         return failure();

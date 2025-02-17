@@ -10,7 +10,7 @@ namespace qoala::iqoala {
         os << tabStr << "parameters: " << helpers::formatVector(this->globalParams) << "\n";
         os << tabStr << "csockets: " << helpers::formatMap(this->classicalSocketsMap) << "\n";
         os << tabStr << "epr_sockets: " << helpers::formatMap(this->eprsSocketsMap) << "\n";
-        os << "META END\n";
+        os << "META END";
     }
 
     void HostSection::print(raw_ostream &os) const {
