@@ -68,7 +68,7 @@ namespace qoala::iqoala {
         os << "keeps:" << helpers::formatVector(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMBaseInstr &instruction : this->instructions) {
+        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
         os << "NETQASM_END\n";
@@ -89,7 +89,7 @@ namespace qoala::iqoala {
         os << "role: " << this->requestRole << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMBaseInstr &instruction : this->instructions) {
+        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
         os << "NETQASM_END\n";

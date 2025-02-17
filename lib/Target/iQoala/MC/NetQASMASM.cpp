@@ -1,10 +1,10 @@
-#include "Target/iQoala/MC/ASM.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
 
-    void NetQASMBaseInstr::print(raw_ostream &os) const {
+    void NetQASMMCInstr::print(raw_ostream &os) const {
         switch (this->opCode) {
             case OP_UNKNOWN:
                 this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
@@ -93,7 +93,7 @@ namespace qoala::assembly {
         }
     }
 
-    void NetQASMBaseInstr::printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const {
+    void NetQASMMCInstr::printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const {
         // Method to print a NetQASM "machine code" instruction, for the "generic" form
         os << mnemonic;
         for (const iQoalaMCOperand &operand : this->operands) {
@@ -101,7 +101,7 @@ namespace qoala::assembly {
         }
     }
 
-    void NetQASMBaseInstr::printStoreOrLoad(raw_ostream &os) const {
+    void NetQASMMCInstr::printStoreOrLoad(raw_ostream &os) const {
         // Specific case: store and loads have a slightly different format:
         switch (this->opCode) {
             case OP_STORE:

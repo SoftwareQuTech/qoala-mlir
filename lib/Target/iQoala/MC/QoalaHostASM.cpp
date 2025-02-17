@@ -1,9 +1,9 @@
-#include "Target/iQoala/MC/ASM.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
-    void QoalaHostInstr::printInstrGeneric(const std::string &mnemonic, llvm::raw_ostream &os,
+    void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, llvm::raw_ostream &os,
                                            const iQoalaMCOperand *ssaLocalReg,
                                            const iQoalaMCOperand *immediateExpr) const {
         auto currentElement = this->operands.begin();
@@ -35,7 +35,7 @@ namespace qoala::assembly {
         }
     }
 
-    void QoalaHostInstr::print(raw_ostream &os) const {
+    void QoalaHostMCInstr::print(raw_ostream &os) const {
         switch (this->opCode) {
             case OP_UNKNOWN:
                 this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";

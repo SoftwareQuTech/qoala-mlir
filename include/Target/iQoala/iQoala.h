@@ -1,7 +1,7 @@
 #ifndef QOALA_MLIR_IQOALA_H
 #define QOALA_MLIR_IQOALA_H
 
-#include "Target/iQoala/MC/ASM.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
@@ -70,7 +70,7 @@ namespace qoala::iqoala {
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
-        std::vector<assembly::NetQASMBaseInstr> instructions;
+        std::vector<assembly::NetQASMMCInstr> instructions;
     };
 
     struct RequestCallback {
@@ -140,7 +140,7 @@ namespace qoala::iqoala {
         float fidelity = 1.0;
         RequestType type;
         RequestRole requestRole;
-        std::vector<assembly::NetQASMBaseInstr> instructions;
+        std::vector<assembly::NetQASMMCInstr> instructions;
     };
 
     struct BlockType {
@@ -161,7 +161,7 @@ namespace qoala::iqoala {
     private:
         BlockType type;
         std::string name;
-        std::vector<assembly::QoalaHostInstr> instructions;
+        std::vector<assembly::QoalaHostMCInstr> instructions;
     };
 
     /* Sections of the iQoala program */

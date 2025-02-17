@@ -1,10 +1,11 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace qoala::assembly {
     /* General functions for the ASM classes */
-    bool iQoalaExpr::isValid() const { return kind != INVALID; }
-    bool iQoalaExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
-    bool iQoalaExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+    bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
+    bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
+    bool iQoalaMCExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
 
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
@@ -21,7 +22,7 @@ namespace qoala::assembly {
 
     void iQoalaMCInstruction::addOperand(const iQoalaMCOperand &op) { operands.push_back(op); }
 
-    void iQoalaExpr::print(mlir::raw_ostream &os) const {
+    void iQoalaMCExpr::print(mlir::raw_ostream &os) const {
         switch(this->kind) {
             case INVALID:
                 assert(false && "Expression is of invalid kind.\n");
@@ -76,5 +77,21 @@ namespace qoala::assembly {
                 os << this->expression;
                 break;
         }
+    }
+
+    // Implementations of the "<<" operator
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr) {
+        instr.print(os);
+        return os;
+    }
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper) {
+        oper.print(os);
+        return os;
+
+    }
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr) {
+        expr.print(os);
+        return os;
+
     }
 }
