@@ -234,7 +234,7 @@ namespace qoala::assembly {
         void printOneRegOneImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
         void printOneRegTwoImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
         void printTwoRegsOneImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
-        void printThreeFourRegsInstr(const std::string &mnemonic, mlir::raw_ostream &os, bool usesFourRegs) const;
+        void printThreeFourRegsInstr(const std::string &mnemonic, mlir::raw_ostream &os, bool usesFourRegs = false) const;
         void printInstrInGenericForm(const std::string &mnemonic, mlir::raw_ostream &os) const;
         void printStoreOrLoad(mlir::raw_ostream &os) const;
     };

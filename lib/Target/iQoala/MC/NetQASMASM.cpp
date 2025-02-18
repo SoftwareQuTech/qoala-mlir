@@ -30,7 +30,7 @@ namespace qoala::assembly {
                 break;
             case OP_LEA:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister())
+                assert(this->operands[0].isRegister());
                 // TODO - Check if the second argument of a lea (address) is an expr or immediate
                 assert(this->operands[1].isExpression());
                 this->printInstrInGenericForm("lea", os);
@@ -172,7 +172,7 @@ namespace qoala::assembly {
         this->printInstrInGenericForm(mnemonic, os);
     }
 
-    void NetQASMMCInstr::printThreeFourRegsInstr(const std::string &mnemonic, raw_ostream &os, const bool usesFourRegs = false) const {
+    void NetQASMMCInstr::printThreeFourRegsInstr(const std::string &mnemonic, raw_ostream &os, const bool usesFourRegs) const {
         unsigned short numOperands;
         if (usesFourRegs) {
             numOperands = 4;
