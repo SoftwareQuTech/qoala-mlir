@@ -27,7 +27,7 @@ namespace qoala::iqoala {
         }
     }
 
-    void RequestSection::print(llvm::raw_ostream &os) const {
+    void RequestSection::print(raw_ostream &os) const {
         // Iteratively print all the routines:
         for (const QuantumRoutine &routine : this->routines) {
             os << routine << "\n";
@@ -44,6 +44,8 @@ namespace qoala::iqoala {
 
     void MetaSection::addRemote(const std::string &remoteName) {
         this->globalParams.push_back(remoteName);
+        // TODO - We assume that all declared remotes are connected using
+        //  both classical and epr sockets
         this->classicalSocketsMap.insert(std::pair{remoteName, 0});
         this->eprsSocketsMap.insert(std::pair{remoteName, 0});
     }
