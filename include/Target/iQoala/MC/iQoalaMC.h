@@ -163,27 +163,78 @@ namespace qoala::assembly {
 
     class NetQASMMCInstr : public iQoalaMCInstruction {
     public:
+        // This enum is based on the NetQASM specification
+        // from the Appendix F of the paper: https://doi.org/10.1088/2058-9565/ac753f
+        // Additionally, the instructions types declared in this enum have been cross-checked
+        // with the instructions that qoala-sim can execute.
         enum OpCode {
             OP_UNKNOWN = 0,
+            // Allocation - "qalloc" and "array" are not  supported in qoala.
+            // "qalloc" semantic is implicit in the routine header, whereas arrays
+            // are no longer supported in NetQASM 2.0
+            // Initialization
+            OP_INIT,
             OP_SET,
-            OP_ADD,
-            OP_SUBTRACT,
-            OP_MULTIPLY,
-            OP_QUOT,
-            OP_REM,
-            OP_JUMP,
+            // Memory Operations
+            OP_LOAD,
+            OP_STORE,
+            // OP_UNDEF, // unused
+            OP_LEA,
+            // Classical logic
+            OP_JMP,
+            OP_BEZ,
+            OP_BNZ,
             OP_BEQ,
             OP_BNE,
+            OP_BLT,
             OP_BGE,
-            OP_BLE,
-            OP_LOAD,
-            OP_STORE
+            // Classical operations
+            OP_ADD,
+            OP_SUB,
+            OP_ADDM,
+            OP_SUBM,
+            OP_MUL,
+            OP_DIV,
+            OP_REM,
+            // Quantum Gates
+            // Single Qubit Gates
+            OP_X,
+            OP_Y,
+            OP_Z,
+            OP_H,
+            OP_S,
+            OP_K,
+            OP_T,
+            // Single Qubit Rotations
+            OP_ROT_X,
+            OP_ROT_Y,
+            OP_ROT_Z,
+            // Two Qubit Gates
+            OP_CNOT,
+            OP_CPHASE,
+            // Measure
+            OP_MEAS
+            // Pre-measurement instructions are not implemented in netqasm library
+            // and hence not handled by the qoala-sim
+            // "create_epr" and "recv_epr" are not part of the NetQASM 2.0 specification
+            // those instructions were replaced by "request routines"
+            // Waiting instructions are tied to the "arrays" structures, hence not supported
+            // in NetQASM 2.0
+            // "qfree <reg>" and "return <reg>" instructions semantic are implicitly embedded
+            // in the "uses:" and  "keeps:" sections of the header of the routine, hence
+            // they do noe need to be emitted by the compiler.
         };
 
         NetQASMMCInstr();
 
         void print(mlir::raw_ostream &os) const override;
     private:
+        void printOneRegInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printTwoRegInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printOneRegOneImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printOneRegTwoImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printTwoRegsOneImmInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
+        void printThreeFourRegsInstr(const std::string &mnemonic, mlir::raw_ostream &os, bool usesFourRegs) const;
         void printInstrInGenericForm(const std::string &mnemonic, mlir::raw_ostream &os) const;
         void printStoreOrLoad(mlir::raw_ostream &os) const;
     };
