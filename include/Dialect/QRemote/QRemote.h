@@ -19,8 +19,6 @@
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 
-using namespace mlir;
-
 #define GET_OP_CLASSES
 #include "Dialect/QRemote/QRemote.h.inc"
 

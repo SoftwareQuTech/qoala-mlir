@@ -25,6 +25,4 @@
 #define GET_OP_CLASSES
 #include "Dialect/QNet/QNet.h.inc"
 
-using namespace mlir;
-
 #endif // QNET_H

@@ -79,13 +79,13 @@ def FuncOp: QNet_Op<"func", [
         /// Returns the region on the current operation that is callable. This may
         /// return null in the case of an external callable object, e.g. an external
         /// function.
-        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+        mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
 
         /// Returns the argument types of this function.
-        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+        mlir::ArrayRef<mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
 
         /// Returns the result types of this function.
-        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+        mlir::ArrayRef<mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
 
         //===------------------------------------------------------------------===//
         // SymbolOpInterface Methods - Inherited form FunctionOpInterface

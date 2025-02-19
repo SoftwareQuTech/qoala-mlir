@@ -24,6 +24,4 @@
 #define GET_OP_CLASSES
 #include "Dialect/QMem/QMem.h.inc"
 
-using namespace mlir;
-
 #endif // QMEM_H

@@ -46,9 +46,9 @@ def FuncOp: QMem_Op<"func", [
     let regions = (region AnyRegion:$body);
 
     let builders = [OpBuilder<(ins
-        "::llvm::StringRef":$name, "::mlir::FunctionType":$type,
-        CArg<"::llvm::ArrayRef<::mlir::NamedAttribute>", "{}">:$attrs,
-        CArg<"::llvm::ArrayRef<::mlir::DictionaryAttr>", "{}">:$argAttrs)
+        "llvm::StringRef":$name, "mlir::FunctionType":$type,
+        CArg<"llvm::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs,
+        CArg<"llvm::ArrayRef<mlir::DictionaryAttr>", "{}">:$argAttrs)
     >];
     let extraClassDeclaration = [{
         //===------------------------------------------------------------------===//
@@ -58,13 +58,13 @@ def FuncOp: QMem_Op<"func", [
         /// Returns the region on the current operation that is callable. This may
         /// return null in the case of an external callable object, e.g. an external
         /// function.
-        ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
+        mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
 
         /// Returns the argument types of this function.
-        ::mlir::ArrayRef<::mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+        mlir::ArrayRef<mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
 
         /// Returns the result types of this function.
-        ::mlir::ArrayRef<::mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+        mlir::ArrayRef<mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
 
         //===------------------------------------------------------------------===//
         // SymbolOpInterface Methods - Inherited form FunctionOpInterface

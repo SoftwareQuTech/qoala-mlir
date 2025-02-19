@@ -1,5 +1,4 @@
 #include "Dialect/QRemote/QRemote.h"
-#include "Dialect/QRemote/QRemote.h"
 
 using namespace mlir;
 using namespace qoala::dialects::qremote;
