@@ -3,18 +3,18 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
-    raw_ostream &operator<<(raw_ostream &os, const BlockType &block) {
-        switch (block.type) {
-            case BlockType::BlockTypeTy::CC:
+    raw_ostream &operator<<(raw_ostream &os, Block::BlockType block) {
+        switch (block) {
+            case Block::CC:
                 os << "CC";
                 break;
-            case BlockType::BlockTypeTy::CL:
+            case Block::CL:
                 os << "CL";
                 break;
-            case BlockType::BlockTypeTy::QC:
+            case Block::QC:
                 os << "QC";
                 break;
-            case BlockType::BlockTypeTy::QL:
+            case Block::QL:
                 os << "QL";
                 break;
         }

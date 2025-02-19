@@ -4,12 +4,12 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
-    raw_ostream &operator<<(raw_ostream &os, const RequestCallback &requestCallback) {
-        switch (requestCallback.type) {
-            case RequestCallback::RequestCallbackType::SEQUENTIAL:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
+        switch (requestCallback) {
+            case RequestQuantumRoutine::SEQUENTIAL:
                  os << "sequential";
                 break;
-            case RequestCallback::RequestCallbackType::WAIT_ALL:
+            case RequestQuantumRoutine::WAIT_ALL:
                 os << "wait_all";
                 break;
         }
@@ -32,15 +32,15 @@ namespace qoala::iqoala {
         return os;
     }
 
-    raw_ostream &operator<<(raw_ostream &os, const RequestType &requestType) {
-        switch (requestType.type) {
-            case RequestType::RequestTypeTy::CREATE_KEEP:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestType requestType) {
+        switch (requestType) {
+            case RequestQuantumRoutine::CREATE_KEEP:
                 os << "create_keep";
                 break;
-            case RequestType::RequestTypeTy::MEASURE_DIRECTLY:
+            case RequestQuantumRoutine::MEASURE_DIRECTLY:
                 os << "measure_directly";
                 break;
-            case RequestType::RequestTypeTy::RSP:
+            case RequestQuantumRoutine::RSP:
                 os << "rsp";
                 break;
         }
@@ -48,12 +48,12 @@ namespace qoala::iqoala {
     }
 
 
-    raw_ostream &operator<<(raw_ostream &os, const RequestRole &requestRole) {
-        switch (requestRole.type) {
-            case RequestRole::RequestRoleType::CREATE:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestRole requestRole) {
+        switch (requestRole) {
+            case RequestQuantumRoutine::CREATE:
                 os << "create";
                 break;
-            case RequestRole::RequestRoleType::RECEIVE:
+            case RequestQuantumRoutine::RECEIVE:
                 os << "receive";
                 break;
         }

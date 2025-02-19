@@ -17,6 +17,8 @@ namespace qoala::iqoala {
 
     extern std::string tabStr;
 
+    /* Abstract class for a generic quantum routine. A concrete instance can be either
+     * a LocalQuantum Routine or a RequestQuantumRoutine */
     class QuantumRoutine : public assembly::iQoalaMC {
     public:
         // Enum used as discriminant for subtypes.
@@ -46,6 +48,8 @@ namespace qoala::iqoala {
         std::string name;
     };
 
+    /* A class representing a local quantum routine. These routines only host a list of
+     * instructions, and they do not have the concept of "blocks" */
     class LocalQuantumRoutine : public QuantumRoutine {
     public:
         LocalQuantumRoutine() : QuantumRoutine(QRK_Local) {}
@@ -62,23 +66,16 @@ namespace qoala::iqoala {
         }
         // TODO
     private:
+        // The list of physical qubits this routine uses
         std::vector<unsigned int> usesQubits;
+        // The list of physical qubits this routine keeps (and does not free automatically)
         std::vector<unsigned int> keepsQubits;
         // The names of the registries where to find the params
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
+        // The list of NetQASM MC instructions for this local quantum routine
         std::vector<assembly::NetQASMMCInstr> instructions;
-    };
-
-    struct RequestCallback {
-        enum RequestCallbackType { SEQUENTIAL, WAIT_ALL };
-        RequestCallback() : type(SEQUENTIAL) { }
-        RequestCallback(const RequestCallback &r) = default;
-        explicit RequestCallback(const RequestCallbackType type) : type(type) { }
-    private:
-        friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestCallback &requestCallback);
-        RequestCallbackType type;
     };
 
     struct VirtualIDs {
@@ -92,29 +89,14 @@ namespace qoala::iqoala {
         std::vector<unsigned int> args = {};
     };
 
-    struct RequestType {
-        enum RequestTypeTy { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
-        RequestType() : type(CREATE_KEEP) { }
-        RequestType(const RequestType &type) = default;
-        explicit RequestType(const RequestTypeTy type) : type(type) { }
-    private:
-        friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestType &virtualIDs);
-        RequestTypeTy type;
-    };
-
-    struct RequestRole {
-        enum RequestRoleType { CREATE, RECEIVE };
-        RequestRole() : type(CREATE) { }
-        RequestRole(const RequestRole &role) = default;
-        explicit RequestRole(const RequestRoleType type) : type(type) { }
-    private:
-        friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestRole &virtualIDs);
-        RequestRoleType type;
-    };
-
+    /* A class representing a single request quantum routine */
     class RequestQuantumRoutine : public QuantumRoutine {
     public:
-        RequestQuantumRoutine() : QuantumRoutine(QRK_Quantum) { }
+        enum RequestCallback { SEQUENTIAL, WAIT_ALL };
+        enum RequestType { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
+        enum RequestRole { CREATE, RECEIVE };
+
+        RequestQuantumRoutine() : QuantumRoutine(QRK_Quantum), requestCallback(SEQUENTIAL), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
         QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
         callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
@@ -126,39 +108,48 @@ namespace qoala::iqoala {
         static bool classof(const QuantumRoutine *rt) {
             return rt->getKind() == QRK_Quantum;
         }
-        // TODO
+        // TODO - More methonds might come
     private:
+        // The list of returns
         std::vector<std::string> returns;
+        // The request callback type
         RequestCallback requestCallback;
+        // The local quantum routine to invoke as callback
         LocalQuantumRoutine callback;
+        // The name of the remote
         std::string remoteID;
+        // The id of the EPR socket to use
         unsigned int eprSocketID = 0;
+        // The number of the pairs provided by this request routine
         unsigned int numPairs = 0;
+        // The method to handle virtual IDs for the entangled qubits
         VirtualIDs virtualIDs;
+        // The minimum fidelity value for the communication
         float fidelity = 1.0;
+        // The request type
         RequestType type;
+        // The Request role for this client
         RequestRole requestRole;
+        // The set of NetQASM instructions for this request routine
+        // This list SHOULD be unused! (i.e. always empty)
         std::vector<assembly::NetQASMMCInstr> instructions;
     };
 
-    struct BlockType {
-        enum BlockTypeTy { CL, CC, QL, QC };
-        BlockType() : type(CL) { }
-        BlockType(const BlockType &blockType) = default;
-    private:
-        BlockTypeTy type;
-        friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const BlockType &blockType);
-    };
 
+    /* A class representing a block in the "qoalahost" section */
     class Block : public assembly::iQoalaMC {
     public:
+        enum BlockType { CL, CC, QL, QC };
         Block() = default;
         Block(const Block &b) = default;
 
         void print(mlir::raw_ostream &os) const override;
     private:
+        // type of the Block (CL, CC, QL, QC)
         BlockType type;
+        // Name of the block
         std::string name;
+        // List of QoalaHostMCInstr that compose the block
         std::vector<assembly::QoalaHostMCInstr> instructions;
     };
 
@@ -172,9 +163,12 @@ namespace qoala::iqoala {
         void addRemote(const std::string &remoteName);
         void setName(const std::string &programName);
     private:
+        // Name of the iQoala program
         std::string name;
-        // Can be i32 or f32m but for some reason, these are just "strings" in the examples from qoala-sim
+        // Global params of the whole iQoala program
+        // Can be i32 or f32, but for some reason, these are just "strings" in the examples from qoala-sim
         std::vector<std::string> globalParams;
+        // Maps for classical ane epr sockets Remote_name (str) -> socket_id (int)
         std::map<std::string, unsigned int> classicalSocketsMap;
         std::map<std::string, unsigned int> eprsSocketsMap;
     };
@@ -186,6 +180,8 @@ namespace qoala::iqoala {
 
         void print(mlir::raw_ostream &os) const override;
     private:
+        // The host section only contains a list of "Blocks".
+        // Each block contains the QoalaHost instructions to execute.
         std::vector<Block> hostBlocks;
     };
 
@@ -198,6 +194,7 @@ namespace qoala::iqoala {
         void print(mlir::raw_ostream &os) const override;
         void addRoutine(const LocalQuantumRoutine &routine);
     private:
+        // The NetQASM section simply contains a list of LocalQuantumRoutines
         std::vector<LocalQuantumRoutine> routines;
     };
 
@@ -210,13 +207,14 @@ namespace qoala::iqoala {
         void print(mlir::raw_ostream &os) const override;
         void addRoutine(const RequestQuantumRoutine &routine);
     private:
+        // The request section simply contains a list of RequestQuantumRoutines
         std::vector<RequestQuantumRoutine> routines;
     };
     // Extra declarations for "<<" operator
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestCallback &requestCallback);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const RequestType &virtualIDs);
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const BlockType &block);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestType virtualIDs);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, Block::BlockType block);
 } // namespace qoala::iqoala
 
 #endif //QOALA_MLIR_IQOALA_H
