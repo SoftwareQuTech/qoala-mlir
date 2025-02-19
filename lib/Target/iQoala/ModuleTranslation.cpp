@@ -6,6 +6,7 @@
 
 using namespace mlir;
 using namespace qoala;
+using namespace qoala::translate;
 using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
 

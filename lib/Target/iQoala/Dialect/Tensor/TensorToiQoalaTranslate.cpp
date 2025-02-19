@@ -7,6 +7,7 @@
 
 #define DEBUG_TYPE "tensor-translation"
 
+using namespace mlir;
 using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {

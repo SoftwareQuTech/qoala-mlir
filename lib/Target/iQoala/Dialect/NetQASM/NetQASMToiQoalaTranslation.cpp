@@ -9,10 +9,11 @@
 
 #define DEBUG_TYPE "netqasm-translation"
 
-using namespace qoala::dialects::netqasm;
+using namespace mlir;
 using namespace qoala::iqoala;
+using namespace qoala::dialects::netqasm;
 
-static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, ModuleTranslation &moduleTranslation) {
+static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, qoala::translate::ModuleTranslation &moduleTranslation) {
     for (Operation &operation : op.getBody().getOps()) {
         if (failed(moduleTranslation.convertOperation(operation))) {
             return operation.emitOpError("cannot convert the operation '") << operation << "'\n";
@@ -28,7 +29,7 @@ static LogicalResult convertiQoalaRuntimeFunctionDeclaration(LocalRoutineOp &op)
     return success();
 }
 
-static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTranslation &moduleTranslation) {
+static LogicalResult translateNetQASMOperation(Operation *operation, qoala::translate::ModuleTranslation &moduleTranslation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     // Use this example for applying different behavior depending on the type of the operation under analysis

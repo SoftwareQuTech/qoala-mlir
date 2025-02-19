@@ -2,9 +2,7 @@
 #define QOALA_MLIR_IQOALA_H
 
 #include "Target/iQoala/MC/iQoalaMC.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
 #include <utility>
 #include <vector>
 #include <map>

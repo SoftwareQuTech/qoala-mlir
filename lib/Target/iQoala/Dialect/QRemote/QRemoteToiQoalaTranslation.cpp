@@ -9,15 +9,16 @@
 
 #define DEBUG_TYPE "qremote-translation"
 
-using namespace qoala::dialects::qremote;
+using namespace mlir;
 using namespace qoala::iqoala;
+using namespace qoala::dialects::qremote;
 
-static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, ModuleTranslation &moduleTranslation) {
+static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, qoala::translate::ModuleTranslation &moduleTranslation) {
     moduleTranslation.addRemoteDeclaration(remoteOp.getSymNameAttr());
     return success();
 }
 
-static LogicalResult translateQRemoteOperation(Operation *operation, ModuleTranslation &moduleTranslation) {
+static LogicalResult translateQRemoteOperation(Operation *operation, qoala::translate::ModuleTranslation &moduleTranslation) {
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](RemoteOp op)-> LogicalResult {
                 return translateRemoteDeclaration(op, moduleTranslation);

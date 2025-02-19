@@ -3,7 +3,6 @@
 
 #include "Target/iQoala/iQoalaContext.h"
 #include "Target/iQoala/iQoala.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace qoala::iqoala {
     class iQoalaModule : public helpers::PrintInterface{

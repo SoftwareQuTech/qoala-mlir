@@ -8,6 +8,7 @@
 
 #define DEBUG_TYPE "builtin-translation"
 
+using namespace mlir;
 using namespace qoala::iqoala;
 
 static LogicalResult translateBuiltinOperation(Operation *operation) {
