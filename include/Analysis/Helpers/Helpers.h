@@ -235,6 +235,7 @@ namespace qoala::translate {
      */
     template<typename DialectTy, typename TranslationTy>
     void registeriQoalaTranslation(mlir::DialectRegistry &registry) {
+        registry.insert<DialectTy>();
         registry.addExtension(+[](mlir::MLIRContext *ctx, DialectTy *dialect) {
             dialect->template addInterfaces<TranslationTy>();
         });
