@@ -17,7 +17,7 @@ namespace qoala::translate {
                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
 	mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
-        iqoala::QoalaTranslationInterfaces iface;
+        QoalaTranslationInterfaces iface;
         // TODO - Define the public functions that we need to place in this class
     public:
 	mlir::LogicalResult convertOperation(mlir::Operation &op);

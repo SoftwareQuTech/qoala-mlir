@@ -11,9 +11,8 @@
 
 using namespace mlir;
 using namespace qoala::dialects::qoalahost;
-using namespace qoala::iqoala;
 
-static LogicalResult translateBlock(mlir::Block &block, qoala::translate::ModuleTranslation &moduleTranslation) {
+static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation &moduleTranslation) {
     for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation.convertOperation(op))) {
             return op.emitOpError("cannot covert operation '") << op << "'\n";
@@ -64,20 +63,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::tr
 }
 
 namespace qoala::translate {
-    class QoalaHostToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateQoalaHostOperation(op, moduleTranslation);
-        }
-
-    };
-
-    void registerQoalaHostToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<QoalaHostDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, QoalaHostDialect *dialect) {
-            dialect->addInterfaces<QoalaHostToiQoalaTranslationInterface>();
-        });
+    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateQoalaHostOperation(op, moduleTranslation);
     }
 }

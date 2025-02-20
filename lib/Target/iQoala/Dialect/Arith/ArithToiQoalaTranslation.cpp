@@ -8,7 +8,6 @@
 #define DEBUG_TYPE "arith-translation"
 
 using namespace mlir;
-using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {
     // TODO - Implement this dispatcher
@@ -17,19 +16,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation) {
 }
 
 namespace qoala::translate {
-    class ArithToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateNetQASMOperation(op);
-        }
-
-    };
-
-    void registerArithToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<arith::ArithDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, arith::ArithDialect *dialect) {
-            dialect->addInterfaces<ArithToiQoalaTranslationInterface>();
-        });
+    LogicalResult ArithToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateNetQASMOperation(op);
     }
 }

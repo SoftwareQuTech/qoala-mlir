@@ -5,12 +5,9 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 
-#include "Dialect/NetQASM/NetQASM.h"
-
 #define DEBUG_TYPE "netqasm-translation"
 
 using namespace mlir;
-using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
 
 static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, qoala::translate::ModuleTranslation &moduleTranslation) {
@@ -92,19 +89,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, qoala::tran
 }
 
 namespace qoala::translate {
-    class NetQASMToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateNetQASMOperation(op, moduleTranslation);
-        }
-
-    };
-
-    void registerNetQASMToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<NetQASMDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, NetQASMDialect *dialect) {
-            dialect->addInterfaces<NetQASMToiQoalaTranslationInterface>();
-        });
+    LogicalResult NetQASMToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateNetQASMOperation(op, moduleTranslation);
     }
 }

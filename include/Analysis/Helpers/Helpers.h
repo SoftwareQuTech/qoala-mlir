@@ -10,7 +10,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::helpers {
-
     // This templated function is inspired by the implementation of llvm::isa<>()
     /**
      * Determines if the given operations belongs to the template types dialect.
@@ -185,8 +184,9 @@ namespace qoala::helpers {
      * the given map, separated by a comma. Each entry is printed in the "{first} -> {second}" format.
      * To this end, the parametric types of the map members *must* implement the "<<" operator for the given type.
      * This must happen both for the Key and Value types.
-     * @tparam PrintableTy
-     * @param vector An std::map instance of `PrintableTy` type.
+     * @tparam KeyPrintableTy Type of the keys; this type needs to implement the PrintInterface interface
+     * @tparam ValPrintableTy Type of the values; this type needs to implement the PrintInterface interface
+     * @param socketsMap An std::map instance of `PrintableTy` type.
      * @return A string with all the members printed, separated with commas.
      */
     template<typename KeyPrintableTy, typename ValPrintableTy>
@@ -226,5 +226,18 @@ namespace qoala::helpers {
     }
 }
 
-
+namespace qoala::translate {
+    /**
+     * Helper template used to create methods for registering dialect translations.
+     * @tparam DialectTy Dialect class to translate
+     * @tparam TranslationTy Class implementing the translation
+     * @param registry The DialectRegistry instance to register the new translation class
+     */
+    template<typename DialectTy, typename TranslationTy>
+    void registeriQoalaTranslation(mlir::DialectRegistry &registry) {
+        registry.addExtension(+[](mlir::MLIRContext *ctx, DialectTy *dialect) {
+            dialect->template addInterfaces<TranslationTy>();
+        });
+    }
+}
 #endif //QOALA_ANALYSIS_MLIR_HELPERS_H

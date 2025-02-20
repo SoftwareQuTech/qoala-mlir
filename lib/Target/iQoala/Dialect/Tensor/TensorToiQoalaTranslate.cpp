@@ -8,7 +8,6 @@
 #define DEBUG_TYPE "tensor-translation"
 
 using namespace mlir;
-using namespace qoala::iqoala;
 
 static LogicalResult translateNetQASMOperation(Operation *operation) {
     // TODO - Implement this dispatcher
@@ -17,19 +16,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation) {
 }
 
 namespace qoala::translate {
-    class TensorToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateNetQASMOperation(op);
-        }
-
-    };
-
-    void registerTensorToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<tensor::TensorDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, tensor::TensorDialect *dialect) {
-            dialect->addInterfaces<TensorToiQoalaTranslationInterface>();
-        });
+    LogicalResult TensorToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateNetQASMOperation(op);
     }
 }

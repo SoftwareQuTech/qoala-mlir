@@ -4,12 +4,13 @@
 #include "mlir/IR/DialectInterface.h"
 #include "mlir/Support/LogicalResult.h"
 
-// Forward declaration to avoid circular includes
 namespace qoala::translate {
+    // Forward declaration to avoid circular includes
     class ModuleTranslation;
-}
 
-namespace qoala::iqoala {
+    /**
+     * Main interface for translation classes. These classes need to be registered using the
+     */
     class QoalaTranslationDialectInterface
             : public mlir::DialectInterface::Base<QoalaTranslationDialectInterface> {
     public:
@@ -18,27 +19,27 @@ namespace qoala::iqoala {
         /// Hook for derived dialect interface to provide translation of the
         /// operations to iQoala
         virtual mlir::LogicalResult convertOperation(
-                mlir::Operation *op, translate::ModuleTranslation &moduleTranslation) const {
+                mlir::Operation *op, ModuleTranslation &moduleTranslation) const {
             // TODO - Check what else we need to pass as arguments...
             //  * An "IR builder"? (factory to create objects that can easily be mapped to iQoala)
             //  * A map between the original op and the iQoalaMC object?
             return mlir::failure();
         }
+
+        static void registerInto(mlir::DialectRegistry &r) {
+            // Nothing to do; implementor should re-define this function
+        }
     };
 
+    /**
+     * Class modelling a collection of translation interfaces. This class gets automatically
+     * populated when registering the translations.
+     */
     class QoalaTranslationInterfaces
             : public mlir::DialectInterfaceCollection<QoalaTranslationDialectInterface> {
     public:
         using Base::Base;
-        explicit QoalaTranslationInterfaces(mlir::MLIRContext *ctx) : DialectInterfaceCollection(ctx) {}
-
-        /// Translates the given operation to iQoala using the interface implemented
-        /// by the op's dialect.
-        virtual mlir::LogicalResult convertOperation(mlir::Operation *op, translate::ModuleTranslation &moduleTranslation) const {
-            if (const QoalaTranslationDialectInterface *iface = getInterfaceFor(op))
-                return iface->convertOperation(op, moduleTranslation);
-            return mlir::failure();
-        }
+        explicit QoalaTranslationInterfaces(mlir::MLIRContext *ctx) : DialectInterfaceCollection(ctx) { }
     };
 } // namespace qoala::iqoala
 

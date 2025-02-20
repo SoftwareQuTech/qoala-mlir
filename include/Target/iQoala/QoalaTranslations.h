@@ -13,17 +13,16 @@
 namespace qoala::translate {
     inline void registerAllQoalaTranslations(mlir::DialectRegistry &registry) {
         // Simply insert the qoala dialects and the translation interfaces for exporting Qoala LIR
-        registerQRemoteToiQoalaTranslations(registry);
-        registerNetQASMToiQoalaTranslations(registry);
-        registerQoalaHostToiQoalaTranslations(registry);
+        QRemoteToiQoalaTranslation::registerInto(registry);
+        NetQASMToiQoalaTranslation::registerInto(registry);
+        QoalaHostToiQoalaTranslation::registerInto(registry);
     }
 
     inline void registerAllQoalaSupportTranslations(mlir::DialectRegistry &registry) {
         // We insert the translation of other "helper" dialects
-        // TODO - Add translation registrations here
-        registerArithToiQoalaTranslations(registry);
-        registerBuiltinToiQoalaTranslations(registry);
-        registerTensorToiQoalaTranslations(registry);
+        ArithToiQoalaTranslation::registerInto(registry);
+        BuiltinToiQoalaTranslation::registerInto(registry);
+        TensorToiQoalaTranslation::registerInto(registry);
     }
 }
 

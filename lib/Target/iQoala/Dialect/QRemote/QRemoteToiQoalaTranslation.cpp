@@ -10,7 +10,6 @@
 #define DEBUG_TYPE "qremote-translation"
 
 using namespace mlir;
-using namespace qoala::iqoala;
 using namespace qoala::dialects::qremote;
 
 static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, qoala::translate::ModuleTranslation &moduleTranslation) {
@@ -29,19 +28,7 @@ static LogicalResult translateQRemoteOperation(Operation *operation, qoala::tran
 }
 
 namespace qoala::translate {
-    class QRemoteToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateQRemoteOperation(op, moduleTranslation);
-        }
-
-    };
-
-    void registerQRemoteToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<QRemoteDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, QRemoteDialect *dialect) {
-            dialect->addInterfaces<QRemoteToiQoalaTranslationInterface>();
-        });
+    LogicalResult QRemoteToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateQRemoteOperation(op, moduleTranslation);
     }
 }
