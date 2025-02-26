@@ -52,7 +52,7 @@ namespace qoala::helpers {
          *         values to replace in the users of the old operation.
          */
         virtual std::unique_ptr<OpAndValues>
-                createNewOpAndValues(SourceOp op, SourceOp::Adaptor adaptor,
+                createNewOpAndValues(SourceOp op, typename SourceOp::Adaptor adaptor,
                                      ConversionPatternRewriter &rewriter) const = 0;
 
         LogicalResult
@@ -73,6 +73,7 @@ namespace qoala::helpers {
 
         bool moduleContainsAngleConversionDeclaration(ModuleOp &module);
         Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module);
+        std::vector<uint32_t> transformDouble(double angleRads);
     } // namespace qoala::helpers::angle
 
     namespace print {
