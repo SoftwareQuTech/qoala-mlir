@@ -16,6 +16,9 @@ namespace qoala::assembly {
 
     class iQoalaMC : public helpers::PrintInterface{ };
 
+    // Forward declaration for using it inside the iQoalaMCOperand class
+    class iQoalaMCInstruction;
+
     class iQoalaMCExpr : public iQoalaMC {
         enum ExprKind {
             INVALID,
@@ -83,15 +86,6 @@ namespace qoala::assembly {
             EXPRESSION
         };
 
-        OperandKind kind;
-        union {
-            uint32_t integerVal;
-            float floatingPointVal;
-            iQoalaRegReference *regRef;
-            iQoalaMCExpr *expression;
-            uint32_t localRegNum;
-        };
-
         iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
         ~iQoalaMCOperand() override { };
         [[nodiscard]]
@@ -104,8 +98,20 @@ namespace qoala::assembly {
         bool isLocalRegister() const;
         [[nodiscard]]
         bool isExpression() const;
+
+    private:
+        iQoalaMCInstruction *inst;
+        OperandKind kind;
+        union {
+            uint32_t integerVal;
+            float floatingPointVal;
+            iQoalaRegReference *regRef;
+            iQoalaMCExpr *expression;
+            uint32_t localRegNum;
+        };
     public:
         void print(mlir::raw_ostream &os) const override;
+        void setInst(iQoalaMCInstruction *inst);
 
         static iQoalaMCOperand createImmediate(const uint32_t val) {
             iQoalaMCOperand operand;
@@ -154,7 +160,9 @@ namespace qoala::assembly {
         [[nodiscard]]
         unsigned int getNumOperands() const;
 
-        void addOperand(const iQoalaMCOperand &op);
+        void addOperand(iQoalaMCOperand &op);
+        [[nodiscard]]
+        mlir::Operation *getOriginalOp() const;
     protected:
         mlir::Operation *originalOp;
         unsigned int opCode;

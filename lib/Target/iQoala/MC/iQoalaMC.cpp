@@ -1,11 +1,14 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/Diagnostics.h"
 
 namespace qoala::assembly {
     /* General functions for the ASM classes */
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
     bool iQoalaMCExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+
+    void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
@@ -15,12 +18,17 @@ namespace qoala::assembly {
 
     void iQoalaMCInstruction::setOpcode(unsigned int newOpCode) { this->opCode = newOpCode; }
     unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
+    mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
+
 
     const iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
     iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) { return operands[i]; }
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
-    void iQoalaMCInstruction::addOperand(const iQoalaMCOperand &op) { operands.push_back(op); }
+    void iQoalaMCInstruction::addOperand(iQoalaMCOperand &op) {
+        op.setInst(this);
+        operands.push_back(op);
+    }
 
     void iQoalaMCExpr::print(mlir::raw_ostream &os) const {
         switch(this->kind) {
@@ -33,6 +41,7 @@ namespace qoala::assembly {
                 os << this->i32ConstVal;
                 break;
             case CONSTANT_F32:
+                mlir::emitError(mlir::UnknownLoc()) << "Floats are not supported yet.";
                 os << this->f32ConstVal;
                 break;
         }
@@ -65,6 +74,7 @@ namespace qoala::assembly {
                 os << this->integerVal;
                 break;
             case IMMEDIATE_F32:
+                this->inst->getOriginalOp()->emitError("Float immediate is not supported yet!");
                 os << this->floatingPointVal;
                 break;
             case REGISTER:

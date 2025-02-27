@@ -9,7 +9,7 @@
 
 using namespace mlir;
 
-static LogicalResult translateNetQASMOperation(Operation *operation) {
+static LogicalResult translateArithOperation(Operation *operation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
@@ -17,6 +17,6 @@ static LogicalResult translateNetQASMOperation(Operation *operation) {
 
 namespace qoala::translate {
     LogicalResult ArithToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
-        return translateNetQASMOperation(op);
+        return translateArithOperation(op);
     }
 }
