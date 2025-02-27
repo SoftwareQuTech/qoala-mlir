@@ -1,6 +1,10 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Conversion/Helpers/Helpers.h"
 
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "angletransformhelper"
+
 
 namespace qoala::helpers::angle {
 
@@ -75,41 +79,42 @@ namespace qoala::helpers::angle {
         uint32_t e = 0, bestN = 0, bestE = 0;
         double bestThreshold = 0.0;
 
-        if (angleRads == angleCalculator(n, e)) {
-            return {bestN, bestE};
-        }
-
-        while (angleRads <= angleCalculator(n, e)) {
-            n--;
-        }
-        // In this point we know that angleCalculator(n, 0) < angleRads < angleCalculator(n+1, 0)
-        // Starting point of thew approximation; these are our best results so far:
-        n = n + 1;
-        bestN = n;
-        bestE = e;
-        bestThreshold = std::abs(angleCalculator(bestN, bestE) - angleRads);
-
-        // We discretely follow the log curve, trying to find a point that satisfies the given tolerance
-        for (uint32_t i = 0; i < 2 * MAX_SEARCH_ITERATIONS || bestThreshold == 0.0; i++) {
-            double currentAngle = angleCalculator(n, e);
-
-            if (currentAngle == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
-                // Jackpot! We found a perfect match
-                break;
+        if (angleRads != angleCalculator(n, e)) {
+            // The given angle is not 0.0
+            while (angleRads <= angleCalculator(n, e)) {
+                n--;
             }
+            // In this point we know that angleCalculator(n, 0) < angleRads < angleCalculator(n+1, 0)
+            // Starting point of thew approximation; these are our best results so far:
+            n = n + 1;
+            bestN = n;
+            bestE = e;
+            bestThreshold = std::abs(angleCalculator(bestN, bestE) - angleRads);
 
-            while (angleRads <= currentAngle) {
-                // On even iterations, we move over e, on odd iterations we move over n
-                i % 2 == 0 ? e++ : n++;
-                currentAngle = angleCalculator(n, e);
-                double distance = std::abs(currentAngle - angleRads);
-                if (distance < bestThreshold) {
-                    bestThreshold = distance;
-                    bestN = n;
-                    bestE = e;
+            // We discretely follow the log curve, trying to find a point that satisfies the given tolerance
+            for (uint32_t i = 0; i < 2 * MAX_SEARCH_ITERATIONS || bestThreshold == 0.0; i++) {
+                LLVM_DEBUG(llvm::dbgs() << "Status: (" << bestN << ", " << bestE << ", " << bestThreshold<< ")\n");
+                double currentAngle = angleCalculator(n, e);
+
+                if (currentAngle == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
+                    // Jackpot! We found a perfect match
+                    break;
+                }
+
+                while (angleRads <= currentAngle) {
+                    // On even iterations, we move over e, on odd iterations we move over n
+                    i % 2 == 0 ? e++ : n++;
+                    currentAngle = angleCalculator(n, e);
+                    double distance = std::abs(currentAngle - angleRads);
+                    if (distance < bestThreshold) {
+                        bestThreshold = distance;
+                        bestN = n;
+                        bestE = e;
+                    }
                 }
             }
         }
+        LLVM_DEBUG(llvm::dbgs() << "Returning: (" << bestN << ", " << bestE << ")\n");
         return {bestN, bestE};
     }
 }
