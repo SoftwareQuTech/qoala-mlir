@@ -78,7 +78,9 @@ Build llvm according to the configuration (should produce the compiled files in 
 cmake --build .
 ```
 
-Install (should install all the binaries in `/usr/local/lib`, `/usr/local/include` and `/usr/local/bin`):
+Install (should install all the binaries in `lib`, `include` and `bin` folders under the folder given with the
+`CMAKE_INSTALL_PREFIX` options. Please note that this base install folder _cannot be changed_ without needing to
+recompile the whole llvm project):
 ```shell
 sudo cmake --build . --target install
 ```

@@ -1,13 +1,15 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
 
+using namespace mlir;
+
 namespace qoala::iqoala {
-    raw_ostream &operator<<(raw_ostream &os, const RequestCallback &requestCallback) {
-        switch (requestCallback.type) {
-            case RequestCallback::RequestCallbackType::SEQUENTIAL:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
+        switch (requestCallback) {
+            case RequestQuantumRoutine::SEQUENTIAL:
                  os << "sequential";
                 break;
-            case RequestCallback::RequestCallbackType::WAIT_ALL:
+            case RequestQuantumRoutine::WAIT_ALL:
                 os << "wait_all";
                 break;
         }
@@ -24,21 +26,21 @@ namespace qoala::iqoala {
                 os << "increment " << virtualIDs.args[0];
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
-                os << "custom " << qoala::helpers::formatVector(virtualIDs.args);
+                os << "custom " << helpers::formatVector(virtualIDs.args);
                 break;
         }
         return os;
     }
 
-    raw_ostream &operator<<(raw_ostream &os, const RequestType &requestType) {
-        switch (requestType.type) {
-            case RequestType::RequestTypeTy::CREATE_KEEP:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestType requestType) {
+        switch (requestType) {
+            case RequestQuantumRoutine::CREATE_KEEP:
                 os << "create_keep";
                 break;
-            case RequestType::RequestTypeTy::MEASURE_DIRECTLY:
+            case RequestQuantumRoutine::MEASURE_DIRECTLY:
                 os << "measure_directly";
                 break;
-            case RequestType::RequestTypeTy::RSP:
+            case RequestQuantumRoutine::RSP:
                 os << "rsp";
                 break;
         }
@@ -46,12 +48,12 @@ namespace qoala::iqoala {
     }
 
 
-    raw_ostream &operator<<(raw_ostream &os, const RequestRole &requestRole) {
-        switch (requestRole.type) {
-            case RequestRole::RequestRoleType::CREATE:
+    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestRole requestRole) {
+        switch (requestRole) {
+            case RequestQuantumRoutine::CREATE:
                 os << "create";
                 break;
-            case RequestRole::RequestRoleType::RECEIVE:
+            case RequestQuantumRoutine::RECEIVE:
                 os << "receive";
                 break;
         }
@@ -60,13 +62,13 @@ namespace qoala::iqoala {
 
     void LocalQuantumRoutine::print(raw_ostream &os) const {
         os << "SUBROUTINE " << this->name << "\n";
-        os << "params:" << qoala::helpers::formatVector(this->params) << "\n";
-        os << "returns:" << qoala::helpers::formatVector(this->returns) << "\n";
-        os << "uses:" << qoala::helpers::formatVector(this->usesQubits) << "\n";
-        os << "keeps:" << qoala::helpers::formatVector(this->keepsQubits) << "\n";
+        os << "params:" << helpers::formatVector(this->params) << "\n";
+        os << "returns:" << helpers::formatVector(this->returns) << "\n";
+        os << "uses:" << helpers::formatVector(this->usesQubits) << "\n";
+        os << "keeps:" << helpers::formatVector(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
-        for (const NetQASMInstruction &instruction : this->instructions) {
+        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
         os << "NETQASM_END\n";
@@ -76,7 +78,7 @@ namespace qoala::iqoala {
         os << "REQUEST " << this->name << "\n";
         os << "callback_type: " << this->requestCallback << "\n";
         os << "callback: " << this->callback.getName() << "\n";
-        os << "return_vars: " << qoala::helpers::formatVector(this->returns) << "\n";
+        os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
         os << "num_pairs: " << this->numPairs << "\n";
@@ -87,7 +89,7 @@ namespace qoala::iqoala {
         os << "role: " << this->requestRole << "\n";
 
         os << "NETQASM_START\n";
-        for (const NetQASMInstruction &instruction : this->instructions) {
+        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
             os << tabStr << instruction << "\n";
         }
         os << "NETQASM_END\n";

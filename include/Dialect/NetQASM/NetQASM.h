@@ -18,8 +18,6 @@
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
-using namespace mlir;
-
 // Remotes will be lowered to declarations in the qremote dialect
 #include "Dialect/QRemote/QRemote.h"
 

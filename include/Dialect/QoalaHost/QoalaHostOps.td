@@ -91,42 +91,42 @@ def CallOp : QoalaHost_Op<"call",
     let results = (outs Variadic<AnyType>);
 
     let builders = [
-        OpBuilder<(ins "netqasm::LocalRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+        OpBuilder<(ins "netqasm::LocalRoutineOp":$callee, CArg<"mlir::ValueRange", "{}">:$operands), [{
             $_state.addOperands(operands);
-            $_state.addAttribute("callee", SymbolRefAttr::get(callee));
+            $_state.addAttribute("callee", mlir::SymbolRefAttr::get(callee));
             $_state.addTypes(callee.getFunctionType().getResults());
         }]>,
-        OpBuilder<(ins "netqasm::RequestRoutineOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+        OpBuilder<(ins "netqasm::RequestRoutineOp":$callee, CArg<"mlir::ValueRange", "{}">:$operands), [{
             $_state.addOperands(operands);
-            $_state.addAttribute("callee", SymbolRefAttr::get(callee));
+            $_state.addAttribute("callee", mlir::SymbolRefAttr::get(callee));
             $_state.addTypes(callee.getFunctionType().getResults());
         }]>,
-        OpBuilder<(ins "SymbolRefAttr":$callee, "TypeRange":$results,
-            CArg<"ValueRange", "{}">:$operands), [{
+        OpBuilder<(ins "mlir::SymbolRefAttr":$callee, "mlir::TypeRange":$results,
+            CArg<"mlir::ValueRange", "{}">:$operands), [{
                 $_state.addOperands(operands);
                 $_state.addAttribute("callee", callee);
                 $_state.addTypes(results);
         }]>,
-        OpBuilder<(ins "StringAttr":$callee, "TypeRange":$results,
-            CArg<"ValueRange", "{}">:$operands), [{
-                build($_builder, $_state, SymbolRefAttr::get(callee), results, operands);
+        OpBuilder<(ins "mlir::StringAttr":$callee, "mlir::TypeRange":$results,
+            CArg<"mlir::ValueRange", "{}">:$operands), [{
+                build($_builder, $_state, mlir::SymbolRefAttr::get(callee), results, operands);
         }]>,
-        OpBuilder<(ins "StringRef":$callee, "TypeRange":$results,
-            CArg<"ValueRange", "{}">:$operands), [{
-                build($_builder, $_state, StringAttr::get($_builder.getContext(), callee),
+        OpBuilder<(ins "::llvm::StringRef":$callee, "mlir::TypeRange":$results,
+            CArg<"mlir::ValueRange", "{}">:$operands), [{
+                build($_builder, $_state, mlir::StringAttr::get($_builder.getContext(), callee),
                 results, operands);
         }]
     >];
 
     let extraClassDeclaration = [{
-        FunctionType getCalleeType();
+        mlir::FunctionType getCalleeType();
 
         /// Get the argument operands to the called function.
         operand_range getArgOperands() {
             return {arg_operand_begin(), arg_operand_end()};
         }
 
-        MutableOperandRange getArgOperandsMutable() {
+        mlir::MutableOperandRange getArgOperandsMutable() {
             return getOperandsMutable();
         }
 
@@ -134,13 +134,13 @@ def CallOp : QoalaHost_Op<"call",
         operand_iterator arg_operand_end() { return operand_end(); }
 
         /// Return the callee of this operation.
-        CallInterfaceCallable getCallableForCallee() {
-            return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+        mlir::CallInterfaceCallable getCallableForCallee() {
+            return (*this)->getAttrOfType<mlir::SymbolRefAttr>("callee");
         }
 
         /// Set the callee for this operation.
-        void setCalleeFromCallable(CallInterfaceCallable callee) {
-            (*this)->setAttr("callee", callee.get<SymbolRefAttr>());
+        void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
+            (*this)->setAttr("callee", callee.get<mlir::SymbolRefAttr>());
         }
     }];
 

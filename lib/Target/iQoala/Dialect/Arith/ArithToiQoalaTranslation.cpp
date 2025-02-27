@@ -7,28 +7,16 @@
 
 #define DEBUG_TYPE "arith-translation"
 
-using namespace qoala::iqoala;
+using namespace mlir;
 
-static LogicalResult translateNetQASMOperation(Operation *operation) {
+static LogicalResult translateArithOperation(Operation *operation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return success();
 }
 
 namespace qoala::translate {
-    class ArithToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateNetQASMOperation(op);
-        }
-
-    };
-
-    void registerArithToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<arith::ArithDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, arith::ArithDialect *dialect) {
-            dialect->addInterfaces<ArithToiQoalaTranslationInterface>();
-        });
+    LogicalResult ArithToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateArithOperation(op);
     }
 }

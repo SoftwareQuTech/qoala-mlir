@@ -1,27 +1,38 @@
+#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/Operation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
-#include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/Debug.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "qoalahost-translation"
 
+using namespace mlir;
 using namespace qoala::dialects::qoalahost;
-using namespace qoala::iqoala;
 
-static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation &moduleTranslation) {
-    for (Operation &op : mainFuncOP.getFunctionBody().getOps()) {
+static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation &moduleTranslation) {
+    for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation.convertOperation(op))) {
-            return op.emitOpError("cannot convert the operation '") << op << "'\n";
+            return op.emitOpError("cannot covert operation '") << op << "'\n";
         }
     }
     return success();
 }
 
-static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation &moduleTranslation) {
+static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::translate::ModuleTranslation &moduleTranslation) {
+    moduleTranslation.setModuleName(mainFuncOP.getName());
+    for (mlir::Block &block: mainFuncOP.getBlocks()) {
+        if (failed(translateBlock(block, moduleTranslation))) {
+            return mainFuncOP->emitOpError("cannot convert a block inside function '")
+                    << mainFuncOP.getSymName() << "'\n";
+        }
+    }
+    return success();
+}
+
+static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::translate::ModuleTranslation &moduleTranslation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
@@ -38,13 +49,15 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             .Case([](SendFloatsOp op) -> LogicalResult {
-                return success();
+                // TODO - Sending floats is not supported yet
+                return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](RecvIntsOp op) -> LogicalResult {
                 return success();
             })
             .Case([](RecvFloatsOp op) -> LogicalResult {
-                return success();
+                // TODO - Receiving floats is not supported yet
+                return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QoalaHost operation to iQoala: '") << *op << "'\n";
@@ -52,20 +65,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 }
 
 namespace qoala::translate {
-    class QoalaHostToiQoalaTranslationInterface : public QoalaTranslationDialectInterface {
-    public:
-        using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
-
-        LogicalResult convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const final {
-            return translateQoalaHostOperation(op, moduleTranslation);
-        }
-
-    };
-
-    void registerQoalaHostToiQoalaTranslations(DialectRegistry &registry) {
-        registry.insert<QoalaHostDialect>();
-        registry.addExtension(+[](MLIRContext *ctx, QoalaHostDialect *dialect) {
-            dialect->addInterfaces<QoalaHostToiQoalaTranslationInterface>();
-        });
+    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+        return translateQoalaHostOperation(op, moduleTranslation);
     }
 }

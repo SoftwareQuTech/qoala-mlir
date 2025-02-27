@@ -3,23 +3,35 @@
 
 #include "Target/iQoala/iQoalaContext.h"
 #include "Target/iQoala/iQoala.h"
-#include "llvm/Support/raw_ostream.h"
-
-using namespace llvm;
 
 namespace qoala::iqoala {
-    class Module {
+    class iQoalaModule : public helpers::PrintInterface{
     public:
-        Module(StringRef name, iQoalaContext &context);
-        void print(raw_ostream &os);
+        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name), iQoalaCtx(context) { }
+        void print(mlir::raw_ostream &os) const override;
 
-        iQoalaProgram &getiQoalaProgram() {
-            return iQoalaProgram;
+        iQoalaContext &getiQoalaContext() {
+            return iQoalaCtx;
         }
 
+        // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
+        void addRemoteDeclaration(mlir::StringRef remoteName);
+        void setModuleName(mlir::StringRef newModuleName);
+        void addRoutine(QuantumRoutine &newRoutine);
+
     private:
-        StringRef moduleName;
-        iQoalaProgram iQoalaProgram;
+        mlir::StringRef moduleName;
+
+        /**
+         * Struct that represents the program in iQoala format
+         * It contains section objects that store all the "MC" objects of the qoala program
+         */
+        struct {
+            MetaSection metaSection;
+            HostSection hostSection;
+            NetQASMSection netQASMSection;
+            RequestSection requestSection;
+        } iQoalaProgram;
         iQoalaContext iQoalaCtx;
     };
 }
