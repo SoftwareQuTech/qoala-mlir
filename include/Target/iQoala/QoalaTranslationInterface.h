@@ -10,6 +10,10 @@ namespace qoala::translate {
 
     /**
      * Main interface for translation classes. These classes need to be registered using the
+     * `registerInto` method, which also needs to be implemented by the concrete translation
+     * class. Please check the `registerInto` stub body for an example about how to
+     * correctly implement that method, and how to call the registration from the qoala-translate
+     * callbacks.
      */
     class QoalaTranslationDialectInterface
             : public mlir::DialectInterface::Base<QoalaTranslationDialectInterface> {
@@ -28,6 +32,13 @@ namespace qoala::translate {
 
         static void registerInto(mlir::DialectRegistry &r) {
             // Nothing to do; implementor should re-define this function
+            // A simple implementation of this class should look like:
+            //  registeriQoalaTranslation<DialectClass, ConcreteTranslatorClass>(r);
+            // Once this method is implemented, simply call it frm the
+            // `registerAllQoalaSupportTranslations` method in the file
+            // `include/Target/iQoala/QoalaTranslations.h` Since `registerInto`
+            // is a static method, invoke it using the class name:
+            // ConcreteTranslatorClass::registerInto(registry);
         }
     };
 

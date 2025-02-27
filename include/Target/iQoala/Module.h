@@ -14,6 +14,7 @@ namespace qoala::iqoala {
             return iQoalaCtx;
         }
 
+        // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
         void addRemoteDeclaration(mlir::StringRef remoteName);
         void setModuleName(mlir::StringRef newModuleName);
         void addRoutine(QuantumRoutine &newRoutine);
