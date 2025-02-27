@@ -1,17 +1,13 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h>
+
 #include "llvm/Support/Debug.h"
 
 using namespace qoala::helpers;
 
 namespace qoala::conversion::mir {
-    func::CallOp insertCallAngleTransform(Operation *operation, ConversionPatternRewriter &rewriter, Value angle) {
-        // We also need to find the declaration of the angle conversion builtin
-        auto module = operation->getParentOfType<ModuleOp>();
-        auto angleConversionFunction = module.lookupSymbol<func::FuncOp>(angle::angleConversionFunctionName);
-        // Create a call to the builtin
-        return rewriter.create<func::CallOp>(operation->getLoc(), angleConversionFunction, angle);
-    }
-
     /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
     std::unique_ptr<OpAndValues>
     RemoteOpLowering::createNewOpAndValues(qmem::RemoteOp op, qmem::RemoteOp::Adaptor adaptor,
@@ -244,48 +240,69 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     RotateXLowering::createNewOpAndValues(qmem::RotateXOp op, qmem::RotateXOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
-        // The angle is a float, we need to transform it to 2 integers, using a builtin
-        func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
+        // The angle is a float, we need to transform it *statically* to 2 integers
+        auto f32Const = dyn_cast<arith::ConstantFloatOp>(adaptor.getAngle().getDefiningOp());
+        assert(f32Const && "Expected constant to be constant float");
+
+        // Convert the float angle to its 2-integers counterpart.
+        const double floatAngleVal = f32Const.value().convertToDouble();
+        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+                intsAngle[0], intsAngle[1]);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
     std::unique_ptr<OpAndValues>
     RotateYLowering::createNewOpAndValues(qmem::RotateYOp op, qmem::RotateYOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
-        // The angle is a float, we need to transform it to 2 integers, using a builtin
-        func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
+        // The angle is a float, we need to transform it *statically* to 2 integers
+        auto f32Const = dyn_cast<arith::ConstantFloatOp>(adaptor.getAngle().getDefiningOp());
+        assert(f32Const && "Expected constant to be constant float");
+
+        // Convert the float angle to its 2-integers counterpart.
+        const double floatAngleVal = f32Const.value().convertToDouble();
+        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateYIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+                intsAngle[0], intsAngle[1]);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
     std::unique_ptr<OpAndValues>
     RotateZLowering::createNewOpAndValues(qmem::RotateZOp op, qmem::RotateZOp::Adaptor adaptor,
                                           ConversionPatternRewriter &rewriter) const {
-        // The angle is a float, we need to transform it to 2 integers, using a builtin
-        func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
+        // The angle is a float, we need to transform it *statically* to 2 integers
+        auto f32Const = dyn_cast<arith::ConstantFloatOp>(adaptor.getAngle().getDefiningOp());
+        assert(f32Const && "Expected constant to be constant float");
+
+        // Convert the float angle to its 2-integers counterpart.
+        const double floatAngleVal = f32Const.value().convertToDouble();
+        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate= rewriter.create<qmem::RotateZIntOp>(
+        rewriter.getUI32IntegerAttr(intsAngle[0]);
+        auto newRotate = rewriter.create<qmem::RotateZIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                angleConversionCall.getResult(0), angleConversionCall.getResult(1));
+                intsAngle[0], intsAngle[1]);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
     std::unique_ptr<OpAndValues>
     CRotXLowering::createNewOpAndValues(qmem::CrotXOp op, qmem::CrotXOp::Adaptor adaptor,
                                         ConversionPatternRewriter &rewriter) const {
-        // The angle is a float, we need to transform it to 2 integers, using a builtin
-        func::CallOp angleConversionCall = insertCallAngleTransform(op.getOperation(), rewriter, adaptor.getAngle());
+        // The angle is a float, we need to transform it *statically* to 2 integers
+        auto f32Const = dyn_cast<arith::ConstantFloatOp>(adaptor.getAngle().getDefiningOp());
+        assert(f32Const && "Expected constant to be constant float");
+
+        // Convert the float angle to its 2-integers counterpart.
+        const double floatAngleVal = f32Const.value().convertToDouble();
+        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newCrotX = rewriter.create<qmem::CrotXIntOp>(
-                op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                angleConversionCall.getResult(0), angleConversionCall.getResult(1));
-        return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
+        auto newRotate = rewriter.create<qmem::CrotXIntOp>(
+            op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
+                intsAngle[0], intsAngle[1]);
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 } // namespace qoala::conversion::mir
