@@ -40,6 +40,8 @@ namespace qoala::conversion {
         >();
          */
 
+        // TODO - Add lowering for Tensor -> Memref (or potentially one level down)
+
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
         hir::QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);

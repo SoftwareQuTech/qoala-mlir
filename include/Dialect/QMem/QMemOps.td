@@ -236,30 +236,30 @@ def MeasureOp : QMem_Op<"measure"> {
 
 /* "Intermediate" operations that help in the process to "flattening" the f32 types */
 def CrotXIntOp : QMem_Op<"crot_x_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1, I32:$angle_num, I32:$angle_denom);
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1, I32Attr:$angle_num, I32Attr:$angle_denom);
     let assemblyFormat = [{
-        operands attr-dict
+        operands attr-dict`,` $angle_num`,` $angle_denom
     }];
 }
 
 def RotateXIntOp : QMem_Op<"rot_x_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
     let assemblyFormat = [{
-        operands attr-dict
+        operands attr-dict`,` $angle_num`,` $angle_denom
     }];
 }
 
 def RotateYIntOp : QMem_Op<"rot_y_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
     let assemblyFormat = [{
-        operands attr-dict
+        operands attr-dict`,` $angle_num`,` $angle_denom
     }];
 }
 
 def RotateZIntOp : QMem_Op<"rot_z_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32:$angle_num, I32:$angle_denom);
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
     let assemblyFormat = [{
-        operands attr-dict
+        operands attr-dict`,` $angle_num`,` $angle_denom
     }];
 }
 #endif // QMEM_OPS_TD

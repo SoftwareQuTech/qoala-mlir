@@ -59,10 +59,14 @@ namespace qoala::conversion {
         qoala::helpers::configureQMemToQRemoteTarget(qMemToQRemoteTarget);
         qoala::helpers::populateQMemToQRemotePatterns(context, qMemToQRemotePatterns, typeConverter);
 
+        // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
+
         // Stage 1: Insert the declaration of the builtin angle conversion function
         LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        // Note: This is the way how we will handle "dynamic" f32 values in the future.
+        // We will keep inserting this declaration and assuming it will be provided by the runtime in the future.
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
