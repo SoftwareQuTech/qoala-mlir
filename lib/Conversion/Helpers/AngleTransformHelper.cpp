@@ -42,6 +42,8 @@ namespace qoala::helpers::angle {
     static double angleCalculator(const uint32_t n, const uint32_t e) {
         // For the reader. Why the denom of this computation is "1 << e"
         // instead of "std::pow(2, e)"??
+        LLVM_DEBUG(llvm::dbgs() << "exp = " << e << "\n");
+        assert(e < 32 && "exponent must not be >= 32");
         return static_cast<double>(n) * M_PI / static_cast<double>(1 << e);
     }
 
@@ -83,11 +85,12 @@ namespace qoala::helpers::angle {
         LLVM_DEBUG(llvm::dbgs() << "Transforming: " << angleRads << "\n");
 
         auto n = static_cast<uint32_t>(std::ceil(angleRads / 3.0));
-        uint32_t e = 0, bestN = 0, bestE = 0;
+        uint32_t e = 0, bestN = 0, bestE = 0, highestE = 0;
         double bestThreshold = 0.0;
+        double currentAngle = angleCalculator(n, e), lastCurrentAngle = 0.0;
 
         // If angle is 0, then angleCalculator(0, 0) == 0.0, so we simply return.
-        if (angleRads != angleCalculator(n, e)) {
+        if (angleRads != currentAngle) {
             // The initial guess of n should yield an angle value >= than the given one,
             // We move over the n axis (lower n) until we cross the contour line i.e. we get
             // an angle value less than the given one.
@@ -101,28 +104,32 @@ namespace qoala::helpers::angle {
             bestE = e;
             bestThreshold = std::abs(angleCalculator(bestN, bestE) - angleRads);
 
-            // We discretely follow the log curve, trying to find a point that satisfies the given tolerance
-            for (uint32_t i = 0; i < 2 * MAX_SEARCH_ITERATIONS || bestThreshold == 0.0; i++) {
-                LLVM_DEBUG(llvm::dbgs() << "Status: (" << i << ", " << bestN << ", " << bestE << ", " << bestThreshold<< ")\n");
-                double currentAngle = angleCalculator(n, e);
-
-                if (currentAngle == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
-                    // Jackpot! We found a (almost) perfect match
-                    break;
+            for (; n < MAX_SEARCH_ITERATIONS; n++) {
+                LLVM_DEBUG(llvm::dbgs() << "Status: (" << n << ", " << bestN << ", " << bestE << ", " << bestThreshold << ", " << currentAngle << ")\n");
+                // Iterate over all the exponents, starting at the highest exponent so far, trying to cross the contour curve
+                for (e = highestE; e < 32; e++) {
+                    lastCurrentAngle = currentAngle; //angle at (n, e-1)
+                    currentAngle = angleCalculator(n, e); // angle at (n, e)
+                    if (currentAngle <= angleRads) {
+                        // We crossed the contour curve, make note of this point
+                        highestE = e - 1;
+                        break;
+                    }
                 }
 
-                while (angleRads <= currentAngle) {
-                    // On even iterations, we move over e, on odd iterations we move over n
-                    i % 2 == 0 ? e++ : n++;
-                    currentAngle = angleCalculator(n, e);
-                    // Distance between the current set of values, and the given angle
-                    double threshold = std::abs(currentAngle - angleRads);
-                    if (threshold < bestThreshold) {
-                        // We found a better fit for the approximation
-                        bestThreshold = threshold;
-                        bestN = n;
-                        bestE = e;
-                    }
+                // Evaluate the distance on both points: (n, e -1), (n, e), and update
+                // the best found so far
+                double thresholdDown = std::abs(lastCurrentAngle - angleRads);
+                double thresholdUp = std::abs(currentAngle - angleRads);
+                if (thresholdDown < bestThreshold) {
+                    bestN = n;
+                    bestE = e - 1;
+                    bestThreshold = thresholdDown;
+                }
+                if (thresholdUp < bestThreshold) {
+                    bestN = n;
+                    bestE = e;
+                    bestThreshold = thresholdUp;
                 }
             }
         }

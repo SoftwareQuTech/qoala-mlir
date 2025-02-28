@@ -23,7 +23,7 @@ module {
   // Primes
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 3, 2
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 7, 4
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 67, 6
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 67, 5
 
   // CHECK-NEXT: %[[REG1:.*]] = netqasm.measure %[[REG0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1
@@ -66,7 +66,7 @@ module {
     %cst_a = arith.constant 2.356194 : f32
     // 1.3744465 = 7\pi/2^4 -> (7, 4)
     %cst_b = arith.constant 1.3744465 : f32
-    // 6.57770825 = 67\pi/2^6 -> (67, 6)
+    // 6.57770825 = 67\pi/2^5 -> (67, 5)
     %cst_c = arith.constant 6.57770825 : f32
 
     // Non-exact numbers
