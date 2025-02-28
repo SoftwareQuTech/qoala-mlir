@@ -42,7 +42,6 @@ namespace qoala::helpers::angle {
     static double angleCalculator(const uint32_t n, const uint32_t e) {
         // For the reader. Why the denom of this computation is "1 << e"
         // instead of "std::pow(2, e)"??
-        LLVM_DEBUG(llvm::dbgs() << "exp = " << e << "\n");
         assert(e < 32 && "exponent must not be >= 32");
         return static_cast<double>(n) * M_PI / static_cast<double>(1 << e);
     }
@@ -77,11 +76,20 @@ namespace qoala::helpers::angle {
         //   an angle that is so close that we can call it "good enough".
         // * The search starts on the n axis (e = 0), at ceil(a/3). This limit can be
         //   computed from the general from of the angle.
-        // * The idea is to follow the contour curve, moving only in one axis until we
-        //   cross the contour curve. We also keep track of the best approximation found
-        //   so far (bestN, bestE, bestThreshold)
-        // * Every time we cross the curve, we test the new approximation, comparing it
-        //   with the best results so far.
+        // * The idea is to follow the contour curve discretely:
+        //   1. First, we approach to the curve starting from n=ceil(a/3), going down until
+        //      we cross the curve.
+        //   2. Once we cross, we assume the lower point is our first approximation, and
+        //      we start searching for better ones.
+        //   3. We fix n, and start exploring values of e, until we cross the curve again.
+        //   4. Once we cross the curve, we evaluate both points that are close to the curve:
+        //      (n, e) and (n, e-1). If any of them is a best approximation, we make note of it.
+        //   5. We continue searching by moving to the right (n = n+1) repeat from step 3
+        //      knowing that the e value must not be lower that the one we found in the last
+        //      iteration. This can be assumed because the contour curve grows monotonically.
+        //   6. We repeat steps 3 to 5, until we find an approximation that is "good enough"
+        //      or we exhaust the maximum number of tries.
+
         LLVM_DEBUG(llvm::dbgs() << "Transforming: " << angleRads << "\n");
 
         auto n = static_cast<uint32_t>(std::ceil(angleRads / 3.0));
@@ -104,9 +112,12 @@ namespace qoala::helpers::angle {
             bestE = e;
             bestThreshold = std::abs(angleCalculator(bestN, bestE) - angleRads);
 
+            // Once that we found the first crossing of the contour curve, we will iterate at most
+            // MAX_SEARCH_ITERATIONS values of "n" to the right.
             for (; n < MAX_SEARCH_ITERATIONS; n++) {
                 LLVM_DEBUG(llvm::dbgs() << "Status: (" << n << ", " << bestN << ", " << bestE << ", " << bestThreshold << ", " << currentAngle << ")\n");
                 // Iterate over all the exponents, starting at the highest exponent so far, trying to cross the contour curve
+                // NOTE: we limit the exponent to < 32, so we don't overflow the denom of angleCalculator
                 for (e = highestE; e < 32; e++) {
                     lastCurrentAngle = currentAngle; //angle at (n, e-1)
                     currentAngle = angleCalculator(n, e); // angle at (n, e)
@@ -117,8 +128,8 @@ namespace qoala::helpers::angle {
                     }
                 }
 
-                // Evaluate the distance on both points: (n, e -1), (n, e), and update
-                // the best found so far
+                // The contour curve passes between (n, e -1), (n, e):
+                // Evaluate the distance on both points, and update the best found so far
                 double thresholdDown = std::abs(lastCurrentAngle - angleRads);
                 double thresholdUp = std::abs(currentAngle - angleRads);
                 if (thresholdDown < bestThreshold) {
@@ -130,6 +141,12 @@ namespace qoala::helpers::angle {
                     bestN = n;
                     bestE = e;
                     bestThreshold = thresholdUp;
+                }
+
+                // Check if the search is good enough
+                if (angleCalculator(bestN, bestE) == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
+                    // Jackpot! We found a (almost) perfect match
+                    break;
                 }
             }
         }

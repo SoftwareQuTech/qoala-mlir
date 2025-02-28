@@ -72,17 +72,17 @@ module {
     // Non-exact numbers
 
     // CHECK: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
-    //qmem.rot_x %0, %cst
-    //qmem.rot_x %0, %cst_0
-    //qmem.rot_x %0, %cst_1
-    //qmem.rot_x %0, %cst_2
-    //qmem.rot_x %0, %cst_3
-    //qmem.rot_x %0, %cst_4
-    //qmem.rot_x %0, %cst_5
-    //qmem.rot_x %0, %cst_6
-    //qmem.rot_x %0, %cst_7
-    //qmem.rot_x %0, %cst_8
-    //qmem.rot_x %0, %cst_9
+    qmem.rot_x %0, %cst
+    qmem.rot_x %0, %cst_0
+    qmem.rot_x %0, %cst_1
+    qmem.rot_x %0, %cst_2
+    qmem.rot_x %0, %cst_3
+    qmem.rot_x %0, %cst_4
+    qmem.rot_x %0, %cst_5
+    qmem.rot_x %0, %cst_6
+    qmem.rot_x %0, %cst_7
+    qmem.rot_x %0, %cst_8
+    qmem.rot_x %0, %cst_9
     qmem.rot_x %0, %cst_a
     qmem.rot_x %0, %cst_b
     qmem.rot_x %0, %cst_c
