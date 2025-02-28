@@ -20,6 +20,10 @@ module {
   // Big numbers
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1000000, 0
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1750000, 0
+  // Primes
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 3, 2
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 7, 4
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 67, 6
 
   // CHECK-NEXT: %[[REG1:.*]] = netqasm.measure %[[REG0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1
@@ -57,20 +61,31 @@ module {
     // 5497786.0 = 7*10^6\pi/2^2 -> 3.5*10^6\pi/2^1 -> 1.75*10^6\pi/2^0 -> (1750000, 0)
     %cst_9 = arith.constant 5497786.0 : f32
 
+    // Some relative prime integers to find
+    // 2.356194 = 3\pi/2^2 -> (3, 2)
+    %cst_a = arith.constant 2.356194 : f32
+    // 1.3744465 = 7\pi/2^4 -> (7, 4)
+    %cst_b = arith.constant 1.3744465 : f32
+    // 6.57770825 = 67\pi/2^6 -> (67, 6)
+    %cst_c = arith.constant 6.57770825 : f32
+
     // Non-exact numbers
 
     // CHECK: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
-    qmem.rot_x %0, %cst
-    qmem.rot_x %0, %cst_0
-    qmem.rot_x %0, %cst_1
-    qmem.rot_x %0, %cst_2
-    qmem.rot_x %0, %cst_3
-    qmem.rot_x %0, %cst_4
-    qmem.rot_x %0, %cst_5
-    qmem.rot_x %0, %cst_6
-    qmem.rot_x %0, %cst_7
-    qmem.rot_x %0, %cst_8
-    qmem.rot_x %0, %cst_9
+    //qmem.rot_x %0, %cst
+    //qmem.rot_x %0, %cst_0
+    //qmem.rot_x %0, %cst_1
+    //qmem.rot_x %0, %cst_2
+    //qmem.rot_x %0, %cst_3
+    //qmem.rot_x %0, %cst_4
+    //qmem.rot_x %0, %cst_5
+    //qmem.rot_x %0, %cst_6
+    //qmem.rot_x %0, %cst_7
+    //qmem.rot_x %0, %cst_8
+    //qmem.rot_x %0, %cst_9
+    qmem.rot_x %0, %cst_a
+    qmem.rot_x %0, %cst_b
+    qmem.rot_x %0, %cst_c
     %1 = qmem.measure %0 : i1
 
     // CHECK: qoalahost.return
