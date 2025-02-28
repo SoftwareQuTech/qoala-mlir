@@ -80,6 +80,7 @@ namespace qoala::helpers::angle {
         //   so far (bestN, bestE, bestThreshold)
         // * Every time we cross the curve, we test the new approximation, comparing it
         //   with the best results so far.
+        LLVM_DEBUG(llvm::dbgs() << "Transforming: " << angleRads << "\n");
 
         auto n = static_cast<uint32_t>(std::ceil(angleRads / 3.0));
         uint32_t e = 0, bestN = 0, bestE = 0;
@@ -102,7 +103,7 @@ namespace qoala::helpers::angle {
 
             // We discretely follow the log curve, trying to find a point that satisfies the given tolerance
             for (uint32_t i = 0; i < 2 * MAX_SEARCH_ITERATIONS || bestThreshold == 0.0; i++) {
-                LLVM_DEBUG(llvm::dbgs() << "Status: (" << bestN << ", " << bestE << ", " << bestThreshold<< ")\n");
+                LLVM_DEBUG(llvm::dbgs() << "Status: (" << i << ", " << bestN << ", " << bestE << ", " << bestThreshold<< ")\n");
                 double currentAngle = angleCalculator(n, e);
 
                 if (currentAngle == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
@@ -125,7 +126,7 @@ namespace qoala::helpers::angle {
                 }
             }
         }
-        LLVM_DEBUG(llvm::dbgs() << "Returning: (" << bestN << ", " << bestE << ")\n");
+        LLVM_DEBUG(llvm::dbgs() << "Returning: (" << bestN << ", " << bestE << ")\n************************\n");
         return {bestN, bestE};
     }
 }
