@@ -189,7 +189,7 @@ def RotateXOp : NetQASM_Op<"rot_x"> {
         AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands `(` $angle_num `,` $angle_denom `)` attr-dict
+        operands ` ` `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
@@ -200,7 +200,7 @@ def RotateYOp : NetQASM_Op<"rot_y"> {
         AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands `(` $angle_num `,` $angle_denom `)` attr-dict
+        operands ` ` `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
@@ -211,7 +211,7 @@ def RotateZOp : NetQASM_Op<"rot_z"> {
         AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands `(` $angle_num `,` $angle_denom `)` attr-dict
+        operands ` ` `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
@@ -251,7 +251,7 @@ def CrotXOp : NetQASM_Op<"crot_x"> {
         AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands `(` $angle_num `,` $angle_denom `)` attr-dict
+        operands ` ` `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 

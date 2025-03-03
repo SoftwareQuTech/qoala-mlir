@@ -7,24 +7,24 @@ module {
   // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]() -> i1
   // CHECK-NEXT: %[[REG0:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.init %[[REG0]]
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 0, 0
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 0
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 1
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 2, 0
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 2
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 3
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (0 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 1 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (2 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 2 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 3 : ui32)
   // Small numbers
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 22
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 25
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1, 29
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 22 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 25 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 29 : ui32)
   // Big numbers
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1000000, 0
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 1750000, 0
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1000000 : ui32, 0 : ui32
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1750000 : ui32, 0 : ui32)
   // Primes
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 3, 2
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 7, 4
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 67, 5
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 169, 12
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (3 : ui32, 2 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (7 : ui32, 4 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (67 : ui32, 5 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (169 : ui32, 12 : ui32)
 
   // CHECK-NEXT: %[[REG1:.*]] = netqasm.measure %[[REG0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1

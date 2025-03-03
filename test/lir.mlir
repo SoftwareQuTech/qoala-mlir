@@ -1,3 +1,6 @@
+// UNSUPPORTED: true
+// This program is only used for the qoala-translate tool: it's not supposed to be a full test case
+// RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)

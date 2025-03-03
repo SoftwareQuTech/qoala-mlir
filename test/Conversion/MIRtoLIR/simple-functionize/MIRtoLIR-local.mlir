@@ -20,16 +20,16 @@ module {
   // CHECK-NEXT: netqasm.init %[[ARG3_0]]
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_4:.*]]: i32, %[[ARG1_4:.*]]: i32, %[[ARG2_4:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_x %[[ARG0_4]], %[[ARG1_4]], %[[ARG2_4]]
+  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_4:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_x %[[ARG0_4]] (3 : ui32, 2 : ui32)
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_5:.*]]: i32, %[[ARG1_5:.*]]: i32, %[[ARG2_5:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_y %[[ARG0_5]], %[[ARG1_5]], %[[ARG2_5]]
+  // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_5:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_y %[[ARG0_5]] (1 : ui32, 2 : ui32)
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER6:.*]](%[[ARG0_6:.*]]: i32, %[[ARG1_6:.*]]: i32, %[[ARG2_6:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_z %[[ARG0_6]], %[[ARG1_6]], %[[ARG2_6]]
+  // CHECK: netqasm.local_routine @[[WRAPPER6:.*]](%[[ARG0_6:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_z %[[ARG0_6]] (3 : ui32, 4 : ui32)
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER7:.*]](%[[ARG0_7:.*]]: i32)
@@ -44,8 +44,8 @@ module {
   // CHECK-NEXT: netqasm.cz %[[ARG0_9]], %[[ARG1_9]]
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER10:.*]](%[[ARG0_10:.*]]: i32, %[[ARG1_10:.*]]: i32, %[[ARG2_10:.*]]: i32, %[[ARG3_10:.*]]: i32)
-  // CHECK-NEXT: netqasm.crot_x %[[ARG0_10]], %[[ARG1_10]], %[[ARG2_10]], %[[ARG3_10]]
+  // CHECK: netqasm.local_routine @[[WRAPPER10:.*]](%[[ARG0_10:.*]]: i32, %[[ARG1_10:.*]]: i32)
+  // CHECK-NEXT: netqasm.crot_x %[[ARG0_10]], %[[ARG1_10]] (1 : ui32, 1 : ui32)
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER11:.*]](%[[ARG0_11:.*]]: i32) -> i1
@@ -71,23 +71,20 @@ module {
     qmem.init %1
 
     // CHECK: %[[CST:.*]] = arith.constant
-    %cst = arith.constant 2.120000e+01 : f32
+    %cst = arith.constant 0.5890485 : f32
     // CHECK: %[[CST_0:.*]] = arith.constant
-    %cst_0 = arith.constant 0.0306796152 : f32
+    %cst_0 = arith.constant 2.356194 : f32
 
-    // CHECK: %[[REG_MAIN2:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_0]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]], %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1) : (i32, i32, i32) -> ()
+    // CHECK: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %cst_0
 
     // CHECK: %[[CST_1:.*]] = arith.constant
-    %cst_1 = arith.constant 1.050000e+01 : f32
+    %cst_1 = arith.constant 0.785398 : f32
 
-    // CHECK: %[[REG_MAIN3:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_1]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]], %[[REG_MAIN3]]#0, %[[REG_MAIN3]]#1) : (i32, i32, i32) -> ()
+    // CHECK: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_y %0, %cst_1
 
-    // CHECK: %[[REG_MAIN4:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]], %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1) : (i32, i32, i32) -> ()
+    // CHECK: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_z %0, %cst
 
     // CHECK: qoalahost.call @[[WRAPPER7]](%[[REG_MAIN1]]) : (i32) -> ()
@@ -97,13 +94,12 @@ module {
     qmem.cnot %0, %1
 
     // CHECK: %[[CST_2:.*]] = arith.constant
-    %cst_2 = arith.constant 2.710000e+00 : f32
+    %cst_2 = arith.constant 1.570796 : f32
 
     // CHECK: qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cz %0, %1
 
-    // CHECK: %[[REG_MAIN5:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[CST_2]]) : (f32) -> (i32, i32)
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER10]](%[[REG_MAIN0]], %[[REG_MAIN1]], %[[REG_MAIN5]]#0, %[[REG_MAIN5]]#1) : (i32, i32, i32, i32) -> ()
+    // CHECK: qoalahost.call @[[WRAPPER10]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.crot_x %0, %1, %cst_2
 
     // CHECK: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER11]](%[[REG_MAIN0]]) : (i32) -> i1

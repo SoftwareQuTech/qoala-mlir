@@ -5,6 +5,8 @@
 
 #include "llvm/Support/Debug.h"
 
+#define DEBUG_TYPE "mir-to-lir-pattens"
+
 using namespace qoala::helpers;
 
 namespace qoala::conversion::mir {
