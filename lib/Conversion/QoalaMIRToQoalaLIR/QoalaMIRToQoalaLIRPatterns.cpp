@@ -203,7 +203,9 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateXOp>(
                 op.getLoc(), adaptor.getQ(),
-                adaptor.getAngleNum(), adaptor.getAngleDenom());
+                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
+                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -213,7 +215,9 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateYOp>(
                 op.getLoc(), adaptor.getQ(),
-                adaptor.getAngleNum(), adaptor.getAngleDenom());
+                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
+                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -223,7 +227,9 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateZOp>(
                 op.getLoc(), adaptor.getQ(),
-                adaptor.getAngleNum(), adaptor.getAngleDenom());
+                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
+                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -232,7 +238,9 @@ namespace qoala::conversion::mir {
                                            ConversionPatternRewriter &rewriter) const {
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                adaptor.getAngleNum(), adaptor.getAngleDenom());
+                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
+                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                );
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
     }
 

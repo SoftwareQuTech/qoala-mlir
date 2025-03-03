@@ -185,33 +185,33 @@ def ReturnOp: NetQASM_Op<"return", [Pure, ParentOneOf<["LocalRoutineOp", "Reques
 def RotateXOp : NetQASM_Op<"rot_x"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32Attr:$angle_num,
-        I32Attr:$angle_denom
+        AnyI32Attr:$angle_num,
+        AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
 def RotateYOp : NetQASM_Op<"rot_y"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32Attr:$angle_num,
-        I32Attr:$angle_denom
+        AnyI32Attr:$angle_num,
+        AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
 def RotateZOp : NetQASM_Op<"rot_z"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32Attr:$angle_num,
-        I32Attr:$angle_denom
+        AnyI32Attr:$angle_num,
+        AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 
@@ -247,11 +247,11 @@ def CrotXOp : NetQASM_Op<"crot_x"> {
     let arguments = (
         ins Arg<I32, "qubit1", [MemWrite]>:$q1,
         Arg<I32, "qubit2", [MemWrite]>:$q2,
-        I32Attr:$angle_num,
-        I32Attr:$angle_denom
+        AnyI32Attr:$angle_num,
+        AnyI32Attr:$angle_denom
     );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands `(` $angle_num `,` $angle_denom `)` attr-dict
     }];
 }
 

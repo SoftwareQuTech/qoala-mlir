@@ -24,6 +24,7 @@ module {
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 3, 2
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 7, 4
   // CHECK-NEXT: netqasm.rot_x %[[REG0]], 67, 5
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], 169, 12
 
   // CHECK-NEXT: %[[REG1:.*]] = netqasm.measure %[[REG0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1
@@ -40,7 +41,7 @@ module {
     %cst_0 = arith.constant 3.141592 : f32
     // 1.570796 = 1\pi/2^1 -> (1, 1)
     %cst_1 = arith.constant 1.570796 : f32
-    // 6.283184 = 2\pi/2^1 -> (2, 0)
+    // 6.283184 = 2\pi/2^0 -> (2, 0)
     %cst_2 = arith.constant 6.283184 : f32
     // 0.785398 = 1\pi/2^2 -> (1, 2)
     %cst_3 = arith.constant 0.785398 : f32
@@ -68,8 +69,8 @@ module {
     %cst_b = arith.constant 1.3744465 : f32
     // 6.57770825 = 67\pi/2^5 -> (67, 5)
     %cst_c = arith.constant 6.57770825 : f32
-
-    // Non-exact numbers
+    // Hard to find:  169\pi/2^12 = 0.12962135 -> (169, 12)
+    %cst_d = arith.constant 1.3e-01 : f32
 
     // CHECK: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
     qmem.rot_x %0, %cst
@@ -86,6 +87,7 @@ module {
     qmem.rot_x %0, %cst_a
     qmem.rot_x %0, %cst_b
     qmem.rot_x %0, %cst_c
+    qmem.rot_x %0, %cst_d
     %1 = qmem.measure %0 : i1
 
     // CHECK: qoalahost.return
