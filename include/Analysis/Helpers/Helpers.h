@@ -224,6 +224,15 @@ namespace qoala::helpers {
             return partialResult.substr(0, partialResult.length() - 2);
         }
     }
+
+    /**
+     * Function that performs a data flow analysis on the `qoalahost.main_function` and
+     * netqasm.local_routines, searching for "orphan" `arith.constant` operations (i.e.
+     * operations that have no uses) and removes them.
+     * @param module The module to analyze for orphan constant removal
+     * @return Wether the analysis succeeded or failed
+     */
+    mlir::LogicalResult removeOrphanConstants(mlir::ModuleOp &module);
 }
 
 namespace qoala::translate {

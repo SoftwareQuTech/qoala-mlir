@@ -9,25 +9,24 @@
 #include <set>
 
 namespace qoala::analysis {
-    using namespace mlir;
     namespace functionize {
         struct FunctionizeData {
             /* Types for the arguments and results */
-            std::vector<Type> argTypes;
-            std::vector<Type> resultTypes;
+            std::vector<mlir::Type> argTypes;
+            std::vector<mlir::Type> resultTypes;
             /* Values of the external arguments and external results discovered */
-            SetVector<Value> externalArgsVals;
-            SetVector<Value> externalResVals;
+            mlir::SetVector<mlir::Value> externalArgsVals;
+            mlir::SetVector<mlir::Value> externalResVals;
             /* Map between the external arguments and the corresponding argument index of the new function */
-            DenseMap<Value, unsigned int> externalArgValsIdxMap;
+            mlir::DenseMap<mlir::Value, unsigned int> externalArgValsIdxMap;
             /* The new function created */
-            func::FuncOp newFunction;
+            mlir::func::FuncOp newFunction;
             /* Map between the results of the functionized group (original results) and the _index_
              * of the "call" operation, which corresponds to the _new_ result */
-            DenseMap<Value, int> replacementMap;
+            mlir::DenseMap<mlir::Value, int> replacementMap;
         };
 
-        using QuantumOpsGroupTy = std::vector<Operation *>;
+        using QuantumOpsGroupTy = std::vector<mlir::Operation *>;
         using ClassifierFnTy = std::vector<QuantumOpsGroupTy> (*)(dialects::qmem::FuncOp &);
 
         /**
@@ -48,9 +47,9 @@ namespace qoala::analysis {
          * @param quantumOpsGroup An ordered `SetVector` object containing the set of operations to wrap, in the
          *                        order they need to be inserted in the new body.
          */
-         void createNewFunctionWithOperations(FunctionizeData &data, OpBuilder &opBuilder,
-                                              StringRef funcName, Location loc,
-                                              llvm::SetVector<Operation *> &quantumOpsGroup);
+         void createNewFunctionWithOperations(FunctionizeData &data, mlir::OpBuilder &opBuilder,
+                                              mlir::StringRef funcName, mlir::Location loc,
+                                              llvm::SetVector<mlir::Operation *> &quantumOpsGroup);
 
         /**
          * Analyzes the given set of operations to determine the "arguments" and "results" of the given set.
@@ -64,7 +63,7 @@ namespace qoala::analysis {
          *             are not guaranteed to be set or initialized.
          * @param operations An _ordered_ set of of operations to analyze.
          */
-        void computeArgTypesAndReturns(FunctionizeData &data, llvm::SetVector<Operation *> &operations);
+        void computeArgTypesAndReturns(FunctionizeData &data, llvm::SetVector<mlir::Operation *> &operations);
 
         /**
          * "Functionizes" the operations on the given module. For each one of the operations
@@ -76,7 +75,7 @@ namespace qoala::analysis {
          *                             classify them into a collection of QuantumOpsGroupTy. Each one of the operation
          *                             groups will be converted into a single function.
          */
-        void functionizeModule(ModuleOp &module, ClassifierFnTy operationsClassifier);
+        void functionizeModule(mlir::ModuleOp &module, ClassifierFnTy operationsClassifier);
 
         /**
          * Classifier to create *simple* groups, i.e., each group will contain _a single quantum operation_.
