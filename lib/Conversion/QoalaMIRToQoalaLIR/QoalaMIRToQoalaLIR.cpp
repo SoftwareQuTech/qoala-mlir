@@ -82,8 +82,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* 3. Removing unnecessary constants *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
 
-        LogicalResult removeConstantsResult = helpers::removeOrphanConstants(module);
-        if (mlir::failed(removeConstantsResult)) {
+        if (mlir::failed(helpers::removeOrphanConstants(module))) {
             signalPassFailure();
         }
 

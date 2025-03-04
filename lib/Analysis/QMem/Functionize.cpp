@@ -228,7 +228,7 @@ namespace qoala::analysis::functionize {
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
             LLVM_DEBUG(llvm::dbgs() << "Process group #" << groupNum << "\n");
 
-            // The container structure for the funcitonize data
+            // The container structure for the functionize data
             FunctionizeData data;
             std::string newFuncName = getNewFunctionName();
 
