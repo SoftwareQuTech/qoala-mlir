@@ -9,13 +9,16 @@ module {
 
   // CHECK: qoalahost.main_func @test_remote_quantum_program()
   qmem.func @test_remote_quantum_program() {
+    // tensor.from elements are folded into a "arith.constant dense", and placesd at the start of the file
+    // CHECK: %[[FROM_ELEM:.*]] = arith.constant dense<[0, 5]> : tensor<2xi32>
+    // CHECK-NEXT: %[[FROM_ELEM_1:.*]] = arith.constant dense<[1.{{0*}}e+00, 5.{{0*}}e+00]> : tensor<2xf32>
+
     // CHECK: qoalahost.recv_ints {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xi32>
     %0 = qmem.recv_ints {length = 2 : i32, remote = @Bob} : tensor<2xi32>
 
     %c0_i32 = arith.constant 0 : i32
     %c5_i32 = arith.constant 5 : i32
 
-    // CHECK: %[[FROM_ELEM:.*]] = tensor.from_elements
     %from_elements = tensor.from_elements %c0_i32, %c5_i32 : tensor<2xi32>
 
     // CHECK: qoalahost.send_ints %[[FROM_ELEM]] {remote = @[[REMOTEBOB]]} : tensor<2xi32>
@@ -27,7 +30,6 @@ module {
     %cst = arith.constant 1.000000e+00 : f32
     %cst_0 = arith.constant 5.000000e+00 : f32
 
-    // CHECK: %[[FROM_ELEM_1:.*]] = tensor.from_elements
     %from_elements_1 = tensor.from_elements %cst, %cst_0 : tensor<2xf32>
 
     // CHECK: qoalahost.send_floats %[[FROM_ELEM_1]] {remote = @[[REMOTEBOB]]} : tensor<2xf32>
