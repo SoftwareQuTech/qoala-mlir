@@ -2,6 +2,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/FoldUtils.h"
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
@@ -78,6 +79,7 @@ namespace qoala::conversion {
         }
 
         // Stage 3: After compiling f32 rotations, some constants could now be orphan operations; remove them.
+        // TODO - Maybe expose this logic as a pass that can be invoked alone?
         LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 3. Removing unnecessary constants *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
