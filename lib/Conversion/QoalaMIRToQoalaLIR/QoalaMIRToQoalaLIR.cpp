@@ -2,7 +2,6 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/FoldUtils.h"
 #include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
@@ -68,9 +67,17 @@ namespace qoala::conversion {
             helpers::angle::insertAngleConversionFunctionDeclaration(module);
         }
 
-        // Stage 2: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        // Stage 2: Try to fold operations as much as possible, especially, constants
+        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 1. Folding (constant) operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
+        if (mlir::failed(helpers::foldConstants(module))) {
+            signalPassFailure();
+        }
+
+        // Stage 3: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 2. Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 3. Lowering f32 rotations *\n");
         LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
         LogicalResult f32LoweringResult =
                 mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
@@ -78,19 +85,19 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 3: After compiling f32 rotations, some constants could now be orphan operations; remove them.
+        // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
         // TODO - Maybe expose this logic as a pass that can be invoked alone?
         LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 3. Removing unnecessary constants *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
 
         if (mlir::failed(helpers::removeOrphanConstants(module))) {
             signalPassFailure();
         }
 
-        // Stage 4: Functionize
+        // Stage 5: Functionize
         LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 4. Functionizing quantum operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 5. Functionizing quantum operations *\n");
         LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
 
         if (this->useSimpleFunctionize) {
@@ -111,9 +118,9 @@ namespace qoala::conversion {
             helpers::moveOperationToTop(module, remote);
         });
 
-        // Stage 5: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        // Stage 6: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 5. Lowering Remote declarations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering Remote declarations *\n");
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
         LogicalResult remotesLoweringResult =
                 mlir::applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns));
@@ -121,9 +128,9 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 6: Convert QMem to QoalaHost
+        // Stage 7: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 7. Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LogicalResult qMemToQoalaHostResult =
             mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
@@ -131,9 +138,9 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 7: Convert QMem to QoalaHost
+        // Stage 8: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 7. Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 8. Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         LogicalResult qMemToNetQASMResult =
                 mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
