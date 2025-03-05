@@ -86,12 +86,11 @@ namespace qoala::conversion {
         }
 
         // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
-        // TODO - Maybe expose this logic as a pass that can be invoked alone?
-        LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants (Folding again) *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
 
-        if (mlir::failed(helpers::removeOrphanConstants(module))) {
+        if (mlir::failed(helpers::foldConstants(module))) {
             signalPassFailure();
         }
 

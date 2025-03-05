@@ -56,30 +56,4 @@ namespace qoala::helpers {
         }
         return success();
     }
-
-    LogicalResult removeOrphanConstants(ModuleOp &module) {
-        LLVM_DEBUG(llvm::dbgs() << *module << "\n");
-        auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
-        assert(!mainFunctions.empty() && "main function is empty");
-
-        dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
-        // We need to  first mark the operations to delete, so we don't mess the "getOps" iterator
-        std::vector<Operation *> toDelete;
-
-        for (arith::ConstantOp op : mainFunction.getOps<arith::ConstantOp>()) {
-            LLVM_DEBUG(llvm::dbgs() << op << "\n");
-            if (op.use_empty()) {
-                // Operations that have no uses are marked for removal.
-                LLVM_DEBUG(llvm::dbgs() << "Marking to delete: " << *op << "\n");
-                toDelete.push_back(op.getOperation());
-            }
-        }
-
-        // Perform the deletions
-        for (auto *constToDelete : toDelete) {
-            LLVM_DEBUG(llvm::dbgs() << "Deleting: " << *constToDelete << "\n");
-            constToDelete->erase();
-        }
-        return success();
-    }
 } /* namespace qoala::analysis */

@@ -226,15 +226,6 @@ namespace qoala::helpers {
     }
 
     /**
-     * Function that performs a data flow analysis on the `qoalahost.main_function` and
-     * netqasm.local_routines, searching for "orphan" `arith.constant` operations (i.e.
-     * operations that have no uses) and removes them.
-     * @param module The module to analyze for orphan constant removal
-     * @return Weather the analysis succeeded or failed
-     */
-    mlir::LogicalResult removeOrphanConstants(mlir::ModuleOp &module);
-
-    /**
      * Simple analysis method that folds instructions statically if it is possible.
      * This is used for folding constants (arith.constants declared statically, operated
      * and then used within the same scope) and remove them to simplify any further analysis.
