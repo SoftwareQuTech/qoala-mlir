@@ -11,8 +11,7 @@ namespace qoala::helpers::angle {
     std::string angleConversionFunctionName("__qoala_convert_float_angle");
 
     bool moduleContainsAngleConversionDeclaration(ModuleOp &module) {
-        auto functionDeclaration = module.lookupSymbol<func::FuncOp>(angleConversionFunctionName);
-        return functionDeclaration;
+        return module.lookupSymbol<func::FuncOp>(angleConversionFunctionName);
     }
 
     Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module) {
@@ -39,7 +38,7 @@ namespace qoala::helpers::angle {
      * @param e the e integer
      * @return the value of the angle in radians
      */
-    static double angleCalculator(const uint32_t n, const uint32_t e) {
+    static double getAngleInRads(const uint32_t n, const uint32_t e) {
         // For the reader. Why the denom of this computation is "1 << e"
         // instead of "std::pow(2, e)"??
         assert(e < 32 && "exponent must not be >= 32");
@@ -93,24 +92,25 @@ namespace qoala::helpers::angle {
         LLVM_DEBUG(llvm::dbgs() << "Transforming: " << angleRads << "\n");
 
         auto n = static_cast<uint32_t>(std::ceil(angleRads / 3.0));
-        uint32_t e = 0, bestN = 0, bestE = 0, highestE = 0;
-        double bestThreshold = 0.0;
-        double currentAngle = angleCalculator(n, e), lastCurrentAngle = 0.0;
+        uint32_t bestN = n, bestE = 0;
 
         // If angle is 0, then angleCalculator(0, 0) == 0.0, so we simply return.
-        if (angleRads != currentAngle) {
+        if (angleRads != getAngleInRads(n, 0)) {
             // The initial guess of n should yield an angle value >= than the given one,
-            // We move over the n axis (lower n) until we cross the contour line i.e. we get
-            // an angle value less than the given one.
-            while (angleRads <= angleCalculator(n, e)) {
+            // We move over the n axis (lowering n, e == 0) until we cross the contour line
+            // i.e. we get an angle value less than the given one.
+            while (angleRads <= getAngleInRads(n, 0)) {
                 n--;
             }
             // In this point we know that angleCalculator(n, 0) < angleRads < angleCalculator(n+1, 0)
             // these are our best results so far:
             n = n + 1;
             bestN = n;
-            bestE = e;
-            bestThreshold = std::abs(angleCalculator(bestN, bestE) - angleRads);
+            bestE = 0;
+            uint32_t highestE = bestE;
+            double currentAngle = getAngleInRads(bestN, bestE);
+            double bestApproxAngle = currentAngle;
+            double bestThreshold = std::abs(currentAngle - angleRads);
 
             // Once that we found the first crossing of the contour curve, we will iterate at most
             // MAX_SEARCH_ITERATIONS values of "n" to the right.
@@ -118,9 +118,11 @@ namespace qoala::helpers::angle {
                 LLVM_DEBUG(llvm::dbgs() << "Status: (" << n << ", " << bestN << ", " << bestE << ", " << bestThreshold << ", " << currentAngle << ")\n");
                 // Iterate over all the exponents, starting at the highest exponent so far, trying to cross the contour curve
                 // NOTE: we limit the exponent to < 32, so we don't overflow the denom of angleCalculator
+                uint32_t e;
+                double lastCurrentAngle = currentAngle;
                 for (e = highestE; e < 32; e++) {
                     lastCurrentAngle = currentAngle; //angle at (n, e-1)
-                    currentAngle = angleCalculator(n, e); // angle at (n, e)
+                    currentAngle = getAngleInRads(n, e); // angle at (n, e)
                     if (currentAngle <= angleRads) {
                         // We crossed the contour curve, make note of this point
                         highestE = e - 1;
@@ -135,16 +137,18 @@ namespace qoala::helpers::angle {
                 if (thresholdDown < bestThreshold) {
                     bestN = n;
                     bestE = e - 1;
+                    bestApproxAngle = lastCurrentAngle;
                     bestThreshold = thresholdDown;
                 }
                 if (thresholdUp < bestThreshold) {
                     bestN = n;
                     bestE = e;
+                    bestApproxAngle = currentAngle;
                     bestThreshold = thresholdUp;
                 }
 
                 // Check if the search is good enough
-                if (angleCalculator(bestN, bestE) == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
+                if (bestApproxAngle == angleRads || bestThreshold <= ALMOST_PERFECT_THRESHOLD) {
                     // Jackpot! We found a (almost) perfect match
                     break;
                 }
