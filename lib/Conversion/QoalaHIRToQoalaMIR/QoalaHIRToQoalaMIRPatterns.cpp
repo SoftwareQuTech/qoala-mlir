@@ -1,11 +1,14 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
+using namespace qoala::dialects;
+using namespace qoala::helpers;
+
 namespace qoala::conversion::hir {
     /* Implementation of the qoala types converter */
     QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
-        addConversion([](Type type) { return type; });
+        addConversion([](Type type) -> Type { return type; });
         addConversion([ctx](qnet::QubitType type) -> Type {
             // Qubit Types are mapped into i32 (pointers)
             return IntegerType::get(ctx, 32);

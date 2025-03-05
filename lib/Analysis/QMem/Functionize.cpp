@@ -91,7 +91,7 @@ namespace qoala::analysis::functionize {
         data.externalResVals.insert(resultValues.begin(), resultValues.end());
     }
 
-    static inline void mapOriginalResultsInClonedOp(ResultRange originalResults, Operation *clonedOp,
+    static void mapOriginalResultsInClonedOp(ResultRange originalResults, Operation *clonedOp,
                                                     SetVector<Value> &externalResults,
                                                     llvm::MapVector<OpResult, OpResult> &externalResultsMap,
                                                     DenseMap<Value, Value> &internalResultMap) {
@@ -106,7 +106,7 @@ namespace qoala::analysis::functionize {
         }
     }
 
-    static inline void mapOriginalOperandsInClonedOp(OperandRange originalOpOperands,
+    static void mapOriginalOperandsInClonedOp(OperandRange originalOpOperands,
                                                      DenseMap<Value, unsigned int> &externalArgValsIdxMap,
                                                      SetVector<Value> &externalArguments,
                                                      std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc,

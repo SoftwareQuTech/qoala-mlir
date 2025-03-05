@@ -7,6 +7,7 @@
 
 #define DEBUG_TYPE "mir-to-lir-pattens"
 
+using namespace qoala::dialects;
 using namespace qoala::helpers;
 
 namespace qoala::conversion::mir {
@@ -20,7 +21,6 @@ namespace qoala::conversion::mir {
                 adaptor.getSymVisibilityAttr());
         return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
     }
-
 
     std::unique_ptr<OpAndValues>
     FuncOpLowering::createNewOpAndValues(qmem::FuncOp op, qmem::FuncOp::Adaptor adaptor,
