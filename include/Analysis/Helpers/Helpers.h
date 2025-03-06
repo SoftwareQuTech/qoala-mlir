@@ -224,6 +224,15 @@ namespace qoala::helpers {
             return partialResult.substr(0, partialResult.length() - 2);
         }
     }
+
+    /**
+     * Simple analysis method that folds instructions statically if it is possible.
+     * This is used for folding constants (arith.constants declared statically, operated
+     * and then used within the same scope) and remove them to simplify any further analysis.
+     * @param module The module to analyze for constant folding
+     * @return Weather the analysis succeeded or failed
+     */
+    mlir::LogicalResult foldConstants(mlir::ModuleOp &module);
 }
 
 namespace qoala::translate {

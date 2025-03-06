@@ -1,6 +1,8 @@
 #include "Analysis/QMem/Conversion.h"
 #include "llvm/Support/Debug.h"
 
+using namespace mlir;
+
 namespace qoala::analysis::functionize {
     // Helper function to determine if the operation can be functionized, used by "simpleOpClassifier"
     static bool qMemOpCanBeSimplyFunctionized(Operation &op) {

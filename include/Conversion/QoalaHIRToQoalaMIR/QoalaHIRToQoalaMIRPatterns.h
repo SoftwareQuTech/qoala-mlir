@@ -5,172 +5,169 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "Conversion/Helpers/Helpers.h"
 
-using namespace qoala::dialects;
-using namespace qoala::helpers;
-
 namespace qoala::conversion::hir {
     class QoalaHIRToQoalaMIRTypeConverter : public TypeConverter {
       public:
         explicit QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx);
     };
 
-    class FuncOpLowering : public OpLoweringTemplate<qnet::FuncOp, qmem::FuncOp> {
+    class FuncOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::FuncOp, dialects::qmem::FuncOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::FuncOp op, qnet::FuncOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::FuncOp op, dialects::qnet::FuncOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ReturnOpLowering : public OpLoweringTemplate<qnet::ReturnOp, qmem::ReturnOp> {
+    class ReturnOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::ReturnOp, dialects::qmem::ReturnOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::ReturnOp op, qnet::ReturnOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::ReturnOp op, dialects::qnet::ReturnOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
 
     /* Operations used to create entanglement */
-    class EprsOpLowering : public OpLoweringTemplate<qnet::EprsOp, qmem::EprsOp> {
+    class EprsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::EprsOp, dialects::qmem::EprsOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::EprsOp op, dialects::qnet::EprsOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
 
-    class EprsMeasureOpLowering : public OpLoweringTemplate<qnet::EprsMeasureOp, qmem::EprsMeasureOp> {
+    class EprsMeasureOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::EprsMeasureOp, dialects::qmem::EprsMeasureOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::EprsMeasureOp op, dialects::qnet::EprsMeasureOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
 
     /* Remote operations can be mapped with a simple one-to-one operation */
-    class RemoteOpLowering : public OpLoweringTemplate<qnet::RemoteOp, qmem::RemoteOp> {
+    class RemoteOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RemoteOp, dialects::qmem::RemoteOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RemoteOp op, qnet::RemoteOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RemoteOp op, dialects::qnet::RemoteOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class SendIntsOpLowering : public OpLoweringTemplate<qnet::SendIntsOp, qmem::SendIntsOp> {
+    class SendIntsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::SendIntsOp, dialects::qmem::SendIntsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::SendIntsOp op, qnet::SendIntsOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::SendIntsOp op, dialects::qnet::SendIntsOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvIntsOpLowering : public OpLoweringTemplate<qnet::RecvIntsOp, qmem::RecvIntsOp> {
+    class RecvIntsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RecvIntsOp, dialects::qmem::RecvIntsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RecvIntsOp op, qnet::RecvIntsOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RecvIntsOp op, dialects::qnet::RecvIntsOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class SendFloatsOpLowering : public OpLoweringTemplate<qnet::SendFloatsOp, qmem::SendFloatsOp> {
+    class SendFloatsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::SendFloatsOp, dialects::qmem::SendFloatsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::SendFloatsOp op, qnet::SendFloatsOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::SendFloatsOp op, dialects::qnet::SendFloatsOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvFloatsOpLowering : public OpLoweringTemplate<qnet::RecvFloatsOp, qmem::RecvFloatsOp> {
+    class RecvFloatsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RecvFloatsOp, dialects::qmem::RecvFloatsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RecvFloatsOp op, qnet::RecvFloatsOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RecvFloatsOp op, dialects::qnet::RecvFloatsOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class NewQubitLowering : public OpLoweringTemplate<qnet::NewQubitOp, qmem::QAllocOp> {
+    class NewQubitLowering : public helpers::OpLoweringTemplate<dialects::qnet::NewQubitOp, dialects::qmem::QAllocOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::NewQubitOp op, qnet::NewQubitOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::NewQubitOp op, dialects::qnet::NewQubitOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateXLowering : public OpLoweringTemplate<qnet::RotXOp, qmem::RotateXOp> {
+    class RotateXLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotXOp, dialects::qmem::RotateXOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RotXOp op, qnet::RotXOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotXOp op, dialects::qnet::RotXOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateYLowering : public OpLoweringTemplate<qnet::RotYOp, qmem::RotateYOp> {
+    class RotateYLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotYOp, dialects::qmem::RotateYOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotYOp op, dialects::qnet::RotYOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class RotateZLowering : public OpLoweringTemplate<qnet::RotZOp, qmem::RotateZOp> {
+    class RotateZLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotZOp, dialects::qmem::RotateZOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotZOp op, dialects::qnet::RotZOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class MeasureLowering : public OpLoweringTemplate<qnet::MeasureOp, qmem::MeasureOp> {
+    class MeasureLowering : public helpers::OpLoweringTemplate<dialects::qnet::MeasureOp, dialects::qmem::MeasureOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::MeasureOp op, qnet::MeasureOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::MeasureOp op, dialects::qnet::MeasureOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class HadamardLowering : public OpLoweringTemplate<qnet::HadamardOp, qmem::HadamardOp> {
+    class HadamardLowering : public helpers::OpLoweringTemplate<dialects::qnet::HadamardOp, dialects::qmem::HadamardOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::HadamardOp op, qnet::HadamardOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::HadamardOp op, dialects::qnet::HadamardOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class CNotLowering : public OpLoweringTemplate<qnet::CnotOp, qmem::CnotOp> {
+    class CNotLowering : public helpers::OpLoweringTemplate<dialects::qnet::CnotOp, dialects::qmem::CnotOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::CnotOp op, dialects::qnet::CnotOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class CzLowering : public OpLoweringTemplate<qnet::CzOp, qmem::CzOp> {
+    class CzLowering : public helpers::OpLoweringTemplate<dialects::qnet::CzOp, dialects::qmem::CzOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::CzOp op, dialects::qnet::CzOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
-    class CRotXLowering : public OpLoweringTemplate<qnet::CrotXOp, qmem::CrotXOp> {
+    class CRotXLowering : public helpers::OpLoweringTemplate<dialects::qnet::CrotXOp, dialects::qmem::CrotXOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
 
-        std::unique_ptr<OpAndValues>
-        createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::CrotXOp op, dialects::qnet::CrotXOp::Adaptor adaptor,
                              ConversionPatternRewriter &rewriter) const override;
     };
 

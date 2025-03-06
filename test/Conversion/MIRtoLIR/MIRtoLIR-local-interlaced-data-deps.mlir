@@ -28,25 +28,22 @@ module {
     qmem.init %1
 
     // This first test case assumes that *ALL* data dependencies are declared _BEFORE_ the quantum calls
-    // CHECK: %[[CST_0:.*]] = arith.constant
+    // We don't check the existence of the constants; they are eliminated by the translation process
     %cst_0 = arith.constant 2.356194 : f32
 
     qmem.rot_x %0, %cst_0
 
-    // CHECK: %[[CST_1:.*]] = arith.constant
     %cst_1 = arith.constant 0.785398 : f32
     qmem.rot_y %0, %cst_1
 
-    // CHECK: %[[CST:.*]] = arith.constant
     %cst = arith.constant 0.5890485 : f32
     qmem.rot_z %0, %cst
     qmem.hadamard %1
     qmem.cnot %0, %1
     qmem.cz %0, %1
 
-    // CHECK: %[[CST_2:.*]] = arith.constant
     %cst_2 = arith.constant 1.570796 : f32
-    // CHECK: %[[REG_MAIN4:.*]]:2 = qoalahost.call @[[WRAPPER0]]() : () -> (i1, i1)
+    // CHECK-NEXT: %[[REG_MAIN4:.*]]:2 = qoalahost.call @[[WRAPPER0]]() : () -> (i1, i1)
     qmem.crot_x %0, %1, %cst_2
     %2 = qmem.measure %0 : i1
     %3 = qmem.measure %1 : i1

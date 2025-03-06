@@ -3,7 +3,11 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 
+#include <set>
+
 #define DEBUG_TYPE "op-classifier"
+
+using namespace mlir;
 
 namespace qoala::analysis::functionize {
     static bool operationBelongsToQMemDialect(Operation &op) {

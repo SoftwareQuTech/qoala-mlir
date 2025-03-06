@@ -70,15 +70,13 @@ module {
     // CHECK: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.init %1
 
-    // CHECK: %[[CST:.*]] = arith.constant
+    // We don't check the existence of the constants; they are eliminated by the translation process
     %cst = arith.constant 0.5890485 : f32
-    // CHECK: %[[CST_0:.*]] = arith.constant
     %cst_0 = arith.constant 2.356194 : f32
 
-    // CHECK: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %cst_0
 
-    // CHECK: %[[CST_1:.*]] = arith.constant
     %cst_1 = arith.constant 0.785398 : f32
 
     // CHECK: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
@@ -93,7 +91,6 @@ module {
     // CHECK: qoalahost.call @[[WRAPPER8]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cnot %0, %1
 
-    // CHECK: %[[CST_2:.*]] = arith.constant
     %cst_2 = arith.constant 1.570796 : f32
 
     // CHECK: qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()

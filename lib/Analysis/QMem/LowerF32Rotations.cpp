@@ -12,9 +12,6 @@
 
 #include "llvm/Support/Debug.h"
 
-namespace mlir {
-} // namespace mlir
-
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
