@@ -205,8 +205,8 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateXOp>(
                 op.getLoc(), adaptor.getQ(),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                adaptor.getNValAttr(),
+                adaptor.getExpValAttr()
                 );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
@@ -217,8 +217,8 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateYOp>(
                 op.getLoc(), adaptor.getQ(),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                adaptor.getNValAttr(),
+                adaptor.getExpValAttr()
                 );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
@@ -229,8 +229,8 @@ namespace qoala::conversion::mir {
         // Use the integers coming from the "intermediate" operation
         auto newRotate = rewriter.create<netqasm::RotateZOp>(
                 op.getLoc(), adaptor.getQ(),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                adaptor.getNValAttr(),
+                adaptor.getExpValAttr()
                 );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
@@ -240,8 +240,8 @@ namespace qoala::conversion::mir {
                                            ConversionPatternRewriter &rewriter) const {
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(
                 op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleNum()),
-                rewriter.getUI32IntegerAttr(adaptor.getAngleDenom())
+                adaptor.getNValAttr(),
+                adaptor.getExpValAttr()
                 );
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
     }
@@ -260,7 +260,9 @@ namespace qoala::conversion::mir {
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                intsAngle[0], intsAngle[1]);
+                rewriter.getUI32IntegerAttr(intsAngle[0]),
+                rewriter.getUI32IntegerAttr(intsAngle[1])
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -277,7 +279,9 @@ namespace qoala::conversion::mir {
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateYIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                intsAngle[0], intsAngle[1]);
+                rewriter.getUI32IntegerAttr(intsAngle[0]),
+                rewriter.getUI32IntegerAttr(intsAngle[1])
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -295,7 +299,9 @@ namespace qoala::conversion::mir {
         rewriter.getUI32IntegerAttr(intsAngle[0]);
         auto newRotate = rewriter.create<qmem::RotateZIntOp>(
                 op.getLoc(), adaptor.getQ(),
-                intsAngle[0], intsAngle[1]);
+                rewriter.getUI32IntegerAttr(intsAngle[0]),
+                rewriter.getUI32IntegerAttr(intsAngle[1])
+                );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -311,8 +317,10 @@ namespace qoala::conversion::mir {
         std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::CrotXIntOp>(
-            op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                intsAngle[0], intsAngle[1]);
+                    op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
+                    rewriter.getUI32IntegerAttr(intsAngle[0]),
+                    rewriter.getUI32IntegerAttr(intsAngle[1])
+                    );
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 } // namespace qoala::conversion::mir

@@ -236,30 +236,71 @@ def MeasureOp : QMem_Op<"measure"> {
 
 /* "Intermediate" operations that help in the process to "flattening" the f32 types */
 def CrotXIntOp : QMem_Op<"crot_x_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1, I32Attr:$angle_num, I32Attr:$angle_denom);
+    let arguments = (
+        ins Arg<I32, "qubit", [MemWrite]>:$qin0,
+        Arg<I32, "qubit", [MemWrite]>:$qin1,
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
+    );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a controlled X rotation with the given input qubits. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
 def RotateXIntOp : QMem_Op<"rot_x_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
+    let arguments = (
+        ins Arg<I32, "qubit", [MemWrite]>:$q,
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
+    );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the X axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
 def RotateYIntOp : QMem_Op<"rot_y_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
+    let arguments = (
+        ins Arg<I32, "qubit", [MemWrite]>:$q,
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
+    );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the Y axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
 def RotateZIntOp : QMem_Op<"rot_z_int"> {
-    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, I32Attr:$angle_num, I32Attr:$angle_denom);
+    let arguments = (
+        ins Arg<I32, "qubit", [MemWrite]>:$q,
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
+    );
     let assemblyFormat = [{
-        operands attr-dict`,` $angle_num`,` $angle_denom
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the X axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 #endif // QMEM_OPS_TD
