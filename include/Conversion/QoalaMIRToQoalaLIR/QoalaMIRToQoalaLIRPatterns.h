@@ -12,11 +12,6 @@ using namespace qoala::dialects;
 using namespace qoala::helpers;
 
 namespace qoala::conversion::mir {
-
-    func::CallOp insertCallAngleTransform(Operation *operation,
-                                          ConversionPatternRewriter &rewriter,
-                                          Value angle);
-
     /* Lowering for operations define the main function or are inside it - Will map to QoalaHost dialect */
     class RemoteOpLowering: public OpLoweringTemplate<qmem::RemoteOp, qremote::RemoteOp> {
     public:

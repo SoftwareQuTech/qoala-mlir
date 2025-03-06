@@ -185,33 +185,51 @@ def ReturnOp: NetQASM_Op<"return", [Pure, ParentOneOf<["LocalRoutineOp", "Reques
 def RotateXOp : NetQASM_Op<"rot_x"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32:$angle_num,
-        I32:$angle_denom
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
     );
     let assemblyFormat = [{
-        operands attr-dict
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the X axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
 def RotateYOp : NetQASM_Op<"rot_y"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32:$angle_num,
-        I32:$angle_denom
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
     );
     let assemblyFormat = [{
-        operands attr-dict
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the Y axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
 def RotateZOp : NetQASM_Op<"rot_z"> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
-        I32:$angle_num,
-        I32:$angle_denom
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
     );
     let assemblyFormat = [{
-        operands attr-dict
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a rotation using the Z axis as base of the given qubit. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
@@ -247,11 +265,17 @@ def CrotXOp : NetQASM_Op<"crot_x"> {
     let arguments = (
         ins Arg<I32, "qubit1", [MemWrite]>:$q1,
         Arg<I32, "qubit2", [MemWrite]>:$q2,
-        I32:$angle_num,
-        I32:$angle_denom
+        AnyI32Attr:$nVal,
+        AnyI32Attr:$expVal
     );
     let assemblyFormat = [{
-        operands attr-dict
+        operands ` ` `(` $nVal `,` $expVal `)` attr-dict
+    }];
+    let description = [{
+        Represents a controlled X rotation with the given input qubits. This rotation
+        uses 2 attributes (immediates) "nVal" and "expVal", which will perform the rotation
+        in an angle expressed in radians given by the following expression:
+        angle = \frac{n\time\pi}{2^e}
     }];
 }
 
