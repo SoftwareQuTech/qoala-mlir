@@ -1,6 +1,7 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
+using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 

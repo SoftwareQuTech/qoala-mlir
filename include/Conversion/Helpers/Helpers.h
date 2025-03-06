@@ -4,12 +4,10 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
-using namespace mlir;
-
 namespace qoala::helpers {
     struct OpAndValues {
-        Operation *operation{};
-        ValueRange values;
+        mlir::Operation *operation{};
+        mlir::ValueRange values;
     };
 
     /* Helper template class used to create simple operation rewriter classes */
@@ -23,10 +21,10 @@ namespace qoala::helpers {
      *                 _one_ of the given destination types
      */
     template <typename SourceOp, typename... DestOps>
-    class OpLoweringTemplate : public OpConversionPattern<SourceOp> {
+    class OpLoweringTemplate : public mlir::OpConversionPattern<SourceOp> {
     public:
         // Constructor simply matches the super class
-        using OpConversionPattern<SourceOp>::OpConversionPattern;
+        using mlir::OpConversionPattern<SourceOp>::OpConversionPattern;
 
         /**
          * Defines how to create an Operation on the destination dialect, using
@@ -53,26 +51,26 @@ namespace qoala::helpers {
          */
         virtual std::unique_ptr<OpAndValues>
                 createNewOpAndValues(SourceOp op, typename SourceOp::Adaptor adaptor,
-                                     ConversionPatternRewriter &rewriter) const = 0;
+                                     mlir::ConversionPatternRewriter &rewriter) const = 0;
 
-        LogicalResult
+        mlir::LogicalResult
         matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        ConversionPatternRewriter &rewriter) const override {
+                        mlir::ConversionPatternRewriter &rewriter) const override {
             std::unique_ptr<OpAndValues> newOpAndVals = createNewOpAndValues(op, adaptor, rewriter);
             // Expect an operation of a type of the declared destination types
             assert(llvm::isa<DestOps...>(newOpAndVals->operation));
             // We use the "replace op for values" method; This method check that the old op
             // yield the same number of SSA results as the given values
             rewriter.replaceOp(op, newOpAndVals->values);
-            return success();
+            return mlir::success();
         }
     };
 
     namespace angle {
         extern std::string angleConversionFunctionName;
 
-        bool moduleContainsAngleConversionDeclaration(ModuleOp &module);
-        Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module);
+        bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
+        mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);
         std::vector<uint32_t> transformDouble(double angleRads);
     } // namespace qoala::helpers::angle
 
@@ -83,9 +81,9 @@ namespace qoala::helpers {
             IdentRAII(int &indent) : indent(indent) {}
             ~IdentRAII() { --indent; }
         };
-        void printOperation(Operation *op);
-        void printRegion(Region &region);
-        void printBlock(Block &block);
+        void printOperation(mlir::Operation *op);
+        void printRegion(mlir::Region &region);
+        void printBlock(mlir::Block &block);
         void resetIndent();
         IdentRAII pushIndent();
 

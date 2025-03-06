@@ -5,6 +5,7 @@
 
 #define DEBUG_TYPE "angletransformhelper"
 
+using namespace mlir;
 
 namespace qoala::helpers::angle {
 

@@ -11,7 +11,7 @@
 
 #define DEBUG_TYPE "mir-to-lir"
 
-using namespace llvm;
+using namespace mlir;
 using namespace qoala::dialects;
 
 namespace qoala::conversion {

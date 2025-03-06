@@ -7,6 +7,7 @@
 
 #define DEBUG_TYPE "mir-to-lir-pattens"
 
+using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
 
