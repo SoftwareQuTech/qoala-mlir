@@ -6,28 +6,40 @@
 module {
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
-  // TODO - Double check the checks of mapped operations for this example
-  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]([[ARG0_0:.*]]: i32) -> i1
-  // CHECK-NEXT: %[[REG0_0:.*]] = netqasm.qalloc : i32
+  // CHECK-LABEL: netqasm.local_routine @[[WRAPPER0:.*]]([[ARG0_0:.*]]: i32) -> i1
+  // CHECK: %[[C1:.*]] = arith.constant 1 : i32
+  // CHECK: %[[REG0_0:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.init %[[REG0_0]]
+  // CHECK-NEXT: %[[BR_RES:.*]] = arith.cmpi eq, %[[ARG0_0]], %[[C1]] : i32
+  // CHECK-NEXT: cf.cond_branch %[[BR_RES]], ^[[BB1.:*]], ^[[BB2:*]]
+  // CHECK-NEXT: ^[[BB1]]:
   // CHECK-NEXT: netqasm.rot_x %[[REG0_0]] (3 : ui32, 2 : ui32)
+  // CHECK-NEXT: cf.br ^[[BB3:.*]]
+  // CHECK-NEXT: ^[[BB2]]:
+  // CHECK-NEXT: netqasm.rot_y %[[REG0_0]] (1 : ui32, 2 : ui32)
+  // CHECK-NEXT: cf.br ^[[BB3:.*]]
+  // CHECK-NEXT: ^[[BB3]]:
   // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.measure %[[REG0_0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG0_1]] : i1
 
-  // CHECK: qoalahost.main_func @test_remote_quantum_program()
-  qmem.func @test_remote_quantum_program() -> i1 {
-    %c0 = arith.constant 0 : i32
+  // CHECK: qoalahost.main_func @test_remote_quantum_program(%[[ARG0:.*]]: i32) -> i1
+  qmem.func @test_remote_quantum_program(%arg0: i32) -> i1 {
+    // The next three constants should flow inside ^bb1 and ^bb2
+    // Base constant to compare the argument.
     %c1 = arith.constant 1 : i32
     %cst_0 = arith.constant 2.356194 : f32
     %cst_1 = arith.constant 0.785398 : f32
 
+    // CHECK: %[[CALL_RES:.*]] = qoalahost.call @[[WRAPPER0]](%[[ARG0]]) : (i32) -> i1
+    // All the following instructions should be moved inside the netqasm local routine
+    // *including* the branching operations, and the branching blocks, to preserve the
+    // semantics of the program.
     %0 = qmem.qalloc : i32
     qmem.init %0
 
-    %branch = arith.cmpi eq, %c0, %c1 : i32
+    %branch = arith.cmpi eq, %arg0, %c1 : i32
     cf.cond_br %branch, ^bb1(%cst_0: f32), ^bb2(%cst_1: f32)
 
-    // CHECK-NEXT: %[[REG_MAIN2:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
   ^bb1(%a1: f32):
     qmem.rot_x %0, %a1
     cf.br ^bb3
@@ -39,7 +51,7 @@ module {
   ^bb3:
     %2 = qmem.measure %0 : i1
 
-    // CHECK: qoalahost.return
+    // CHECK-NEXT: qoalahost.return %[[CALL_RES]]
     qmem.return %2 : i1
   }
 }
