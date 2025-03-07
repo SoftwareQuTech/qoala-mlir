@@ -2,6 +2,8 @@
 #include "Analysis/Helpers/QMemInterfaces.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 
 #include <set>
 
@@ -10,28 +12,34 @@
 using namespace mlir;
 
 namespace qoala::analysis::functionize {
-    static bool operationBelongsToQMemDialect(Operation &op) {
+    [[nodiscard]]
+    static bool operationIsCmpOrBranch(const Operation &op) {
+        // This function will detect arith and cf operations that can be moved into the
+        // netqasm body of a local routine.
+        return llvm::isa<arith::ConstantOp, arith::CmpIOp, cf::CondBranchOp, cf::BranchOp>(op);
+    }
+    static bool operationBelongsToQMemDialect(const Operation &op) {
         return llvm::isa<
 #define GET_OP_LIST
 #include "Dialect/QMem/QMem.cpp.inc"
         >(op);
     }
 
-    static bool qMemOpIsaBreakingPoint(Operation &op) {
+    static bool qMemOpIsaBreakingPoint(const Operation &op) {
         return llvm::isa<
                 dialects::qmem::RecvFloatsOp,
                 dialects::qmem::RecvIntsOp
         >(op);
     }
 
-    static bool qMemOpIsEprs(Operation &op) {
+    static bool qMemOpIsEprs(const Operation &op) {
         return llvm::isa<
                 dialects::qmem::EprsOp,
                 dialects::qmem::EprsMeasureOp
         >(op);
     }
 
-    static bool qMemOpShouldRemainInBody(Operation &op) {
+    static bool qMemOpShouldRemainInBody(const Operation &op) {
         return llvm::isa<
                 dialects::qmem::SendIntsOp,
                 dialects::qmem::SendFloatsOp,
@@ -85,7 +93,7 @@ namespace qoala::analysis::functionize {
             }
         }
 
-        std::vector<QuantumOpsGroupTy> getAllFinalGroups() {
+        std::vector<QuantumOpsGroupTy> getAllFinalGroups() const {
             unsigned int groupNum = 0;
             std::vector<QuantumOpsGroupTy> opsGroups;
             for (auto qubitGroupsEntry: operationGroups) {
@@ -131,6 +139,7 @@ namespace qoala::analysis::functionize {
             LLVM_DEBUG(llvm::dbgs() << " Classifying op = " << op << "\n");
             if (!operationBelongsToQMemDialect(op) || qMemOpShouldRemainInBody(op)) {
                 // Operation is not QMem or it was already grouped
+                LLVM_DEBUG(llvm::dbgs() << " Discarding (not grouping) op = " << op << "\n");
                 continue;
             }
             if (qMemOpIsaBreakingPoint(op)) {
@@ -139,35 +148,34 @@ namespace qoala::analysis::functionize {
                 // Additionally, it should stay in the main body...
                 qubitGroupsMap.commitAllCurrentGroups();
                 continue;
-            } else {
-                // We get the involved qubits of the operation
-                auto qubitOp = dyn_cast<qoala::helpers::OpQubitsInterface>(op);
-                std::vector<Operation *> involvedQubits = qubitOp.getOpsAllocatingUsedQubits();
-                assert(!involvedQubits.empty());
+            }
+            // We get the involved qubits of the operation
+            auto qubitOp = dyn_cast<helpers::OpQubitsInterface>(op);
+            std::vector<Operation *> involvedQubits = qubitOp.getOpsAllocatingUsedQubits();
+            assert(!involvedQubits.empty());
 
-                if (llvm::isa<dialects::qmem::QAllocOp>(op)) {
-                    // The op is a qalloc
-                    if (eprsQubits.contains(&op)) {
-                        // We start a new group for this qubit iff it is used for eprs
-                        qubitGroupsMap.mapNewQubit(&op);
-                    } else {
-                        // Otherwise, we attach this "local" qubit to the current group of local ops
-                        qubitGroupsMap.attachNewQubitToLocalOpsGroups(&op);
-                    }
+            if (llvm::isa<dialects::qmem::QAllocOp>(op)) {
+                // The op is a qalloc
+                if (eprsQubits.contains(&op)) {
+                    // We start a new group for this qubit iff it is used for eprs
+                    qubitGroupsMap.mapNewQubit(&op);
                 } else {
-                    // We choose one of the involved qubits to attach this op to its group. In particular
-                    // the first qubit that appears lexicographically
-                    Operation *baseQubitOperation = involvedQubits[0];
-                    // Similar as before, we need to *get a reference* of the group to insert the operation
-                    // If we don't declare the group as a reference, then *it gets copied* into the local variable
-                    // so the operation will not be inserted in the respective group
-                    QuantumOpsGroupTy &currentOpsGroup = qubitGroupsMap[baseQubitOperation];
-                    // We insert the operation in the group
-                    currentOpsGroup.push_back(&op);
-                    // If the operation is EPRS, it also acts as a barrier
-                    if (qMemOpIsEprs(op)) {
-                        qubitGroupsMap.commitAllCurrentGroups();
-                    }
+                    // Otherwise, we attach this "local" qubit to the current group of local ops
+                    qubitGroupsMap.attachNewQubitToLocalOpsGroups(&op);
+                }
+            } else {
+                // We choose one of the involved qubits to attach this op to its group. In particular
+                // the first qubit that appears lexicographically
+                Operation *baseQubitOperation = involvedQubits[0];
+                // Similar as before, we need to *get a reference* of the group to insert the operation
+                // If we don't declare the group as a reference, then *it gets copied* into the local variable
+                // so the operation will not be inserted in the respective group
+                QuantumOpsGroupTy &currentOpsGroup = qubitGroupsMap[baseQubitOperation];
+                // We insert the operation in the group
+                currentOpsGroup.push_back(&op);
+                // If the operation is EPRS, it also acts as a barrier
+                if (qMemOpIsEprs(op)) {
+                    qubitGroupsMap.commitAllCurrentGroups();
                 }
             }
         }
