@@ -25,7 +25,9 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
      */
     let options = [
         Option<"useSimpleFunctionize", "use-simple-functionize", "bool", /*default=*/"false",
-               "WARNING: Use simple functionize; use a single quantum operation in a function wrapper.">
+               "WARNING: Use simple functionize; use a single quantum operation in a function wrapper.">,
+        Option<"useSCCP", "use-sccp", "bool", /*default=*/"false",
+               "Use an SCCP pass to propagate constants inside nested blocks in the main function.">
     ];
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR

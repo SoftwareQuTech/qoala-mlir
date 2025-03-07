@@ -1,6 +1,6 @@
 // UNSUPPORTED: true
-// Grouping arith+cf.cond_branch instructions is not supported yet.
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
+// Grouping arith+cf.cond_branch instructions inside local routines is not supported yet.
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir=use-sccp | FileCheck %s
 
 // CHECK: module
 module {
