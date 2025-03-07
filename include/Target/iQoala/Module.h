@@ -18,6 +18,7 @@ namespace qoala::iqoala {
         void addRemoteDeclaration(mlir::StringRef remoteName);
         void setModuleName(mlir::StringRef newModuleName);
         void addRoutine(QuantumRoutine &newRoutine);
+        Block *addHostBlock();
 
     private:
         mlir::StringRef moduleName;

@@ -86,7 +86,7 @@ namespace qoala::assembly {
             EXPRESSION
         };
 
-        iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
+        iQoalaMCOperand() : inst(nullptr), kind(INVALID), integerVal(0) { };
         ~iQoalaMCOperand() override { };
         [[nodiscard]]
         bool isValid() const;

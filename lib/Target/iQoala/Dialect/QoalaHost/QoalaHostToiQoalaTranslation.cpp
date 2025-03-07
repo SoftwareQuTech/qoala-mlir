@@ -13,6 +13,7 @@ using namespace mlir;
 using namespace qoala::dialects::qoalahost;
 
 static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation &moduleTranslation) {
+    (void) moduleTranslation.emplaceNewBlockInHostSection(&block);
     for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation.convertOperation(op))) {
             return op.emitOpError("cannot covert operation '") << op << "'\n";
@@ -23,7 +24,7 @@ static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTransl
 
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::translate::ModuleTranslation &moduleTranslation) {
     moduleTranslation.setModuleName(mainFuncOP.getName());
-    for (mlir::Block &block: mainFuncOP.getBlocks()) {
+    for (Block &block : mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")
                     << mainFuncOP.getSymName() << "'\n";

@@ -3,6 +3,12 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
+    Block::~Block() {
+        for (const auto *instruction : this->instructions) {
+            delete instruction;
+        }
+    }
+
     raw_ostream &operator<<(raw_ostream &os, Block::BlockType block) {
         switch (block) {
             case Block::CC:
@@ -26,8 +32,8 @@ namespace qoala::iqoala {
 
     void Block::print(raw_ostream &os) const {
         os << "b" << blockNumber << " { type = " << this->type << " }\n";
-        for (const assembly::QoalaHostMCInstr &instruction : this->instructions) {
-            os << tabStr << instruction << "\n";
+        for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
+            os << tabStr << *instruction << "\n";
         }
     }
 }

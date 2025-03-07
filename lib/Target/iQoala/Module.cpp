@@ -16,25 +16,29 @@ namespace qoala::iqoala {
            << this->iQoalaProgram.requestSection << "\n";
     }
 
-    void iQoalaModule::addRemoteDeclaration(StringRef remoteName) {
-        std::string temp = remoteName.str();
+    void iQoalaModule::addRemoteDeclaration(const StringRef remoteName) {
+        const std::string temp = remoteName.str();
         this->iQoalaProgram.metaSection.addRemote(temp);
     }
 
-    void iQoalaModule::setModuleName(StringRef newModuleName) {
-        std::string temp = newModuleName.str();
+    void iQoalaModule::setModuleName(const StringRef newModuleName) {
+        const std::string temp = newModuleName.str();
         this->moduleName = newModuleName;
         this->iQoalaProgram.metaSection.setName(temp);
     }
 
     void iQoalaModule::addRoutine(QuantumRoutine &newRoutine) {
-        if (auto localRoutine = dyn_cast<LocalQuantumRoutine>(&newRoutine)) {
+        if (const auto localRoutine = dyn_cast<LocalQuantumRoutine>(&newRoutine)) {
             this->iQoalaProgram.netQASMSection.addRoutine(*localRoutine);
             return;
         }
-        if (auto remoteRoutine = dyn_cast<RequestQuantumRoutine>(&newRoutine)) {
+        if (const auto remoteRoutine = dyn_cast<RequestQuantumRoutine>(&newRoutine)) {
             this->iQoalaProgram.requestSection.addRoutine(*remoteRoutine);
             return;
         }
+    }
+
+    Block *iQoalaModule::addHostBlock() {
+        return this->iQoalaProgram.hostSection.createNewBlock();
     }
 }

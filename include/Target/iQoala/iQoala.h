@@ -108,7 +108,7 @@ namespace qoala::iqoala {
         static bool classof(const QuantumRoutine *rt) {
             return rt->getKind() == QRK_Quantum;
         }
-        // TODO - More methonds might come
+        // TODO - More methods might come
     private:
         // The list of returns
         std::vector<std::string> returns;
@@ -142,6 +142,7 @@ namespace qoala::iqoala {
         enum BlockType { CL, CC, QL, QC };
         Block() = default;
         Block(const Block &b) = default;
+        ~Block() override;
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -150,7 +151,7 @@ namespace qoala::iqoala {
         // Name of the block
         std::string name;
         // List of QoalaHostMCInstr that compose the block
-        std::vector<assembly::QoalaHostMCInstr> instructions;
+        std::vector<assembly::QoalaHostMCInstr *> instructions;
     };
 
     /* Sections of the iQoala program */
@@ -177,12 +178,15 @@ namespace qoala::iqoala {
     public:
         HostSection() = default;
         HostSection(const HostSection &section) = default;
+        ~HostSection() override;
+
+        Block *createNewBlock();
 
         void print(mlir::raw_ostream &os) const override;
     private:
         // The host section only contains a list of "Blocks".
         // Each block contains the QoalaHost instructions to execute.
-        std::vector<Block> hostBlocks;
+        std::vector<Block *> hostBlocks;
     };
 
     /* These are the LOCAL quantum routines to be executed by the CPS */

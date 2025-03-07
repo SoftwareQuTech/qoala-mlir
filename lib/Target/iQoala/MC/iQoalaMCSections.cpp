@@ -15,8 +15,8 @@ namespace qoala::iqoala {
 
     void HostSection::print(raw_ostream &os) const {
         // Iteratively print all the blocks
-        for (const Block &block : this->hostBlocks) {
-            os << block << "\n";
+        for (const Block *block : this->hostBlocks) {
+            os << *block << "\n";
         }
     }
 
@@ -52,5 +52,17 @@ namespace qoala::iqoala {
 
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;
+    }
+
+    HostSection::~HostSection() {
+        for (const Block *block : this->hostBlocks) {
+            delete block;
+        }
+    }
+
+    Block *HostSection::createNewBlock() {
+        auto *block = new Block();
+        this->hostBlocks.push_back(block);
+        return block;
     }
 }

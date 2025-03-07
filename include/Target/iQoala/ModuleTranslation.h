@@ -4,29 +4,35 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/ADT/StringRef.h"
+#include "mlir/Support/LLVM.h"
 #include "Target/iQoala/Export.h"
+#include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 
 namespace qoala::translate {
     class ModuleTranslation {
+    public:
         friend std::unique_ptr<iqoala::iQoalaModule>
         translateModuleToiQoala(mlir::Operation *originalModule, iqoala::iQoalaContext &iQoalaContext,
                                 llvm::StringRef name);
-    private:
         ModuleTranslation(mlir::ModuleOp *module,
                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
-	mlir::ModuleOp *mlirModule;
-        std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
-        QoalaTranslationInterfaces iface;
+
         // TODO - Define the public functions that we need to place in this class
-    public:
-	mlir::LogicalResult convertOperation(mlir::Operation &op);
-	mlir::LogicalResult convertFunctionSignatures() const;
+	    mlir::LogicalResult convertOperation(mlir::Operation &op);
+	    mlir::LogicalResult convertFunctionSignatures() const;
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
+        iqoala::Block *emplaceNewBlockInHostSection(mlir::Block *mlirBlock);
 
         [[nodiscard]]
-        mlir::ModuleOp *getModule() const { return mlirModule; }
+        mlir::ModuleOp *getMLIRModule() const { return mlirModule; }
+    private:
+        mlir::ModuleOp *mlirModule;
+        std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
+        QoalaTranslationInterfaces iface;
+        // Mappings MLIR and MC objects
+        mlir::DenseMap<mlir::Block *, iqoala::Block *> functionMap;
     };
 }
 
