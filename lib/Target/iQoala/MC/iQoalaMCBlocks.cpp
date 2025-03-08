@@ -9,6 +9,10 @@ namespace qoala::iqoala {
         }
     }
 
+    void Block::appendInstruction(assembly::QoalaHostMCInstr *instruction) {
+        this->instructions.push_back(instruction);
+    }
+
     raw_ostream &operator<<(raw_ostream &os, Block::BlockType block) {
         switch (block) {
             case Block::CC:

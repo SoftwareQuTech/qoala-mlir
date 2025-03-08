@@ -5,6 +5,7 @@ add_mlir_translation_library(MLIRTensorToiQoalaTranslation
         Core
 
         LINK_LIBS PUBLIC
+        MLIRTargetiQoalaExport
         MLIRIR
         MLIRTensorDialect
         MLIRSupport

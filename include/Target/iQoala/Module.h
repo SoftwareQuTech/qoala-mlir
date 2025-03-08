@@ -7,12 +7,11 @@
 namespace qoala::iqoala {
     class iQoalaModule : public helpers::PrintInterface{
     public:
-        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name), iQoalaCtx(context) { }
+        iQoalaModule(llvm::StringRef name, iQoalaContext *context) : moduleName(name), iQoalaCtx(context) { }
         void print(mlir::raw_ostream &os) const override;
 
-        iQoalaContext &getiQoalaContext() {
-            return iQoalaCtx;
-        }
+        [[nodiscard]]
+        iQoalaContext *getiQoalaContext() const ;
 
         // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
         void addRemoteDeclaration(mlir::StringRef remoteName);
@@ -33,7 +32,7 @@ namespace qoala::iqoala {
             NetQASMSection netQASMSection;
             RequestSection requestSection;
         } iQoalaProgram;
-        iQoalaContext iQoalaCtx;
+        iQoalaContext *iQoalaCtx;
     };
 }
 

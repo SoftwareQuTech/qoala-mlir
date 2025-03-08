@@ -24,22 +24,22 @@ namespace qoala::assembly {
             case OP_LOAD:
             case OP_STORE:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isRegister());
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
                 printStoreOrLoad(os);
                 break;
             case OP_LEA:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister());
+                assert(this->operands[0]->isRegister());
                 // TODO - Check if the second argument of a lea (address) is an expr or immediate
-                assert(this->operands[1].isExpression());
+                assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
             // "undef" instruction is not inpreted by qoala-sim
             // Classical Logic
             case OP_JMP:
                 assert(this->operands.size() == 1);
-                assert(this->operands[0].isImmediate());
+                assert(this->operands[0]->isImmediate());
                 this->printInstrInGenericForm("jmp", os);
                 break;
             case OP_BEZ:
@@ -138,37 +138,37 @@ namespace qoala::assembly {
 
     void NetQASMMCInstr::printOneRegInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 1);
-        assert(this->operands[0].isRegister());
+        assert(this->operands[0]->isRegister());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printTwoRegInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 2);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printOneRegTwoImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 3);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isImmediate());
-        assert(this->operands[2].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isImmediate());
+        assert(this->operands[2]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printOneRegOneImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 2);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printTwoRegsOneImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 3);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
-        assert(this->operands[2].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
+        assert(this->operands[2]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
@@ -180,11 +180,11 @@ namespace qoala::assembly {
             numOperands = 3;
         }
         assert(this->operands.size() == numOperands);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
-        assert(this->operands[2].isRegister());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
+        assert(this->operands[2]->isRegister());
         if (usesFourRegs) {
-            assert(this->operands[3].isRegister());
+            assert(this->operands[3]->isRegister());
         }
         this->printInstrInGenericForm(mnemonic, os);
     }
@@ -192,8 +192,8 @@ namespace qoala::assembly {
     void NetQASMMCInstr::printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const {
         // Method to print a NetQASM "machine code" instruction, for the "generic" form
         os << mnemonic;
-        for (const iQoalaMCOperand &operand : this->operands) {
-            os << " " << operand;
+        for (const iQoalaMCOperand *operand : this->operands) {
+            os << " " << *operand;
         }
     }
 

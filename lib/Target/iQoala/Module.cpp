@@ -8,6 +8,10 @@ using namespace mlir;
 namespace qoala::iqoala {
     std::string tabStr = "    ";
 
+    iQoalaContext *iQoalaModule::getiQoalaContext() const {
+        return this->iQoalaCtx;
+    }
+
     void iQoalaModule::print(raw_ostream &os) const {
         // Call the "print" functions in the sections of the executable
         os << this->iQoalaProgram.metaSection << "\n"

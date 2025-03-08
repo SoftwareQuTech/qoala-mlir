@@ -18,6 +18,9 @@ namespace qoala::translate {
         return module.getRegion(0).front();
     }
 
+    ModuleOp *ModuleTranslation::getMLIRModule() const { return mlirModule; }
+    iQoalaModule *ModuleTranslation::getQoalaModule() const { return iQoalaModule.get(); }
+
     ModuleTranslation::ModuleTranslation (ModuleOp *module,
                                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)
                                           : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
@@ -34,7 +37,7 @@ namespace qoala::translate {
                                 "dialect for op: ")
                     << op.getName();
         }
-        return opIface->convertOperation(&op, *this);
+        return opIface->convertOperation(&op, this);
     }
 
     void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
@@ -47,10 +50,16 @@ namespace qoala::translate {
 
     iqoala::Block *ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
         auto *newBlock = this->iQoalaModule->addHostBlock();
-        const auto result = this->functionMap.try_emplace(mlirBlock, newBlock);
+        const auto result = this->blocksMap.try_emplace(mlirBlock, newBlock);
         (void)result;
         assert(result.second && "attempting to map a block that is already mapped");
         return newBlock;
+    }
+
+
+    iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
+        assert(this->blocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
+        return this->blocksMap.at(mlirBlock);
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() const {
@@ -73,7 +82,7 @@ namespace qoala::translate {
     std::unique_ptr<iQoalaModule> translate::translateModuleToiQoala(
             Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
         // Entry point for the transformations
-        auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, iQoalaContext);
+        auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, &iQoalaContext);
         auto mlirModule = dyn_cast<ModuleOp>(originalModule);
         ModuleTranslation moduleTranslation(&mlirModule, iQoalaModule);
         // First, we translate the module itself

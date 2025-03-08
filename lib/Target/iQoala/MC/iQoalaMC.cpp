@@ -3,6 +3,64 @@
 #include "mlir/IR/Diagnostics.h"
 
 namespace qoala::assembly {
+    /* Builders */
+    iQoalaMCOperand::iQoalaRegReference *
+    iQoalaMCOperand::iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
+        auto regReference = new iQoalaRegReference();
+        regReference->type = type;
+        regReference->num = num;
+        return regReference;
+    }
+
+    iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(std::string symName) {
+        auto expr = new iQoalaMCExpr();
+        expr->kind = SYMBOL_REFERENCE;
+        expr->symbolName = symName.data();
+        return expr;
+    }
+
+    iQoalaMCExpr *iQoalaMCExpr::createConstant(const uint32_t value) {
+        auto expr = new iQoalaMCExpr();
+        expr->kind = CONSTANT_I32;
+        expr->i32ConstVal = value;
+        return expr;
+    }
+
+    iQoalaMCExpr *iQoalaMCExpr::createConstant(const float value) {
+        auto expr = new iQoalaMCExpr();
+        expr->kind = CONSTANT_F32;
+        expr->f32ConstVal = value;
+        return expr;
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = IMMEDIATE_I32;
+        operand->integerVal = val;
+        return operand;
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const float val) {
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = IMMEDIATE_F32;
+        operand->floatingPointVal = val;
+        return operand;
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createRegisterOperand(iQoalaRegReference *regRef) {
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = REGISTER;
+        operand->regRef = regRef;
+        return operand;
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createExprOperand(iQoalaMCExpr *expr) {
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = EXPRESSION;
+        operand->expression = expr;
+        return operand;
+    }
+
     /* General functions for the ASM classes */
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
@@ -20,12 +78,12 @@ namespace qoala::assembly {
     unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
-    const iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
-    iQoalaMCOperand &iQoalaMCInstruction::getOperand(unsigned i) { return operands[i]; }
+    iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) { return operands[i]; }
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
-    void iQoalaMCInstruction::addOperand(iQoalaMCOperand &op) {
-        op.setInst(this);
+    void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {
+        op->setInst(this);
         operands.push_back(op);
     }
 
@@ -46,20 +104,20 @@ namespace qoala::assembly {
         }
     }
 
-    static std::string formatRegister(const iQoalaMCOperand::iQoalaRegReference *registerRef) {
+    std::string iQoalaMCOperand::iQoalaRegReference::formatRegister() const {
         std::stringstream formattedRegStr;
-        switch (registerRef->type) {
+        switch (this->type) {
             case R:
-                formattedRegStr << "R" << registerRef->num;
+                formattedRegStr << "R" << this->num;
                 break;
             case C:
-                formattedRegStr << "C" << registerRef->num;
+                formattedRegStr << "C" << this->num;
                 break;
             case M:
-                formattedRegStr << "M" << registerRef->num;
+                formattedRegStr << "M" << this->num;
                 break;
             case Q:
-                formattedRegStr << "Q" << registerRef->num;
+                formattedRegStr << "Q" << this->num;
                 break;
         }
         return formattedRegStr.str();
@@ -77,7 +135,7 @@ namespace qoala::assembly {
                 os << this->floatingPointVal;
                 break;
             case REGISTER:
-                os << formatRegister(this->regRef);
+                os << this->regRef->formatRegister();
                 break;
             case LOCAL_REGISTER:
                 os << "%" << this->localRegNum;

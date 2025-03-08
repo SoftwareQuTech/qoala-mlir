@@ -5,6 +5,7 @@ add_mlir_translation_library(MLIRNetQASMToiQoalaTranslation
         Core
 
         LINK_LIBS PUBLIC
+        MLIRTargetiQoalaExport
         MLIRIR
         MLIRNetQASM
         MLIRSupport

@@ -14,7 +14,7 @@ namespace qoala::translate {
     public:
         using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
 
-        mlir::LogicalResult convertOperation(mlir::Operation *op, ModuleTranslation &moduleTranslation) const final;
+        mlir::LogicalResult convertOperation(mlir::Operation *op, ModuleTranslation *moduleTranslation) const final;
 
         static void registerInto(mlir::DialectRegistry &registry) {
             registeriQoalaTranslation<dialects::netqasm::NetQASMDialect, NetQASMToiQoalaTranslation>(registry);

@@ -5,6 +5,7 @@ add_mlir_translation_library(MLIRQRemoteToiQoalaTranslation
         Core
 
         LINK_LIBS PUBLIC
+        MLIRTargetiQoalaExport
         MLIRIR
         MLIRQRemote
         MLIRSupport

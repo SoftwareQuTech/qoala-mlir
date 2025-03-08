@@ -16,7 +16,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation) {
 }
 
 namespace qoala::translate {
-    LogicalResult TensorToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+    LogicalResult TensorToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
         return translateNetQASMOperation(op);
     }
 }

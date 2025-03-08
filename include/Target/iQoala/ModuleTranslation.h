@@ -23,16 +23,20 @@ namespace qoala::translate {
 	    mlir::LogicalResult convertFunctionSignatures() const;
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
+        // Block-relates functions
         iqoala::Block *emplaceNewBlockInHostSection(mlir::Block *mlirBlock);
+        iqoala::Block *getMappediQoalaBlock(const mlir::Block *mlirBlock) const;
 
         [[nodiscard]]
-        mlir::ModuleOp *getMLIRModule() const { return mlirModule; }
+        mlir::ModuleOp *getMLIRModule() const;
+        [[nodiscard]]
+        iqoala::iQoalaModule *getQoalaModule() const;
     private:
         mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         QoalaTranslationInterfaces iface;
         // Mappings MLIR and MC objects
-        mlir::DenseMap<mlir::Block *, iqoala::Block *> functionMap;
+        mlir::DenseMap<mlir::Block *, iqoala::Block *> blocksMap;
     };
 }
 

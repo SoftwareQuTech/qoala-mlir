@@ -145,6 +145,7 @@ namespace qoala::iqoala {
         ~Block() override;
 
         void print(mlir::raw_ostream &os) const override;
+        void appendInstruction(assembly::QoalaHostMCInstr *instruction);
     private:
         // type of the Block (CL, CC, QL, QC)
         BlockType type;
