@@ -21,10 +21,10 @@ static LogicalResult translateArithOperation(Operation *operation, const qoala::
                 iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
 
                 qoala::iqoala::iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
-                const uint8_t regNum = context->allocateRRegister();
-                // TODO - In the meantime, we will just allocate R registries
-                auto *regRef = iQoalaMCOperand::iQoalaRegReference::createRegReference(R, regNum);
-                iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
+                const uint8_t regNum = context->allocateHostRegister();
+                LLVM_DEBUG(llvm::dbgs() << "Allocated memory for iQoala register '" << static_cast<unsigned int>(regNum) << "' *** \n");
+                // TODO - In the meantime, we will just allocate Host registries
+                iQoalaMCOperand *regOperand = iQoalaMCOperand::createLocalRegisterOperand(regNum);
 
                 QoalaHostMCInstr *newAssign = QoalaHostMCInstr::createAssignCValInstr(op.getOperation(), regOperand, immediateVal);
 

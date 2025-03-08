@@ -6,28 +6,28 @@ namespace qoala::assembly {
     /* Builders */
     iQoalaMCOperand::iQoalaRegReference *
     iQoalaMCOperand::iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
-        auto regReference = new iQoalaRegReference();
+        const auto regReference = new iQoalaRegReference();
         regReference->type = type;
         regReference->num = num;
         return regReference;
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(std::string symName) {
-        auto expr = new iQoalaMCExpr();
+        const auto expr = new iQoalaMCExpr();
         expr->kind = SYMBOL_REFERENCE;
         expr->symbolName = symName.data();
         return expr;
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createConstant(const uint32_t value) {
-        auto expr = new iQoalaMCExpr();
+        const auto expr = new iQoalaMCExpr();
         expr->kind = CONSTANT_I32;
         expr->i32ConstVal = value;
         return expr;
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createConstant(const float value) {
-        auto expr = new iQoalaMCExpr();
+        const auto expr = new iQoalaMCExpr();
         expr->kind = CONSTANT_F32;
         expr->f32ConstVal = value;
         return expr;
@@ -51,6 +51,13 @@ namespace qoala::assembly {
         const auto operand = new iQoalaMCOperand();
         operand->kind = REGISTER;
         operand->regRef = regRef;
+        return operand;
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createLocalRegisterOperand(const uint8_t regNum) {
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = LOCAL_REGISTER;
+        operand->localRegNum = regNum;
         return operand;
     }
 

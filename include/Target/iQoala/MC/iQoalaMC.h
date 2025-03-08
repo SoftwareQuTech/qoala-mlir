@@ -104,6 +104,7 @@ namespace qoala::assembly {
         static iQoalaMCOperand *createImmediateOperand(uint32_t val);
         static iQoalaMCOperand *createImmediateOperand(float val);
         static iQoalaMCOperand *createRegisterOperand(iQoalaRegReference *regRef);
+        static iQoalaMCOperand *createLocalRegisterOperand(uint8_t regNum);
         static iQoalaMCOperand *createExprOperand(iQoalaMCExpr *expr);
     };
 

@@ -9,7 +9,7 @@ namespace qoala::assembly {
     }
 
     QoalaHostMCInstr *QoalaHostMCInstr::createAssignCValInstr(Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm) {
-        assert(reg->isRegister() && "first operand must be a register");
+        assert(reg->isLocalRegister() && "first operand must be a local register");
         assert(imm->isImmediate() && "second operand must be an immediate");
         auto *instr = new QoalaHostMCInstr(op, OP_ASSIGN_CVAL);
         instr->addOperand(reg);
@@ -36,7 +36,7 @@ namespace qoala::assembly {
             nextElement++;
         }
 
-        os << mnemonic << " ";
+        os << mnemonic << " (";
 
         for (; currentElement != this->operands.end(); currentElement++) {
             os << *currentElement << (nextElement != lastElement ? ", " : "");

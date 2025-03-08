@@ -17,10 +17,6 @@ add_mlir_translation_library(MLIRTargetiQoalaExport
         TargetParser
 
         LINK_LIBS PUBLIC
-        # TODO - Link the right dialect libraries!
-        #MLIRDLTIDialect
-        #MLIRLLVMDialect
-        #MLIRLLVMIRTransforms
         MLIRiQoalaMCLib
         QoalaAnalysisHelpers
         MLIRTranslateLib
