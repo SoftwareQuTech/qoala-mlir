@@ -59,6 +59,30 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 }
                 return op.emitError("Arith constant operation not in host or netqasm section!") << *op << "\n";
             })
+            .Case<arith::CmpIOp>([&](arith::CmpIOp op) -> LogicalResult {
+                // TODO - Implement cmp operations
+                return success();
+            })
+            .Case<arith::AddIOp>([&](arith::AddIOp op) -> LogicalResult {
+                // TODO - Implement add operations
+                return success();
+            })
+            .Case<arith::SubIOp>([&](arith::SubIOp op) -> LogicalResult {
+                // TODO - Implement sub operations
+                return success();
+            })
+            .Case<arith::MulIOp>([&](arith::MulIOp op) -> LogicalResult {
+                // TODO - Implement mul operations
+                return success();
+            })
+            .Case<arith::DivUIOp>([&](arith::DivUIOp op) -> LogicalResult {
+                // TODO - Implement divui operations
+                return success();
+            })
+            .Case<arith::RemUIOp>([&](arith::RemUIOp op) -> LogicalResult {
+                // TODO - Implement remui operations
+                return success();
+            })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a Arith operation to iQoala: '") << *op << "'\n";
             });
