@@ -16,6 +16,6 @@ namespace qoala::dialects::helpers {
     std::string getParentNetQASMRoutineName(mlir::Operation *op) {
         auto parent = op->getParentOfType<netqasm::LocalRoutineOp>();
         assert(parent != nullptr);
-        return parent.getSymNameAttrName().str();
+        return parent.getSymName().str();
     }
 }
