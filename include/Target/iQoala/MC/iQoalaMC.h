@@ -208,8 +208,19 @@ namespace qoala::assembly {
         };
 
         NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
+        NetQASMMCInstr(mlir::Operation *op, const OpCode opCode) : iQoalaMCInstruction(op, opCode) { }
 
         static NetQASMMCInstr *createSetInstruction(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createAddInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
+        static NetQASMMCInstr *createSubInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
+        static NetQASMMCInstr *createMulInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
+        static NetQASMMCInstr *createDivInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
+        static NetQASMMCInstr *createRemInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
 
         void print(mlir::raw_ostream &os) const override;
     private:

@@ -3,15 +3,65 @@
 using namespace mlir;
 
 namespace qoala::assembly {
+    // Helper function to create a instructions with the given opcode
+    static NetQASMMCInstr *create2Reg1ImmInstr(
+        Operation *op, const NetQASMMCInstr::OpCode opCode,
+        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        assert(reg0->isRegister() && "NetQASM 2-reg-imm instruction: operand 0 must be a register");
+        assert(reg1->isRegister() && "NetQASM 2-reg-imm instruction: operand 1 must be a register");
+        assert(reg2->isImmediate() && "NetQASM 2-reg-imm instruction: operand 2 must be an immediate");
+        const auto instruction = new NetQASMMCInstr(op, opCode);
+        instruction->addOperand(reg0);
+        instruction->addOperand(reg1);
+        instruction->addOperand(reg2);
+        return instruction;
+    }
+
+    static NetQASMMCInstr *create3RegInstr(
+        Operation *op, const NetQASMMCInstr::OpCode opCode,
+        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        assert(reg0->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+        assert(reg1->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
+        assert(reg2->isRegister() && "NetQASM 3-reg instruction: operand 2 must be a register");
+        const auto instruction = new NetQASMMCInstr(op, opCode);
+        instruction->addOperand(reg0);
+        instruction->addOperand(reg1);
+        instruction->addOperand(reg2);
+        return instruction;
+    }
+
     NetQASMMCInstr *NetQASMMCInstr::createSetInstruction(Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm) {
-        assert(reg->isRegister() && "NetQASM SET instruction: register operand is not quantum.");
-        assert(imm->isImmediate() && "NetQASM SET instruction: immediate operand is not immediate.");
-        const auto setInstruction = new NetQASMMCInstr();
-        setInstruction->originalOp = op;
-        setInstruction->opCode = OP_SET;
-        setInstruction->operands.push_back(reg);
-        setInstruction->operands.push_back(imm);
+        assert(reg->isRegister() && "NetQASM SET instruction: operand 0 is not quantum.");
+        assert(imm->isImmediate() && "NetQASM SET instruction: operand 1 is not immediate.");
+        const auto setInstruction = new NetQASMMCInstr(op, OP_SET);
+        setInstruction->addOperand(reg);
+        setInstruction->addOperand(imm);
         return setInstruction;
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createAddInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        return create3RegInstr(op, OP_ADD, reg0, reg1, reg2);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createSubInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        return create3RegInstr(op, OP_SUB, reg0, reg1, reg2);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createMulInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        return create3RegInstr(op, OP_MUL, reg0, reg1, reg2);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createDivInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        return create3RegInstr(op, OP_DIV, reg0, reg1, reg2);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createRemInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        return create3RegInstr(op, OP_REM, reg0, reg1, reg2);
     }
 
     void NetQASMMCInstr::print(raw_ostream &os) const {
