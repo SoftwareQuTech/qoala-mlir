@@ -4,6 +4,14 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
+    LocalQuantumRoutine *LocalQuantumRoutine::createLocalRoutine(const StringRef name) {
+        return new LocalQuantumRoutine(name);
+    }
+
+    RequestQuantumRoutine *RequestQuantumRoutine::createRequestRoutine(StringRef name) {
+        return new RequestQuantumRoutine(name);
+    }
+
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
@@ -68,8 +76,8 @@ namespace qoala::iqoala {
         os << "keeps:" << helpers::formatVector(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
-            os << tabStr << instruction << "\n";
+        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
+            os << tabStr << *instruction << "\n";
         }
         os << "NETQASM_END\n";
     }
@@ -89,8 +97,8 @@ namespace qoala::iqoala {
         os << "role: " << this->requestRole << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr &instruction : this->instructions) {
-            os << tabStr << instruction << "\n";
+        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
+            os << tabStr << *instruction << "\n";
         }
         os << "NETQASM_END\n";
     }

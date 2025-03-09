@@ -31,15 +31,24 @@ namespace qoala::iqoala {
         this->iQoalaProgram.metaSection.setName(temp);
     }
 
-    void iQoalaModule::addRoutine(QuantumRoutine &newRoutine) {
-        if (const auto localRoutine = dyn_cast<LocalQuantumRoutine>(&newRoutine)) {
-            this->iQoalaProgram.netQASMSection.addRoutine(*localRoutine);
+    void iQoalaModule::addRoutine(QuantumRoutine *newRoutine) {
+        if (const auto localRoutine = dyn_cast<LocalQuantumRoutine>(newRoutine)) {
+            this->iQoalaProgram.netQASMSection.addRoutine(localRoutine);
             return;
         }
-        if (const auto remoteRoutine = dyn_cast<RequestQuantumRoutine>(&newRoutine)) {
-            this->iQoalaProgram.requestSection.addRoutine(*remoteRoutine);
+        if (const auto remoteRoutine = dyn_cast<RequestQuantumRoutine>(newRoutine)) {
+            this->iQoalaProgram.requestSection.addRoutine(remoteRoutine);
             return;
         }
+    }
+
+    QuantumRoutine *iQoalaModule::getLocalRoutineByName(StringRef name) const {
+        for (auto *localRoutine : this->iQoalaProgram.netQASMSection.getRoutines()) {
+            if (localRoutine->getName() == name) {
+                return localRoutine;
+            }
+        }
+        return nullptr;
     }
 
     Block *iQoalaModule::addHostBlock() {

@@ -24,13 +24,13 @@ namespace qoala::translate {
     ModuleTranslation::ModuleTranslation (ModuleOp *module,
                                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)
                                           : mlirModule(module), iQoalaModule(std::move(iQoalaModule)),
-                                          iface(module->getContext()) { }
+                                          ifaces(module->getContext()) { }
 
     LogicalResult ModuleTranslation::convertOperation(Operation &op) {
         // This is the entry point of the translation of any operation.
         // It simply tries to get a registered translation class for the operation (type)
         // and invokes the "convertOperation" method on it.
-        const QoalaTranslationDialectInterface *opIface = iface.getInterfaceFor(&op);
+        const QoalaTranslationDialectInterface *opIface = ifaces.getInterfaceFor(&op);
         if (!opIface) {
             return op.emitError("cannot be converted to iQoala: missing "
                                 "`QoalaTranslationDialectInterface` registration for "
@@ -77,7 +77,8 @@ namespace qoala::translate {
             if (localRoutine.getName() == "__qoala_convert_float_angle") {
                 // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
             } else {
-                LocalQuantumRoutine routine(localRoutine.getName());
+                // TODO - Change this
+                auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 iQoalaModule->addRoutine(routine);
             }
         }

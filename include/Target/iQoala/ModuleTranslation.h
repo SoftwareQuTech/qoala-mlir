@@ -38,7 +38,7 @@ namespace qoala::translate {
     private:
         mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
-        QoalaTranslationInterfaces iface;
+        QoalaTranslationInterfaces ifaces;
         // Mappings MLIR and MC objects
         mlir::DenseMap<mlir::Block *, iqoala::Block *> blocksMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> localRegsMap;

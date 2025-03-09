@@ -25,11 +25,11 @@ namespace qoala::iqoala {
         // This is required to use LLVM's RTTI library (dyn_cast, isa) instead oc C++'s
         // These additions are documented in https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html
         enum QuantumRoutineKind {
-            QRK_Local,
-            QRK_Quantum
+            QRK_LOCAL,
+            QRK_QUANTUM
         };
         // TODO
-        QuantumRoutine() : kind(QRK_Local) { }
+        QuantumRoutine() : kind(QRK_LOCAL) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
         kind(kind), name(std::move(name)) {}
@@ -52,17 +52,19 @@ namespace qoala::iqoala {
      * instructions, and they do not have the concept of "blocks" */
     class LocalQuantumRoutine : public QuantumRoutine {
     public:
-        LocalQuantumRoutine() : QuantumRoutine(QRK_Local) {}
+        LocalQuantumRoutine() : QuantumRoutine(QRK_LOCAL) {}
         explicit LocalQuantumRoutine(const mlir::StringRef newName) :
-        QuantumRoutine(QRK_Local, newName.str()) {}
-        LocalQuantumRoutine(const LocalQuantumRoutine &r) :
-        QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.usesQubits),
-        params(r.params), returns(r.returns), instructions(r.instructions) { }
+            QuantumRoutine(QRK_LOCAL, newName.str()) {}
+            LocalQuantumRoutine(const LocalQuantumRoutine &r) :
+            QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.usesQubits),
+            params(r.params), returns(r.returns), instructions(r.instructions) { }
+
+        static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
         static bool classof(const QuantumRoutine *rt) {
-            return rt->getKind() == QRK_Local;
+            return rt->getKind() == QRK_LOCAL;
         }
         // TODO
     private:
@@ -75,7 +77,7 @@ namespace qoala::iqoala {
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
         // The list of NetQASM MC instructions for this local quantum routine
-        std::vector<assembly::NetQASMMCInstr> instructions;
+        std::vector<assembly::NetQASMMCInstr *> instructions;
     };
 
     struct VirtualIDs {
@@ -96,17 +98,21 @@ namespace qoala::iqoala {
         enum RequestType { CREATE_KEEP, MEASURE_DIRECTLY, RSP };
         enum RequestRole { CREATE, RECEIVE };
 
-        RequestQuantumRoutine() : QuantumRoutine(QRK_Quantum), requestCallback(SEQUENTIAL), type(CREATE_KEEP), requestRole(CREATE) { }
+        explicit RequestQuantumRoutine(const llvm::StringRef name) :
+            QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
+            type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
-        QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
-        callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
-        virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
-        instructions(r.instructions) { }
+            QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
+            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
+            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
+            instructions(r.instructions) { }
+
+        static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
         static bool classof(const QuantumRoutine *rt) {
-            return rt->getKind() == QRK_Quantum;
+            return rt->getKind() == QRK_QUANTUM;
         }
         // TODO - More methods might come
     private:
@@ -115,6 +121,7 @@ namespace qoala::iqoala {
         // The request callback type
         RequestCallback requestCallback;
         // The local quantum routine to invoke as callback
+        // TODO - Maybe make this a pointer?
         LocalQuantumRoutine callback;
         // The name of the remote
         std::string remoteID;
@@ -132,7 +139,7 @@ namespace qoala::iqoala {
         RequestRole requestRole;
         // The set of NetQASM instructions for this request routine
         // This list SHOULD be unused! (i.e. always empty)
-        std::vector<assembly::NetQASMMCInstr> instructions;
+        std::vector<assembly::NetQASMMCInstr *> instructions;
     };
 
 
@@ -197,10 +204,13 @@ namespace qoala::iqoala {
         NetQASMSection(const NetQASMSection &section) = default;
 
         void print(mlir::raw_ostream &os) const override;
-        void addRoutine(const LocalQuantumRoutine &routine);
+        void addRoutine(LocalQuantumRoutine *routine);
+
+        [[nodiscard]]
+        std::vector<LocalQuantumRoutine *> getRoutines() const;
     private:
         // The NetQASM section simply contains a list of LocalQuantumRoutines
-        std::vector<LocalQuantumRoutine> routines;
+        std::vector<LocalQuantumRoutine *> routines;
     };
 
     /* These are the REMOTE REQUEST quantum routines to be executed by the CPS */
@@ -210,10 +220,10 @@ namespace qoala::iqoala {
         RequestSection(const RequestSection &section) = default;
 
         void print(mlir::raw_ostream &os) const override;
-        void addRoutine(const RequestQuantumRoutine &routine);
+        void addRoutine(RequestQuantumRoutine *routine);
     private:
         // The request section simply contains a list of RequestQuantumRoutines
-        std::vector<RequestQuantumRoutine> routines;
+        std::vector<RequestQuantumRoutine *> routines;
     };
     // Extra declarations for "<<" operator
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback);

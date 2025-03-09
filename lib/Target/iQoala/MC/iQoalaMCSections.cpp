@@ -22,23 +22,27 @@ namespace qoala::iqoala {
 
     void NetQASMSection::print(raw_ostream &os) const {
         // Iteratively print all the routines:
-        for (const QuantumRoutine &routine : this->routines) {
-            os << routine << "\n";
+        for (const QuantumRoutine *routine : this->routines) {
+            os << *routine << "\n";
         }
     }
 
     void RequestSection::print(raw_ostream &os) const {
         // Iteratively print all the routines:
-        for (const QuantumRoutine &routine : this->routines) {
-            os << routine << "\n";
+        for (const QuantumRoutine *routine : this->routines) {
+            os << *routine << "\n";
         }
     }
 
-    void NetQASMSection::addRoutine(const LocalQuantumRoutine &routine) {
+    void NetQASMSection::addRoutine(LocalQuantumRoutine *routine) {
         this->routines.push_back(routine);
     }
 
-    void RequestSection::addRoutine(const RequestQuantumRoutine &routine) {
+    std::vector<LocalQuantumRoutine *> NetQASMSection::getRoutines() const {
+        return this->routines;
+    }
+
+    void RequestSection::addRoutine(RequestQuantumRoutine *routine) {
         this->routines.push_back(routine);
     }
 

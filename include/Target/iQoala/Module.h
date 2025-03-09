@@ -16,8 +16,10 @@ namespace qoala::iqoala {
         // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
         void addRemoteDeclaration(mlir::StringRef remoteName);
         void setModuleName(mlir::StringRef newModuleName);
-        void addRoutine(QuantumRoutine &newRoutine);
+        void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();
+        [[nodiscard]]
+        QuantumRoutine *getLocalRoutineByName(mlir::StringRef name) const;
 
     private:
         mlir::StringRef moduleName;
