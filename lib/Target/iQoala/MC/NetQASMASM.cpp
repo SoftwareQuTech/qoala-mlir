@@ -4,16 +4,20 @@ using namespace mlir;
 
 namespace qoala::assembly {
     // Helper function to create a instructions with the given opcode
-    static NetQASMMCInstr *create2Reg1ImmInstr(
+    static NetQASMMCInstr *create2Reg1ImmOptInstr(
         Operation *op, const NetQASMMCInstr::OpCode opCode,
-        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
+        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, const std::optional<iQoalaMCOperand *> &reg2) {
         assert(reg0->isRegister() && "NetQASM 2-reg-imm instruction: operand 0 must be a register");
         assert(reg1->isRegister() && "NetQASM 2-reg-imm instruction: operand 1 must be a register");
-        assert(reg2->isImmediate() && "NetQASM 2-reg-imm instruction: operand 2 must be an immediate");
+        if (reg2.has_value()) {
+            assert(reg2.value()->isImmediate() && "NetQASM 2-reg-imm instruction: operand 2 must be an immediate");
+        }
         const auto instruction = new NetQASMMCInstr(op, opCode);
         instruction->addOperand(reg0);
         instruction->addOperand(reg1);
-        instruction->addOperand(reg2);
+        if (reg2.has_value()) {
+            instruction->addOperand(reg2.value());
+        }
         return instruction;
     }
 
@@ -62,6 +66,39 @@ namespace qoala::assembly {
     NetQASMMCInstr *NetQASMMCInstr::createRemInstruction(
         Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
         return create3RegInstr(op, OP_REM, reg0, reg1, reg2);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createJmpInstruction(Operation *op, iQoalaMCOperand *imm) {
+        assert(imm->isImmediate() && "NetQASM SET instruction: operand 0 is not immediate.");
+        const auto setInstruction = new NetQASMMCInstr(op, OP_JMP);
+        setInstruction->addOperand(imm);
+        return setInstruction;
+    }
+    NetQASMMCInstr *NetQASMMCInstr::createBeqInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
+        return create3RegInstr(op, OP_BEQ, reg0, reg1, imm);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createBneInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
+        return create3RegInstr(op, OP_BNE, reg0, reg1, imm);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createBgeInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
+        return create3RegInstr(op, OP_BGE, reg0, reg1, imm);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createBleInstruction(
+        Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
+        return create3RegInstr(op, OP_BLT, reg0, reg1, imm);
+    }
+
+    NetQASMMCInstr *NetQASMMCInstr::createLoadInstruction(Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1) {
+        return create2Reg1ImmOptInstr(op, OP_LOAD, reg0, reg1, std::nullopt);
+    }
+    NetQASMMCInstr *NetQASMMCInstr::createStoreInstruction(Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1) {
+        return create2Reg1ImmOptInstr(op, OP_STORE, reg0, reg1, std::nullopt);
     }
 
     void NetQASMMCInstr::print(raw_ostream &os) const {

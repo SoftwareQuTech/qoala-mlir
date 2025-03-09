@@ -207,8 +207,8 @@ namespace qoala::assembly {
             // they do noe need to be emitted by the compiler.
         };
 
+        using iQoalaMCInstruction::iQoalaMCInstruction;
         NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
-        NetQASMMCInstr(mlir::Operation *op, const OpCode opCode) : iQoalaMCInstruction(op, opCode) { }
 
         static NetQASMMCInstr *createSetInstruction(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
         static NetQASMMCInstr *createAddInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
@@ -221,6 +221,17 @@ namespace qoala::assembly {
                                                     iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
         static NetQASMMCInstr *createRemInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
                                                     iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
+        static NetQASMMCInstr *createJmpInstruction(mlir::Operation *op, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createBeqInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createBneInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createBgeInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createBleInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
+                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
+        static NetQASMMCInstr *createLoadInstruction(mlir::Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1);
+        static NetQASMMCInstr *createStoreInstruction(mlir::Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1);
 
         void print(mlir::raw_ostream &os) const override;
     private:
