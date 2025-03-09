@@ -3,6 +3,16 @@
 using namespace mlir;
 
 namespace qoala::assembly {
+    NetQASMMCInstr *NetQASMMCInstr::createSetInstruction(Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm) {
+        assert(reg->isRegister() && "NetQASM SET instruction: register operand is not quantum.");
+        assert(reg->isImmediate() && "NetQASM SET instruction: immediate operand is not immediate.");
+        const auto setInstruction = new NetQASMMCInstr();
+        setInstruction->originalOp = op;
+        setInstruction->opCode = OP_SET;
+        setInstruction->operands.push_back(reg);
+        setInstruction->operands.push_back(imm);
+        return setInstruction;
+    }
 
     void NetQASMMCInstr::print(raw_ostream &os) const {
         // The code in this function checks that the operands of the NetQASM operations

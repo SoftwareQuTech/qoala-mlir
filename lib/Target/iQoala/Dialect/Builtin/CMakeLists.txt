@@ -5,6 +5,7 @@ add_mlir_translation_library(MLIRBuiltinToiQoalaTranslation
         Core
 
         LINK_LIBS PUBLIC
+        QoalaDialectHelpers
         MLIRTargetiQoalaExport
         MLIRIR
         MLIRSupport

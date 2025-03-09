@@ -12,7 +12,7 @@
 // presented in LLVM
 
 namespace qoala::assembly {
-    enum iQoalaRegType { R, C, M, Q };
+    enum iQoalaRegType { LOCAL, R, C, M, Q };
 
     class iQoalaMC : public helpers::PrintInterface{ };
 
@@ -49,22 +49,31 @@ namespace qoala::assembly {
         static iQoalaMCExpr *createConstant(float value);
     };
 
+    class iQoalaRegReference {
+    public :
+        iQoalaRegReference() : type(R), num(0) { }
+        iQoalaRegReference(const iQoalaRegType type, const uint32_t num) : type(type), num(num) { }
+        ~iQoalaRegReference() = default;
+
+        static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
+
+        [[nodiscard]]
+        std::string formatRegister() const;
+        [[nodiscard]]
+        iQoalaRegType getType() const { return type; }
+        [[nodiscard]]
+        uint32_t getNum() const { return num; }
+        [[nodiscard]]
+        bool isLocal() const { return type == LOCAL; }
+        [[nodiscard]]
+        bool isQuantum() const { return type == C || type == Q || type == M || type == R; }
+    private:
+        iQoalaRegType type;
+        uint32_t num;
+    };
+
     class iQoalaMCOperand : public iQoalaMC {
     public:
-        class iQoalaRegReference {
-        public :
-            iQoalaRegReference() : type(R), num(0) { }
-            iQoalaRegReference(const iQoalaRegType type, const uint32_t num) : type(type), num(num) { }
-            ~iQoalaRegReference() = default;
-
-            static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
-
-            std::string formatRegister() const;
-        private:
-            iQoalaRegType type;
-            uint32_t num;
-        };
-
         enum OperandKind {
             INVALID,
             IMMEDIATE_I32,
@@ -104,7 +113,6 @@ namespace qoala::assembly {
         static iQoalaMCOperand *createImmediateOperand(uint32_t val);
         static iQoalaMCOperand *createImmediateOperand(float val);
         static iQoalaMCOperand *createRegisterOperand(iQoalaRegReference *regRef);
-        static iQoalaMCOperand *createLocalRegisterOperand(uint8_t regNum);
         static iQoalaMCOperand *createExprOperand(iQoalaMCExpr *expr);
     };
 
@@ -199,7 +207,9 @@ namespace qoala::assembly {
             // they do noe need to be emitted by the compiler.
         };
 
-        NetQASMMCInstr();
+        NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
+
+        static NetQASMMCInstr *createSetInstruction(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -236,7 +246,7 @@ namespace qoala::assembly {
         };
 
         using iQoalaMCInstruction::iQoalaMCInstruction;
-        QoalaHostMCInstr();
+        QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
 
         static QoalaHostMCInstr *createAssignCValInstr(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
         // TODO - Maybe add more arguments that were created in the translation method? (args)

@@ -56,6 +56,15 @@ namespace qoala::translate {
         return newBlock;
     }
 
+    void ModuleTranslation::mapValue(const Value &mlirVal, assembly::iQoalaRegReference *regRef) {
+        if (regRef->isLocal()) {
+            this->localRegsMap.try_emplace(mlirVal, regRef);
+            return;
+        }
+        if (regRef->isQuantum()) {
+            this->quantumRegsMap.try_emplace(mlirVal, regRef);
+        }
+    }
 
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
         assert(this->blocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");

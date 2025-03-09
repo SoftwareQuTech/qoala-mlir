@@ -4,8 +4,7 @@
 
 namespace qoala::assembly {
     /* Builders */
-    iQoalaMCOperand::iQoalaRegReference *
-    iQoalaMCOperand::iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
+    iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
         const auto regReference = new iQoalaRegReference();
         regReference->type = type;
         regReference->num = num;
@@ -49,15 +48,18 @@ namespace qoala::assembly {
 
     iQoalaMCOperand *iQoalaMCOperand::createRegisterOperand(iQoalaRegReference *regRef) {
         const auto operand = new iQoalaMCOperand();
-        operand->kind = REGISTER;
+        switch (regRef->getType()) {
+            case LOCAL:
+                operand->kind = LOCAL_REGISTER;
+                break;
+            case R:
+            case C:
+            case M:
+            case Q:
+                operand->kind = REGISTER;
+                break;
+        }
         operand->regRef = regRef;
-        return operand;
-    }
-
-    iQoalaMCOperand *iQoalaMCOperand::createLocalRegisterOperand(const uint8_t regNum) {
-        const auto operand = new iQoalaMCOperand();
-        operand->kind = LOCAL_REGISTER;
-        operand->localRegNum = regNum;
         return operand;
     }
 
@@ -111,9 +113,12 @@ namespace qoala::assembly {
         }
     }
 
-    std::string iQoalaMCOperand::iQoalaRegReference::formatRegister() const {
+    std::string iQoalaRegReference::formatRegister() const {
         std::stringstream formattedRegStr;
         switch (this->type) {
+            case LOCAL:
+                formattedRegStr << "%" << this->num;
+                break;
             case R:
                 formattedRegStr << "R" << this->num;
                 break;
@@ -141,11 +146,9 @@ namespace qoala::assembly {
                 this->inst->getOriginalOp()->emitError("Float immediate is not supported yet!");
                 os << this->floatingPointVal;
                 break;
+            case LOCAL_REGISTER:
             case REGISTER:
                 os << this->regRef->formatRegister();
-                break;
-            case LOCAL_REGISTER:
-                os << "%" << this->localRegNum;
                 break;
             case EXPRESSION:
                 os << this->expression;
