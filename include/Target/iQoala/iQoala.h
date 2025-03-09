@@ -61,12 +61,13 @@ namespace qoala::iqoala {
 
         static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
+        void addInstruction(assembly::NetQASMMCInstr *instruction);
+
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
         static bool classof(const QuantumRoutine *rt) {
             return rt->getKind() == QRK_LOCAL;
         }
-        // TODO
     private:
         // The list of physical qubits this routine uses
         std::vector<unsigned int> usesQubits;

@@ -42,7 +42,7 @@ namespace qoala::iqoala {
         }
     }
 
-    QuantumRoutine *iQoalaModule::getLocalRoutineByName(StringRef name) const {
+    LocalQuantumRoutine *iQoalaModule::getLocalRoutineByName(StringRef name) const {
         for (auto *localRoutine : this->iQoalaProgram.netQASMSection.getRoutines()) {
             if (localRoutine->getName() == name) {
                 return localRoutine;

@@ -12,6 +12,10 @@ namespace qoala::iqoala {
         return new RequestQuantumRoutine(name);
     }
 
+    void LocalQuantumRoutine::addInstruction(assembly::NetQASMMCInstr *instruction) {
+        this->instructions.push_back(instruction);
+    }
+
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:

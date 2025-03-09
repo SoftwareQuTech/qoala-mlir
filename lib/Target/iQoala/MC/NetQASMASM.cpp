@@ -5,7 +5,7 @@ using namespace mlir;
 namespace qoala::assembly {
     NetQASMMCInstr *NetQASMMCInstr::createSetInstruction(Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm) {
         assert(reg->isRegister() && "NetQASM SET instruction: register operand is not quantum.");
-        assert(reg->isImmediate() && "NetQASM SET instruction: immediate operand is not immediate.");
+        assert(imm->isImmediate() && "NetQASM SET instruction: immediate operand is not immediate.");
         const auto setInstruction = new NetQASMMCInstr();
         setInstruction->originalOp = op;
         setInstruction->opCode = OP_SET;
