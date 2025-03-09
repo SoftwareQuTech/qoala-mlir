@@ -24,9 +24,9 @@ static LogicalResult translateArithOperation(Operation *operation, qoala::transl
                 iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
 
                 iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
-                const uint8_t regNum = context->allocateHostRegister();
 
                 if (helpers::operationIsInsideMainFunc(operation)) {
+                    const uint8_t regNum = context->allocateHostRegister();
                     iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(LOCAL, regNum);
                     iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
                     QoalaHostMCInstr *newAssign = QoalaHostMCInstr::createAssignCValInstr(
@@ -37,6 +37,7 @@ static LogicalResult translateArithOperation(Operation *operation, qoala::transl
                     block->appendInstruction(newAssign);
                 } else {
                     if (helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                        const uint8_t regNum = context->allocateCRegister();
                         iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(C, regNum);
                         iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
                         NetQASMMCInstr *newAssign = NetQASMMCInstr::createSetInstruction(
