@@ -12,7 +12,9 @@
 #define DEBUG_TYPE "arith-translation"
 
 using namespace mlir;
+using namespace qoala::iqoala;
 using namespace qoala::assembly;
+using namespace qoala::dialects;
 
 static LogicalResult translateArithOperation(Operation *operation, qoala::translate::ModuleTranslation *moduleTranslation) {
     // TODO - Implement this dispatcher
@@ -21,12 +23,12 @@ static LogicalResult translateArithOperation(Operation *operation, qoala::transl
             .Case<arith::ConstantIntOp>([&](arith::ConstantIntOp op) -> LogicalResult {
                 iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
 
-                qoala::iqoala::iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
+                iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
                 const uint8_t regNum = context->allocateHostRegister();
-                iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(LOCAL, regNum);
-                iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
 
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (helpers::operationIsInsideMainFunc(operation)) {
+                    iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(LOCAL, regNum);
+                    iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
                     QoalaHostMCInstr *newAssign = QoalaHostMCInstr::createAssignCValInstr(
                         op.getOperation(), regOperand, immediateVal
                     );
@@ -34,14 +36,16 @@ static LogicalResult translateArithOperation(Operation *operation, qoala::transl
                     auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
                     block->appendInstruction(newAssign);
                 } else {
-                    if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                    if (helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                        iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(C, regNum);
+                        iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
                         NetQASMMCInstr *newAssign = NetQASMMCInstr::createSetInstruction(
                             op.getOperation(), regOperand, immediateVal
                         );
                         moduleTranslation->mapValue(op.getResult(), regRef);
-                        // TODO - Get the name of the netqasm local routine that the original op belongs to
-                        // TODO - Get the netqasm section of the  local routine that matches the name
-                        // TODO - Append the newAssign operation to the respective netqasm block
+                        const std::string localRoutineName = helpers::getParentNetQASMRoutineName(op.getOperation());
+                        LocalQuantumRoutine *localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+                        localRoutine->addInstruction(newAssign);
                     } else {
                         return op.emitError("Arith constant operation not in host or netqasm section!") << *op << "\n";
                     }
