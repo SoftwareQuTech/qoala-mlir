@@ -5,11 +5,13 @@ module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> i32 {
+    %cst = arith.constant 25 : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
     netqasm.return %0 : i32
   }
   netqasm.local_routine @__qoala_wrapper1() -> i32 {
+    %cst = arith.constant 15 : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
     netqasm.return %0 : i32
