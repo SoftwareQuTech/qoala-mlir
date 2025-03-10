@@ -68,7 +68,7 @@ namespace qoala::assembly {
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isLocalRegister());
-                printInstrGeneric("add", os, this->operands[0]);
+                printInstrGeneric("add_cval_c", os, this->operands[0]);
                 break;
             case OP_SUBTRACT:
                 assert(this->operands.size() == 3);
@@ -76,7 +76,7 @@ namespace qoala::assembly {
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isLocalRegister());
-                printInstrGeneric("sub", os, this->operands[0]);
+                printInstrGeneric("sub_cval_c", os, this->operands[0]);
                 break;
             case OP_MULTIPLY_CONSTANT:
                 assert(this->operands.size() == 3);
