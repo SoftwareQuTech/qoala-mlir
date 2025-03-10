@@ -6,9 +6,9 @@ namespace qoala::assembly {
     static QoalaHostMCInstr *create3RegInstruction(
         Operation *op, const QoalaHostMCInstr::OpCode opCode,
         iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
-        assert(reg0->isRegister() && "QoalaHost 3-reg instruction: operand 0 must be a register");
-        assert(reg1->isRegister() && "QoalaHost 3-reg instruction: operand 1 must be a register");
-        assert(reg2->isRegister() && "QoalaHost 3-reg instruction: operand 2 must be a register");
+        assert(reg0->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
+        assert(reg1->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
+        assert(reg2->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
         const auto instruction = new QoalaHostMCInstr(op, opCode);
         instruction->addOperand(reg0);
         instruction->addOperand(reg1);
@@ -19,8 +19,8 @@ namespace qoala::assembly {
     static QoalaHostMCInstr *create2Reg1ImmInstruction(
         Operation *op, const QoalaHostMCInstr::OpCode opCode,
         iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
-        assert(reg0->isRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a register");
-        assert(reg1->isRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a register");
+        assert(reg0->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
+        assert(reg1->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
         assert(imm->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
         const auto instruction = new QoalaHostMCInstr(op, opCode);
         instruction->addOperand(reg0);
@@ -251,6 +251,8 @@ namespace qoala::assembly {
                 assert(false && "Submit routines is not supported yet!");
             case OP_JOIN_ROUTINES:
                 assert(false && "Join routines is not supported yet!");
+            default:
+                assert(false && "Unknown operation!");
         }
     }
 }

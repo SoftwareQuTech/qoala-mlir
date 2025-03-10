@@ -6,19 +6,19 @@ namespace qoala::assembly {
     // Helper function to create a instructions with the given opcode
     static NetQASMMCInstr *create2Reg1ImmOptInstr(
         Operation *op, const NetQASMMCInstr::OpCode opCode,
-        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, const std::optional<iQoalaMCOperand *> &reg2) {
-        assert(reg0->isRegister() && "NetQASM 2-reg-imm instruction: operand 0 must be a register");
-        assert(reg1->isRegister() && "NetQASM 2-reg-imm instruction: operand 1 must be a register");
-        if (reg2.has_value()) {
-            assert(reg2.value()->isImmediate() && "NetQASM 2-reg-imm instruction: operand 2 must be an immediate");
-        }
-        const auto instruction = new NetQASMMCInstr(op, opCode);
-        instruction->addOperand(reg0);
-        instruction->addOperand(reg1);
-        if (reg2.has_value()) {
-            instruction->addOperand(reg2.value());
-        }
-        return instruction;
+            iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, const std::optional<iQoalaMCOperand *> &reg2) {
+            assert(reg0->isRegister() && "NetQASM 2-reg-imm instruction: operand 0 must be a register");
+            assert(reg1->isRegister() && "NetQASM 2-reg-imm instruction: operand 1 must be a register");
+            if (reg2.has_value()) {
+                assert(reg2.value()->isImmediate() && "NetQASM 2-reg-imm instruction: operand 2 must be an immediate");
+            }
+            const auto instruction = new NetQASMMCInstr(op, opCode);
+            instruction->addOperand(reg0);
+            instruction->addOperand(reg1);
+            if (reg2.has_value()) {
+                instruction->addOperand(reg2.value());
+            }
+            return instruction;
     }
 
     static NetQASMMCInstr *create3RegInstr(
