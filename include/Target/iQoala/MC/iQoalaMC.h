@@ -271,6 +271,15 @@ namespace qoala::assembly {
         QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
 
         static QoalaHostMCInstr *createAssignCValInstr(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
+        static QoalaHostMCInstr *createAddInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2);
+        static QoalaHostMCInstr *createSubInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2);
+        static QoalaHostMCInstr *createMulConstInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *imm);
+        // TODO - In all these jump instructions, we need a way to model the name of the block to jump to
+        static QoalaHostMCInstr *createJmpInstr(mlir::Operation *op, void *target);
+        static QoalaHostMCInstr *createBeqInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
+        static QoalaHostMCInstr *createBneInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
+        static QoalaHostMCInstr *createBgtInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
+        static QoalaHostMCInstr *createBltInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
         // TODO - Maybe add more arguments that were created in the translation method? (args)
         static QoalaHostMCInstr *createRunRoutineInstruction(mlir::Operation *op);
 
