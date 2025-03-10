@@ -26,14 +26,12 @@ namespace qoala::assembly {
             CONSTANT_I32,
             CONSTANT_F32
         };
-        ExprKind kind;
-        union {
-            char *symbolName;
-            uint32_t i32ConstVal;
-            float f32ConstVal;
-        };
+    public:
+        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
+        ~iQoalaMCExpr() override { }
+        explicit iQoalaMCExpr(const std::string &symbolName) : kind(SYMBOL_REFERENCE), symbolName(symbolName) { }
 
-        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { };
+        static iQoalaMCExpr *createSymbolRefExpr(const std::string &symbolName);
 
         [[nodiscard]]
         bool isValid() const;
@@ -41,12 +39,18 @@ namespace qoala::assembly {
         bool isSymbolRef() const;
         [[nodiscard]]
         bool isConstant() const;
-    public:
         void print(mlir::raw_ostream &os) const override;
 
         static iQoalaMCExpr *createSymbolRef(std::string symName);
         static iQoalaMCExpr *createConstant(uint32_t value);
         static iQoalaMCExpr *createConstant(float value);
+    private:
+        ExprKind kind;
+        union {
+            std::string symbolName;
+            uint32_t i32ConstVal;
+            float f32ConstVal;
+        };
     };
 
     class iQoalaRegReference {
@@ -104,11 +108,15 @@ namespace qoala::assembly {
             float floatingPointVal;
             iQoalaRegReference *regRef;
             iQoalaMCExpr *expression;
-            uint32_t localRegNum;
         };
     public:
         void print(mlir::raw_ostream &os) const override;
         void setInst(iQoalaMCInstruction *inst);
+
+        uint32_t getIntegerVal() const;
+        float getFloatingPointVal() const;
+        iQoalaRegReference *getRegRef() const;
+        iQoalaMCExpr *getExpression() const;
 
         static iQoalaMCOperand *createImmediateOperand(uint32_t val);
         static iQoalaMCOperand *createImmediateOperand(float val);
@@ -275,11 +283,11 @@ namespace qoala::assembly {
         static QoalaHostMCInstr *createSubInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2);
         static QoalaHostMCInstr *createMulConstInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *imm);
         // TODO - In all these jump instructions, we need a way to model the name of the block to jump to
-        static QoalaHostMCInstr *createJmpInstr(mlir::Operation *op, void *target);
-        static QoalaHostMCInstr *createBeqInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
-        static QoalaHostMCInstr *createBneInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
-        static QoalaHostMCInstr *createBgtInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
-        static QoalaHostMCInstr *createBltInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, void *target);
+        static QoalaHostMCInstr *createJmpInstr(mlir::Operation *op, iQoalaMCOperand *target);
+        static QoalaHostMCInstr *createBeqInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
+        static QoalaHostMCInstr *createBneInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
+        static QoalaHostMCInstr *createBgtInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
+        static QoalaHostMCInstr *createBltInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
         // TODO - Maybe add more arguments that were created in the translation method? (args)
         static QoalaHostMCInstr *createRunRoutineInstruction(mlir::Operation *op);
 

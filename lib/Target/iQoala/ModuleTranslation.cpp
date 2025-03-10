@@ -50,7 +50,7 @@ namespace qoala::translate {
 
     iqoala::Block *ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
         auto *newBlock = this->iQoalaModule->addHostBlock();
-        const auto result = this->blocksMap.try_emplace(mlirBlock, newBlock);
+        const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
         (void)result;
         assert(result.second && "attempting to map a block that is already mapped");
         return newBlock;
@@ -81,8 +81,8 @@ namespace qoala::translate {
     }
 
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
-        assert(this->blocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
-        return this->blocksMap.at(mlirBlock);
+        assert(this->qoalaHostBlocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
+        return this->qoalaHostBlocksMap.at(mlirBlock);
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() const {

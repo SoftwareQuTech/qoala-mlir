@@ -70,6 +70,29 @@ namespace qoala::assembly {
         return operand;
     }
 
+    iQoalaMCExpr *iQoalaMCExpr::createSymbolRefExpr(const std::string &symbolName) {
+        return new iQoalaMCExpr(symbolName);
+    }
+
+    uint32_t iQoalaMCOperand::getIntegerVal() const {
+        assert(this->isImmediate());
+        return this->integerVal;
+    }
+
+    float iQoalaMCOperand::getFloatingPointVal() const {
+        assert(this->isImmediate());
+        return this->floatingPointVal;
+    }
+    iQoalaRegReference *iQoalaMCOperand::getRegRef() const {
+        assert(this->isLocalRegister() || this->isRegister());
+        return this->regRef;
+    }
+
+    iQoalaMCExpr *iQoalaMCOperand::getExpression() const {
+        assert(this->isExpression());
+        return this->expression;
+    }
+
     /* General functions for the ASM classes */
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }

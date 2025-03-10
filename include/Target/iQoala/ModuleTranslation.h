@@ -44,7 +44,7 @@ namespace qoala::translate {
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         QoalaTranslationInterfaces ifaces;
         // Mappings MLIR and MC objects
-        mlir::DenseMap<mlir::Block *, iqoala::Block *> blocksMap;
+        mlir::DenseMap<mlir::Block *, iqoala::Block *> qoalaHostBlocksMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> localRegsMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> quantumRegsMap;
     };
