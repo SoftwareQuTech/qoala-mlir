@@ -66,6 +66,20 @@ namespace qoala::translate {
         }
     }
 
+    assembly::iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
+        if (this->localRegsMap.contains(mlirVal)) {
+            return this->localRegsMap.at(mlirVal);
+        }
+        return nullptr;
+    }
+
+    assembly::iQoalaRegReference *ModuleTranslation::getMappedQuantumRegReference(const Value &mlirVal) const {
+        if (this->quantumRegsMap.contains(mlirVal)) {
+            return this->quantumRegsMap.at(mlirVal);
+        }
+        return nullptr;
+    }
+
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
         assert(this->blocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
         return this->blocksMap.at(mlirBlock);
@@ -89,8 +103,8 @@ namespace qoala::translate {
     }
 
 
-    std::unique_ptr<iQoalaModule> translate::translateModuleToiQoala(
-            Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
+    std::unique_ptr<iQoalaModule> translateModuleToiQoala(
+        Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
         // Entry point for the transformations
         auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, &iQoalaContext);
         auto mlirModule = dyn_cast<ModuleOp>(originalModule);
