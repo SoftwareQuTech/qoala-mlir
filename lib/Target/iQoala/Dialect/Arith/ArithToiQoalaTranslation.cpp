@@ -47,7 +47,6 @@ static LogicalResult addSetInstr(iQoalaContext *context, ModuleTranslation *modu
 }
 
 static LogicalResult addQoalaHostAddInstr(iQoalaContext *context, ModuleTranslation *moduleTranslation, arith::AddIOp &op) {
-    LLVM_DEBUG(llvm::dbgs() << op << "\n");
     const Value leftVal = op.getLhs();
     const Value rightVal = op.getRhs();
     iQoalaRegReference *leftValReg = moduleTranslation->getMappedLocalRegReference(leftVal);

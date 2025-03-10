@@ -105,24 +105,27 @@ namespace qoala::assembly {
                                            const iQoalaMCOperand *immediateExpr) const {
         auto currentElement = this->operands.begin();
         auto nextElement = this->operands.begin();
-        auto lastElement = this->operands.end();
-        nextElement++;
+        const auto lastElement = this->operands.end();
+        ++nextElement;
 
         if (ssaLocalReg != nullptr) {
             os << *ssaLocalReg << " = ";
-            currentElement++;
-            nextElement++;
+            ++currentElement;
+            ++nextElement;
         }
 
         if (immediateExpr != nullptr) {
-            currentElement++;
-            nextElement++;
+            ++currentElement;
+            ++nextElement;
         }
 
         os << mnemonic << " (";
 
-        for (; currentElement != this->operands.end(); currentElement++) {
-            os << *currentElement << (nextElement != lastElement ? ", " : "");
+        for (; currentElement != this->operands.end(); ++currentElement) {
+            // We need double * since this->operands is a vector of pointers (the first star
+            // dereferences the iterator, the second dereferences the operand pointer.
+            os << **currentElement << (nextElement != lastElement ? ", " : "");
+            ++nextElement;
         }
         os << ")";
 
