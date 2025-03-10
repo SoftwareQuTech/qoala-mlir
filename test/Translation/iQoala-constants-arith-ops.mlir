@@ -1,0 +1,58 @@
+// RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
+// CHECK: META START
+// CHECK-NEXT: name: test_lower_constants
+// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: META END
+// CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
+// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
+// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
+// CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
+// %[[HOST_REG4:.*]] = quot (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// %[[HOST_REG4:.*]] = rem (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+
+//CHECK: SUBROUTINE __qoala_wrapper0
+// CHECK-NEXT: params:
+// CHECK-NEXT: returns:
+// CHECK-NEXT: uses:
+// CHECK-NEXT: keeps:
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set C[[C_REG0:.*]] 10
+// CHECK-NEXT: set C[[C_REG1:.*]] 15
+// CHECK-NEXT: add C[[C_REG2:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: sub C[[C_REG3:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: mul C[[C_REG4:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: quot C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: rem C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: NETQASM_END
+
+module {
+  qremote.remote @Bob
+  netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
+  netqasm.local_routine @__qoala_wrapper0() -> i1 {
+    %cstA = arith.constant 10 : i32
+    %cstB = arith.constant 15 : i32
+    %resA = arith.addi %cstA, %cstB : i32
+    %resB = arith.subi %cstA, %cstB : i32
+    %resC = arith.muli %cstA, %cstB : i32
+    %0 = netqasm.qalloc  : i32
+    netqasm.init %0
+    %1 = netqasm.measure %0 : i1
+    netqasm.return %1 : i1
+  }
+  qoalahost.main_func @test_lower_constants() {
+    %cstA = arith.constant 3 : i32
+    %cstB = arith.constant 2 : i32
+    %resA = arith.addi %cstA, %cstB : i32
+    %resB = arith.subi %cstA, %cstB : i32
+    %resC = arith.muli %cstA, %cstB : i32
+    %resD = arith.divui %cstA, %cstB : i32
+    %resE = arith.remui %cstA, %cstB : i32
+    %0 = qoalahost.call @__qoala_wrapper0() : () -> i1
+    qoalahost.return
+  }
+}

@@ -16,6 +16,7 @@
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 25
 // CHECK-NEXT: NETQASM_END
+
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
