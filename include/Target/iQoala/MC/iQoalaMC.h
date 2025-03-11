@@ -29,9 +29,9 @@ namespace qoala::assembly {
     public:
         iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
         ~iQoalaMCExpr() override { }
-        explicit iQoalaMCExpr(const std::string &symbolName) : kind(SYMBOL_REFERENCE), symbolName(symbolName) { }
+        explicit iQoalaMCExpr(std::string &symbolName) : kind(SYMBOL_REFERENCE), symbolName(std::move(symbolName)) { }
 
-        static iQoalaMCExpr *createSymbolRefExpr(const std::string &symbolName);
+        static iQoalaMCExpr *createSymbolRefExpr(std::string &symbolName);
 
         [[nodiscard]]
         bool isValid() const;
@@ -41,7 +41,7 @@ namespace qoala::assembly {
         bool isConstant() const;
         void print(mlir::raw_ostream &os) const override;
 
-        static iQoalaMCExpr *createSymbolRef(std::string symName);
+        static iQoalaMCExpr *createSymbolRef(const std::string &symName);
         static iQoalaMCExpr *createConstant(uint32_t value);
         static iQoalaMCExpr *createConstant(float value);
     private:
@@ -113,9 +113,13 @@ namespace qoala::assembly {
         void print(mlir::raw_ostream &os) const override;
         void setInst(iQoalaMCInstruction *inst);
 
+        [[nodiscard]]
         uint32_t getIntegerVal() const;
+        [[nodiscard]]
         float getFloatingPointVal() const;
+        [[nodiscard]]
         iQoalaRegReference *getRegRef() const;
+        [[nodiscard]]
         iQoalaMCExpr *getExpression() const;
 
         static iQoalaMCOperand *createImmediateOperand(uint32_t val);
@@ -218,28 +222,8 @@ namespace qoala::assembly {
         using iQoalaMCInstruction::iQoalaMCInstruction;
         NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
 
-        static NetQASMMCInstr *createSetInstruction(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createAddInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
-        static NetQASMMCInstr *createSubInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
-        static NetQASMMCInstr *createMulInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
-        static NetQASMMCInstr *createDivInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
-        static NetQASMMCInstr *createRemInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *reg2);
-        static NetQASMMCInstr *createJmpInstruction(mlir::Operation *op, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createBeqInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createBneInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createBgeInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createBleInstruction(mlir::Operation *op, iQoalaMCOperand *reg0,
-                                                    iQoalaMCOperand *reg1, iQoalaMCOperand *imm);
-        static NetQASMMCInstr *createLoadInstruction(mlir::Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1);
-        static NetQASMMCInstr *createStoreInstruction(mlir::Operation *op, iQoalaMCOperand *reg0, iQoalaMCOperand *reg1);
+        /* Base entry point for creating QoalaHost instructions */
+        static NetQASMMCInstr *build(mlir::Operation *op, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -278,25 +262,22 @@ namespace qoala::assembly {
         using iQoalaMCInstruction::iQoalaMCInstruction;
         QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
 
-        static QoalaHostMCInstr *createAssignCValInstr(mlir::Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm);
-        static QoalaHostMCInstr *createAddInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2);
-        static QoalaHostMCInstr *createSubInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2);
-        static QoalaHostMCInstr *createMulConstInstr(mlir::Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *imm);
-        // TODO - In all these jump instructions, we need a way to model the name of the block to jump to
-        static QoalaHostMCInstr *createJmpInstr(mlir::Operation *op, iQoalaMCOperand *target);
-        static QoalaHostMCInstr *createBeqInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
-        static QoalaHostMCInstr *createBneInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
-        static QoalaHostMCInstr *createBgtInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
-        static QoalaHostMCInstr *createBltInstr(mlir::Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target);
-        // TODO - Maybe add more arguments that were created in the translation method? (args)
-        static QoalaHostMCInstr *createRunRoutineInstruction(mlir::Operation *op);
+        /* Base entry point for creating QoalaHost instructions */
+        static QoalaHostMCInstr *build(mlir::Operation *op, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
         void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
                                const iQoalaMCOperand *ssaLocalReg = nullptr,
                                const iQoalaMCOperand *immediateExpr = nullptr) const;
+    };
 
+    class InstructionBuilder {
+    public:
+        template<typename Op>
+        static Op *build(mlir::Operation *op, typename Op::OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands) {
+            return Op::build(op, opCode, operands);
+        }
     };
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);

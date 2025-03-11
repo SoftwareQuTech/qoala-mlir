@@ -11,10 +11,10 @@ namespace qoala::assembly {
         return regReference;
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(std::string symName) {
+    iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) {
         const auto expr = new iQoalaMCExpr();
         expr->kind = SYMBOL_REFERENCE;
-        expr->symbolName = symName.data();
+        expr->symbolName = symName;
         return expr;
     }
 
@@ -70,7 +70,7 @@ namespace qoala::assembly {
         return operand;
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createSymbolRefExpr(const std::string &symbolName) {
+    iQoalaMCExpr *iQoalaMCExpr::createSymbolRefExpr(std::string &symbolName) {
         return new iQoalaMCExpr(symbolName);
     }
 

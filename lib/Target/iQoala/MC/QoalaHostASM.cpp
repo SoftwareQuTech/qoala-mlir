@@ -3,101 +3,53 @@
 using namespace mlir;
 
 namespace qoala::assembly {
-    static QoalaHostMCInstr *create3RegInstruction(
-        Operation *op, const QoalaHostMCInstr::OpCode opCode,
-        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *reg2) {
-        assert(reg0->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
-        assert(reg1->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
-        assert(reg2->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
+    QoalaHostMCInstr *QoalaHostMCInstr::build(Operation *op, const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
+        switch (opCode) {
+            case OP_ASSIGN_CVAL:
+                assert(operands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
+                assert(operands[0]->isLocalRegister() && "QoalaHost instruction builder: first operand must be a local register");
+                assert(operands[1]->isImmediate() && "QoalaHost instruction builder: second operand must be an immediate");
+                break;
+            case OP_ADD:
+            case OP_SUBTRACT:
+                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(operands[0]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
+                assert(operands[1]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
+                assert(operands[2]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
+                break;
+            case OP_MULTIPLY_CONSTANT:
+                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(operands[0]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
+                assert(operands[1]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
+                assert(operands[2]->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
+                break;
+            case OP_JUMP:
+                assert(operands.size() == 1 && "QoalaHost instruction builder: expected 1 operand");
+                assert(operands[0]->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
+                assert(operands[0]->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
+                break;
+            case OP_BEQ:
+            case OP_BNE:
+            case OP_BGT:
+            case OP_BLT:
+                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(operands[0]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
+                assert(operands[1]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
+                assert(operands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
+                assert(operands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
+            case OP_RUN_ROUTINE:
+                // TODO - assert the operands.
+                break;
+            default:
+                op->emitError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
+                return nullptr;
+        }
+        // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
         const auto instruction = new QoalaHostMCInstr(op, opCode);
-        instruction->addOperand(reg0);
-        instruction->addOperand(reg1);
-        instruction->addOperand(reg2);
+        for (iQoalaMCOperand *operand : operands) {
+            instruction->addOperand(operand);
+        }
         return instruction;
-    }
-
-    static QoalaHostMCInstr *create2Reg1ImmInstruction(
-        Operation *op, const QoalaHostMCInstr::OpCode opCode,
-        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *imm) {
-        assert(reg0->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
-        assert(reg1->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
-        assert(imm->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
-        const auto instruction = new QoalaHostMCInstr(op, opCode);
-        instruction->addOperand(reg0);
-        instruction->addOperand(reg1);
-        instruction->addOperand(imm);
-        return instruction;
-    }
-
-    static QoalaHostMCInstr *create2Reg1BlockRefInstruction(
-        Operation *op, const QoalaHostMCInstr::OpCode opCode,
-        iQoalaMCOperand *reg0, iQoalaMCOperand *reg1, iQoalaMCOperand *target) {
-        assert(reg0->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
-        assert(reg1->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
-        assert(target->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
-        assert(target->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
-        const auto instruction = new QoalaHostMCInstr(op, opCode);
-        instruction->addOperand(reg0);
-        instruction->addOperand(reg1);
-        instruction->addOperand(target);
-        return instruction;
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createAssignCValInstr(Operation *op, iQoalaMCOperand *reg, iQoalaMCOperand *imm) {
-        assert(reg->isLocalRegister() && "first operand must be a local register");
-        assert(imm->isImmediate() && "second operand must be an immediate");
-        auto *instr = new QoalaHostMCInstr(op, OP_ASSIGN_CVAL);
-        instr->addOperand(reg);
-        instr->addOperand(imm);
-        return instr;
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createAddInstr(
-        Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2) {
-        return create3RegInstruction(op, OP_ADD, resReg, op1, op2);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createSubInstr(
-        Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *op2) {
-        return create3RegInstruction(op, OP_SUBTRACT, resReg, op1, op2);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createMulConstInstr(
-        Operation *op, iQoalaMCOperand *resReg, iQoalaMCOperand *op1, iQoalaMCOperand *imm) {
-        return create2Reg1ImmInstruction(op, OP_MULTIPLY_CONSTANT, resReg, op1, imm);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createRunRoutineInstruction(Operation *op) {
-        auto *instr = new QoalaHostMCInstr(op, OP_RUN_ROUTINE);
-        return instr;
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createJmpInstr(Operation *op, iQoalaMCOperand *target) {
-        assert(target->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
-        assert(target->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
-        auto *instr = new QoalaHostMCInstr(op, OP_JUMP);
-        instr->addOperand(target);
-        return instr;
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createBeqInstr(
-        Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target) {
-        return create2Reg1BlockRefInstruction(op, OP_BEQ, op1, op2, target);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createBneInstr(
-        Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target) {
-        return create2Reg1BlockRefInstruction(op, OP_BNE, op1, op2, target);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createBgtInstr(
-        Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target) {
-        return create2Reg1BlockRefInstruction(op, OP_BGT, op1, op2, target);
-    }
-
-    QoalaHostMCInstr *QoalaHostMCInstr::createBltInstr(
-        Operation *op, iQoalaMCOperand *op1, iQoalaMCOperand *op2, iQoalaMCOperand *target) {
-        return create2Reg1BlockRefInstruction(op, OP_BLT, op1, op2, target);
     }
 
     void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
