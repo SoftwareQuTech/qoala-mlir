@@ -1,6 +1,7 @@
 #ifndef IQOLACONTEXT_H
 #define IQOLACONTEXT_H
 
+#include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/ADT/SmallVector.h"
 
 namespace qoala::iqoala {
@@ -14,12 +15,7 @@ namespace qoala::iqoala {
         iQoalaContext() = default;
         ~iQoalaContext() = default;
 
-        /* Allocation for registers */
-        uint8_t allocateHostRegister();
-        uint8_t allocateRRegister();
-        uint8_t allocateCRegister();
-        uint8_t allocateMRegister();
-        uint8_t allocateQRegister();
+        uint8_t allocateRegister(assembly::iQoalaRegType type);
 
     private:
         // Structures to keep track of the used registers.

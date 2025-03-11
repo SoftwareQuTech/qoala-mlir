@@ -6,42 +6,61 @@ using namespace mlir;
 
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
-    NetQASMMCInstr *NetQASMMCInstr::build(Operation *op, const std::optional<Value> resVal, translate::ModuleTranslation *moduleTranslation,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
+    NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
+        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands) {
+        SmallVector<iQoalaMCOperand *> mcOperands;
+
+        if (resRegRef.has_value()) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+
+            mcOperands.push_back(resultRegOperand);
+        }
+
+        for (const Value operandVal : op->getOperands()) {
+            iQoalaRegReference *regRef = moduleTranslation->getMappedQuantumRegReference(operandVal);
+            assert(regRef && "Instruction Builder: operand not mapped");
+            mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+        }
+
+        for (iQoalaMCOperand *extraOperand : extraOperands) {
+            mcOperands.push_back(extraOperand);
+        }
+
         switch (opCode) {
             case OP_ADD:
             case OP_SUB:
             case OP_MUL:
             case OP_DIV:
             case OP_REM:
-                assert(operands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
-                assert(operands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
-                assert(operands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
-                assert(operands[2]->isRegister() && "NetQASM 3-reg instruction: operand 2 must be a register");
+                assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isRegister() && "NetQASM 3-reg instruction: operand 2 must be a register");
                 break;
             case OP_JMP:
-                assert(operands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
-                assert(operands[0]->isRegister() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
+                assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
                 break;
             case OP_BEQ:
             case OP_BNE:
             case OP_BGE:
             case OP_BLT:
-                assert(operands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
-                assert(operands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
-                assert(operands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
-                assert(operands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
+                assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
                 break;
             case OP_LOAD:
             case OP_STORE:
-                assert(operands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
-                assert(operands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
-                assert(operands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
                 break;
             case OP_SET:
-                assert(operands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
-                assert(operands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
-                assert(operands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
                 break;
             default:
                 op->emitError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
@@ -49,13 +68,13 @@ namespace qoala::assembly {
         }
         // Generic way to create a generic NetQASMInstruction with the given opCode and operands
         const auto instruction = new NetQASMMCInstr(op, opCode);
-        for (iQoalaMCOperand *operand : operands) {
-            instruction->addOperand(operand);
+        for (iQoalaMCOperand *mcOperand : mcOperands) {
+            instruction->addOperand(mcOperand);
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
         if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), operands[0]->getRegRef());
+            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
         const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);

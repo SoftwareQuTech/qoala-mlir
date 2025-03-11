@@ -4,41 +4,61 @@
 using namespace mlir;
 
 namespace qoala::assembly {
-    QoalaHostMCInstr *QoalaHostMCInstr::build(Operation *op, const std::optional<Value> resVal, translate::ModuleTranslation *moduleTranslation,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
+    QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
+        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands) {
+        SmallVector<iQoalaMCOperand *> mcOperands;
+
+        if (resRegRef.has_value()) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+
+            mcOperands.push_back(resultRegOperand);
+        }
+
+        for (const Value operandVal : op->getOperands()) {
+            iQoalaRegReference *regRef = moduleTranslation->getMappedLocalRegReference(operandVal);
+            assert(regRef && "Instruction Builder: operand not mapped");
+            mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+        }
+
+        for (iQoalaMCOperand *extraOperand : extraOperands) {
+            mcOperands.push_back(extraOperand);
+        }
+
         switch (opCode) {
             case OP_ASSIGN_CVAL:
-                assert(operands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
-                assert(operands[0]->isLocalRegister() && "QoalaHost instruction builder: first operand must be a local register");
-                assert(operands[1]->isImmediate() && "QoalaHost instruction builder: second operand must be an immediate");
+                assert(mcOperands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost instruction builder: first operand must be a local register");
+                assert(mcOperands[1]->isImmediate() && "QoalaHost instruction builder: second operand must be an immediate");
                 break;
             case OP_ADD:
             case OP_SUBTRACT:
-                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
-                assert(operands[0]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
-                assert(operands[1]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
-                assert(operands[2]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
+                assert(mcOperands[1]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
+                assert(mcOperands[2]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
                 break;
             case OP_MULTIPLY_CONSTANT:
-                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
-                assert(operands[0]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
-                assert(operands[1]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
-                assert(operands[2]->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
+                assert(mcOperands[1]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
+                assert(mcOperands[2]->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
                 break;
             case OP_JUMP:
-                assert(operands.size() == 1 && "QoalaHost instruction builder: expected 1 operand");
-                assert(operands[0]->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
-                assert(operands[0]->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
+                assert(mcOperands.size() == 1 && "QoalaHost instruction builder: expected 1 operand");
+                assert(mcOperands[0]->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
+                assert(mcOperands[0]->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
                 break;
             case OP_BEQ:
             case OP_BNE:
             case OP_BGT:
             case OP_BLT:
-                assert(operands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
-                assert(operands[0]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
-                assert(operands[1]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
-                assert(operands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
-                assert(operands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
+                assert(mcOperands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
+                break;
             case OP_RUN_ROUTINE:
                 // TODO - assert the operands.
             default:
@@ -47,13 +67,13 @@ namespace qoala::assembly {
         }
         // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
         const auto instruction = new QoalaHostMCInstr(op, opCode);
-        for (iQoalaMCOperand *operand : operands) {
-            instruction->addOperand(operand);
+        for (iQoalaMCOperand *mcOperand : mcOperands) {
+            instruction->addOperand(mcOperand);
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
         if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), operands[0]->getRegRef());
+            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
         auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());

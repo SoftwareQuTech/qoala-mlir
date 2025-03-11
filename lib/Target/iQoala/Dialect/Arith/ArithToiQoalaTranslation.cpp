@@ -17,92 +17,71 @@ using namespace qoala::assembly;
 using namespace qoala::dialects;
 using namespace qoala::translate;
 
-static LogicalResult addAssignCValInstr(iQoalaContext *context, ModuleTranslation *moduleTranslation, arith::ConstantIntOp &op) {
-    SmallVector<iQoalaMCOperand *> operands;
-
+static LogicalResult addAssignCValInstr(ModuleTranslation *moduleTranslation, arith::ConstantIntOp &op) {
+    SmallVector<iQoalaMCOperand *> mcOperands;
     iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
+    mcOperands.push_back(immediateVal);
 
-    const uint8_t regNum = context->allocateHostRegister();
-    iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(LOCAL, regNum);
-    iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
-
-    operands.push_back(regOperand);
-    operands.push_back(immediateVal);
+    const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(LOCAL);
+    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(LOCAL, regNumber);
 
     const auto newAssign = InstructionBuilder::build<QoalaHostMCInstr>(
-        op.getOperation(), op.getResult(), moduleTranslation, QoalaHostMCInstr::OP_ASSIGN_CVAL, operands);
+        moduleTranslation, op.getOperation(),
+        op.getResult(), resRegRef,
+        QoalaHostMCInstr::OP_ASSIGN_CVAL, mcOperands);
     return newAssign ? success() : failure();
 }
 
-static LogicalResult addSetInstr(iQoalaContext *context, ModuleTranslation *moduleTranslation, arith::ConstantIntOp &op) {
+static LogicalResult addSetInstr(ModuleTranslation *moduleTranslation, arith::ConstantIntOp &op) {
     SmallVector<iQoalaMCOperand *> operands;
-
     iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
-
-    const uint8_t regNum = context->allocateCRegister();
-    iQoalaRegReference *regRef = iQoalaRegReference::createRegReference(C, regNum);
-    iQoalaMCOperand *regOperand = iQoalaMCOperand::createRegisterOperand(regRef);
-
-    operands.push_back(regOperand);
     operands.push_back(immediateVal);
 
-    const auto newAssign = InstructionBuilder::build<NetQASMMCInstr>(op.getOperation(),
-        op.getResult(), moduleTranslation, NetQASMMCInstr::OP_SET, operands);
+    const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(C);
+    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(C, regNumber);
+
+    const auto newAssign = InstructionBuilder::build<NetQASMMCInstr>(
+        moduleTranslation,op.getOperation(),
+        op.getResult(), resRegRef,
+        NetQASMMCInstr::OP_SET, operands);
     return newAssign ? success() : failure();
 }
 
-static LogicalResult addQoalaHostAddInstr(iQoalaContext *context, ModuleTranslation *moduleTranslation, arith::AddIOp &op) {
-    SmallVector<iQoalaMCOperand *> mcOperands;
+static LogicalResult addQoalaHostAddInstr(ModuleTranslation *moduleTranslation, arith::AddIOp &op) {
+    SmallVector<iQoalaMCOperand *> operands;
 
-    const uint8_t regNum = context->allocateCRegister();
-    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(LOCAL, regNum);
-    iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
-
-    mcOperands.push_back(resultRegOperand);
-
-    for (const Value operandVal : op.getOperands()) {
-        iQoalaRegReference *regRef = moduleTranslation->getMappedLocalRegReference(operandVal);
-        assert(regRef && "Instruction Builder: operand not mapped");
-        mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
-    }
+    const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(LOCAL);
+    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(LOCAL, regNumber);
 
     const auto newAdd = InstructionBuilder::build<QoalaHostMCInstr>(
-        op.getOperation(), op.getResult(), moduleTranslation,
-        QoalaHostMCInstr::OP_ADD, mcOperands);
+        moduleTranslation, op.getOperation(),
+        op.getResult(), resRegRef,
+        QoalaHostMCInstr::OP_ADD, operands);
     return newAdd ? success() : failure();
 }
 
-static LogicalResult addNetQASMAddInstr(iQoalaContext *context, ModuleTranslation *moduleTranslation, arith::AddIOp &op) {
-    SmallVector<iQoalaMCOperand *> mcOperands;
+static LogicalResult addNetQASMAddInstr(ModuleTranslation *moduleTranslation, arith::AddIOp &op) {
+    SmallVector<iQoalaMCOperand *> operands;
 
-    const uint8_t regNum = context->allocateCRegister();
-    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(C, regNum);
-    iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
+    const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(C);
+    iQoalaRegReference *resRegRef = iQoalaRegReference::createRegReference(C, regNumber);
 
-    mcOperands.push_back(resultRegOperand);
-
-    for (const Value operandVal : op.getOperands()) {
-        iQoalaRegReference *regRef = moduleTranslation->getMappedQuantumRegReference(operandVal);
-        assert(regRef && "NetQASM add instruction: left operand not mapped yet");
-        mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
-    }
-
-    const auto newAssign = InstructionBuilder::build<NetQASMMCInstr>(op.getOperation(),
-        op.getResult(), moduleTranslation, NetQASMMCInstr::OP_ADD, mcOperands);
+    const auto newAssign = InstructionBuilder::build<NetQASMMCInstr>(moduleTranslation,
+        op.getOperation(), op.getResult(), resRegRef,
+        NetQASMMCInstr::OP_ADD, operands);
     return newAssign ? success() : failure();
 }
 
 /* Entry point for translating any arith operation */
 static LogicalResult translateArithOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
-    iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case<arith::ConstantIntOp>([&](arith::ConstantIntOp op) -> LogicalResult {
                 if (helpers::operationIsInsideMainFunc(operation)) {
-                    return addAssignCValInstr(context, moduleTranslation, op);
+                    return addAssignCValInstr(moduleTranslation, op);
                 }
                 if (helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return addSetInstr(context, moduleTranslation, op);
+                    return addSetInstr(moduleTranslation, op);
                 }
                 return op.emitError("Arith constant operation not in host or netqasm section!") << *op << "\n";
             })
@@ -112,10 +91,10 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
             })
             .Case<arith::AddIOp>([&](arith::AddIOp op) -> LogicalResult {
                 if (helpers::operationIsInsideMainFunc(operation)) {
-                    return addQoalaHostAddInstr(context, moduleTranslation, op);
+                    return addQoalaHostAddInstr(moduleTranslation, op);
                 }
                 if (helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return addNetQASMAddInstr(context, moduleTranslation, op);
+                    return addNetQASMAddInstr(moduleTranslation, op);
                 }
                 return success();
             })
