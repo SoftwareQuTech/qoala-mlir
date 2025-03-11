@@ -1,9 +1,11 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
+#include "Target/iQoala/ModuleTranslation.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
-    QoalaHostMCInstr *QoalaHostMCInstr::build(Operation *op, const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
+    QoalaHostMCInstr *QoalaHostMCInstr::build(Operation *op, const std::optional<Value> resVal, translate::ModuleTranslation *moduleTranslation,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
         switch (opCode) {
             case OP_ASSIGN_CVAL:
                 assert(operands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
@@ -39,7 +41,6 @@ namespace qoala::assembly {
                 assert(operands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
             case OP_RUN_ROUTINE:
                 // TODO - assert the operands.
-                break;
             default:
                 op->emitError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
@@ -49,6 +50,14 @@ namespace qoala::assembly {
         for (iQoalaMCOperand *operand : operands) {
             instruction->addOperand(operand);
         }
+
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (resVal.has_value()) {
+            moduleTranslation->mapValue(resVal.value(), operands[0]->getRegRef());
+        }
+
+        auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+        block->appendInstruction(instruction);
         return instruction;
     }
 

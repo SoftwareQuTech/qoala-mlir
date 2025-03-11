@@ -11,6 +11,11 @@
 // in "include/llvm/MC/MCInst.h", but this is a way lighter model than the one
 // presented in LLVM
 
+// Forward declaration to avoid circular includes of iQoala.h
+namespace qoala::translate {
+    class ModuleTranslation;
+}
+
 namespace qoala::assembly {
     enum iQoalaRegType { LOCAL, R, C, M, Q };
 
@@ -223,7 +228,8 @@ namespace qoala::assembly {
         NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
 
         /* Base entry point for creating QoalaHost instructions */
-        static NetQASMMCInstr *build(mlir::Operation *op, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
+        static NetQASMMCInstr *build(mlir::Operation *op, std::optional<mlir::Value> resVal,
+            translate::ModuleTranslation *moduleTranslation, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -263,7 +269,8 @@ namespace qoala::assembly {
         QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
 
         /* Base entry point for creating QoalaHost instructions */
-        static QoalaHostMCInstr *build(mlir::Operation *op, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
+        static QoalaHostMCInstr *build(mlir::Operation *op, std::optional<mlir::Value> resVal,
+            translate::ModuleTranslation *moduleTranslation, OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -275,8 +282,9 @@ namespace qoala::assembly {
     class InstructionBuilder {
     public:
         template<typename Op>
-        static Op *build(mlir::Operation *op, typename Op::OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands) {
-            return Op::build(op, opCode, operands);
+        static Op *build(mlir::Operation *op, std::optional<mlir::Value> resVal, translate::ModuleTranslation *moduleTranslation,
+            typename Op::OpCode opCode, mlir::SmallVector<iQoalaMCOperand *> &operands) {
+            return Op::build(op, resVal, moduleTranslation, opCode, operands);
         }
     };
 

@@ -1,10 +1,13 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
+#include "Dialect/Helpers/DialectHelpers.h"
+#include "Target/iQoala/ModuleTranslation.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
-    NetQASMMCInstr *NetQASMMCInstr::build(Operation *op, OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
+    NetQASMMCInstr *NetQASMMCInstr::build(Operation *op, const std::optional<Value> resVal, translate::ModuleTranslation *moduleTranslation,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &operands) {
         switch (opCode) {
             case OP_ADD:
             case OP_SUB:
@@ -49,6 +52,15 @@ namespace qoala::assembly {
         for (iQoalaMCOperand *operand : operands) {
             instruction->addOperand(operand);
         }
+
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (resVal.has_value()) {
+            moduleTranslation->mapValue(resVal.value(), operands[0]->getRegRef());
+        }
+
+        const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
+        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+        localRoutine->addInstruction(instruction);
         return instruction;
     }
 
