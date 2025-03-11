@@ -18,8 +18,9 @@ namespace qoala::assembly {
         }
 
         for (const Value operandVal : op->getOperands()) {
-            iQoalaRegReference *regRef = moduleTranslation->getMappedQuantumRegReference(operandVal);
-            assert(regRef && "Instruction Builder: operand not mapped");
+            iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+            assert(regRef && "NetQASM Instruction Builder: operand not mapped");
+            assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
             mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
         }
 

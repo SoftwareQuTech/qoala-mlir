@@ -66,6 +66,13 @@ namespace qoala::translate {
         }
     }
 
+    assembly::iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
+        if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
+            return localReg;
+        }
+        return this->getMappedQuantumRegReference(mlirVal);
+    }
+
     assembly::iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
         if (this->localRegsMap.contains(mlirVal)) {
             return this->localRegsMap.at(mlirVal);

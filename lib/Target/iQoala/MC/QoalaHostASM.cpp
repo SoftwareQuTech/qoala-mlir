@@ -16,8 +16,9 @@ namespace qoala::assembly {
         }
 
         for (const Value operandVal : op->getOperands()) {
-            iQoalaRegReference *regRef = moduleTranslation->getMappedLocalRegReference(operandVal);
-            assert(regRef && "Instruction Builder: operand not mapped");
+            iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+            assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
+            assert(regRef->isLocal() && "QoalaHost Instruction Builder: mapped register is not local");
             mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
         }
 

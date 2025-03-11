@@ -30,16 +30,16 @@ namespace qoala::translate {
 
         /* Mapping functions */
         void mapValue(const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
-        [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedLocalRegReference(const mlir::Value &mlirVal) const;
-        [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedQuantumRegReference(const mlir::Value &mlirVal) const;
+        assembly::iQoalaRegReference *getMappedRegReference(const mlir::Value &mlirVal) const;
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
     private:
+        assembly::iQoalaRegReference *getMappedLocalRegReference(const mlir::Value &mlirVal) const;
+        assembly::iQoalaRegReference *getMappedQuantumRegReference(const mlir::Value &mlirVal) const;
+
         mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         QoalaTranslationInterfaces ifaces;
