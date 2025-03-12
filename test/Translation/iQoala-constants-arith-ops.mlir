@@ -10,7 +10,7 @@
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 // CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG0:.*]]) : 2
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 // %[[HOST_REG4:.*]] = rem (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
@@ -39,6 +39,8 @@ module {
     %resA = arith.addi %cstA, %cstB : i32
     %resB = arith.subi %cstA, %cstB : i32
     %resC = arith.muli %cstA, %cstB : i32
+    %resD = arith.divui %cstA, %cstB : i32
+    %resE = arith.remui %cstA, %cstB : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
     %1 = netqasm.measure %0 : i1
@@ -50,8 +52,6 @@ module {
     %resA = arith.addi %cstA, %cstB : i32
     %resB = arith.subi %cstA, %cstB : i32
     %resC = arith.muli %cstA, %cstB : i32
-    %resD = arith.divui %cstA, %cstB : i32
-    %resE = arith.remui %cstA, %cstB : i32
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i1
     qoalahost.return
   }
