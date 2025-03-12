@@ -277,8 +277,8 @@ namespace qoala::assembly {
         void print(mlir::raw_ostream &os) const override;
     private:
         void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
-                               const iQoalaMCOperand *ssaLocalReg = nullptr,
-                               const iQoalaMCOperand *immediateExpr = nullptr) const;
+                               bool firstIsSSAReg = false,
+                               bool lastIsImmediate = false) const;
     };
 
     class InstructionBuilder {
