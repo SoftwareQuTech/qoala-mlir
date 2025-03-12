@@ -8,7 +8,7 @@
 namespace qoala::iqoala {
 
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type) {
-        uint8_t lastAvailable;
+        uint8_t lastAvailable = 0xFF;
         switch (type) {
             case assembly::LOCAL:
                 lastAvailable = this->hostRegisters.size();
@@ -40,9 +40,6 @@ namespace qoala::iqoala {
                 LLVM_DEBUG(llvm::dbgs() << "Allocate R Register'" << static_cast<unsigned int>(lastAvailable) << "'\n");
                 this->rRegisters.push_back(lastAvailable);
                 break;
-            default:
-                // Should never end up here!
-                return 60;
         }
         return lastAvailable;
     }

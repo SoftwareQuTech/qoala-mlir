@@ -230,7 +230,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static NetQASMMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -272,7 +272,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static QoalaHostMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -286,8 +286,8 @@ namespace qoala::assembly {
         template<typename Op>
         static Op *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, typename Op::OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands) {
-            return Op::build(moduleTranslation, op, resVal, resRegRef, opCode, extraOperands);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands) {
+            return Op::build(moduleTranslation, op, resVal, resRegRef, opCode, extraOperands, useOpOperands);
         }
     };
 

@@ -19,12 +19,8 @@ namespace qoala::iqoala::helpers {
                         typename InstrType::OpCode opCode,
                         const std::optional<mlir::Value>result,
                         const std::optional<assembly::iQoalaRegType> resultType,
-                        const std::optional<assembly::iQoalaMCOperand *>immediateVal){
-        llvm::SmallVector<assembly::iQoalaMCOperand *> mcOperands;
-        if (immediateVal.has_value()) {
-            mcOperands.push_back(immediateVal.value());
-        }
-
+                        mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands,
+                        const bool useOpOperands = true){
         std::optional<assembly::iQoalaRegReference *>resRegRef;
         if (resultType.has_value()) {
             const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultType.value());
@@ -36,7 +32,7 @@ namespace qoala::iqoala::helpers {
         const auto newAssign = assembly::InstructionBuilder::build<InstrType>(
             moduleTranslation, mlirOperation,
             result, resRegRef,
-            opCode, mcOperands);
+            opCode, extraOperands, useOpOperands);
         return newAssign ? mlir::success() : mlir::failure();
     }
 }

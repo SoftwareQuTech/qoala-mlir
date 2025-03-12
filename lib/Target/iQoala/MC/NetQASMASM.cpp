@@ -8,7 +8,7 @@ namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands) {
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
         SmallVector<iQoalaMCOperand *> mcOperands;
 
         if (resRegRef.has_value()) {
@@ -17,14 +17,17 @@ namespace qoala::assembly {
             mcOperands.push_back(resultRegOperand);
         }
 
-        for (const Value operandVal : op->getOperands()) {
-            iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
-            assert(regRef && "NetQASM Instruction Builder: operand not mapped");
-            assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
-            mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+        if (useOpOperands) {
+            for (const Value operandVal : op->getOperands()) {
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                assert(regRef && "NetQASM Instruction Builder: operand not mapped");
+                assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
+                mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+            }
         }
 
         for (iQoalaMCOperand *extraOperand : extraOperands) {
+            // Extra operands are blindly added to the list after all the original operation operands
             mcOperands.push_back(extraOperand);
         }
 
