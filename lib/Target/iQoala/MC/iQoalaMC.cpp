@@ -70,10 +70,6 @@ namespace qoala::assembly {
         return operand;
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createSymbolRefExpr(std::string &symbolName) {
-        return new iQoalaMCExpr(symbolName);
-    }
-
     uint32_t iQoalaMCOperand::getIntegerVal() const {
         assert(this->isImmediate());
         return this->integerVal;

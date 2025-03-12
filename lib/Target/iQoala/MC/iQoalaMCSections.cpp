@@ -58,12 +58,6 @@ namespace qoala::iqoala {
         this->name = programName;
     }
 
-    HostSection::~HostSection() {
-        for (const Block *block : this->hostBlocks) {
-            delete block;
-        }
-    }
-
     Block *HostSection::createNewBlock() {
         auto *block = new Block();
         this->hostBlocks.push_back(block);

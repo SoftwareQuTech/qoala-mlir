@@ -7,7 +7,8 @@
 namespace qoala::iqoala {
     class iQoalaModule : public helpers::PrintInterface{
     public:
-        iQoalaModule(llvm::StringRef name, iQoalaContext *context) : moduleName(name), iQoalaCtx(context) { }
+        iQoalaModule(const llvm::StringRef &name, iQoalaContext *context) : moduleName(name), iQoalaCtx(context) { }
+        ~iQoalaModule() override = default;
         void print(mlir::raw_ostream &os) const override;
 
         [[nodiscard]]

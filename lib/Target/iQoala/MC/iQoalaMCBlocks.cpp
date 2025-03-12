@@ -3,12 +3,6 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
-    Block::~Block() {
-        for (const auto *instruction : this->instructions) {
-            delete instruction;
-        }
-    }
-
     void Block::appendInstruction(assembly::QoalaHostMCInstr *instruction) {
         this->instructions.push_back(instruction);
     }

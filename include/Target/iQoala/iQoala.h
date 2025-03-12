@@ -34,6 +34,7 @@ namespace qoala::iqoala {
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
         kind(kind), name(std::move(name)) {}
         QuantumRoutine(const QuantumRoutine &r) = default;
+        ~QuantumRoutine() override = default;
 
         [[nodiscard]]
         std::string getName() const { return name; }
@@ -58,6 +59,11 @@ namespace qoala::iqoala {
             LocalQuantumRoutine(const LocalQuantumRoutine &r) :
             QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.usesQubits),
             params(r.params), returns(r.returns), instructions(r.instructions) { }
+        ~LocalQuantumRoutine() override {
+            for (const auto instruction : this->instructions) {
+                delete instruction;
+            }
+        }
 
         static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
@@ -86,6 +92,7 @@ namespace qoala::iqoala {
         VirtualIDs() : type(ALL) { }
         VirtualIDs(const VirtualIDs &vids) = default;
         explicit VirtualIDs(const VirtualIDType type) : type(type) { }
+        ~VirtualIDs() = default;
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
@@ -107,6 +114,11 @@ namespace qoala::iqoala {
             callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
             virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
             instructions(r.instructions) { }
+        ~RequestQuantumRoutine() override {
+           for (const auto instruction : this->instructions) {
+               delete instruction;
+           }
+        }
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
@@ -148,9 +160,13 @@ namespace qoala::iqoala {
     class Block : public assembly::iQoalaMC {
     public:
         enum BlockType { CL, CC, QL, QC };
-        Block() = default;
+        Block() : type(CL) { }
         Block(const Block &b) = default;
-        ~Block() override;
+        ~Block() override {
+            for (const auto instruction : this->instructions) {
+                delete instruction;
+            }
+        }
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
@@ -168,6 +184,7 @@ namespace qoala::iqoala {
     public:
         MetaSection() = default;
         MetaSection(const MetaSection &section) = default;
+        ~MetaSection() override = default;
 
         void print(mlir::raw_ostream &os) const override;
         void addRemote(const std::string &remoteName);
@@ -187,7 +204,11 @@ namespace qoala::iqoala {
     public:
         HostSection() = default;
         HostSection(const HostSection &section) = default;
-        ~HostSection() override;
+        ~HostSection() override {
+            for (const auto block : this->hostBlocks) {
+                delete block;
+            }
+        }
 
         Block *createNewBlock();
 
@@ -203,6 +224,11 @@ namespace qoala::iqoala {
     public:
         NetQASMSection() = default;
         NetQASMSection(const NetQASMSection &section) = default;
+        ~NetQASMSection() override {
+            for (const auto routine : this->routines) {
+                delete routine;
+            }
+        }
 
         void print(mlir::raw_ostream &os) const override;
         void addRoutine(LocalQuantumRoutine *routine);
@@ -219,6 +245,11 @@ namespace qoala::iqoala {
     public:
         RequestSection() = default;
         RequestSection(const RequestSection &section) = default;
+        ~RequestSection() override {
+            for (const auto routine : this->routines) {
+                delete routine;
+            }
+        }
 
         void print(mlir::raw_ostream &os) const override;
         void addRoutine(RequestQuantumRoutine *routine);
