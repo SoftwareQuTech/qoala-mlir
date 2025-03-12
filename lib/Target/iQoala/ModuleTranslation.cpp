@@ -67,10 +67,14 @@ namespace qoala::translate {
     }
 
     assembly::iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
+        // To ease the de-allocation process, we return copies of the references
         if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
-            return localReg;
+            return new assembly::iQoalaRegReference(*localReg);
         }
-        return this->getMappedQuantumRegReference(mlirVal);
+        if (const auto quantumReg = this->getMappedQuantumRegReference(mlirVal)) {
+            return new assembly::iQoalaRegReference(*quantumReg);
+        }
+        return nullptr;
     }
 
     assembly::iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {

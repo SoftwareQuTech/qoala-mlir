@@ -59,6 +59,7 @@ namespace qoala::assembly {
     public :
         iQoalaRegReference() : type(R), num(0) { }
         iQoalaRegReference(const iQoalaRegType type, const uint32_t num) : type(type), num(num) { }
+        iQoalaRegReference(const iQoalaRegReference &ref) = default;
         ~iQoalaRegReference() = default;
 
         static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
@@ -94,12 +95,10 @@ namespace qoala::assembly {
             // We do not need to deallocate the instruction, since it will be deallocated
             // in the destructor of the corresponding block.
             switch (this->kind) {
-                // We do not need to delete the registerReference, since it will be
-                // deallocated when
-                // case REGISTER:
-                // case LOCAL_REGISTER:
-                //     delete this->regRef;
-                //     break;
+                case REGISTER:
+                case LOCAL_REGISTER:
+                    delete this->regRef;
+                    break;
                 case EXPRESSION:
                     delete this->expression;
                     break;
