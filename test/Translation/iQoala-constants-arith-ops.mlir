@@ -10,7 +10,10 @@
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 // CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG0:.*]]) : 2
+// The compiler will check in order which one of the operands is a constant
+// whose value can be "forwarded". Being that said, HOST_REG0 is the first operand
+// which is a constant and can be forwarded:
+// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG1:.*]]) : 3
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 // %[[HOST_REG4:.*]] = rem (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
@@ -26,7 +29,7 @@
 // CHECK-NEXT: add C[[C_REG2:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
 // CHECK-NEXT: sub C[[C_REG3:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
 // CHECK-NEXT: mul C[[C_REG4:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
-// CHECK-NEXT: quot C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: div C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
 // CHECK-NEXT: rem C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
 // CHECK-NEXT: NETQASM_END
 
