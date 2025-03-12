@@ -91,6 +91,17 @@ namespace qoala::translate {
         return nullptr;
     }
 
+    void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
+        this->cmpMap.try_emplace(mlirVal, mlirOp);
+    }
+
+    Operation *ModuleTranslation::getMappedCmpOperation(const Value &mlirVal) const {
+        if (this->cmpMap.contains(mlirVal)) {
+            return this->cmpMap.at(mlirVal);
+        }
+        return nullptr;
+    }
+
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
         assert(this->qoalaHostBlocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
         return this->qoalaHostBlocksMap.at(mlirBlock);

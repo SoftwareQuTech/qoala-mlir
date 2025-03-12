@@ -71,7 +71,10 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return op.emitError("Arith constant operation not in host or netqasm section!") << *op << "\n";
             })
             .Case<arith::CmpIOp>([&](arith::CmpIOp op) -> LogicalResult {
-                // TODO - Implement cmp operations
+                // In this case, we simply map the operation to the MLIR value yielded.
+                // We will use this later when encountering the cf.cond_br instruction to select
+                // the right branching instruction to emplace in the QoalalHost/NetQASM block.
+                moduleTranslation->mapCmpValue(op.getResult(), op.getOperation());
                 return success();
             })
             .Case<arith::AddIOp>([&](arith::AddIOp op) -> LogicalResult {

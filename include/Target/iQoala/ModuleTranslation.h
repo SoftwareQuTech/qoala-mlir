@@ -32,6 +32,9 @@ namespace qoala::translate {
         void mapValue(const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
         [[nodiscard]]
         assembly::iQoalaRegReference *getMappedRegReference(const mlir::Value &mlirVal) const;
+        void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
+        [[nodiscard]]
+        mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;
@@ -50,6 +53,12 @@ namespace qoala::translate {
         mlir::DenseMap<mlir::Block *, iqoala::Block *> qoalaHostBlocksMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> localRegsMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> quantumRegsMap;
+        // Map for comparison instructions
+        // When encountering a cf.cond_br instruction, we should look into this map
+        // to check for the corresponding comparison operation
+        // The static type of the key is mlir::Operation *, but they are safe to dyn_cast
+        // (using MLIR's dyn_cast) to arith::CmpIOp.
+        mlir::DenseMap<mlir::Value, mlir::Operation *> cmpMap;
     };
 }
 
