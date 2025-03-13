@@ -1,3 +1,7 @@
+// UNSUPPORTED: true
+// This file contains netqasm.local_routine instances with affine and tensor dialect operations.
+// Both of these dialects are illegal at LIR level, i.e., they need to be lowered between HIR->MIR
+// and MIR->LIR.
 // RUN: qoala-opt %s
 
 module {

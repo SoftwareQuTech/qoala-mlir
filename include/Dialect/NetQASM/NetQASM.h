@@ -32,9 +32,6 @@
 // List of dialects allowed by the NetQASM dialects
 #undef GET_ALLOWED_DIALECTS
 mlir::arith::ArithDialect,
-mlir::memref::MemRefDialect,
 mlir::cf::ControlFlowDialect,
-mlir::tensor::TensorDialect,
-mlir::affine::AffineDialect,
 qoala::dialects::netqasm::NetQASMDialect
 #endif

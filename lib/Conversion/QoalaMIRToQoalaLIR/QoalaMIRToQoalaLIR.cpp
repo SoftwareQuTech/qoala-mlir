@@ -1,6 +1,8 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
@@ -11,7 +13,7 @@
 
 #define DEBUG_TYPE "mir-to-lir"
 
-using namespace llvm;
+using namespace mlir;
 using namespace qoala::dialects;
 
 namespace qoala::conversion {
@@ -65,6 +67,36 @@ namespace qoala::conversion {
         // We will keep inserting this declaration and assuming it will be provided by the runtime in the future.
         if (!helpers::angle::moduleContainsAngleConversionDeclaration(module)) {
             helpers::angle::insertAngleConversionFunctionDeclaration(module);
+        }
+
+        if (this->useSCCP) {
+            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1 and 2 to propagate
+            // constants inside branching blocks. This will be needed when supporting branching
+            // instructions inside the body of a NetQASM local routine (for example, when performing
+            // a different rotation based on the value of an argument).
+            // We create an SCCP pass to try to
+            // propagate the constants inside the basic blocks of the  main function
+            // We need this to try to compile the rotations and move them into local routines
+            // when used in conjunction with branching instructions.
+            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            LLVM_DEBUG(llvm::dbgs() << "*** Before SCCP:\n");
+            LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+
+            auto mainFuncs = module.getOps<qmem::FuncOp>();
+            assert (!mainFuncs.empty());
+            qmem::FuncOp mainFunc = *mainFuncs.begin();
+
+            auto pm = PassManager::on<qmem::FuncOp>(&context);
+            pm.addPass(createSCCPPass());
+            if (failed(pm.run(mainFunc))) {
+                signalPassFailure();
+            }
+
+            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            LLVM_DEBUG(llvm::dbgs() << "*** After SCCP:\n");
+            LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         }
 
         // Stage 2: Try to fold operations as much as possible, especially, constants
