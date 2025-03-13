@@ -130,8 +130,7 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     NetQASMFunctionLowering::createNewOpAndValues(func::FuncOp op, func::FuncOp::Adaptor adaptor,
                                                   ConversionPatternRewriter &rewriter) const {
-        StringAttr entangleAttr = dyn_cast_or_null<StringAttr>(op->getAttr("entangle"));
-        if (entangleAttr) {
+        if (dyn_cast_or_null<StringAttr>(op->getAttr("entangle"))) {
             auto newFunc = rewriter.create<netqasm::RequestRoutineOp>(
                     op.getLoc(),
                     adaptor.getSymName(),
@@ -143,18 +142,17 @@ namespace qoala::conversion::mir {
             // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
             return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
 
-        } else {
-            auto newFunc = rewriter.create<netqasm::LocalRoutineOp>(
-                    op.getLoc(),
-                    adaptor.getSymName(),
-                    adaptor.getFunctionType(),
-                    adaptor.getSymVisibilityAttr(),
-                    adaptor.getArgAttrsAttr(),
-                    adaptor.getResAttrsAttr());
-            rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
-            // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
-            return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
         }
+        auto newFunc = rewriter.create<netqasm::LocalRoutineOp>(
+                op.getLoc(),
+                adaptor.getSymName(),
+                adaptor.getFunctionType(),
+                adaptor.getSymVisibilityAttr(),
+                adaptor.getArgAttrsAttr(),
+                adaptor.getResAttrsAttr());
+        rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+        // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
+        return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
 
     std::unique_ptr<OpAndValues>

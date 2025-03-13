@@ -11,8 +11,13 @@
 // in "include/llvm/MC/MCInst.h", but this is a way lighter model than the one
 // presented in LLVM
 
+// Forward declaration to avoid circular includes of iQoala.h
+namespace qoala::translate {
+    class ModuleTranslation;
+}
+
 namespace qoala::assembly {
-    enum iQoalaRegType { R, C, M, Q };
+    enum iQoalaRegType { LOCAL, R, C, M, Q };
 
     class iQoalaMC : public helpers::PrintInterface{ };
 
@@ -26,14 +31,9 @@ namespace qoala::assembly {
             CONSTANT_I32,
             CONSTANT_F32
         };
-        ExprKind kind;
-        union {
-            char *symbolName;
-            uint32_t i32ConstVal;
-            float f32ConstVal;
-        };
-
-        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { };
+    public:
+        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
+        ~iQoalaMCExpr() override { }
 
         [[nodiscard]]
         bool isValid() const;
@@ -41,42 +41,46 @@ namespace qoala::assembly {
         bool isSymbolRef() const;
         [[nodiscard]]
         bool isConstant() const;
-    public:
         void print(mlir::raw_ostream &os) const override;
 
-        static iQoalaMCExpr createSymbolRef(std::string symName) {
-            iQoalaMCExpr expr;
-            expr.kind = SYMBOL_REFERENCE;
-            expr.symbolName = symName.data();
-            return expr;
-        }
+        static iQoalaMCExpr *createSymbolRef(const std::string &symName);
+        static iQoalaMCExpr *createConstant(uint32_t value);
+        static iQoalaMCExpr *createConstant(float value);
+    private:
+        ExprKind kind;
+        union {
+            std::string symbolName;
+            uint32_t i32ConstVal;
+            float f32ConstVal;
+        };
+    };
 
-        static iQoalaMCExpr createConstant(uint32_t value) {
-            iQoalaMCExpr expr;
-            expr.kind = CONSTANT_I32;
-            expr.i32ConstVal = value;
-            return expr;
-        }
+    class iQoalaRegReference {
+    public :
+        iQoalaRegReference() : type(R), num(0) { }
+        iQoalaRegReference(const iQoalaRegType type, const uint32_t num) : type(type), num(num) { }
+        iQoalaRegReference(const iQoalaRegReference &ref) = default;
+        ~iQoalaRegReference() = default;
 
-        static iQoalaMCExpr createConstant(float value) {
-            iQoalaMCExpr expr;
-            expr.kind = CONSTANT_F32;
-            expr.f32ConstVal = value;
-            return expr;
-        }
+        static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
+
+        [[nodiscard]]
+        std::string formatRegister() const;
+        [[nodiscard]]
+        iQoalaRegType getType() const { return type; }
+        [[nodiscard]]
+        uint32_t getNum() const { return num; }
+        [[nodiscard]]
+        bool isLocal() const { return type == LOCAL; }
+        [[nodiscard]]
+        bool isQuantum() const { return type == C || type == Q || type == M || type == R; }
+    private:
+        iQoalaRegType type;
+        uint32_t num;
     };
 
     class iQoalaMCOperand : public iQoalaMC {
     public:
-        struct iQoalaRegReference {
-            iQoalaRegType type;
-            uint32_t num;
-        public :
-            iQoalaRegReference() : type(iQoalaRegType::R), num(0) { }
-            iQoalaRegReference(iQoalaRegType type, uint32_t num) : type(type), num(num) { }
-            ~iQoalaRegReference() = default;
-        };
-
         enum OperandKind {
             INVALID,
             IMMEDIATE_I32,
@@ -86,8 +90,23 @@ namespace qoala::assembly {
             EXPRESSION
         };
 
-        iQoalaMCOperand() : kind(INVALID), integerVal(0) { };
-        ~iQoalaMCOperand() override { };
+        iQoalaMCOperand() : inst(nullptr), kind(INVALID), integerVal(0) { };
+        ~iQoalaMCOperand() override {
+            // We do not need to deallocate the instruction, since it will be deallocated
+            // in the destructor of the corresponding block.
+            switch (this->kind) {
+                case REGISTER:
+                case LOCAL_REGISTER:
+                    delete this->regRef;
+                    break;
+                case EXPRESSION:
+                    delete this->expression;
+                    break;
+                default:
+                    break;
+            }
+        }
+
         [[nodiscard]]
         bool isValid() const;
         [[nodiscard]]
@@ -99,6 +118,23 @@ namespace qoala::assembly {
         [[nodiscard]]
         bool isExpression() const;
 
+        void print(mlir::raw_ostream &os) const override;
+        void setInst(iQoalaMCInstruction *inst);
+
+        [[nodiscard]]
+        uint32_t getIntegerVal() const;
+        [[nodiscard]]
+        float getFloatingPointVal() const;
+        [[nodiscard]]
+        iQoalaRegReference *getRegRef() const;
+        [[nodiscard]]
+        iQoalaMCExpr *getExpression() const;
+
+        static iQoalaMCOperand *createImmediateOperand(uint32_t val);
+        static iQoalaMCOperand *createImmediateOperand(float val);
+        static iQoalaMCOperand *createRegisterOperand(iQoalaRegReference *regRef);
+        static iQoalaMCOperand *createExprOperand(iQoalaMCExpr *expr);
+
     private:
         iQoalaMCInstruction *inst;
         OperandKind kind;
@@ -107,39 +143,7 @@ namespace qoala::assembly {
             float floatingPointVal;
             iQoalaRegReference *regRef;
             iQoalaMCExpr *expression;
-            uint32_t localRegNum;
         };
-    public:
-        void print(mlir::raw_ostream &os) const override;
-        void setInst(iQoalaMCInstruction *inst);
-
-        static iQoalaMCOperand createImmediate(const uint32_t val) {
-            iQoalaMCOperand operand;
-            operand.kind = IMMEDIATE_I32;
-            operand.integerVal = val;
-            return operand;
-        }
-
-        static iQoalaMCOperand createImmediate(const float val) {
-            iQoalaMCOperand operand;
-            operand.kind = IMMEDIATE_F32;
-            operand.floatingPointVal = val;
-            return operand;
-        }
-
-        static iQoalaMCOperand createRegister(iQoalaRegReference *regRef) {
-            iQoalaMCOperand operand;
-            operand.kind = REGISTER;
-            operand.regRef = regRef;
-            return operand;
-        }
-
-        static iQoalaMCOperand createExpr(iQoalaMCExpr *expr) {
-            iQoalaMCOperand operand;
-            operand.kind = EXPRESSION;
-            operand.expression = expr;
-            return operand;
-        }
     };
 
     class iQoalaMCInstruction : public iQoalaMC {
@@ -148,25 +152,29 @@ namespace qoala::assembly {
         explicit iQoalaMCInstruction(mlir::Operation *op) : originalOp(op), opCode(0) { }
         iQoalaMCInstruction(mlir::Operation *op, const uint32_t opCode) : originalOp(op), opCode(opCode), operands({}) { }
         iQoalaMCInstruction(const iQoalaMCInstruction &inst) : originalOp(inst.originalOp), opCode(inst.opCode), operands(inst.operands) { }
-        ~iQoalaMCInstruction() override = default;
+        ~iQoalaMCInstruction() override {
+            for (const auto operand : this->operands) {
+                delete operand;
+            }
+        }
 
         void setOpcode(unsigned int opCode);
         [[nodiscard]]
         unsigned int getOpcode() const;
 
         [[nodiscard]]
-        const iQoalaMCOperand &getOperand(unsigned i) const;
-        iQoalaMCOperand &getOperand(unsigned i);
+        iQoalaMCOperand *getOperand(unsigned i) const;
+        iQoalaMCOperand *getOperand(unsigned i);
         [[nodiscard]]
         unsigned int getNumOperands() const;
 
-        void addOperand(iQoalaMCOperand &op);
+        void addOperand(iQoalaMCOperand *op);
         [[nodiscard]]
         mlir::Operation *getOriginalOp() const;
     protected:
         mlir::Operation *originalOp;
         unsigned int opCode;
-        std::vector<iQoalaMCOperand> operands;
+        std::vector<iQoalaMCOperand *> operands;
     };
 
     class NetQASMMCInstr : public iQoalaMCInstruction {
@@ -233,7 +241,14 @@ namespace qoala::assembly {
             // they do noe need to be emitted by the compiler.
         };
 
-        NetQASMMCInstr();
+        using iQoalaMCInstruction::iQoalaMCInstruction;
+        NetQASMMCInstr() : iQoalaMCInstruction(nullptr) { }
+        ~NetQASMMCInstr() override = default;
+
+        /* Base entry point for creating QoalaHost instructions */
+        static NetQASMMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
+            std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -251,7 +266,7 @@ namespace qoala::assembly {
     public:
         enum OpCode {
             OP_UNKNOWN = 0,
-            OP_ASSIGN,
+            OP_ASSIGN_CVAL,
             OP_ADD,
             OP_SUBTRACT,
             OP_MULTIPLY_CONSTANT,
@@ -269,13 +284,20 @@ namespace qoala::assembly {
             OP_JOIN_ROUTINES
         };
 
-        QoalaHostMCInstr();
+        using iQoalaMCInstruction::iQoalaMCInstruction;
+        QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
+        ~QoalaHostMCInstr() override = default;
+
+        /* Base entry point for creating QoalaHost instructions */
+        static QoalaHostMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
+            std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
 
         void print(mlir::raw_ostream &os) const override;
     private:
         void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
-                               const iQoalaMCOperand *ssaLocalReg = nullptr,
-                               const iQoalaMCOperand *immediateExpr = nullptr) const;
+                               bool firstIsSSAReg = false,
+                               bool lastIsImmediate = false) const;
     };
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);

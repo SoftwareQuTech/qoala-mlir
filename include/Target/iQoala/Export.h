@@ -9,7 +9,7 @@
 
 namespace qoala::translate {
     std::unique_ptr<iqoala::iQoalaModule>
-    translateModuleToiQoala(mlir::Operation *module, iqoala::iQoalaContext &iQoalaContext,
+    translateModuleToiQoala(mlir::Operation *originalModule, iqoala::iQoalaContext &iQoalaContext,
                             llvm::StringRef name = "iQoalaModule");
 }
 

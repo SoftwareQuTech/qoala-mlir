@@ -15,30 +15,34 @@ namespace qoala::iqoala {
 
     void HostSection::print(raw_ostream &os) const {
         // Iteratively print all the blocks
-        for (const Block &block : this->hostBlocks) {
-            os << block << "\n";
+        for (const Block *block : this->hostBlocks) {
+            os << *block << "\n";
         }
     }
 
     void NetQASMSection::print(raw_ostream &os) const {
         // Iteratively print all the routines:
-        for (const QuantumRoutine &routine : this->routines) {
-            os << routine << "\n";
+        for (const QuantumRoutine *routine : this->routines) {
+            os << *routine << "\n";
         }
     }
 
     void RequestSection::print(raw_ostream &os) const {
         // Iteratively print all the routines:
-        for (const QuantumRoutine &routine : this->routines) {
-            os << routine << "\n";
+        for (const QuantumRoutine *routine : this->routines) {
+            os << *routine << "\n";
         }
     }
 
-    void NetQASMSection::addRoutine(const LocalQuantumRoutine &routine) {
+    void NetQASMSection::addRoutine(LocalQuantumRoutine *routine) {
         this->routines.push_back(routine);
     }
 
-    void RequestSection::addRoutine(const RequestQuantumRoutine &routine) {
+    std::vector<LocalQuantumRoutine *> NetQASMSection::getRoutines() const {
+        return this->routines;
+    }
+
+    void RequestSection::addRoutine(RequestQuantumRoutine *routine) {
         this->routines.push_back(routine);
     }
 
@@ -52,5 +56,11 @@ namespace qoala::iqoala {
 
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;
+    }
+
+    Block *HostSection::createNewBlock() {
+        auto *block = new Block();
+        this->hostBlocks.push_back(block);
+        return block;
     }
 }

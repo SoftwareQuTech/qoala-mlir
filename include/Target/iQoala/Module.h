@@ -7,17 +7,20 @@
 namespace qoala::iqoala {
     class iQoalaModule : public helpers::PrintInterface{
     public:
-        iQoalaModule(llvm::StringRef name, const iQoalaContext &context) : moduleName(name), iQoalaCtx(context) { }
+        iQoalaModule(const llvm::StringRef &name, iQoalaContext *context) : moduleName(name), iQoalaCtx(context) { }
+        ~iQoalaModule() override = default;
         void print(mlir::raw_ostream &os) const override;
 
-        iQoalaContext &getiQoalaContext() {
-            return iQoalaCtx;
-        }
+        [[nodiscard]]
+        iQoalaContext *getiQoalaContext() const ;
 
         // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
         void addRemoteDeclaration(mlir::StringRef remoteName);
         void setModuleName(mlir::StringRef newModuleName);
-        void addRoutine(QuantumRoutine &newRoutine);
+        void addRoutine(QuantumRoutine *newRoutine);
+        Block *addHostBlock();
+        [[nodiscard]]
+        LocalQuantumRoutine *getLocalRoutineByName(mlir::StringRef name) const;
 
     private:
         mlir::StringRef moduleName;
@@ -32,7 +35,7 @@ namespace qoala::iqoala {
             NetQASMSection netQASMSection;
             RequestSection requestSection;
         } iQoalaProgram;
-        iQoalaContext iQoalaCtx;
+        iQoalaContext *iQoalaCtx;
     };
 }
 

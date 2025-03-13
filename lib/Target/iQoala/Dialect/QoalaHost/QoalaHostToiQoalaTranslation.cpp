@@ -3,6 +3,7 @@
 #include "mlir/IR/Operation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -12,18 +13,19 @@
 using namespace mlir;
 using namespace qoala::dialects::qoalahost;
 
-static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation &moduleTranslation) {
+static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation *moduleTranslation) {
+    (void) moduleTranslation->emplaceNewBlockInHostSection(&block);
     for (Operation &op : block.getOperations()) {
-        if (failed(moduleTranslation.convertOperation(op))) {
+        if (failed(moduleTranslation->convertOperation(op))) {
             return op.emitOpError("cannot covert operation '") << op << "'\n";
         }
     }
     return success();
 }
 
-static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::translate::ModuleTranslation &moduleTranslation) {
-    moduleTranslation.setModuleName(mainFuncOP.getName());
-    for (mlir::Block &block: mainFuncOP.getBlocks()) {
+static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::translate::ModuleTranslation *moduleTranslation) {
+    moduleTranslation->setModuleName(mainFuncOP.getName());
+    for (Block &block : mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")
                     << mainFuncOP.getSymName() << "'\n";
@@ -32,14 +34,19 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::transl
     return success();
 }
 
-static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::translate::ModuleTranslation &moduleTranslation) {
+static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::translate::ModuleTranslation *moduleTranslation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
                 return translateMainFunction(op, moduleTranslation);
             })
-            .Case([](CallOp op) -> LogicalResult {
+            .Case([&](CallOp op) -> LogicalResult {
+                // std::string callee = op.getCallee().str();
+                // for (auto kk : op.getArgOperands()) {
+                //     // TODO - Create an expression for the arguments
+                // }
+                // qoala::iqoala::Block *iQoalaBlock = moduleTranslation.getMappediQoalaBlock(op->getBlock());
                 return success();
             })
             .Case([](ReturnOp op) -> LogicalResult {
@@ -49,14 +56,12 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::tr
                 return success();
             })
             .Case([](SendFloatsOp op) -> LogicalResult {
-                // TODO - Sending floats is not supported yet
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](RecvIntsOp op) -> LogicalResult {
                 return success();
             })
             .Case([](RecvFloatsOp op) -> LogicalResult {
-                // TODO - Receiving floats is not supported yet
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
             .Default([](Operation *op) -> LogicalResult {
@@ -65,7 +70,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::tr
 }
 
 namespace qoala::translate {
-    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
         return translateQoalaHostOperation(op, moduleTranslation);
     }
 }

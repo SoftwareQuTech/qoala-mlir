@@ -1,37 +1,110 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
+#include "Target/iQoala/ModuleTranslation.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
-    void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, llvm::raw_ostream &os,
-                                           const iQoalaMCOperand *ssaLocalReg,
-                                           const iQoalaMCOperand *immediateExpr) const {
-        auto currentElement = this->operands.begin();
-        auto nextElement = this->operands.begin();
-        auto lastElement = this->operands.end();
-        nextElement++;
+    // Helper function to create instructions with the given opcode
+    QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
+        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
+        SmallVector<iQoalaMCOperand *> mcOperands;
 
-        if (ssaLocalReg != nullptr) {
-            os << *ssaLocalReg << " = ";
-            currentElement++;
-            nextElement++;
+        if (resRegRef.has_value()) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+
+            mcOperands.push_back(resultRegOperand);
         }
 
-        if (immediateExpr != nullptr) {
-            currentElement++;
-            nextElement++;
+        if (useOpOperands) {
+            for (const Value operandVal : op->getOperands()) {
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
+                assert(regRef->isLocal() && "QoalaHost Instruction Builder: mapped register is not local");
+                mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+            }
         }
 
-        os << mnemonic << " ";
+        for (iQoalaMCOperand *extraOperand : extraOperands) {
+            // Extra operands are blindly added to the list after all the original operation operands
+            mcOperands.push_back(extraOperand);
+        }
 
-        for (; currentElement != this->operands.end(); currentElement++) {
-            os << *currentElement << (nextElement != lastElement ? ", " : "");
+        switch (opCode) {
+            case OP_ASSIGN_CVAL:
+                assert(mcOperands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost instruction builder: first operand must be a local register");
+                assert(mcOperands[1]->isImmediate() && "QoalaHost instruction builder: second operand must be an immediate");
+                break;
+            case OP_ADD:
+            case OP_SUBTRACT:
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
+                assert(mcOperands[1]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
+                assert(mcOperands[2]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
+                break;
+            case OP_MULTIPLY_CONSTANT:
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
+                assert(mcOperands[1]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
+                assert(mcOperands[2]->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
+                break;
+            case OP_JUMP:
+                assert(mcOperands.size() == 1 && "QoalaHost instruction builder: expected 1 operand");
+                assert(mcOperands[0]->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
+                assert(mcOperands[0]->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
+                break;
+            case OP_BEQ:
+            case OP_BNE:
+            case OP_BGT:
+            case OP_BLT:
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
+                assert(mcOperands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
+                break;
+            case OP_RUN_ROUTINE:
+                // TODO - assert the operands.
+            default:
+                op->emitError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
+                return nullptr;
+        }
+        // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
+        const auto instruction = new QoalaHostMCInstr(op, opCode);
+        for (iQoalaMCOperand *mcOperand : mcOperands) {
+            instruction->addOperand(mcOperand);
+        }
+
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (resVal.has_value()) {
+            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
+        }
+
+        auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+        block->appendInstruction(instruction);
+        return instruction;
+    }
+
+    void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
+                                             const bool firstIsSSAReg, const bool lastIsImmediate) const {
+        unsigned long i = firstIsSSAReg ? 1 : 0;
+        const unsigned long last = this->operands.size() - (lastIsImmediate ? 1 : 0);
+
+        if (firstIsSSAReg) {
+            os << *this->operands[0] << " = ";
+        }
+
+        os << mnemonic << " (";
+
+        for (; i < last; i++) {
+            os << *this->operands[i] << (i + 1 < last ? ", " : "");
         }
         os << ")";
 
-        if (immediateExpr != nullptr) {
-            // Print the immediate at last... if it was passed
-            os << " : " << *immediateExpr;
+        if (lastIsImmediate) {
+            // Print the immediate at last is needed
+            os << " : " << *this->operands[this->operands.size() - 1];
         }
     }
 
@@ -40,120 +113,122 @@ namespace qoala::assembly {
             case OP_UNKNOWN:
                 this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
                 break;
-            case OP_ASSIGN:
+            case OP_ASSIGN_CVAL:
                 assert(this->operands.size() == 2);
                 // We assume the first operand is the "name" of the local registry to assign to
                 // And the second operand is the immediate
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isImmediate());
-                printInstrGeneric("assign", os, &this->operands[0], &this->operands[1]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isImmediate());
+                printInstrGeneric("assign_cval", os, true, true);
                 break;
             case OP_ADD:
                 assert(this->operands.size() == 3);
                 // We assume the first operand is the "name" of the local registry to assign to
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isLocalRegister());
-                assert(this->operands[2].isLocalRegister());
-                printInstrGeneric("add", os, &this->operands[0]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                assert(this->operands[2]->isLocalRegister());
+                printInstrGeneric("add_cval_c", os, true);
                 break;
             case OP_SUBTRACT:
                 assert(this->operands.size() == 3);
                 // We assume the first operand is the "name" of the local registry to assign to
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isLocalRegister());
-                assert(this->operands[2].isLocalRegister());
-                printInstrGeneric("sub", os, &this->operands[0]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                assert(this->operands[2]->isLocalRegister());
+                printInstrGeneric("sub_cval_c", os, true);
                 break;
             case OP_MULTIPLY_CONSTANT:
                 assert(this->operands.size() == 3);
                 // We assume the first operand is the "name" of the local registry to assign to
                 // And the second operand is the immediate
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isImmediate());
-                assert(this->operands[2].isLocalRegister());
-                printInstrGeneric("mult_const", os, &this->operands[0], &this->operands[1]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                assert(this->operands[2]->isImmediate());
+                printInstrGeneric("mult_const", os, true, true);
                 break;
             case OP_BI_COND_MULTIPLY:
                 assert(this->operands.size() == 4);
                 // We assume the first operand is the "name" of the local registry to assign to
                 // And the second operand is the immediate
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isImmediate());
-                assert(this->operands[2].isLocalRegister());
-                assert(this->operands[3].isLocalRegister());
-                printInstrGeneric("bcond_mult_const", os, &this->operands[0], &this->operands[1]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                assert(this->operands[2]->isLocalRegister());
+                assert(this->operands[3]->isImmediate());
+                printInstrGeneric("bcond_mult_const", os, true, true);
                 break;
             case OP_JUMP:
                 assert(this->operands.size() == 1);
-                assert(this->operands[0].isExpression());
-                printInstrGeneric("jump", os, nullptr, &this->operands[0]);
+                assert(this->operands[0]->isExpression());
+                printInstrGeneric("jump", os, false, true);
                 break;
             case OP_BEQ:
-                // We assume the first operand is the symbol reference to jump to
+                // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                assert(this->operands[2].isRegister());
-                printInstrGeneric("beq", os, nullptr, &this->operands[0]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                printInstrGeneric("beq", os, false, true);
                 break;
             case OP_BNE:
-                // We assume the first operand is the symbol reference to jump to
+                // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                assert(this->operands[2].isRegister());
-                printInstrGeneric("bne", os, nullptr, &this->operands[0]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                printInstrGeneric("bne", os, false, true);
                 break;
             case OP_BGT:
-                // We assume the first operand is the symbol reference to jump to
+                // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                assert(this->operands[2].isRegister());
-                printInstrGeneric("bgt", os, nullptr, &this->operands[0]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                printInstrGeneric("bgt", os, false, true);
                 break;
             case OP_BLT:
-                // We assume the first operand is the symbol reference to jump to
+                // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                assert(this->operands[2].isRegister());
-                printInstrGeneric("blt", os, nullptr, &this->operands[0]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                printInstrGeneric("blt", os, false, true);
                 break;
             case OP_SEND_MSG:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isRegister());
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
                 printInstrGeneric("send_msg", os);
                 break;
             case OP_RECV_MSG:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isLocalRegister());
-                assert(this->operands[1].isRegister());
-                printInstrGeneric("recv_msg", os, &this->operands[0]);
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                printInstrGeneric("recv_msg", os, true);
                 break;
             case OP_RUN_ROUTINE:
                 // For running routines, we assume the firs operand is the local register to assign , the result
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                printInstrGeneric("run_routine", os, &this->operands[0], &this->operands[1]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                printInstrGeneric("run_routine", os, true, true);
                 break;
             case OP_RUN_REQUEST:
                 // For running routines, we assume the firs operand is the local register to assign , the result
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isExpression());
-                printInstrGeneric("run_request", os, &this->operands[0], &this->operands[1]);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                printInstrGeneric("run_request", os, true, true);
                 break;
             case OP_SUBMIT_ROUTINES:
                 assert(false && "Submit routines is not supported yet!");
             case OP_JOIN_ROUTINES:
                 assert(false && "Join routines is not supported yet!");
+            default:
+                assert(false && "Unknown operation!");
         }
     }
 }

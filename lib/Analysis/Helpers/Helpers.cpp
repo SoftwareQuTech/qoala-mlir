@@ -1,5 +1,4 @@
 #include "Analysis/Helpers/Helpers.h"
-#include <string>
 
 using namespace mlir;
 using namespace qoala::helpers;

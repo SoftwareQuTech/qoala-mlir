@@ -23,7 +23,7 @@ namespace qoala::translate {
         /// Hook for derived dialect interface to provide translation of the
         /// operations to iQoala
         virtual mlir::LogicalResult convertOperation(
-                mlir::Operation *op, ModuleTranslation &moduleTranslation) const {
+                mlir::Operation *op, ModuleTranslation *moduleTranslation) const {
             // TODO - Check what else we need to pass as arguments...
             //  * An "IR builder"? (factory to create objects that can easily be mapped to iQoala)
             //  * A map between the original op and the iQoalaMC object?

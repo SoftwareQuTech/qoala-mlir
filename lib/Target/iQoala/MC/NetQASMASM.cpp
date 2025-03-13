@@ -1,8 +1,91 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
+#include "Dialect/Helpers/DialectHelpers.h"
+#include "Target/iQoala/ModuleTranslation.h"
 
 using namespace mlir;
 
 namespace qoala::assembly {
+    // Helper function to create instructions with the given opcode
+    NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
+        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
+        SmallVector<iQoalaMCOperand *> mcOperands;
+
+        if (resRegRef.has_value()) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+
+            mcOperands.push_back(resultRegOperand);
+        }
+
+        if (useOpOperands) {
+            for (const Value operandVal : op->getOperands()) {
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                assert(regRef && "NetQASM Instruction Builder: operand not mapped");
+                assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
+                mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+            }
+        }
+
+        for (iQoalaMCOperand *extraOperand : extraOperands) {
+            // Extra operands are blindly added to the list after all the original operation operands
+            mcOperands.push_back(extraOperand);
+        }
+
+        switch (opCode) {
+            case OP_ADD:
+            case OP_SUB:
+            case OP_MUL:
+            case OP_DIV:
+            case OP_REM:
+                assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isRegister() && "NetQASM 3-reg instruction: operand 2 must be a register");
+                break;
+            case OP_JMP:
+                assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
+                break;
+            case OP_BEQ:
+            case OP_BNE:
+            case OP_BGE:
+            case OP_BLT:
+                assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
+                assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
+                break;
+            case OP_LOAD:
+            case OP_STORE:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                break;
+            case OP_SET:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
+                break;
+            default:
+                op->emitError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
+                return nullptr;
+        }
+        // Generic way to create a generic NetQASMInstruction with the given opCode and operands
+        const auto instruction = new NetQASMMCInstr(op, opCode);
+        for (iQoalaMCOperand *mcOperand : mcOperands) {
+            instruction->addOperand(mcOperand);
+        }
+
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (resVal.has_value()) {
+            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
+        }
+
+        const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
+        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+        localRoutine->addInstruction(instruction);
+        return instruction;
+    }
 
     void NetQASMMCInstr::print(raw_ostream &os) const {
         // The code in this function checks that the operands of the NetQASM operations
@@ -24,22 +107,22 @@ namespace qoala::assembly {
             case OP_LOAD:
             case OP_STORE:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister());
-                assert(this->operands[1].isRegister());
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
                 printStoreOrLoad(os);
                 break;
             case OP_LEA:
                 assert(this->operands.size() == 2);
-                assert(this->operands[0].isRegister());
+                assert(this->operands[0]->isRegister());
                 // TODO - Check if the second argument of a lea (address) is an expr or immediate
-                assert(this->operands[1].isExpression());
+                assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
             // "undef" instruction is not inpreted by qoala-sim
             // Classical Logic
             case OP_JMP:
                 assert(this->operands.size() == 1);
-                assert(this->operands[0].isImmediate());
+                assert(this->operands[0]->isImmediate());
                 this->printInstrInGenericForm("jmp", os);
                 break;
             case OP_BEZ:
@@ -138,37 +221,37 @@ namespace qoala::assembly {
 
     void NetQASMMCInstr::printOneRegInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 1);
-        assert(this->operands[0].isRegister());
+        assert(this->operands[0]->isRegister());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printTwoRegInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 2);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printOneRegTwoImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 3);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isImmediate());
-        assert(this->operands[2].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isImmediate());
+        assert(this->operands[2]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printOneRegOneImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 2);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
     void NetQASMMCInstr::printTwoRegsOneImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 3);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
-        assert(this->operands[2].isImmediate());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
+        assert(this->operands[2]->isImmediate());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
@@ -180,11 +263,11 @@ namespace qoala::assembly {
             numOperands = 3;
         }
         assert(this->operands.size() == numOperands);
-        assert(this->operands[0].isRegister());
-        assert(this->operands[1].isRegister());
-        assert(this->operands[2].isRegister());
+        assert(this->operands[0]->isRegister());
+        assert(this->operands[1]->isRegister());
+        assert(this->operands[2]->isRegister());
         if (usesFourRegs) {
-            assert(this->operands[3].isRegister());
+            assert(this->operands[3]->isRegister());
         }
         this->printInstrInGenericForm(mnemonic, os);
     }
@@ -192,8 +275,8 @@ namespace qoala::assembly {
     void NetQASMMCInstr::printInstrInGenericForm(const std::string &mnemonic, raw_ostream &os) const {
         // Method to print a NetQASM "machine code" instruction, for the "generic" form
         os << mnemonic;
-        for (const iQoalaMCOperand &operand : this->operands) {
-            os << " " << operand;
+        for (const iQoalaMCOperand *operand : this->operands) {
+            os << " " << *operand;
         }
     }
 

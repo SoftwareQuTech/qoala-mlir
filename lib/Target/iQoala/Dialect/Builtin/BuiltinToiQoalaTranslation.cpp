@@ -16,7 +16,7 @@ static LogicalResult translateBuiltinOperation(Operation *operation) {
 }
 
 namespace qoala::translate {
-    LogicalResult BuiltinToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation &moduleTranslation) const {
+    LogicalResult BuiltinToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
         return translateBuiltinOperation(op);
     }
 }
