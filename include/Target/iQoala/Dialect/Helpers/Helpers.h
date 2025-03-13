@@ -7,9 +7,9 @@
 namespace qoala::iqoala::helpers {
     /* Template to easily invoke the creation of an MC instruction of a given type
      * We need this template, since it will be instantiated in the DialectToiQoalaTranslation
-     * sources We can't move this template to iQoalaMC, since the allocation of a registry
+     * sources. We can't move this template to iQoalaMC, since the allocation of a registry
      * invokes a method from the MLIRTargetiQoalaExport library. If we place this code
-     * in the iQoalaMC.h header, it forces us to insert a cyclic dependency in the project.
+     * in the iQoalaMC.h header, it would lead to a cyclic dependency in the project.
      */
     template <typename InstrType>
     mlir::LogicalResult buildInstruction(translate::ModuleTranslation *moduleTranslation,
