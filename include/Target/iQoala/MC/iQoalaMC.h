@@ -300,16 +300,6 @@ namespace qoala::assembly {
                                bool lastIsImmediate = false) const;
     };
 
-    class InstructionBuilder {
-    public:
-        template<typename Op>
-        static Op *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
-            std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, typename Op::OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands) {
-            return Op::build(moduleTranslation, op, resVal, resRegRef, opCode, extraOperands, useOpOperands);
-        }
-    };
-
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr);

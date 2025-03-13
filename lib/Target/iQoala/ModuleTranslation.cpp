@@ -126,7 +126,7 @@ namespace qoala::translate {
 
 
     std::unique_ptr<iQoalaModule> translateModuleToiQoala(
-        Operation *originalModule, iQoalaContext &iQoalaContext, llvm::StringRef name) {
+        Operation *originalModule, iQoalaContext &iQoalaContext, StringRef name) {
         // Entry point for the transformations
         auto iQoalaModule = std::make_unique<iqoala::iQoalaModule>(name, &iQoalaContext);
         auto mlirModule = dyn_cast<ModuleOp>(originalModule);

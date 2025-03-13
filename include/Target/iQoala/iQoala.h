@@ -28,7 +28,6 @@ namespace qoala::iqoala {
             QRK_LOCAL,
             QRK_QUANTUM
         };
-        // TODO
         QuantumRoutine() : kind(QRK_LOCAL) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
@@ -127,7 +126,6 @@ namespace qoala::iqoala {
         static bool classof(const QuantumRoutine *rt) {
             return rt->getKind() == QRK_QUANTUM;
         }
-        // TODO - More methods might come
     private:
         // The list of returns
         std::vector<std::string> returns;
@@ -177,6 +175,11 @@ namespace qoala::iqoala {
         std::string name;
         // List of QoalaHostMCInstr that compose the block
         std::vector<assembly::QoalaHostMCInstr *> instructions;
+        // List of references for predecessor and successor blocks
+        // In the meantime, these vectors are unused, but will be populated
+        // when translating the CFG information.
+        std::vector<Block *> predecessors;
+        std::vector<Block *> successors;
     };
 
     /* Sections of the iQoala program */

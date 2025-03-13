@@ -18,12 +18,9 @@ namespace qoala::translate {
         TranslateFromMLIRRegistration registration(
                 "mlir-to-iqoala", "Translate MLIR to iQoala", // Command line arg, and description
                 [](Operation *op, raw_ostream &output) -> LogicalResult {
-                    // TODO - Double check that we are passing the right arguments:
-                    //  It seems we need to pass the operation (the full module), but also a "context" object,
-                    //  which will aid the process of exporting the MLIR
                     assert (isa<ModuleOp>(*op));
                     iqoala::iQoalaContext iQoalaContext;
-                    auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
+                    const auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
                     if (!iQoalaModule) {
                         return failure();
                     }

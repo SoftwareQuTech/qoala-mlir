@@ -1,9 +1,7 @@
 #ifndef TARGET_TRANSLATION_HELPERS_H
 #define TARGET_TRANSLATION_HELPERS_H
 
-#include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
 
 namespace qoala::iqoala::helpers {
@@ -29,7 +27,7 @@ namespace qoala::iqoala::helpers {
             resRegRef = std::nullopt;
         }
 
-        const auto newAssign = assembly::InstructionBuilder::build<InstrType>(
+        const auto newAssign = InstrType::build(
             moduleTranslation, mlirOperation,
             result, resRegRef,
             opCode, extraOperands, useOpOperands);
