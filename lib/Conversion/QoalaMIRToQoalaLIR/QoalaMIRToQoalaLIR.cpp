@@ -70,11 +70,11 @@ namespace qoala::conversion {
         }
 
         if (this->useSCCP) {
-            // We use this code switch to create an SCCP pass between stages 1 and 2 to propagate
+            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1 and 2 to propagate
             // constants inside branching blocks. This will be needed when supporting branching
             // instructions inside the body of a NetQASM local routine (for example, when performing
             // a different rotation based on the value of an argument).
-            // We create an SCCP (Sparse Conditional Constant Propagation) pass to try to
+            // We create an SCCP pass to try to
             // propagate the constants inside the basic blocks of the  main function
             // We need this to try to compile the rotations and move them into local routines
             // when used in conjunction with branching instructions.
