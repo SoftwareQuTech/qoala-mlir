@@ -1,11 +1,9 @@
 #ifndef NETQASMTOIQOALATRANSLATION_H
 #define NETQASMTOIQOALATRANSLATION_H
 
-#include "Analysis/Helpers/Helpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Operation.h"
-#include "mlir/IR/DialectRegistry.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
 

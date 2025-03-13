@@ -1,13 +1,12 @@
 #include "mlir/IR/Operation.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "Dialect/Helpers/DialectHelpers.h"
-#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"
 
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
 
 #define DEBUG_TYPE "arith-translation"
 

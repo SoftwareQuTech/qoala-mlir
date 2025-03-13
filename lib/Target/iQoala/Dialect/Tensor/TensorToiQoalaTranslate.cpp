@@ -1,5 +1,4 @@
 #include "mlir/IR/Operation.h"
-#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 #include "llvm/Support/Debug.h"
 

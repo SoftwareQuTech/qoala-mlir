@@ -1,9 +1,9 @@
 #include "mlir/IR/Operation.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "Conversion/Helpers/Helpers.h"
-#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"
+#include "Conversion/Helpers/Helpers.h"
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
 
 #include "llvm/Support/Debug.h"
