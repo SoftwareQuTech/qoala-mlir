@@ -63,6 +63,7 @@ namespace qoala::assembly {
         ~iQoalaRegReference() = default;
 
         static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
+        static iQoalaRegReference *createRegReference(const iQoalaRegReference *regRef);
 
         [[nodiscard]]
         std::string formatRegister() const;
@@ -164,7 +165,6 @@ namespace qoala::assembly {
 
         [[nodiscard]]
         iQoalaMCOperand *getOperand(unsigned i) const;
-        iQoalaMCOperand *getOperand(unsigned i);
         [[nodiscard]]
         unsigned int getNumOperands() const;
 

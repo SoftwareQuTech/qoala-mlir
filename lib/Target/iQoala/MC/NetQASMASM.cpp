@@ -2,6 +2,8 @@
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 
+#define DEBUG_TYPE "netqasm-mc"
+
 using namespace mlir;
 
 namespace qoala::assembly {
@@ -58,6 +60,7 @@ namespace qoala::assembly {
                 break;
             case OP_LOAD:
             case OP_STORE:
+                LLVM_DEBUG(llvm::dbgs() << mcOperands.size());
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");

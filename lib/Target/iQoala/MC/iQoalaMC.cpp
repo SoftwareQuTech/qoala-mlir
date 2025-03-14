@@ -10,6 +10,12 @@ namespace qoala::assembly {
         regReference->num = num;
         return regReference;
     }
+    iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegReference *regRef) {
+        const auto regReference = new iQoalaRegReference();
+        regReference->type = regRef->type;
+        regReference->num = regRef->num;
+        return regReference;
+    }
 
     iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) {
         const auto expr = new iQoalaMCExpr();
@@ -107,7 +113,6 @@ namespace qoala::assembly {
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
     iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
-    iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) { return operands[i]; }
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
     void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {

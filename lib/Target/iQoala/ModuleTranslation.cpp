@@ -1,24 +1,24 @@
-#include "Target/iQoala/ModuleTranslation.h"
-
-#include "Target/iQoala/QoalaTranslationInterface.h"
-#include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
-#include <format>
+#include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/Dialect/Helpers/Helpers.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
+#include "Dialect/NetQASM/NetQASM.h"
 
 using namespace mlir;
 using namespace qoala;
 using namespace qoala::iqoala;
+using namespace qoala::assembly;
 using namespace qoala::dialects::netqasm;
 
 #define DEBUG_TYPE "module-translate"
 
 namespace qoala::translate {
     // A helper function to obtain the body of given module
-    static mlir::Block &getModuleBody(Operation &module) {
+    static mlir::Block &getModuleBody(Operation *module) {
         assert(llvm::isa<ModuleOp>(module));
-        return module.getRegion(0).front();
+        return module->getRegion(0).front();
     }
 
     ModuleOp *ModuleTranslation::getMLIRModule() const { return mlirModule; }
@@ -59,7 +59,7 @@ namespace qoala::translate {
         return newBlock;
     }
 
-    void ModuleTranslation::mapValue(const Value &mlirVal, assembly::iQoalaRegReference *regRef) {
+    void ModuleTranslation::mapValue(const Value &mlirVal, iQoalaRegReference *regRef) {
         if (regRef->isLocal()) {
             this->localRegsMap.try_emplace(mlirVal, regRef);
             return;
@@ -69,25 +69,25 @@ namespace qoala::translate {
         }
     }
 
-    assembly::iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
+    iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
         // To ease the de-allocation process, we return copies of the references
         if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
-            return new assembly::iQoalaRegReference(*localReg);
+            return new iQoalaRegReference(*localReg);
         }
         if (const auto quantumReg = this->getMappedQuantumRegReference(mlirVal)) {
-            return new assembly::iQoalaRegReference(*quantumReg);
+            return new iQoalaRegReference(*quantumReg);
         }
         return nullptr;
     }
 
-    assembly::iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
+    iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
         if (this->localRegsMap.contains(mlirVal)) {
             return this->localRegsMap.at(mlirVal);
         }
         return nullptr;
     }
 
-    assembly::iQoalaRegReference *ModuleTranslation::getMappedQuantumRegReference(const Value &mlirVal) const {
+    iQoalaRegReference *ModuleTranslation::getMappedQuantumRegReference(const Value &mlirVal) const {
         if (this->quantumRegsMap.contains(mlirVal)) {
             return this->quantumRegsMap.at(mlirVal);
         }
@@ -110,15 +110,46 @@ namespace qoala::translate {
         return this->qoalaHostBlocksMap.at(mlirBlock);
     }
 
-    LogicalResult ModuleTranslation::convertFunctionSignatures() const {
-        for (auto localRoutine : getModuleBody(*mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
+    static void loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
+        Value &mlirArgValue, const uint8_t paramNum) {
+        // Immediate with the number of the argument
+        iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
+        // Assign that immediate value to a registry
+        SmallVector<iQoalaMCOperand *> immediateOperands;
+        immediateOperands.push_back(immediateVal);
+        // Despite this instruction yields a value, we don't need to map it to any
+        // mlir value, so we pass "nullptr" as the "result" argument when building
+        auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
+            nullptr, C, immediateOperands,
+            /*useOpOperands=*/false, /*appendInstruction=*/false);
+        routine->addInstruction(assignInstr);
+
+        // Use the "load" instruction to actually load the value
+        // Here, the yielded registry needs to be mapped to the mlir value of the function
+        // argument so we pass it to the builder for mapping
+        // First, get the register reference yielded from the last instruction
+        const auto *setResultOperand = assignInstr->getOperand(0);
+        assert(setResultOperand->isRegister() && "NetQASM local routine param: result of set is not a register");
+        // Create an operand with it
+        iQoalaRegReference *setRegRef = iQoalaRegReference::createRegReference(setResultOperand->getRegRef());
+        // Pass that extra operand to create the respective load instruction
+        auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
+            mlirArgValue, R, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
+            /*useOpOperands=*/false, /*appendInstruction=*/false);
+        routine->addInstruction(loadInstr);
+    }
+
+    LogicalResult ModuleTranslation::convertFunctionSignatures() {
+        for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
             // TODO - Implement how to handle the conversion of local routines
             if (localRoutine.getName() == "__qoala_convert_float_angle") {
                 // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
             } else {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
-                for (const auto arg : localRoutine.getArguments()) {
+                for (auto arg : localRoutine.getArguments()) {
                     const uint8_t argNum = arg.getArgNumber();
                     // std::format was introduced as part of C++20 standard. We will use the old way
                     // to format a string. More info on function `getNewFunctionName` in the file
@@ -130,11 +161,12 @@ namespace qoala::translate {
 
                     routine->addArgument(std::string(funcName.data()));
                     LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
+                    loadArgument(this, routine, localRoutine, arg, argNum);
                 }
                 iQoalaModule->addRoutine(routine);
             }
         }
-        for (auto localRoutine : getModuleBody(*mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+        for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
             // TODO - Implement how to handle the conversion of request routines
         }
         return success();
@@ -162,7 +194,7 @@ namespace qoala::translate {
         // TODO - We might need to explore other module-level operations separately
 
         // Then we explore all the operations in the body
-        for (Operation &op : getModuleBody(*originalModule).getOperations()) {
+        for (Operation &op : getModuleBody(originalModule).getOperations()) {
             if (failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }
