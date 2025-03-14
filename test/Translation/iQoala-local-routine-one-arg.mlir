@@ -9,13 +9,14 @@
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
 
 //CHECK: SUBROUTINE __qoala_wrapper0
-// CHECK-NEXT: params: arg0
+// CHECK-NEXT: params: p0
 // CHECK-NEXT: returns:
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
 // CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: load R[[R_REG0:.*]] @input[0]
-// CHECK-NEXT: set C[[C_REG0:.*]] 25
+// CHECK-NEXT: set C[[C_REG0:.*]] 0
+// CHECK-NEXT: load R[[R_REG0:.*]] @input[C[[C_REG0]]]
+// CHECK-NEXT: set C[[C_REG1:.*]] 25
 // CHECK-NEXT: NETQASM_END
 
 module {
