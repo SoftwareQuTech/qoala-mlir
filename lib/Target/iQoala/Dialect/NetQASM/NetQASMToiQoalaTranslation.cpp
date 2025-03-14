@@ -39,11 +39,13 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         // Get the register reference for the returned val
         Value returnedVal = op.getOperand(i);
         iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegReference(returnedVal);
+        assert(retValRegRef && "NetQASM return: trying to return a value that is not mapped!");
         iQoalaMCOperand *retValOperand = iQoalaMCOperand::createRegisterOperand(retValRegRef);
 
         // And the local routine of the operation under analysis
         std::string localRoutineName = qoala::dialects::helpers::getParentNetQASMRoutineName(op.getOperation());
         LocalQuantumRoutine *localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+        assert(localRoutine && "NetQASM return: unknown local routine name!");
 
         // Add the name of the returned value to the local routine
         // std::format was introduced as part of C++20 standard. We will use the old way
