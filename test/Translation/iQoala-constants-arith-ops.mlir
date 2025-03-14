@@ -36,7 +36,7 @@
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
-  netqasm.local_routine @__qoala_wrapper0() -> i1 {
+  netqasm.local_routine @__qoala_wrapper0() -> () {
     %cstA = arith.constant 10 : i32
     %cstB = arith.constant 15 : i32
     %resA = arith.addi %cstA, %cstB : i32
@@ -47,7 +47,7 @@ module {
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
     %1 = netqasm.measure %0 : i1
-    netqasm.return %1 : i1
+    netqasm.return
   }
   qoalahost.main_func @test_lower_constants() {
     %cstA = arith.constant 3 : i32
@@ -55,7 +55,7 @@ module {
     %resA = arith.addi %cstA, %cstB : i32
     %resB = arith.subi %cstA, %cstB : i32
     %resC = arith.muli %cstA, %cstB : i32
-    %0 = qoalahost.call @__qoala_wrapper0() : () -> i1
+    qoalahost.call @__qoala_wrapper0() : () -> ()
     qoalahost.return
   }
 }
