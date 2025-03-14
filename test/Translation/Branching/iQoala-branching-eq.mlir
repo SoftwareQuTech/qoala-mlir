@@ -1,6 +1,8 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
+// TODO - Adapt the expected result.
+// TODO - Use this test case to make test for other branching conditions (neq, blt, bgt, etc)
 // CHECK: META START
-// CHECK-NEXT: name: test_arith_operations
+// CHECK-NEXT: name: test_branching
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -35,27 +37,34 @@
 
 module {
   qremote.remote @Bob
-  netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
-  netqasm.local_routine @__qoala_wrapper0() -> () {
+  netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
+  netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i1 {
     %cstA = arith.constant 10 : i32
-    %cstB = arith.constant 15 : i32
-    %resA = arith.addi %cstA, %cstB : i32
-    %resB = arith.subi %cstA, %cstB : i32
-    %resC = arith.muli %cstA, %cstB : i32
-    %resD = arith.divui %cstA, %cstB : i32
-    %resE = arith.remui %cstA, %cstB : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
+    %jump_loc = arith.cmpi eq, %cstA, %arg0 : i32
+    cf.cond_br %jump_loc, ^bb0, ^bb1
+  ^bb0:
+    netqasm.rot_x %0 (3 : ui32, 2 : ui32)
+    cf.br ^bb2
+  ^bb1:
+    netqasm.rot_y %0 (1 : ui32, 2 : ui32)
+    cf.br ^bb2
+  ^bb2:
     %1 = netqasm.measure %0 : i1
-    netqasm.return
+    netqasm.return %1 : i1
   }
-  qoalahost.main_func @test_arith_operations() {
+  qoalahost.main_func @test_branching() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
-    %resA = arith.addi %cstA, %cstB : i32
-    %resB = arith.subi %cstA, %cstB : i32
-    %resC = arith.muli %cstA, %cstB : i32
-    qoalahost.call @__qoala_wrapper0() : () -> ()
+    %jump = arith.cmpi eq, %cstA, %cstB : i32
+    cf.cond_br %jump, ^bb0, ^bb1
+  ^bb0:
+    cf.br ^bb2(%cstA: i32)
+  ^bb1:
+    cf.br ^bb2(%cstB: i32)
+  ^bb2(%blk_arg: i32):
+    %0 = qoalahost.call @__qoala_wrapper0(%blk_arg) : (i32) -> i1
     qoalahost.return
   }
 }
