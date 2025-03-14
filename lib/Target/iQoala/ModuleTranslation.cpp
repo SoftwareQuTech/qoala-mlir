@@ -114,6 +114,13 @@ namespace qoala::translate {
                 // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
             } else {
                 // TODO - Change this
+                auto argsAttr = localRoutine.getArgAttrs();
+                auto resultsAttr = localRoutine.getResAttrs();
+                if (argsAttr.has_value()) {
+                    for (auto arg : argsAttr.value()) {
+                        LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
+                    }
+                }
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 iQoalaModule->addRoutine(routine);
             }

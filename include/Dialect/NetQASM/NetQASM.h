@@ -5,6 +5,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Support/LogicalResult.h"
+#include "llvm/ADT/ArrayRef.h"
 
 // Needed for [FunctionOpInterface] in the .td file.
 #include "mlir/Bytecode/BytecodeOpInterface.h"

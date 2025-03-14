@@ -1,6 +1,6 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
-// CHECK-NEXT: name: test_lower_constants
+// CHECK-NEXT: name: test_local_routine_args
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -28,7 +28,7 @@ module {
     %1 = netqasm.measure %0 : i1
     netqasm.return
   }
-  qoalahost.main_func @test_lower_constants() {
+  qoalahost.main_func @test_local_routine_args() {
     %cst = arith.constant 3 : i32
     %0 = qoalahost.call @__qoala_wrapper0(%cst) : (i32) -> i1
     qoalahost.return
