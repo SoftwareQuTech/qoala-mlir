@@ -2,6 +2,7 @@
 #include "llvm/Support/Debug.h"
 
 #include "Target/iQoala/ModuleTranslation.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Target/iQoala/Dialect/Helpers/Helpers.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Dialect/NetQASM/NetQASM.h"
@@ -110,6 +111,8 @@ namespace qoala::translate {
         return this->qoalaHostBlocksMap.at(mlirBlock);
     }
 
+    // This function inserts NetQASM instructions to comply with the "call conversion" of
+    // NetQASM local routines.
     static void loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
         Value &mlirArgValue, const uint8_t paramNum) {
         // Immediate with the number of the argument
@@ -143,9 +146,10 @@ namespace qoala::translate {
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
         for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
-            // TODO - Implement how to handle the conversion of local routines
-            if (localRoutine.getName() == "__qoala_convert_float_angle") {
-                // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
+            if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
+                // "__qoala_convert_float_angle" is a "routine" of this type
+                // Since this routine is intended to be provided by the runtime,
+                // we simply don't need to do anything
             } else {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
@@ -201,4 +205,4 @@ namespace qoala::translate {
         }
         return std::move(moduleTranslation.iQoalaModule);
     }
-    }
+}

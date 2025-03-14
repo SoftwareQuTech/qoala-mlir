@@ -19,6 +19,7 @@ add_mlir_translation_library(MLIRTargetiQoalaExport
         LINK_LIBS PUBLIC
         MLIRiQoalaMCLib
         QoalaAnalysisHelpers
+        QoalaConversionHelpers
         MLIRTranslateLib
         MLIRTransformUtils
 )

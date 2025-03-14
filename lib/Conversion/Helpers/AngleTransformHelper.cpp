@@ -8,7 +8,10 @@
 using namespace mlir;
 
 namespace qoala::helpers::angle {
-
+    /*
+     * String constant with the name of the runtime angle conversion function (symbol name)
+     * We change it here to change it in all places.
+     */
     std::string angleConversionFunctionName("__qoala_convert_float_angle");
 
     bool moduleContainsAngleConversionDeclaration(ModuleOp &module) {
@@ -25,7 +28,7 @@ namespace qoala::helpers::angle {
                 StringRef{angleConversionFunctionName},
                 functionType);
         // We set an attribute on the function, so we can recognize it later
-        Attribute attr = builder.getStringAttr("true");
+        const Attribute attr = builder.getStringAttr("true");
         funcDeclaration->setAttr("qoala-builtin", attr);
         // Function declarations must have the private visibility
         funcDeclaration.setVisibility(func::FuncOp::Visibility::Private);

@@ -1,5 +1,6 @@
 #include "mlir/IR/Operation.h"
 #include "Target/iQoala/ModuleTranslation.h"
+#include "Conversion/Helpers/Helpers.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -20,7 +21,7 @@ static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, qoala::translate:
 }
 
 static LogicalResult convertiQoalaRuntimeFunctionDeclaration(LocalRoutineOp &op) {
-    assert(op.getName() == "__qoala_convert_float_angle");
+    assert(op.getName() == qoala::helpers::angle::angleConversionFunctionName);
     // We don't need to do anything specific here; simply "ignore" this declaration, since
     // the definition will be provided by the runtime
     return success();

@@ -31,7 +31,7 @@ module {
   }
   qoalahost.main_func @test_local_routine_args() {
     %cst = arith.constant 3 : i32
-    %0 = qoalahost.call @__qoala_wrapper0(%cst) : (i32) -> i1
+    qoalahost.call @__qoala_wrapper0(%cst) : (i32) -> ()
     qoalahost.return
   }
 }
