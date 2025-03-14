@@ -108,7 +108,7 @@ namespace qoala::iqoala {
 
         explicit RequestQuantumRoutine(const llvm::StringRef name) :
             QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
-            type(CREATE_KEEP), requestRole(CREATE), callback(nullptr) { }
+            callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
             QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
             callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),

@@ -58,15 +58,17 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
                 processedOperands.push_back(immediateVal);
                 if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL,
                         op.getResult(), LOCAL, processedOperands);
+                    return instruction ? success() : failure();
                 }
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
                         op.getResult(), C, processedOperands
                         );
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith constant operation not in host or netqasm section!") << *op << "\n";
             })
@@ -78,30 +80,32 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return success();
             })
             .Case<arith::AddIOp>([&](arith::AddIOp op) -> LogicalResult {
-                const SmallVector<iQoalaMCOperand *> processedOperands;
                 if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ADD,
-                        op.getResult(), LOCAL, processedOperands);
+                        op.getResult(), LOCAL, {});
+                    return instruction ? success() : failure();
                 }
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_ADD,
-                        op.getResult(), C, processedOperands);
+                        op.getResult(), C, {});
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith add operation not in host or netqasm section!") << *op << "\n";
             })
             .Case<arith::SubIOp>([&](arith::SubIOp op) -> LogicalResult {
-                const SmallVector<iQoalaMCOperand *> processedOperands;
                 if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SUBTRACT,
-                        op.getResult(), LOCAL, processedOperands);
+                        op.getResult(), LOCAL, {});
+                    return instruction ? success() : failure();
                 }
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SUB,
-                        op.getResult(), C, processedOperands);
+                        op.getResult(), C, {});
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith sub operation not in host or netqasm section!") << *op << "\n";
             })
@@ -113,32 +117,34 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                     if (failed(processOperandsForMul(moduleTranslation, op, processedOperands))) {
                         op.emitError("Arith mul operation: cannot process operands correctly!");
                     }
-                    return qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_MULTIPLY_CONSTANT,
                         op.getResult(), LOCAL, processedOperands, /*useOpOperands=*/false);
+                    return instruction ? success() : failure();
                 }
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MUL,
                         op.getResult(), C, processedOperands);
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith muli operation not in host or netqasm section!") << *op << "\n";
             })
             .Case<arith::DivUIOp>([&](arith::DivUIOp op) -> LogicalResult {
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    const SmallVector<iQoalaMCOperand *> processedOperands;
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_DIV,
-                        op.getResult(), C, processedOperands);
+                        op.getResult(), C, {});
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith divui operation not in netqasm section!") << *op << "\n";
             })
             .Case<arith::RemUIOp>([&](arith::RemUIOp op) -> LogicalResult {
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                    const SmallVector<iQoalaMCOperand *> processedOperands;
-                    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_REM,
-                        op.getResult(), C, processedOperands);
+                        op.getResult(), C, {});
+                    return instruction ? success() : failure();
                 }
                 return op.emitError("Arith remui operation not in netqasm section!") << *op << "\n";
             })

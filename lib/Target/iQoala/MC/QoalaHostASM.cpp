@@ -7,7 +7,8 @@ namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
+        const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
 
         if (resRegRef.has_value()) {
@@ -81,8 +82,10 @@ namespace qoala::assembly {
             moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
-        auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
-        block->appendInstruction(instruction);
+        if (appendInstruction) {
+            auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+            block->appendInstruction(instruction);
+        }
         return instruction;
     }
 

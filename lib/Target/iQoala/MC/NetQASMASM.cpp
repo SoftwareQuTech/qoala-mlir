@@ -8,7 +8,8 @@ namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
+        const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
 
         if (resRegRef.has_value()) {
@@ -81,9 +82,11 @@ namespace qoala::assembly {
             moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
-        const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
-        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
-        localRoutine->addInstruction(instruction);
+        if (appendInstruction) {
+            const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
+            const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            localRoutine->addInstruction(instruction);
+        }
         return instruction;
     }
 
