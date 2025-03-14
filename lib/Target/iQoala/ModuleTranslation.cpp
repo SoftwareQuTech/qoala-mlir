@@ -3,7 +3,7 @@
 
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Conversion/Helpers/Helpers.h"
-#include "Target/iQoala/Dialect/Helpers/Helpers.h"
+#include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
@@ -160,10 +160,10 @@ namespace qoala::translate {
                     // `lib/Analysis/QMem/Functionize.cpp`.
                     const auto nameFormat = "p%d";
                     const int length = std::snprintf(nullptr, 0, nameFormat, argNum);
-                    std::vector<char> funcName(length + 1);
-                    std::sprintf(funcName.data(), nameFormat, argNum);
+                    std::vector<char> paramName(length + 1);
+                    std::sprintf(paramName.data(), nameFormat, argNum);
 
-                    routine->addArgument(std::string(funcName.data()));
+                    routine->addArgument(std::string(paramName.data()));
                     LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
                     loadArgument(this, routine, localRoutine, arg, argNum);
                 }

@@ -59,11 +59,14 @@ namespace qoala::assembly {
                 assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
                 break;
             case OP_LOAD:
-            case OP_STORE:
-                LLVM_DEBUG(llvm::dbgs() << mcOperands.size());
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                break;
+            case OP_STORE:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 1-imm instruction: operand 1 must be a register");
                 break;
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -111,10 +114,15 @@ namespace qoala::assembly {
                 break;
             // Memory operations
             case OP_LOAD:
-            case OP_STORE:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
                 assert(this->operands[1]->isRegister());
+                printStoreOrLoad(os);
+                break;
+            case OP_STORE:
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isImmediate());
                 printStoreOrLoad(os);
                 break;
             case OP_LEA:

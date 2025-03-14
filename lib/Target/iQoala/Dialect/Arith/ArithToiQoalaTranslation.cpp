@@ -3,7 +3,7 @@
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
-#include "Target/iQoala/Dialect/Helpers/Helpers.h"
+#include "Target/iQoala/MC/Helpers.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"

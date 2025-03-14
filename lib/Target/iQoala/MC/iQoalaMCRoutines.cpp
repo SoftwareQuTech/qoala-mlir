@@ -20,6 +20,10 @@ namespace qoala::iqoala {
         this->params.push_back(argName);
     }
 
+    void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
+        this->params.push_back(valName);
+    }
+
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
