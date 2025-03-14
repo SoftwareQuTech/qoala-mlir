@@ -290,11 +290,11 @@ namespace qoala::assembly {
         // Specific case: store and loads have a slightly different format:
         switch (this->opCode) {
             case OP_STORE:
-                os << "store " << this->operands[0] << "@output[" << this->operands[1] << "]";
-            break;
+                os << "store " << *this->operands[0] << " @output[" << *this->operands[1] << "]";
+                break;
             case OP_LOAD:
-                os << "load " << this->operands[0] << "@input[" << this->operands[1] << "]";
-            break;
+                os << "load " << *this->operands[0] << " @input[" << *this->operands[1] << "]";
+                break;
             default:
                 this->originalOp->emitOpError("Trying to print an instruction as a store/load which")
                 << "does not have a store or load OpCode\n";
