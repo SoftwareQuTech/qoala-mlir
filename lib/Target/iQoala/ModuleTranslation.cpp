@@ -1,8 +1,11 @@
 #include "Target/iQoala/ModuleTranslation.h"
+
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
+
+#include <format>
 
 using namespace mlir;
 using namespace qoala;
@@ -13,7 +16,7 @@ using namespace qoala::dialects::netqasm;
 
 namespace qoala::translate {
     // A helper function to obtain the body of given module
-    static inline mlir::Block &getModuleBody(Operation &module) {
+    static mlir::Block &getModuleBody(Operation &module) {
         assert(llvm::isa<ModuleOp>(module));
         return module.getRegion(0).front();
     }
@@ -113,15 +116,21 @@ namespace qoala::translate {
             if (localRoutine.getName() == "__qoala_convert_float_angle") {
                 // TODO - "__qoala_convert_float_angle" is a "routine" of this type: handle it specifically
             } else {
-                // TODO - Change this
-                auto argsAttr = localRoutine.getArgAttrs();
-                auto resultsAttr = localRoutine.getResAttrs();
-                if (argsAttr.has_value()) {
-                    for (auto arg : argsAttr.value()) {
-                        LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                    }
-                }
+                // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
+                for (const auto arg : localRoutine.getArguments()) {
+                    const uint8_t argNum = arg.getArgNumber();
+                    // std::format was introduced as part of C++20 standard. We will use the old way
+                    // to format a string. More info on function `getNewFunctionName` in the file
+                    // `lib/Analysis/QMem/Functionize.cpp`.
+                    const auto nameFormat = "p%d";
+                    const int length = std::snprintf(nullptr, 0, nameFormat, argNum);
+                    std::vector<char> funcName(length + 1);
+                    std::sprintf(funcName.data(), nameFormat, argNum);
+
+                    routine->addArgument(std::string(funcName.data()));
+                    LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
+                }
                 iQoalaModule->addRoutine(routine);
             }
         }
