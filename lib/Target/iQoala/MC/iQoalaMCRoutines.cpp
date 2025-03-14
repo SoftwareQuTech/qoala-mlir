@@ -21,7 +21,7 @@ namespace qoala::iqoala {
     }
 
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
-        this->params.push_back(valName);
+        this->returns.push_back(valName);
     }
 
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
