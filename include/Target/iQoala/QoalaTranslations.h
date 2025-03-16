@@ -8,6 +8,7 @@
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Builtin/BuiltinToiQoalaTranslation.h"
+#include "Target/iQoala/Dialect/ControlFlow/ControlFlowToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 
 namespace qoala::translate {
@@ -23,6 +24,7 @@ namespace qoala::translate {
         ArithToiQoalaTranslation::registerInto(registry);
         BuiltinToiQoalaTranslation::registerInto(registry);
         TensorToiQoalaTranslation::registerInto(registry);
+        ControlFlowToiQoalaTranslation::registerInto(registry);
     }
 }
 
