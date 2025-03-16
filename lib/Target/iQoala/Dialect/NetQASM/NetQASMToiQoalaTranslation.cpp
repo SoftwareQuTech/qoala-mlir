@@ -1,11 +1,14 @@
 #include "mlir/IR/Operation.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "Target/iQoala/ModuleTranslation.h"
-#include "Target/iQoala/MC/Helpers.h"
+
+#include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
+#include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
 
+#include "Dialect/QNet/Passes.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "netqasm-translation"
@@ -16,6 +19,12 @@ using namespace qoala::translate;
 using namespace qoala::dialects;
 using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
+
+#if  __cplusplus >= 202002L
+static const std::string returnNameFormat = "m{}";
+#else
+static const std::string returnNameFormat = "m%d";
+#endif
 
 static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, ModuleTranslation *moduleTranslation) {
     for (Operation &operation : op.getBody().getOps()) {
@@ -48,14 +57,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         assert(localRoutine && "NetQASM return: unknown local routine name!");
 
         // Add the name of the returned value to the local routine
-        // std::format was introduced as part of C++20 standard. We will use the old way
-        // to format a string. More info on function `getNewFunctionName` in the file
-        // `lib/Analysis/QMem/Functionize.cpp`.
-        const auto nameFormat = "m%d";
-        const int length = std::snprintf(nullptr, 0, nameFormat, i);
-        std::vector<char> returnName(length + 1);
-        std::sprintf(returnName.data(), nameFormat, i);
-        localRoutine->addReturnValue(returnName.data());
+        localRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
 
         // Create an immediate with the number of the returned value
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(i);

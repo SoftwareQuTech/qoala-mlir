@@ -1,3 +1,4 @@
+#include <Analysis/Helpers/Helpers.h>
 #include <llvm/ADT/SmallSet.h>
 #include "Analysis/QMem/Conversion.h"
 #include "Dialect/QMem/EntangleTrait.h"
@@ -14,22 +15,11 @@ using namespace qoala::analysis;
 namespace qoala::analysis::functionize {
     // Identifier to make the names of the new function definitions unique
     static int identifier = 0;
-    static inline std::string getNewFunctionName() {
-        // std::format was introduced as part of C++20 standard. This is included since GCC 13,
-        // which is NOT part of the standard GCC package of ubuntu 22 (bundles GCC 11)
-        // To avoid depending on headers included on a compiler that has to be manually installed,
-        // or an extra library (like LLVM's libc++), we will default to good'ol 70's C way of
-        // formatting a string
-        // #include <format>
-        //std::string funcName = std::format("__qoala_wrapper{}", identifier++);
-        // Format the name of the new function
-        auto nameFormat = "__qoala_wrapper%d";
-        int length = std::snprintf(nullptr, 0, nameFormat, identifier);
-        std::vector<char> funcName(length + 1);
-        std::sprintf(funcName.data(), nameFormat, identifier++);
-
-        return {funcName.data()};
-    }
+#if  __cplusplus >= 202002L
+    static const std::string qoalaWrapperFormat = "__qoala_wrapper{}";
+#else
+    static const std::string qoalaWrapperFormat = "__qoala_wrapper%d";
+#endif
 
     void computeArgTypesAndReturns(FunctionizeData &data, SetVector<Operation *> &quantumOps) {
         // We need to compute a sort of "closure" in the quantumOps set.
@@ -230,7 +220,7 @@ namespace qoala::analysis::functionize {
 
             // The container structure for the functionize data
             FunctionizeData data;
-            std::string newFuncName = getNewFunctionName();
+            const std::string newFuncName = helpers::formatString(qoalaWrapperFormat, identifier++);
 
             // We create a new function that will contain all the operations in its body (+ a return statement)
             SetVector<Operation *> operations;

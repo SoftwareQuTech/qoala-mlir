@@ -1,6 +1,10 @@
 #ifndef QOALA_ANALYSIS_MLIR_HELPERS_H
 #define QOALA_ANALYSIS_MLIR_HELPERS_H
 
+#if __cplusplus >= 202002L
+#include <format>
+#endif
+
 #include "mlir/IR/Operation.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
@@ -170,7 +174,7 @@ namespace qoala::helpers {
     /**
      * Simple interface that defines a "print" method
      */
-    struct PrintInterface {
+    class PrintInterface {
     public:
         PrintInterface() = default;
         virtual ~PrintInterface() = default;
@@ -178,6 +182,18 @@ namespace qoala::helpers {
     };
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const PrintInterface &printable);
+
+    template<typename... Args>
+    std::string formatString(const std::string &fmt, Args&&... args) {
+#if  __cplusplus >= 202002L
+        return std::vformat(std::string_view(fmt), std::make_format_args(args...));
+#else
+        const int length = std::snprintf(nullptr, 0, fmt.data(),   args...);
+        std::vector<char> formattedString(length + 1);
+        std::sprintf(formattedString.data(), fmt.data(), args...);
+        return {formattedString.data()};
+#endif
+    }
 
     /**
      * Helper function that returns a string containing the "string" representation of each entry of

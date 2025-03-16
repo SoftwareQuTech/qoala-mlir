@@ -1,11 +1,12 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
-#include "Target/iQoala/ModuleTranslation.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
-#include "Target/iQoala/MC/Helpers.h"
-#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Dialect/NetQASM/NetQASM.h"
+#include "Target/iQoala/MC/Helpers.h"
+#include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
 
 using namespace mlir;
 using namespace qoala;
@@ -16,6 +17,11 @@ using namespace qoala::dialects::netqasm;
 #define DEBUG_TYPE "module-translate"
 
 namespace qoala::translate {
+#if  __cplusplus >= 202002L
+    static const std::string paramNameFormat = "p{}";
+#else
+    static const std::string paramNameFormat = "p%d";
+#endif
     // A helper function to obtain the body of given module
     static mlir::Block &getModuleBody(Operation *module) {
         assert(llvm::isa<ModuleOp>(module));
@@ -155,15 +161,8 @@ namespace qoala::translate {
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 for (auto arg : localRoutine.getArguments()) {
                     const uint8_t argNum = arg.getArgNumber();
-                    // std::format was introduced as part of C++20 standard. We will use the old way
-                    // to format a string. More info on function `getNewFunctionName` in the file
-                    // `lib/Analysis/QMem/Functionize.cpp`.
-                    const auto nameFormat = "p%d";
-                    const int length = std::snprintf(nullptr, 0, nameFormat, argNum);
-                    std::vector<char> paramName(length + 1);
-                    std::sprintf(paramName.data(), nameFormat, argNum);
+                    routine->addArgument(helpers::formatString(paramNameFormat, argNum));
 
-                    routine->addArgument(std::string(paramName.data()));
                     LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
                     loadArgument(this, routine, localRoutine, arg, argNum);
                 }
