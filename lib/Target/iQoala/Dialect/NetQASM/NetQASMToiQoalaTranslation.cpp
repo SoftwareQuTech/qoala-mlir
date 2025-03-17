@@ -21,8 +21,10 @@ using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
 
 #if  __cplusplus >= 202002L
+/* When using C++20 or newer standard, the format must be "python-style" */
 static const std::string returnNameFormat = "m{}";
 #else
+/* When using C++17 or older standard, the format must be "C-style" */
 static const std::string returnNameFormat = "m%d";
 #endif
 

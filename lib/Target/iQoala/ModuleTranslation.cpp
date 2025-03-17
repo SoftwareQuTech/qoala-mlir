@@ -18,8 +18,10 @@ using namespace qoala::dialects::netqasm;
 
 namespace qoala::translate {
 #if  __cplusplus >= 202002L
+    /* When using C++20 or newer standard, the format must be "python-style" */
     static const std::string paramNameFormat = "p{}";
 #else
+    /* When using C++17 or older standard, the format must be "C-style" */
     static const std::string paramNameFormat = "p%d";
 #endif
     // A helper function to obtain the body of given module

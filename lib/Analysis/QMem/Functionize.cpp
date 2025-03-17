@@ -15,9 +15,12 @@ using namespace qoala::analysis;
 namespace qoala::analysis::functionize {
     // Identifier to make the names of the new function definitions unique
     static int identifier = 0;
+    // Format of the qoala_wrapper function.
 #if  __cplusplus >= 202002L
+    /* When using C++20 or newer standard, the format must be "python-style" */
     static const std::string qoalaWrapperFormat = "__qoala_wrapper{}";
 #else
+    /* When using C++17 or older standard, the format must be "C-style" */
     static const std::string qoalaWrapperFormat = "__qoala_wrapper%d";
 #endif
 

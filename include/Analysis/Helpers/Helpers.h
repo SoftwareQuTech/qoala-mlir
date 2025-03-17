@@ -183,11 +183,26 @@ namespace qoala::helpers {
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const PrintInterface &printable);
 
+    /**
+     * Formats a given format string using the given values. IMPORTANT: The format string style
+     * depends on the C++ standard used: For C++17 or older, use the C-style format string (e.g.
+     * "my_format_%d". For C++20 or newer, use "python"-style format string (e.g. "my_format_{}").
+     * @tparam Args The argument types to fill in the format string. These should be automagically
+     *              deducted when using this function.
+     * @param fmt The format string. If using C++17 or older standard, use a C-style format string.
+     *            If using C++20 or later, use a python-style format string.
+     * @param args The values to fill in the format string.
+     * @return A string with the tokens replaced with the given values
+     */
     template<typename... Args>
     std::string formatString(const std::string &fmt, Args&&... args) {
+        /* When using C++20 or later standard, we can make use of the "format" header,
+         * and easily format the string */
 #if  __cplusplus >= 202002L
         return std::vformat(std::string_view(fmt), std::make_format_args(args...));
 #else
+        /* In older versions of the standard, we need to default to the good'ol C-way
+         * of formatting a string */
         const int length = std::snprintf(nullptr, 0, fmt.data(),   args...);
         std::vector<char> formattedString(length + 1);
         std::sprintf(formattedString.data(), fmt.data(), args...);
