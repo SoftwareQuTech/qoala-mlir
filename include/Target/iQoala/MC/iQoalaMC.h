@@ -33,6 +33,7 @@ namespace qoala::assembly {
         };
     public:
         iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
+        explicit iQoalaMCExpr(const std::string &symName) : kind(SYMBOL_REFERENCE), symbolName(symName) { }
         ~iQoalaMCExpr() override { }
 
         [[nodiscard]]

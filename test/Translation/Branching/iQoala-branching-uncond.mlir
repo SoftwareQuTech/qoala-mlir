@@ -9,11 +9,11 @@
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 5
-// CHECK-NEXT: jump : [[BLOCK2]]
+// CHECK-NEXT: jump() : [[BLOCK2]]
 // CHECK-NEXT: b[[BLOCK1:.*]] { type = CL }
-// CHECK-NEXT: jump : [[BLOCK3]]
+// CHECK-NEXT: jump() : [[BLOCK3]]
 // CHECK-NEXT: b[[BLOCK2:.*]] { type = CL }
-// CHECK-NEXT: jump : [[BLOCK1]]
+// CHECK-NEXT: jump() : [[BLOCK1]]
 // CHECK-NEXT: b[[BLOCK3:.*]] { type = CL }
 // CHECK-NEXT:  %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 

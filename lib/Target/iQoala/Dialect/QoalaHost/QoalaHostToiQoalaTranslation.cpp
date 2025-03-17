@@ -13,10 +13,9 @@ using namespace qoala::translate;
 using namespace qoala::dialects::qoalahost;
 
 static LogicalResult translateBlock(Block &block, ModuleTranslation *moduleTranslation) {
-    (void) moduleTranslation->emplaceNewBlockInHostSection(&block);
     for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation->convertOperation(op))) {
-            return op.emitOpError("cannot covert operation '") << op << "'\n";
+            return op.emitOpError("cannot convert operation '") << op << "'\n";
         }
     }
     return success();
@@ -24,6 +23,12 @@ static LogicalResult translateBlock(Block &block, ModuleTranslation *moduleTrans
 
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation *moduleTranslation) {
     moduleTranslation->setModuleName(mainFuncOP.getName());
+    // First, we put placeholder (empty) blocks for each one of the basic blocks of the
+    for (Block &block : mainFuncOP.getBlocks()) {
+        moduleTranslation->emplaceNewBlockInHostSection(&block);
+    }
+
+    // Then, we translate the block and the operations within it
     for (Block &block : mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")

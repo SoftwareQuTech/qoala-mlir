@@ -18,10 +18,7 @@ namespace qoala::assembly {
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = SYMBOL_REFERENCE;
-        expr->symbolName = symName;
-        return expr;
+        return new iQoalaMCExpr(symName);
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createConstant(const uint32_t value) {
@@ -175,7 +172,7 @@ namespace qoala::assembly {
                 os << this->regRef->formatRegister();
                 break;
             case EXPRESSION:
-                os << this->expression;
+                os << *this->expression;
                 break;
         }
     }
