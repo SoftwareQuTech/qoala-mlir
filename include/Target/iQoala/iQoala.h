@@ -166,6 +166,7 @@ namespace qoala::iqoala {
                 delete instruction;
             }
         }
+        void setName(const std::string &name) {this->name = name;}
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);

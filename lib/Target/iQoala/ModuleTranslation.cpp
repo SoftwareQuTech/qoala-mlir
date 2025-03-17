@@ -60,21 +60,23 @@ namespace qoala::translate {
         this->iQoalaModule->setModuleName(moduleName);
     }
 
-    iqoala::Block *ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
+    void ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
         auto *newBlock = this->iQoalaModule->addHostBlock();
         const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
-        (void)result;
-        assert(result.second && "attempting to map a block that is already mapped");
-        return newBlock;
+        (void) result;
+        assert(result.second && "Attempting to map a block that is already mapped");
     }
 
     void ModuleTranslation::mapValue(const Value &mlirVal, iQoalaRegReference *regRef) {
         if (regRef->isLocal()) {
-            this->localRegsMap.try_emplace(mlirVal, regRef);
-            return;
+            const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
+            (void) result;
+            assert(result.second && "Attempting to map a local value that is already mapped");
         }
         if (regRef->isQuantum()) {
-            this->quantumRegsMap.try_emplace(mlirVal, regRef);
+            const auto result = this->quantumRegsMap.try_emplace(mlirVal, regRef);
+            (void) result;
+            assert(result.second && "Attempting to map a quantum value that is already mapped");
         }
     }
 
@@ -104,7 +106,9 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
-        this->cmpMap.try_emplace(mlirVal, mlirOp);
+        const auto result = this->cmpMap.try_emplace(mlirVal, mlirOp);
+        (void) result;
+        assert(result.second && "Attempting to map a comparison value that is already mapped");
     }
 
     Operation *ModuleTranslation::getMappedCmpOperation(const Value &mlirVal) const {

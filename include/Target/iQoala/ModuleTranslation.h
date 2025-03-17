@@ -25,7 +25,7 @@ namespace qoala::translate {
         void setModuleName(llvm::StringRef moduleName) const;
 
         /* Block-related functions */
-        iqoala::Block *emplaceNewBlockInHostSection(mlir::Block *mlirBlock);
+        void emplaceNewBlockInHostSection(mlir::Block *mlirBlock);
         iqoala::Block *getMappediQoalaBlock(const mlir::Block *mlirBlock) const;
 
         /* Mapping functions */
