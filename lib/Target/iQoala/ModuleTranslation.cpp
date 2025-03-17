@@ -1,5 +1,4 @@
 #include "mlir/IR/BuiltinOps.h"
-#include "llvm/Support/Debug.h"
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
@@ -8,13 +7,15 @@
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "module-translate"
+
 using namespace mlir;
 using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::dialects::netqasm;
-
-#define DEBUG_TYPE "module-translate"
 
 namespace qoala::translate {
 #if  __cplusplus >= 202002L
@@ -76,6 +77,7 @@ namespace qoala::translate {
         if (regRef->isQuantum()) {
             const auto result = this->quantumRegsMap.try_emplace(mlirVal, regRef);
             (void) result;
+            LLVM_DEBUG(llvm::dbgs() << "***** mapping a quantum value " << mlirVal << "\n");
             assert(result.second && "Attempting to map a quantum value that is already mapped");
         }
     }
@@ -133,10 +135,10 @@ namespace qoala::translate {
         SmallVector<iQoalaMCOperand *> immediateOperands;
         immediateOperands.push_back(immediateVal);
         // Despite this instruction yields a value, we don't need to map it to any
-        // mlir value, so we pass "nullptr" as the "result" argument when building
+        // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-            nullptr, C, immediateOperands,
+            std::nullopt, C, immediateOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         routine->addInstruction(assignInstr);
 
