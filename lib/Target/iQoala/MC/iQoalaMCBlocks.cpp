@@ -7,7 +7,7 @@ namespace qoala::iqoala {
         this->instructions.push_back(instruction);
     }
 
-    raw_ostream &operator<<(raw_ostream &os, Block::BlockType block) {
+    raw_ostream &operator<<(raw_ostream &os, const Block::BlockType block) {
         switch (block) {
             case Block::CC:
                 os << "CC";

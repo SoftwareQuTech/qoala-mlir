@@ -8,7 +8,7 @@ namespace qoala::iqoala {
         return new LocalQuantumRoutine(name);
     }
 
-    RequestQuantumRoutine *RequestQuantumRoutine::createRequestRoutine(StringRef name) {
+    RequestQuantumRoutine *RequestQuantumRoutine::createRequestRoutine(const StringRef name) {
         return new RequestQuantumRoutine(name);
     }
 
@@ -24,10 +24,33 @@ namespace qoala::iqoala {
         this->returns.push_back(valName);
     }
     void LocalQuantumRoutine::resolveInternalInstrRefs() const {
-        // TODO
+        DenseMap<Operation *, uint32_t> operationToIndex;
+        DenseMap<assembly::iQoalaMCExpr *, Operation *> expressionsToResolve;
+
+        for (uint32_t i = 0; i < this->instructions.size(); i++) {
+            const auto *instruction = this->instructions[i];
+            for (const auto *param : instruction->getOperands()) {
+                operationToIndex.try_emplace(instruction->getOriginalOp(), i);
+                if (param->isExpression() && param->getExpression()->isInstructionRef()) {
+                    expressionsToResolve.try_emplace(param->getExpression(), instruction->getOriginalOp());
+                }
+            }
+        }
+
+        for (auto exprToResolve : expressionsToResolve) {
+            assert(operationToIndex.contains(exprToResolve.second) &&
+                "Resolve Instr Refs: Instruction containing an InstrRef comes from an MLIR operation not present in NetQASM body!");
+            assert(operationToIndex.contains(exprToResolve.first->getTargetOp()) &&
+                "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
+
+            const uint32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
+            const uint32_t targetIndex = operationToIndex[exprToResolve.second];
+
+            exprToResolve.first->resolveDisplacement(sourceIndex - targetIndex);
+        }
     }
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
                  os << "sequential";
@@ -55,7 +78,7 @@ namespace qoala::iqoala {
         return os;
     }
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestType requestType) {
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestType requestType) {
         switch (requestType) {
             case RequestQuantumRoutine::CREATE_KEEP:
                 os << "create_keep";
@@ -71,7 +94,7 @@ namespace qoala::iqoala {
     }
 
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestRole requestRole) {
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestRole requestRole) {
         switch (requestRole) {
             case RequestQuantumRoutine::CREATE:
                 os << "create";

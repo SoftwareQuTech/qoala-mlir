@@ -213,7 +213,7 @@ namespace qoala::translate {
             }
         }
         // Finally, we need to resolve all the instruction references within the local routines
-        for (const auto quantumRoutine : iQoalaModule->getLocalRoutines()) {
+        for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
             quantumRoutine->resolveInternalInstrRefs();
         }
         return std::move(moduleTranslation.iQoalaModule);

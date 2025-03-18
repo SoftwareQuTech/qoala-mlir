@@ -72,6 +72,7 @@ namespace qoala::assembly {
         assert(this->isImmediate());
         return this->floatingPointVal;
     }
+
     iQoalaRegReference *iQoalaMCOperand::getRegRef() const {
         assert(this->isLocalRegister() || this->isRegister());
         return this->regRef;
@@ -86,6 +87,15 @@ namespace qoala::assembly {
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
     bool iQoalaMCExpr::isInstructionRef() const { return kind == INSTRUCTION_REFERENCE; }
+    mlir::Operation *iQoalaMCExpr::getTargetOp() const {
+        assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to get the target of a non-InstrRef expression.");
+        return this->instructionRef.targetOp;
+    }
+    void iQoalaMCExpr::resolveDisplacement(const int32_t displacement) {
+        assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to resolve the displacement of a non-InstrRef expression.");
+        this->instructionRef.displacement = displacement;
+        this->instructionRef.isResolved = true;
+    }
 
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
@@ -100,6 +110,7 @@ namespace qoala::assembly {
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
     iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return operands; };
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
     void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {
@@ -116,7 +127,7 @@ namespace qoala::assembly {
                 break;
             case INSTRUCTION_REFERENCE:
                 assert(this->instructionRef.isResolved && "Expression Instruction Ref is not resolved");
-                assert(this->instructionRef.displacement == 0 && "Expression Instruction Ref with displacement 0");
+                assert(this->instructionRef.displacement != 0 && "Expression Instruction Ref with displacement 0");
                 os << this->instructionRef.displacement;
                 break;
         }

@@ -42,6 +42,9 @@ namespace qoala::assembly {
         bool isSymbolRef() const;
         [[nodiscard]]
         bool isInstructionRef() const;
+        [[nodiscard]]
+        mlir::Operation *getTargetOp() const;
+        void resolveDisplacement(int32_t displacement);
         void print(mlir::raw_ostream &os) const override;
 
         static iQoalaMCExpr *createSymbolRef(const std::string &symName);
@@ -168,6 +171,8 @@ namespace qoala::assembly {
 
         [[nodiscard]]
         iQoalaMCOperand *getOperand(unsigned i) const;
+        [[nodiscard]]
+        std::vector<iQoalaMCOperand *> getOperands() const;
         [[nodiscard]]
         unsigned int getNumOperands() const;
 
