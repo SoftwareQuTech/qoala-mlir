@@ -28,12 +28,12 @@ namespace qoala::assembly {
         enum ExprKind {
             INVALID,
             SYMBOL_REFERENCE,
-            CONSTANT_I32,
-            CONSTANT_F32
+            INSTRUCTION_REFERENCE
         };
     public:
-        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
+        iQoalaMCExpr() : kind(INVALID), symbolName() { }
         explicit iQoalaMCExpr(const std::string &symName) : kind(SYMBOL_REFERENCE), symbolName(symName) { }
+        explicit iQoalaMCExpr(mlir::Operation *mlirOp) : kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { };
         ~iQoalaMCExpr() override { }
 
         [[nodiscard]]
@@ -41,18 +41,20 @@ namespace qoala::assembly {
         [[nodiscard]]
         bool isSymbolRef() const;
         [[nodiscard]]
-        bool isConstant() const;
+        bool isInstructionRef() const;
         void print(mlir::raw_ostream &os) const override;
 
         static iQoalaMCExpr *createSymbolRef(const std::string &symName);
-        static iQoalaMCExpr *createConstant(uint32_t value);
-        static iQoalaMCExpr *createConstant(float value);
+        static iQoalaMCExpr *createInstructionRef(mlir::Operation *mlirOp);
     private:
         ExprKind kind;
         union {
             std::string symbolName;
-            uint32_t i32ConstVal;
-            float f32ConstVal;
+            struct {
+                mlir::Operation *targetOp;
+                int32_t displacement;
+                bool isResolved;
+            } instructionRef;
         };
     };
 

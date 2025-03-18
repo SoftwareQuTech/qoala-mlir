@@ -21,18 +21,8 @@ namespace qoala::assembly {
         return new iQoalaMCExpr(symName);
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createConstant(const uint32_t value) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = CONSTANT_I32;
-        expr->i32ConstVal = value;
-        return expr;
-    }
-
-    iQoalaMCExpr *iQoalaMCExpr::createConstant(const float value) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = CONSTANT_F32;
-        expr->f32ConstVal = value;
-        return expr;
+    iQoalaMCExpr *iQoalaMCExpr::createInstructionRef(mlir::Operation *mlirOp) {
+        return new iQoalaMCExpr(mlirOp);
     }
 
     iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
@@ -95,7 +85,7 @@ namespace qoala::assembly {
     /* General functions for the ASM classes */
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
-    bool iQoalaMCExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+    bool iQoalaMCExpr::isInstructionRef() const { return kind == INSTRUCTION_REFERENCE; }
 
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
@@ -124,12 +114,10 @@ namespace qoala::assembly {
             case SYMBOL_REFERENCE:
                 os << this->symbolName;
                 break;
-            case CONSTANT_I32:
-                os << this->i32ConstVal;
-                break;
-            case CONSTANT_F32:
-                mlir::emitError(mlir::UnknownLoc()) << "Floats are not supported yet.";
-                os << this->f32ConstVal;
+            case INSTRUCTION_REFERENCE:
+                assert(this->instructionRef.isResolved && "Expression Instruction Ref is not resolved");
+                assert(this->instructionRef.displacement == 0 && "Expression Instruction Ref with displacement 0");
+                os << this->instructionRef.displacement;
                 break;
         }
     }
