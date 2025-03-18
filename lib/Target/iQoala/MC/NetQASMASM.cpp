@@ -47,7 +47,7 @@ namespace qoala::assembly {
                 break;
             case OP_JMP:
                 assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
+                assert(mcOperands[0]->isExpression() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
                 break;
             case OP_BEQ:
             case OP_BNE:
@@ -56,7 +56,7 @@ namespace qoala::assembly {
                 assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
-                assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
+                assert(mcOperands[2]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
                 break;
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -132,11 +132,11 @@ namespace qoala::assembly {
                 assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
-            // "undef" instruction is not inpreted by qoala-sim
+            // "undef" instruction is not interpreted by qoala-sim
             // Classical Logic
             case OP_JMP:
                 assert(this->operands.size() == 1);
-                assert(this->operands[0]->isImmediate());
+                assert(this->operands[0]->isExpression());
                 this->printInstrInGenericForm("jmp", os);
                 break;
             case OP_BEZ:
