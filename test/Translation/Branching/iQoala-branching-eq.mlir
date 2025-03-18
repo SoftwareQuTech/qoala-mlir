@@ -1,5 +1,4 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// TODO - Adapt the expected result.
 // TODO - Use this test case to make test for other branching conditions (neq, blt, bgt, etc)
 // CHECK: META START
 // CHECK-NEXT: name: test_branching
@@ -10,29 +9,27 @@
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
+// TODO - Find a way to make FileCheck to match a "forward" label
+// CHECK-NEXT: beq (%[[HOST_REG0]], %[[HOST_REG1]]) : b1
+// CHECK-NEXT: jump () : b2
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK-NEXT: jump () : b3
+// CHECK: b[[BLOCK2:.*]] { type = CL }
+// CHECK-NEXT: jump () : b3
+// CHECK: b[[BLOCK3:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// The compiler will check in order which one of the operands is a constant
-// whose value can be "forwarded". Being that said, HOST_REG0 is the first operand
-// which is a constant and can be forwarded:
-// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const (%[[HOST_REG1:.*]]) : 3
-// Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
-// %[[HOST_REG4:.*]] = quot (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// %[[HOST_REG4:.*]] = rem (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 
 //CHECK: SUBROUTINE __qoala_wrapper0
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns:
+// CHECK-NEXT: params: p0
+// CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
 // CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: set C[[C_REG0:.*]] 10
-// CHECK-NEXT: set C[[C_REG1:.*]] 15
-// CHECK-NEXT: add C[[C_REG2:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
-// CHECK-NEXT: sub C[[C_REG3:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
-// CHECK-NEXT: mul C[[C_REG4:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
-// CHECK-NEXT: div C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
-// CHECK-NEXT: rem C[[C_REG5:.*]] C[[C_REG0:.*]] C[[C_REG1:.*]]
+// CHECK-NEXT: set C[[C_REG0:.*]] 0
+// CHECK-NEXT: load R[[C_REG0:.*]] @input[C[[C_REG0]]]
+// CHECK-NEXT: set C[[C_REG1:.*]] 10
+// CHECK-NEXT: set C[[C_REG2:.*]] 5
+// CHECK-NEXT: store C[[C_REG2]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
 module {
@@ -61,11 +58,12 @@ module {
     %jump = arith.cmpi eq, %cstA, %cstB : i32
     cf.cond_br %jump, ^bb0, ^bb1
   ^bb0:
-    cf.br ^bb2(%cstA: i32)
+    cf.br ^bb2
   ^bb1:
-    cf.br ^bb2(%cstB: i32)
-  ^bb2(%blk_arg: i32):
-    %0 = qoalahost.call @__qoala_wrapper0(%blk_arg) : (i32) -> i32
+    cf.br ^bb2
+  ^bb2:
+    %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
+    %1 = arith.addi %cstA, %cstB : i32
     qoalahost.return
   }
 }
