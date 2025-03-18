@@ -14,7 +14,7 @@ using namespace mlir;
 using namespace qoala::assembly;
 using namespace qoala::translate;
 
-static NetQASMMCInstr::OpCode getNetQASMOpCodeFor(const arith::CmpIPredicate predicate, bool operandIsZero) {
+static NetQASMMCInstr::OpCode getNetQASMOpCodeFor(const arith::CmpIPredicate predicate, const bool operandIsZero) {
     // Mapping between the arith.cmpi predicate values to the respective NetQASM Opcodes
     switch (predicate) {
         case arith::CmpIPredicate::eq:
@@ -153,7 +153,46 @@ static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation,
 }
 
 static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslation, cf::CondBranchOp &op) {
-    return success();
+    const Value condition = op.getCondition();
+    Operation *cmpOp = moduleTranslation->getMappedCmpOperation(condition);
+    if (auto cmpIOp = dyn_cast<arith::CmpIOp>(cmpOp)) {
+        // Process the destinations of the MLIR conditional jump: we assume it's the first operation of the block
+        Operation *trueDestOp = &op.getTrueDest()->front();
+        Operation *falseDestOp = &op.getFalseDest()->front();
+
+        iQoalaMCExpr *trueBlockSymExpr = iQoalaMCExpr::createInstructionRef(trueDestOp);
+        iQoalaMCExpr *falseBlockSymExpr = iQoalaMCExpr::createInstructionRef(falseDestOp);
+        iQoalaMCOperand *trueTargetBlockOperand = iQoalaMCOperand::createExprOperand(trueBlockSymExpr);
+        iQoalaMCOperand *falseTargetBlockOperand = iQoalaMCOperand::createExprOperand(falseBlockSymExpr);
+
+        // Process the operands of the arith.cmpi
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
+        iQoalaMCOperand *cmpRight1Operand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
+
+        // Get the opcode according to the compare instruction predicate
+        const NetQASMMCInstr::OpCode opcode = getNetQASMOpCodeFor(cmpIOp.getPredicate(), false);
+        if (opcode == NetQASMMCInstr::OP_UNKNOWN) {
+            op.emitError("Conditional branch: unsupported predicate");
+            return failure();
+        }
+
+        // Insert the conditional branch instruction (true branch)
+        const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            moduleTranslation, op.getOperation(), opcode,
+            std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
+        // Insert the unconditional jump (false branch)
+        const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
+            std::nullopt, std::nullopt, {falseTargetBlockOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
+        return condBrInstr || uncondBrInstr ? success() : failure();
+    }
+    // The mapped operation is not an integer comparison -> error
+    op.emitError("Conditional Branching instruction does not make use of a comparison instruction");
+    return failure();
 }
 
 static LogicalResult translateControlFlowOperation(Operation *operation, ModuleTranslation *moduleTranslation) {

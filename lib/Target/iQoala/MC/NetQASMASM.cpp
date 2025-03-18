@@ -140,22 +140,50 @@ namespace qoala::assembly {
                 this->printInstrInGenericForm("jmp", os);
                 break;
             case OP_BEZ:
-                this->printOneRegOneImmInstr("bez", os);
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                assert(this->operands[1]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bez", os);
                 break;
             case OP_BNZ:
-                this->printOneRegOneImmInstr("bnz", os);
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                assert(this->operands[1]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bnz", os);
                 break;
             case OP_BEQ:
-                this->printTwoRegsOneImmInstr("beq", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("beq", os);
                 break;
             case OP_BNE:
-                this->printTwoRegsOneImmInstr("bne", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bne", os);
                 break;
             case OP_BLT:
-                this->printTwoRegsOneImmInstr("ble", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("ble", os);
                 break;
             case OP_BGE:
-                this->printTwoRegsOneImmInstr("bge", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bge", os);
                 break;
             // Classical Operations
             case OP_ADD:

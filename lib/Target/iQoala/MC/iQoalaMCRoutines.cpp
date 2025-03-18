@@ -1,6 +1,8 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
 
+#include <map>
+
 using namespace mlir;
 
 namespace qoala::iqoala {
@@ -24,13 +26,17 @@ namespace qoala::iqoala {
         this->returns.push_back(valName);
     }
     void LocalQuantumRoutine::resolveInternalInstrRefs() const {
-        DenseMap<Operation *, uint32_t> operationToIndex;
+        DenseMap<Operation *, int32_t> operationToIndex;
         DenseMap<assembly::iQoalaMCExpr *, Operation *> expressionsToResolve;
 
         for (uint32_t i = 0; i < this->instructions.size(); i++) {
             const auto *instruction = this->instructions[i];
             for (const auto *param : instruction->getOperands()) {
-                operationToIndex.try_emplace(instruction->getOriginalOp(), i);
+                const auto result = operationToIndex.try_emplace(instruction->getOriginalOp(), i);
+                (void) result;
+                // FIXME - Mapping cf.cond_br instructions yield 2 NetQASM instructions, which have *the same*
+                //  original MLIR op associated. This will make this assertion fail!
+                assert(result.second && "Resolve Instr Refs: Original op already present!");
                 if (param->isExpression() && param->getExpression()->isInstructionRef()) {
                     expressionsToResolve.try_emplace(param->getExpression(), instruction->getOriginalOp());
                 }
@@ -43,8 +49,8 @@ namespace qoala::iqoala {
             assert(operationToIndex.contains(exprToResolve.first->getTargetOp()) &&
                 "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
 
-            const uint32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
-            const uint32_t targetIndex = operationToIndex[exprToResolve.second];
+            const int32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
+            const int32_t targetIndex = operationToIndex[exprToResolve.second];
 
             exprToResolve.first->resolveDisplacement(sourceIndex - targetIndex);
         }
