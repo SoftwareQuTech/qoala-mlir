@@ -26,7 +26,7 @@ namespace qoala::iqoala {
     }
 
     void Block::print(raw_ostream &os) const {
-        os << this->name << " { type = " << this->type << " }\n";
+        os << this->name << " { type = " << this->type << " }:\n";
         for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }

@@ -38,8 +38,9 @@
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
-  netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i1 {
+  netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 10 : i32
+    %cstB = arith.constant 5 : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
     %jump_loc = arith.cmpi eq, %cstA, %arg0 : i32
@@ -52,7 +53,7 @@ module {
     cf.br ^bb2
   ^bb2:
     %1 = netqasm.measure %0 : i1
-    netqasm.return %1 : i1
+    netqasm.return %cstB : i32
   }
   qoalahost.main_func @test_branching() {
     %cstA = arith.constant 3 : i32
@@ -64,7 +65,7 @@ module {
   ^bb1:
     cf.br ^bb2(%cstB: i32)
   ^bb2(%blk_arg: i32):
-    %0 = qoalahost.call @__qoala_wrapper0(%blk_arg) : (i32) -> i1
+    %0 = qoalahost.call @__qoala_wrapper0(%blk_arg) : (i32) -> i32
     qoalahost.return
   }
 }
