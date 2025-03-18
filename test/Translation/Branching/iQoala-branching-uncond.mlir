@@ -31,12 +31,12 @@
 // CHECK-NEXT: set C[[ARG0_VAL_REG:.*]] 0
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[ARG0_VAL_REG]]]
 // CHECK-NEXT: set C[[C_REG1:.*]] 10
-// CHECK-NEXT: jump 3
-// CHECK-NEXT: add C[[C_REG2:.*]] C[[ARG0_REG]] C[[C_REG1]]
-// CHECK-NEXT: jump 3
-// CHECK-NEXT: sub C[[C_REG3:.*]] C[[ARG0_REG]] C[[C_REG1]]
-// CHECK-NEXT: jump -3
-// CHECK-NEXT: mul C[[C_REG4:.*]] C[[ARG0_REG]] C[[C_REG1]]
+// CHECK-NEXT: jmp 3
+// CHECK-NEXT: add C[[C_REG2:.*]] R[[ARG0_REG]] C[[C_REG1]]
+// CHECK-NEXT: jmp 3
+// CHECK-NEXT: sub C[[C_REG3:.*]] R[[ARG0_REG]] C[[C_REG1]]
+// CHECK-NEXT: jmp -3
+// CHECK-NEXT: mul C[[C_REG4:.*]] R[[ARG0_REG]] C[[C_REG1]]
 // CHECK-NEXT: store C[[C_REG4]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
