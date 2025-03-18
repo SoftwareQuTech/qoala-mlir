@@ -51,6 +51,10 @@ namespace qoala::iqoala {
         return nullptr;
     }
 
+    std::vector<LocalQuantumRoutine *> iQoalaModule::getLocalRoutines() const {
+        return this->iQoalaProgram.netQASMSection.getRoutines();
+    }
+
     Block *iQoalaModule::addHostBlock() {
         return this->iQoalaProgram.hostSection.createNewBlock();
     }

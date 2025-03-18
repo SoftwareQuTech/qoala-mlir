@@ -23,6 +23,9 @@ namespace qoala::iqoala {
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
     }
+    void LocalQuantumRoutine::resolveInternalInstrRefs() const {
+        // TODO
+    }
 
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {

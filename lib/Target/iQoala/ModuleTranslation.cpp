@@ -3,6 +3,8 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
+#include "Target/iQoala/Module.h"
+#include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
@@ -209,6 +211,10 @@ namespace qoala::translate {
             if (failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }
+        }
+        // Finally, we need to resolve all the instruction references within the local routines
+        for (const auto quantumRoutine : iQoalaModule->getLocalRoutines()) {
+            quantumRoutine->resolveInternalInstrRefs();
         }
         return std::move(moduleTranslation.iQoalaModule);
     }

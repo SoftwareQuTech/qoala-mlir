@@ -69,6 +69,7 @@ namespace qoala::iqoala {
         void addInstruction(assembly::NetQASMMCInstr *instruction);
         void addArgument(const std::string &argName);
         void addReturnValue(const std::string &valName);
+        void resolveInternalInstrRefs() const;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
