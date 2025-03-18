@@ -77,7 +77,7 @@ static LogicalResult placeCondBranchingInstr(ModuleTranslation *moduleTranslatio
     if (auto cmpIOp = dyn_cast<arith::CmpIOp>(cmpOp)) {
         // Process the destinations of the MLIR conditional jump
         const Block *trueDestBlock = op.getTrueDest();
-        const Block *falseDestBlock = op.getTrueDest();
+        const Block *falseDestBlock = op.getFalseDest();
         const auto *trueDestQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(trueDestBlock);
         const auto *falseDestQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(falseDestBlock);
         assert(trueDestQoalaHostBlock && "Destination block not mapped!");
