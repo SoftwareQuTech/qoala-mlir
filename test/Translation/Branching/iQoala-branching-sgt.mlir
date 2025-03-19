@@ -32,12 +32,12 @@
 // CHECK-NEXT: set C[[C_REG0:.*]] 0
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[C_REG0]]]
 // CHECK-NEXT: set C[[C_REG1:.*]] 10
-// CHECK-NEXT: bgt (C[[C_REG1]], R[[ARG0_REG]]) : 1
+// CHECK-NEXT: bgt C[[C_REG1]] R[[ARG0_REG]] 2
 // CHECK-NEXT: jmp 3
 // CHECK-NEXT: add C[[C_REG2:.*]] R[[ARG0_REG]] C[[C_REG1]]
 // CHECK-NEXT: jmp 3
 // CHECK-NEXT: sub C[[C_REG3:.*]] R[[ARG0_REG]] C[[C_REG1]]
-// CHECK-NEXT: jmp -3
+// CHECK-NEXT: jmp 1
 // CHECK-NEXT: mul C[[C_REG4:.*]] R[[ARG0_REG]] C[[C_REG1]]
 // CHECK-NEXT: store C[[C_REG4]] @output[0]
 // CHECK-NEXT: NETQASM_END
@@ -54,7 +54,7 @@ module {
     cf.br ^bb3
   ^bb2:
     %2 = arith.subi %arg0, %cstA : i32
-    cf.br ^bb1
+    cf.br ^bb3
   ^bb3:
     %3 = arith.muli %arg0, %cstA : i32
     netqasm.return %3 : i32
