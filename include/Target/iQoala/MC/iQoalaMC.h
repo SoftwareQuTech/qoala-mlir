@@ -63,6 +63,7 @@ namespace qoala::assembly {
         ~iQoalaRegReference() = default;
 
         static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
+        static iQoalaRegReference *createRegReference(const iQoalaRegReference *regRef);
 
         [[nodiscard]]
         std::string formatRegister() const;
@@ -164,7 +165,6 @@ namespace qoala::assembly {
 
         [[nodiscard]]
         iQoalaMCOperand *getOperand(unsigned i) const;
-        iQoalaMCOperand *getOperand(unsigned i);
         [[nodiscard]]
         unsigned int getNumOperands() const;
 
@@ -248,7 +248,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static NetQASMMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -291,7 +291,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static QoalaHostMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction);
 
         void print(mlir::raw_ostream &os) const override;
     private:

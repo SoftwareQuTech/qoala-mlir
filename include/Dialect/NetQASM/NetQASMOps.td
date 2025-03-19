@@ -100,6 +100,11 @@ def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
                          OptionalAttr<DictArrayAttr>:$arg_attrs,
                          OptionalAttr<DictArrayAttr>:$res_attrs);
     let regions = (region AnyRegion:$body);
+    let builders = [OpBuilder<(ins
+        "mlir::StringRef":$name, "mlir::FunctionType":$type,
+        CArg<"llvm::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs,
+        CArg<"llvm::ArrayRef<mlir::DictionaryAttr>", "{}">:$argAttrs)
+    >];
     let extraClassDeclaration = [{
         //===------------------------------------------------------------------===//
         // FunctionOpInterface Methods

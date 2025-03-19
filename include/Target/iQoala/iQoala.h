@@ -67,6 +67,8 @@ namespace qoala::iqoala {
         static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
         void addInstruction(assembly::NetQASMMCInstr *instruction);
+        void addArgument(const std::string &argName);
+        void addReturnValue(const std::string &valName);
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -107,7 +109,7 @@ namespace qoala::iqoala {
 
         explicit RequestQuantumRoutine(const llvm::StringRef name) :
             QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
-            type(CREATE_KEEP), requestRole(CREATE) { }
+            callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
             QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
             callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
@@ -132,8 +134,7 @@ namespace qoala::iqoala {
         // The request callback type
         RequestCallback requestCallback;
         // The local quantum routine to invoke as callback
-        // TODO - Maybe make this a pointer?
-        LocalQuantumRoutine callback;
+        LocalQuantumRoutine *callback;
         // The name of the remote
         std::string remoteID;
         // The id of the EPR socket to use

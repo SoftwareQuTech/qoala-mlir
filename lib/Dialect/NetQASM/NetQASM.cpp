@@ -13,7 +13,7 @@ using namespace qoala::helpers;
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.cpp.inc"
 
-/* Parse and print functions "ported" from func.func: parse and print */
+/* Parse and print functions "ported" from func.func: parse, print and build */
 ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
             [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
@@ -30,6 +30,23 @@ void netqasm::LocalRoutineOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
+}
+
+void netqasm::LocalRoutineOp::build(OpBuilder &builder, OperationState &state, StringRef name,
+                                    FunctionType type, ArrayRef<NamedAttribute> attrs,
+                                    ArrayRef<DictionaryAttr> argAttrs) {
+    state.addAttribute(SymbolTable::getSymbolAttrName(),
+                       builder.getStringAttr(name));
+    state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
+    state.attributes.append(attrs.begin(), attrs.end());
+    state.addRegion();
+
+    if (argAttrs.empty())
+        return;
+    assert(type.getNumInputs() == argAttrs.size());
+    function_interface_impl::addArgAndResultAttrs(
+        builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
+        getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
 }
 
 /* Parse and print functions "ported" from func.func: parse and print */

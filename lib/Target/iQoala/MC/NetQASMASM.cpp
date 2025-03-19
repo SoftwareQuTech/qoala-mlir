@@ -2,13 +2,16 @@
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 
+#define DEBUG_TYPE "netqasm-mc"
+
 using namespace mlir;
 
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands) {
+        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
+        const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
 
         if (resRegRef.has_value()) {
@@ -56,10 +59,14 @@ namespace qoala::assembly {
                 assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
                 break;
             case OP_LOAD:
-            case OP_STORE:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                break;
+            case OP_STORE:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 1-imm instruction: operand 1 must be a register");
                 break;
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -81,9 +88,11 @@ namespace qoala::assembly {
             moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
-        const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
-        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
-        localRoutine->addInstruction(instruction);
+        if (appendInstruction) {
+            const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
+            const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            localRoutine->addInstruction(instruction);
+        }
         return instruction;
     }
 
@@ -105,10 +114,15 @@ namespace qoala::assembly {
                 break;
             // Memory operations
             case OP_LOAD:
-            case OP_STORE:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
                 assert(this->operands[1]->isRegister());
+                printStoreOrLoad(os);
+                break;
+            case OP_STORE:
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isImmediate());
                 printStoreOrLoad(os);
                 break;
             case OP_LEA:
@@ -284,11 +298,11 @@ namespace qoala::assembly {
         // Specific case: store and loads have a slightly different format:
         switch (this->opCode) {
             case OP_STORE:
-                os << "store " << this->operands[0] << "@output[" << this->operands[1] << "]";
-            break;
+                os << "store " << *this->operands[0] << " @output[" << *this->operands[1] << "]";
+                break;
             case OP_LOAD:
-                os << "load " << this->operands[0] << "@input[" << this->operands[1] << "]";
-            break;
+                os << "load " << *this->operands[0] << " @input[" << *this->operands[1] << "]";
+                break;
             default:
                 this->originalOp->emitOpError("Trying to print an instruction as a store/load which")
                 << "does not have a store or load OpCode\n";

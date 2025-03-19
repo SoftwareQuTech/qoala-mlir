@@ -16,6 +16,14 @@ namespace qoala::iqoala {
         this->instructions.push_back(instruction);
     }
 
+    void LocalQuantumRoutine::addArgument(const std::string &argName) {
+        this->params.push_back(argName);
+    }
+
+    void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
+        this->returns.push_back(valName);
+    }
+
     raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
@@ -74,10 +82,10 @@ namespace qoala::iqoala {
 
     void LocalQuantumRoutine::print(raw_ostream &os) const {
         os << "SUBROUTINE " << this->name << "\n";
-        os << "params:" << helpers::formatVector(this->params) << "\n";
-        os << "returns:" << helpers::formatVector(this->returns) << "\n";
-        os << "uses:" << helpers::formatVector(this->usesQubits) << "\n";
-        os << "keeps:" << helpers::formatVector(this->keepsQubits) << "\n";
+        os << "params: " << helpers::formatVector(this->params) << "\n";
+        os << "returns: " << helpers::formatVector(this->returns) << "\n";
+        os << "uses: " << helpers::formatVector(this->usesQubits) << "\n";
+        os << "keeps: " << helpers::formatVector(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
@@ -89,7 +97,7 @@ namespace qoala::iqoala {
     void RequestQuantumRoutine::print(raw_ostream &os) const {
         os << "REQUEST " << this->name << "\n";
         os << "callback_type: " << this->requestCallback << "\n";
-        os << "callback: " << this->callback.getName() << "\n";
+        os << "callback: " << this->callback->getName() << "\n";
         os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";

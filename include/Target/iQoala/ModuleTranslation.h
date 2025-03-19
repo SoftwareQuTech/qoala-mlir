@@ -20,7 +20,7 @@ namespace qoala::translate {
 
         // TODO - Define the public functions that we need to place in this class
 	    mlir::LogicalResult convertOperation(mlir::Operation &op);
-	    mlir::LogicalResult convertFunctionSignatures() const;
+	    mlir::LogicalResult convertFunctionSignatures();
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
 

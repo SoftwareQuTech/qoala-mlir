@@ -12,26 +12,26 @@ namespace qoala::iqoala::helpers {
      * in the iQoalaMC.h header, it would lead to a cyclic dependency in the project.
      */
     template <typename InstrType>
-    mlir::LogicalResult buildInstruction(translate::ModuleTranslation *moduleTranslation,
+    InstrType *buildInstruction(translate::ModuleTranslation *moduleTranslation,
                         mlir::Operation *mlirOperation,
                         typename InstrType::OpCode opCode,
                         const std::optional<mlir::Value>result,
-                        const std::optional<assembly::iQoalaRegType> resultType,
+                        const std::optional<assembly::iQoalaRegType> resultRegType,
                         mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands,
-                        const bool useOpOperands = true){
+                        const bool useOpOperands = true, const bool appendInstruction = true){
         std::optional<assembly::iQoalaRegReference *>resRegRef;
-        if (resultType.has_value()) {
-            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultType.value());
-            resRegRef = assembly::iQoalaRegReference::createRegReference(resultType.value(), regNumber);
+        if (resultRegType.has_value()) {
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType.value());
+            resRegRef = assembly::iQoalaRegReference::createRegReference(resultRegType.value(), regNumber);
         } else {
             resRegRef = std::nullopt;
         }
 
-        const auto newAssign = InstrType::build(
+        return InstrType::build(
             moduleTranslation, mlirOperation,
             result, resRegRef,
-            opCode, extraOperands, useOpOperands);
-        return newAssign ? mlir::success() : mlir::failure();
+            opCode, extraOperands,
+            useOpOperands, appendInstruction);
     }
 }
 
