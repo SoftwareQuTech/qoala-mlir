@@ -3,6 +3,7 @@
 
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 namespace qoala::analysis {
 #define GEN_PASS_DECL
