@@ -175,7 +175,7 @@ namespace qoala::assembly {
                 assert(this->operands[1]->isRegister());
                 assert(this->operands[2]->isExpression());
                 assert(this->operands[2]->getExpression()->isInstructionRef());
-                this->printInstrInGenericForm("ble", os);
+                this->printInstrInGenericForm("blt", os);
                 break;
             case OP_BGE:
                 assert(this->operands.size() == 3);
