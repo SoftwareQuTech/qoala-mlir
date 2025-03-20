@@ -129,7 +129,7 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    static void loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
+    static LogicalResult loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
         Value &mlirArgValue, const uint8_t paramNum) {
         // Immediate with the number of the argument
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
@@ -142,6 +142,9 @@ namespace qoala::translate {
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
             std::nullopt, C, immediateOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/false);
+        if (!assignInstr) {
+            return failure();
+        }
         routine->addInstruction(assignInstr);
 
         // Use the "load" instruction to actually load the value
@@ -157,7 +160,11 @@ namespace qoala::translate {
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
             mlirArgValue, R, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
+        if (!loadInstr) {
+            return failure();
+        }
         routine->addInstruction(loadInstr);
+        return success();
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
@@ -174,7 +181,9 @@ namespace qoala::translate {
                     routine->addArgument(helpers::formatString(paramNameFormat, argNum));
 
                     LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                    loadArgument(this, routine, localRoutine, arg, argNum);
+                    if (failed(loadArgument(this, routine, localRoutine, arg, argNum))) {
+                        return failure();
+                    }
                 }
                 iQoalaModule->addRoutine(routine);
             }

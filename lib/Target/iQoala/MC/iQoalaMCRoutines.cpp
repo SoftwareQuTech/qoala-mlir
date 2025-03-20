@@ -1,7 +1,9 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
 
-#include <map>
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "iQoalaMCRoutines"
 
 using namespace mlir;
 
@@ -25,20 +27,37 @@ namespace qoala::iqoala {
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
     }
+
     void LocalQuantumRoutine::resolveInternalInstrRefs() const {
         DenseMap<Operation *, int32_t> operationToIndex;
         DenseMap<assembly::iQoalaMCExpr *, Operation *> expressionsToResolve;
 
         for (uint32_t i = 0; i < this->instructions.size(); i++) {
             const auto *instruction = this->instructions[i];
+            Operation *opPtr = instruction->getOriginalOp();
+            // Hack to correctly compute branching displacements despite some MLIR ops maps
+            // to multiple NetQASM instructions. If this is the case, all the mapped instructions
+            // will share the same instruction->getOriginalOp() attribute. Since this is a
+            // problem for the operationToIndex map (the originalOp pointers are used as keys)
+            // we need to artificially "fix" duplicated key issue, by creating a "unique" key for
+            // the extra NetQASM instructions inserted.
+            if (operationToIndex.contains(instruction->getOriginalOp())) {
+                // This is an "introduced" instruction, we artificially create an op index pointer
+                // so we compute the jump displacements correctly
+                // With this hack, the very first operation that was mapped (i.e. the original MLIR
+                // operation) would be the instruction to jump to, if referenced by some branching
+                // instruction
+                opPtr += 4 * i;
+            }
+            LLVM_DEBUG(llvm::dbgs() << "+++ Emplacing ptr: '" << opPtr << "', i = " << i
+                << ", opcode = " << instruction->getOpcode() << ", op = " << instruction <<"\n");
+            const auto result = operationToIndex.try_emplace(opPtr, i);
+            (void) result;
+            assert(result.second && "Resolve Instr Refs: Op index pointer already present!");
+
             for (const auto *param : instruction->getOperands()) {
-                const auto result = operationToIndex.try_emplace(instruction->getOriginalOp(), i);
-                (void) result;
-                // FIXME - Mapping cf.cond_br instructions yield 2 NetQASM instructions, which have *the same*
-                //  original MLIR op associated. This will make this assertion fail!
-                assert(result.second && "Resolve Instr Refs: Original op already present!");
                 if (param->isExpression() && param->getExpression()->isInstructionRef()) {
-                    expressionsToResolve.try_emplace(param->getExpression(), instruction->getOriginalOp());
+                    expressionsToResolve.try_emplace(param->getExpression(), opPtr);
                 }
             }
         }

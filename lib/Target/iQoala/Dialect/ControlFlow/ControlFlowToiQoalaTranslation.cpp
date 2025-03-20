@@ -125,12 +125,18 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
             moduleTranslation, op.getOperation(), opcode,
             std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
+        if (!condBrInstr) {
+            return failure();
+        }
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
             std::nullopt, std::nullopt, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
-        return condBrInstr || uncondBrInstr ? success() : failure();
+        if (!uncondBrInstr) {
+            return failure();
+        }
+        return success();
     }
     // The mapped operation is not an integer comparison -> error
     op.emitError("Conditional Branching instruction does not make use of a comparison instruction");
@@ -183,15 +189,21 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
             moduleTranslation, op.getOperation(), opcode,
             std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
+        if (!condBrInstr) {
+            return failure();
+        }
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
             std::nullopt, std::nullopt, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
-        return condBrInstr || uncondBrInstr ? success() : failure();
+        if (!uncondBrInstr) {
+            return failure();
+        }
+        return success();
     }
     // The mapped operation is not an integer comparison -> error
-    op.emitError("Conditional Branching instruction does not make use of a comparison instruction");
+    op.emitOpError("Conditional Branching instruction does not make use of a comparison instruction");
     return failure();
 }
 
