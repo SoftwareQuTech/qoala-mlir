@@ -32,7 +32,7 @@
 // CHECK-NEXT: set C[[C_REG0:.*]] 0
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[C_REG0]]]
 // CHECK-NEXT: set C[[C_REG1:.*]] 10
-// CHECK-NEXT: bgt C[[C_REG1]] R[[ARG0_REG]] 2
+// CHECK-NEXT: bge C[[C_REG1]] R[[ARG0_REG]] 2
 // CHECK-NEXT: jmp 3
 // CHECK-NEXT: add C[[C_REG2:.*]] R[[ARG0_REG]] C[[C_REG1]]
 // CHECK-NEXT: jmp 3
@@ -47,7 +47,9 @@ module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 10 : i32
-    %jump_loc = arith.cmpi sgt, %cstA, %arg0 : i32
+    // In NetQASM, there is no "branch on greater than" (bgt) instruction,
+    // so using "arith.cmpi sgt" would yield and error
+    %jump_loc = arith.cmpi sge, %cstA, %arg0 : i32
     cf.cond_br %jump_loc, ^bb1, ^bb2
   ^bb1:
     %1 = arith.addi %arg0, %cstA : i32

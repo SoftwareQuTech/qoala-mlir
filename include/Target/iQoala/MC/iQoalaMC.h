@@ -210,8 +210,10 @@ namespace qoala::assembly {
             OP_BNZ,
             OP_BEQ,
             OP_BNE,
-            OP_BLT,
-            OP_BGE,
+            // NOTE: There are no "ble" (branch on less or equal)
+            // or "bgt" (branch on greater than) instructions
+            OP_BLT, // branch on less than
+            OP_BGE, // branch on greater of equal
             // Classical operations
             OP_ADD,
             OP_SUB,

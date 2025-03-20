@@ -21,8 +21,8 @@ static NetQASMMCInstr::OpCode getNetQASMOpCodeFor(const arith::CmpIPredicate pre
             return operandIsZero ? NetQASMMCInstr:: OP_BEZ : NetQASMMCInstr::OP_BEQ;
         case arith::CmpIPredicate::ne:
             return operandIsZero ? NetQASMMCInstr::OP_BNZ : NetQASMMCInstr::OP_BNE;
-        case arith::CmpIPredicate::sgt:
-        case arith::CmpIPredicate::ugt:
+        case arith::CmpIPredicate::sge:
+        case arith::CmpIPredicate::uge:
             return NetQASMMCInstr::OP_BGE;
         case arith::CmpIPredicate::slt:
         case arith::CmpIPredicate::ult:
