@@ -116,7 +116,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Get the opcode according to the compare instruction predicate
         const QoalaHostMCInstr::OpCode opcode = getQoalaHostOpCodeFor(cmpIOp.getPredicate());
         if (opcode == QoalaHostMCInstr::OP_UNKNOWN) {
-            op.emitError("Conditional branch: unsupported predicate");
+            op.emitOpError("Conditional branch: unsupported predicate");
             return failure();
         }
 
@@ -139,7 +139,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         return success();
     }
     // The mapped operation is not an integer comparison -> error
-    op.emitError("Conditional Branching instruction does not make use of a comparison instruction");
+    op.emitOpError("Conditional Branching instruction does not make use of a comparison instruction");
     return failure();
 }
 
@@ -180,7 +180,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Get the opcode according to the compare instruction predicate
         const NetQASMMCInstr::OpCode opcode = getNetQASMOpCodeFor(cmpIOp.getPredicate(), false);
         if (opcode == NetQASMMCInstr::OP_UNKNOWN) {
-            op.emitError("Conditional branch: unsupported predicate");
+            op.emitOpError("Conditional branch: unsupported predicate");
             return failure();
         }
 
@@ -217,7 +217,7 @@ static LogicalResult translateControlFlowOperation(Operation *operation, ModuleT
             if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
                 return placeNetQASMJumpInstr(moduleTranslation, op);
             }
-            return op.emitError("Branch operation not in host or netqasm section!") << *op << "\n";
+            return op.emitOpError("Branch operation not in host or netqasm section!\n");
         })
         .Case([&](cf::CondBranchOp op) -> LogicalResult {
             if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
@@ -226,7 +226,7 @@ static LogicalResult translateControlFlowOperation(Operation *operation, ModuleT
             if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
                 return placeNetQASMCondBrInstr(moduleTranslation, op);
             }
-            return op.emitError("Conditional branch operation not in host or netqasm section!") << *op << "\n";
+            return op.emitOpError("Conditional branch operation not in host or netqasm section!\n");
         })
         .Default([](Operation *op) -> LogicalResult {
             return op->emitOpError("Unknown way to translate a ControlFlow operation to iQoala: '") << *op << "'\n";

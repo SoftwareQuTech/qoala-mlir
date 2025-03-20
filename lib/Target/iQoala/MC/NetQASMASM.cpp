@@ -74,7 +74,7 @@ namespace qoala::assembly {
                 assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
                 break;
             default:
-                op->emitError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
+                op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
         }
         // Generic way to create a generic NetQASMInstruction with the given opCode and operands
@@ -256,7 +256,7 @@ namespace qoala::assembly {
             // Default case
             case OP_UNKNOWN:
             default:
-                this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
+                this->originalOp->emitOpError("Op code for this operation is unknown.\n");
                 break;
         }
     }

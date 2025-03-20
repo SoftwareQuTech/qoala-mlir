@@ -68,7 +68,7 @@ namespace qoala::assembly {
             case OP_RUN_ROUTINE:
                 // TODO - assert the operands.
             default:
-                op->emitError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
+                op->emitOpError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
         }
         // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
@@ -114,7 +114,7 @@ namespace qoala::assembly {
     void QoalaHostMCInstr::print(raw_ostream &os) const {
         switch (this->opCode) {
             case OP_UNKNOWN:
-                this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
+                this->originalOp->emitOpError("Op code for this operation is unknown.\n");
                 break;
             case OP_ASSIGN_CVAL:
                 assert(this->operands.size() == 2);

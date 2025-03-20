@@ -11,7 +11,7 @@ static LogicalResult translateBuiltinOperation(Operation *operation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating builtin op '" << operation->getName() << "' *********\n");
     // Nothing to do here - the only operation from builtin we expect is module, which should not be translated
     if (isa<UnrealizedConversionCastOp>(operation)) {
-        operation->emitError("How did an UnrealizedConversionCast operation did end up in LIR?");
+        operation->emitOpError("How did an UnrealizedConversionCast operation did end up in LIR?");
     }
     assert(isa<mlir::ModuleOp>(operation) && "Builtin operation not a module!");
     return success();

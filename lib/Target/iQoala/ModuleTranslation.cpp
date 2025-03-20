@@ -47,10 +47,9 @@ namespace qoala::translate {
         // and invokes the "convertOperation" method on it.
         const QoalaTranslationDialectInterface *opIface = ifaces.getInterfaceFor(&op);
         if (!opIface) {
-            return op.emitError("cannot be converted to iQoala: missing "
-                                "`QoalaTranslationDialectInterface` registration for "
-                                "dialect for op: ")
-                    << op.getName();
+            return op.emitOpError("cannot be converted to iQoala: missing "
+                                  "`QoalaTranslationDialectInterface` registration for "
+                                  "dialect for op: ");
         }
         return opIface->convertOperation(&op, this);
     }

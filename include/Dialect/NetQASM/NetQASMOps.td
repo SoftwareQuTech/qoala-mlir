@@ -74,10 +74,10 @@ class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
             LogicalResult $cppClass::verifyRegions() {
                 for (Operation &operation : this->getBody().getOps()) {
                     if (NetQASMDialect::opIsNotFromAllowedDialects(operation)) {
-                        return this->emitError() << "'" << getOperationName() << "' "
-                                                 << "op contains an operation that is not from  the allowed list of dialects: ["
-                                                 << NetQASMDialect::getAllowedDialectNames()
-                                                 << "]. Operation: '" << operation << "'";
+                        return this->emitOpError() << "'" << getOperationName() << "' "
+                                                   << "op contains an operation that is not from  the allowed list of dialects: ["
+                                                   << NetQASMDialect::getAllowedDialectNames()
+                                                   << "]. Operation: '" << operation << "'";
                     }
                 }
                 return success();

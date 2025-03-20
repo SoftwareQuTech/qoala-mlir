@@ -163,7 +163,7 @@ namespace qoala::assembly {
                 os << this->integerVal;
                 break;
             case IMMEDIATE_F32:
-                this->inst->getOriginalOp()->emitError("Float immediate is not supported yet!");
+                this->inst->getOriginalOp()->emitOpError("Float immediate is not supported yet!");
                 os << this->floatingPointVal;
                 break;
             case LOCAL_REGISTER:
