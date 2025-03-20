@@ -6,7 +6,7 @@
 // This is why all the branching destinations are "hard-coded"
 
 // CHECK: META START
-// CHECK-NEXT: name: test_branching_sgt
+// CHECK-NEXT: name: test_branching_zero
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -14,13 +14,6 @@
 // CHECK-NEXT: b0 { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
-// CHECK-NEXT: bgt (%[[HOST_REG0]], %[[HOST_REG1]]) : b1
-// CHECK-NEXT: jump () : b2
-// CHECK: b1 { type = CL }
-// CHECK-NEXT: jump () : b3
-// CHECK: b2 { type = CL }
-// CHECK-NEXT: jump () : b3
-// CHECK: b3 { type = CL }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -31,8 +24,8 @@
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 0
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[C_REG0]]]
-// CHECK-NEXT: set C[[C_REG1:.*]] 10
-// CHECK-NEXT: bge C[[C_REG1]] R[[ARG0_REG]] 2
+// CHECK-NEXT: set C[[C_REG1:.*]] 0
+// CHECK-NEXT: bnz R[[ARG0_REG]] 2
 // CHECK-NEXT: jmp 3
 // CHECK-NEXT: add C[[C_REG2:.*]] R[[ARG0_REG]] C[[C_REG1]]
 // CHECK-NEXT: jmp 3
@@ -46,10 +39,9 @@ module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
-    %cstA = arith.constant 10 : i32
-    // In NetQASM, there is no "branch on greater than" (bgt) instruction,
-    // so using "arith.cmpi sgt" would yield and error
-    %jump_loc = arith.cmpi sge, %cstA, %arg0 : i32
+    %cstA = arith.constant 0 : i32
+    // The difference with the test case "A" is the *order* of the operands.
+    %jump_loc = arith.cmpi neq, %arg0, %cstA : i32
     cf.cond_br %jump_loc, ^bb1, ^bb2
   ^bb1:
     %1 = arith.addi %arg0, %cstA : i32
@@ -61,16 +53,10 @@ module {
     %3 = arith.muli %arg0, %cstA : i32
     netqasm.return %3 : i32
   }
-  qoalahost.main_func @test_branching_sgt() {
+  qoalahost.main_func @test_branching_zero() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
-    %jump = arith.cmpi sgt, %cstA, %cstB : i32
-    cf.cond_br %jump, ^bb0, ^bb1
-  ^bb0:
-    cf.br ^bb2
-  ^bb1:
-    cf.br ^bb2
-  ^bb2:
+    // Branching on not zero (bnz instruction) is only supported on NetQASM
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
     %1 = arith.addi %cstA, %cstB : i32
     qoalahost.return

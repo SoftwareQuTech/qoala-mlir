@@ -6,7 +6,7 @@
 // This is why all the branching destinations are "hard-coded"
 
 // CHECK: META START
-// CHECK-NEXT: name: test_branching
+// CHECK-NEXT: name: test_branching_slt
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -61,7 +61,7 @@ module {
     %3 = arith.muli %arg0, %cstA : i32
     netqasm.return %3 : i32
   }
-  qoalahost.main_func @test_branching() {
+  qoalahost.main_func @test_branching_slt() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
     %jump = arith.cmpi slt, %cstA, %cstB : i32
