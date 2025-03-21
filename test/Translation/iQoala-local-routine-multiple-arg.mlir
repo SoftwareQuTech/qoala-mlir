@@ -39,7 +39,10 @@ module {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 5 : i32
     %cstC = arith.constant 2 : i32
+    qoalahost.nop_term
+  ^bb1:
     qoalahost.call @__qoala_wrapper0(%cstA, %cstB, %cstC) : (i32, i32, i32) -> ()
+  ^bb2:
     qoalahost.return
   }
 }

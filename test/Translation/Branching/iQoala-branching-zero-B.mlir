@@ -14,6 +14,8 @@
 // CHECK-NEXT: b0 { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
+// CHECK: b1 { type = CL }
+// CHECK: b2 { type = CL }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -56,8 +58,11 @@ module {
   qoalahost.main_func @test_branching_zero() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
+    qoalahost.nop_term
     // Branching on zero (bez instruction) is only supported on NetQASM
+  ^bb1:
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
+  ^bb2:
     %1 = arith.addi %cstA, %cstB : i32
     qoalahost.return
   }

@@ -43,7 +43,10 @@ module {
   qoalahost.main_func @test_local_routine_ret_one_val() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 7 : i32
+    qoalahost.nop_term
+  ^bb1:
     %0, %1, %2 = qoalahost.call @__qoala_wrapper0(%cstA, %cstB) : (i32, i32) -> (i32, i32, i32)
+  ^bb2:
     qoalahost.return
   }
 }
