@@ -73,6 +73,12 @@ namespace qoala::assembly {
                 assert(mcOperands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
                 assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
                 break;
+            case OP_BEZ:
+            case OP_BNZ:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
+                break;
             default:
                 op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
