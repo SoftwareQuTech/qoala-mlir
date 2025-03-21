@@ -72,7 +72,8 @@ module {
     // Hard to find:  169\pi/2^12 = 0.12962135 -> (169, 12)
     %cst_d = arith.constant 1.3e-01 : f32
 
-    // CHECK: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
+    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
     qmem.rot_x %0, %cst
     qmem.rot_x %0, %cst_0
     qmem.rot_x %0, %cst_1
@@ -90,6 +91,7 @@ module {
     qmem.rot_x %0, %cst_d
     %1 = qmem.measure %0 : i1
 
+    // CHECK-NEXT: ^[[BLOCK_2:.*]]:
     // CHECK: qoalahost.return
     qmem.return
   }

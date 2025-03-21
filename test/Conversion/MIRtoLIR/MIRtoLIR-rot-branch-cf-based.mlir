@@ -29,7 +29,9 @@ module {
     %c1 = arith.constant 1 : i32
     %cst_0 = arith.constant 2.356194 : f32
     %cst_1 = arith.constant 0.785398 : f32
+    // CHECK qoalahost.nop_term
 
+    // CHECK: ^[[BLOCK_1:.*]]:
     // CHECK: %[[CALL_RES:.*]] = qoalahost.call @[[WRAPPER0]](%[[ARG0]]) : (i32) -> i1
     // All the following instructions should be moved inside the netqasm local routine
     // *including* the branching operations, and the branching blocks, to preserve the
@@ -51,6 +53,7 @@ module {
   ^bb3:
     %2 = qmem.measure %0 : i1
 
+    // CHECK: ^[[BLOCK_2:.*]]:
     // CHECK-NEXT: qoalahost.return %[[CALL_RES]]
     qmem.return %2 : i1
   }

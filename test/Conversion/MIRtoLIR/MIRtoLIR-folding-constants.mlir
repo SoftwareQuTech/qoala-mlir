@@ -28,6 +28,7 @@ module {
     qmem.rot_x %0, %cst
     %1 = qmem.measure %0 : i1
 
+    // CHECK: ^[[BLOCK_1:.*]]:
     // CHECK: qoalahost.return
     qmem.return
   }
