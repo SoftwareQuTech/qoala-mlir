@@ -248,8 +248,7 @@ namespace qoala::helpers {
         for (const PrintableTy &member : vector) {
             result << member << ", ";
         }
-        std::string partialResult = result.str();
-        if (partialResult.empty()) {
+        if (std::string partialResult = result.str(); partialResult.empty()) {
             return partialResult;
         } else {
             return partialResult.substr(0, partialResult.length() - 2);

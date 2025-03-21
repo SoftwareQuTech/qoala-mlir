@@ -158,6 +158,42 @@ static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation,
     return instruction ? success() : failure();
 }
 
+static bool valueCanBeTracedToZeroConstant(const Value &value) {
+    // We assume that we folded constants as much as possible in the previous optimization stages
+    // So we can safely assume that, if the value can be traced to zero, then it *must* be yielded
+    // directly by an arith.constant operation, i.e. we don't need to explore more than one operation
+    // up in the data flow path.
+
+    // If the defining op does not exist (null), then the value is most likely, a block (function) arg
+    // If so, the value cannot be traced to zero
+    if (Operation *definingOp = value.getDefiningOp()) {
+        if (auto constantOp = dyn_cast<arith::ConstantIntOp>(definingOp)) {
+            return constantOp.value() == 0;
+        }
+    }
+    return false;
+}
+
+static SmallVector<iQoalaMCOperand *> createCmpOperands(const ModuleTranslation *moduleTranslation, arith::CmpIOp cmpIOp, bool *oneOperandIsZero) {
+    // Check if one of the values used by the comparison can be traced back to zero
+    SmallVector<iQoalaMCOperand *> operands;
+    const bool leftIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getLhs());
+    const bool rightIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getRhs());
+    if (!leftIsZero) {
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
+        iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
+        operands.push_back(cmpLeftOperand);
+    }
+
+    if (!rightIsZero) {
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaMCOperand *cmpRightOperand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
+        operands.push_back(cmpRightOperand);
+    }
+    *oneOperandIsZero = leftIsZero || rightIsZero;
+    return operands;
+}
+
 static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslation, cf::CondBranchOp &op) {
     const Value condition = op.getCondition();
     Operation *cmpOp = moduleTranslation->getMappedCmpOperation(condition);
@@ -172,13 +208,12 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         iQoalaMCOperand *falseTargetBlockOperand = iQoalaMCOperand::createExprOperand(falseBlockSymExpr);
 
         // Process the operands of the arith.cmpi
-        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
-        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
-        iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
-        iQoalaMCOperand *cmpRight1Operand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
+        bool oneOperandIsZero = false;
+        SmallVector<iQoalaMCOperand *> cmpOperands = createCmpOperands(moduleTranslation, cmpIOp, &oneOperandIsZero);
+        cmpOperands.push_back(trueTargetBlockOperand);
 
         // Get the opcode according to the compare instruction predicate
-        const NetQASMMCInstr::OpCode opcode = getNetQASMOpCodeFor(cmpIOp.getPredicate(), false);
+        const NetQASMMCInstr::OpCode opcode = getNetQASMOpCodeFor(cmpIOp.getPredicate(), oneOperandIsZero);
         if (opcode == NetQASMMCInstr::OP_UNKNOWN) {
             op.emitOpError("Conditional branch: unsupported predicate");
             return failure();
@@ -187,7 +222,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), opcode,
-            std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
+            std::nullopt, std::nullopt, cmpOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();

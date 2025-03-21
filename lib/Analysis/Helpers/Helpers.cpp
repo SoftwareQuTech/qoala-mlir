@@ -1,5 +1,7 @@
 #include "Analysis/Helpers/Helpers.h"
 
+#include "mlir/Dialect/Arith/IR/Arith.h"
+
 using namespace mlir;
 
 namespace qoala::helpers {
@@ -9,7 +11,7 @@ namespace qoala::helpers {
         this->addConversion([](Type type) { return type; });
     }
 
-    raw_ostream &qoala::helpers::operator<<(raw_ostream &os, const PrintInterface &printable) {
+    raw_ostream &helpers::operator<<(raw_ostream &os, const PrintInterface &printable) {
         printable.print(os);
         return os;
     }
