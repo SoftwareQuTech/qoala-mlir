@@ -41,7 +41,7 @@ module {
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 0 : i32
     // The difference with the test case "A" is the *order* of the operands.
-    %jump_loc = arith.cmpi neq, %arg0, %cstA : i32
+    %jump_loc = arith.cmpi ne, %arg0, %cstA : i32
     cf.cond_br %jump_loc, ^bb1, ^bb2
   ^bb1:
     %1 = arith.addi %arg0, %cstA : i32

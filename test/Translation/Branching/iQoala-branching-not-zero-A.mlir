@@ -40,7 +40,7 @@ module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 0 : i32
-    %jump_loc = arith.cmpi neq, %cstA, %arg0 : i32
+    %jump_loc = arith.cmpi ne, %cstA, %arg0 : i32
     cf.cond_br %jump_loc, ^bb1, ^bb2
   ^bb1:
     %1 = arith.addi %arg0, %cstA : i32
