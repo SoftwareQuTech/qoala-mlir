@@ -23,15 +23,28 @@ namespace qoala::analysis::isolate {
     static void isolateOp(Operation *opToIsolate, ConversionPatternRewriter &rewriter) {
         LLVM_DEBUG(llvm::dbgs() << "Isolating operation " << *opToIsolate << "\n");
         Block *originalBlock = opToIsolate->getBlock();
-        // We split the block up to the given op (will be the first op of the returned block)
-        Block *middleBlock = originalBlock->splitBlock(opToIsolate);
+        Operation *opToIsolateInNewBlock;
+        Block *middleBlock;
 
-        // Insert a new NopTOp at the end of the original block
-        rewriter.setInsertionPoint(originalBlock, originalBlock->end());
-        rewriter.create<qoalahost::NopTOp>(opToIsolate->getLoc());
+        if (&originalBlock->front() == opToIsolate) {
+            // Special case - The operation to isolate is the first of the block
+            LLVM_DEBUG(llvm::dbgs() << "op first of block" << *opToIsolate << "\n");
+            // We don't need to insert a NopTOp, but simply split the original block at
+            // the operation immediately next to opToIsolate;
+            opToIsolateInNewBlock = opToIsolate;
+            middleBlock = originalBlock;
+        } else {
+            // We split the block up to the given op (will be the first op of the returned block)
+            middleBlock = originalBlock->splitBlock(opToIsolate);
 
-        Operation *opToIsolateInNewBlock = &middleBlock->front();
-        assert(opToIsolate == opToIsolateInNewBlock);
+            // Insert a new NopTOp at the end of the original block
+            rewriter.setInsertionPoint(originalBlock, originalBlock->end());
+            rewriter.create<qoalahost::NopTOp>(opToIsolate->getLoc());
+
+            opToIsolateInNewBlock = &middleBlock->front();
+            assert(opToIsolate == opToIsolateInNewBlock);
+        }
+        // Get the next operation to the opToIsolate
         Operation *nextToOpToIsolate = getNextOperation(opToIsolateInNewBlock);
         LLVM_DEBUG(llvm::dbgs() << "Next op to isolate: " << *nextToOpToIsolate << "\n");
 
