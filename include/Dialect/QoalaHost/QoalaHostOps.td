@@ -231,4 +231,31 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats", [Terminator]> {
     }];
 }
 
+def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
+    let summary = [{
+        "nop" operation with terminator trait. This operation is useful to
+        correctly group other operations in their respective blocks, e.g.
+        to form "CL" blocks that can only contain operations modelling
+        classical, local operations, involving only the CPS.
+        Without this nop "terminal" operation, we might need to add
+        another terminal operator (like return, branch or even qoalahost.call/recv)
+        to not violate the restriction that a block MUST have a terminal
+        operation.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def NopOp : QoalaHost_Op<"nop", [HasParent<"MainFuncOp">]> {
+    let summary = [{
+        QoalaHost "nop" operation. The difference with the NopTOp is that
+        this operation does not carry the "Terminator" trait, so it can be
+        placed in the middle of a block.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
 #endif // QOALAHOST_OPS_TD
