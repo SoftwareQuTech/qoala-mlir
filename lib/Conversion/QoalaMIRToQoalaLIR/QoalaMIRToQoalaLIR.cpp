@@ -1,5 +1,4 @@
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -103,7 +102,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "************************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 2. Folding (constant) operations *\n");
         LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        if (mlir::failed(helpers::foldConstants(module))) {
+        if (failed(helpers::foldConstants(module))) {
             signalPassFailure();
         }
 
@@ -111,9 +110,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 3. Lowering f32 rotations *\n");
         LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        LogicalResult f32LoweringResult =
-                mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (mlir::failed(f32LoweringResult)) {
+        if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
             signalPassFailure();
         }
 
@@ -122,7 +119,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants (Folding again) *\n");
         LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
 
-        if (mlir::failed(helpers::foldConstants(module))) {
+        if (failed(helpers::foldConstants(module))) {
             signalPassFailure();
         }
 
@@ -153,9 +150,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering Remote declarations *\n");
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        LogicalResult remotesLoweringResult =
-                mlir::applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns));
-        if (mlir::failed(remotesLoweringResult)) {
+        if (failed(applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns)))) {
             signalPassFailure();
         }
 
@@ -163,9 +158,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 7. Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
-        LogicalResult qMemToQoalaHostResult =
-            mlir::applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns));
-        if (mlir::failed(qMemToQoalaHostResult)) {
+        if (failed(applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns)))) {
             signalPassFailure();
         }
 
@@ -173,9 +166,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 8. Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
-        LogicalResult qMemToNetQASMResult =
-                mlir::applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns));
-        if (mlir::failed(qMemToNetQASMResult)) {
+        if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
             signalPassFailure();
         }
     }

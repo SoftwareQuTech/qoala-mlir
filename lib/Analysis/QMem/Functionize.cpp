@@ -1,7 +1,8 @@
-#include <Analysis/Helpers/Helpers.h>
-#include <llvm/ADT/SmallSet.h>
+#include "llvm/ADT/SmallSet.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
 #include "Dialect/QMem/EntangleTrait.h"
+
 #include "llvm/Support/Debug.h"
 
 /* MLIR magic: using the LLVM_DEBUG macro + this define, allows to selectively enable the debug output
@@ -242,7 +243,9 @@ namespace qoala::analysis::functionize {
             auto callOp = opBuilder.create<func::CallOp>(
                     quantumOpsGroup[0]->getLoc(), insertedSymbol,
                     /*args=*/data.externalArgsVals.getArrayRef()
-            );
+                    );
+            // We set an attribute on the function, so we can recognize it later
+            callOp->setAttr("functionized", opBuilder.getBoolAttr(true));
 
             LLVM_DEBUG(llvm::dbgs() << "Replacing operations in group #" << groupNum++ << ":\n");
             for (Operation *quantumOp : quantumOpsGroup) {

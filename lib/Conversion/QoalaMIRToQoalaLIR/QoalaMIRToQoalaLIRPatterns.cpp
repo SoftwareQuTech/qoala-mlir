@@ -1,7 +1,8 @@
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h"
 
-#include <mlir/Dialect/Arith/IR/Arith.h>
-#include <mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h>
+#include "Analysis/QoalaHost/Helpers.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -34,6 +35,8 @@ namespace qoala::conversion::mir {
                 adaptor.getArgAttrsAttr(),
                 adaptor.getResAttrsAttr());
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+        // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
+        analysis::isolate::isolateOps(newFunc.getOperation(), rewriter);
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
 
