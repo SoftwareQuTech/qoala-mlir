@@ -288,14 +288,17 @@ namespace qoala::assembly {
             OP_BLT,
             OP_SEND_MSG,
             OP_RECV_MSG,
-            OP_RUN_ROUTINE,
+            OP_RUN_SUBROUTINE,
             OP_RUN_REQUEST,
             OP_SUBMIT_ROUTINES,
-            OP_JOIN_ROUTINES
+            OP_JOIN_ROUTINES,
+            OP_RETURN_RESULT
         };
 
+        enum InstrType { UNKNOWN, CC, CL, QC, QL };
+
         using iQoalaMCInstruction::iQoalaMCInstruction;
-        QoalaHostMCInstr() : iQoalaMCInstruction(nullptr) { };
+        QoalaHostMCInstr() : iQoalaMCInstruction(nullptr), instructionType(UNKNOWN) { };
         ~QoalaHostMCInstr() override = default;
 
         /* Base entry point for creating QoalaHost instructions */
@@ -303,11 +306,16 @@ namespace qoala::assembly {
             std::optional<mlir::Value> resVal, std::optional<iQoalaRegReference *> resRegRef, OpCode opCode,
             mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction);
 
+        void setInstructionType(InstrType instrType);
+
         void print(mlir::raw_ostream &os) const override;
     private:
         void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
                                bool firstIsSSAReg = false,
                                bool lastIsImmediate = false) const;
+
+    private:
+        InstrType instructionType;
     };
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);
