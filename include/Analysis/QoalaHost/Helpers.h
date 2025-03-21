@@ -56,6 +56,7 @@ namespace qoala::analysis::isolate {
             isolateOp(opToIsolate, rewriter);
         }
     }
+    void isolateOps(mlir::Operation *funcOp, mlir::ConversionPatternRewriter &rewriter);
 }
 
 #endif //HELPERS_H
