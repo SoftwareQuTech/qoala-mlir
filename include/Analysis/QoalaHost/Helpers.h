@@ -5,7 +5,7 @@
 #include "mlir/IR/BuiltinOps.h"
 
 namespace qoala::analysis::isolate {
-    void isolateOps(mlir::Operation *funcOp, mlir::ConversionPatternRewriter &rewriter);
+    void isolateOpsInNewBlocks(mlir::Operation *funcOp, mlir::ConversionPatternRewriter &rewriter);
 }
 
 #endif //HELPERS_H

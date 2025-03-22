@@ -54,9 +54,10 @@ namespace qoala::analysis::isolate {
         middleBlock->splitBlock(nextToOpToIsolate);
     }
 
-    void isolateOps(Operation *funcOp, ConversionPatternRewriter &rewriter) {
+    void isolateOpsInNewBlocks(Operation *funcOp, ConversionPatternRewriter &rewriter) {
         LLVM_DEBUG(llvm::dbgs() << "operation " << *funcOp << "\n");
         auto mainFunction = dyn_cast<qoalahost::MainFuncOp>(funcOp);
+        assert (mainFunction && "Trying to isolate the operations on an operation that is not a qoalahost.main_func");
         SmallVector<Operation *> opsToIsolate;
 
         // To correctly isolate the op, we will simply "mark them", since modifying
@@ -71,6 +72,10 @@ namespace qoala::analysis::isolate {
         });
 
         mainFunction.walk([&](func::CallOp op) {
+            // We will only isolate the "func.call" operations that have the
+            // "functionaized" attribute, since they were created by the functionization
+            // algorithm, hence, they will be mapped to "qoalahost.call" operation, calling
+            // either a "netqasm.local_routine" or a "netqasm.request_routine" operations.
             if (Attribute attr = op->getAttr("functionized")) {
                 if (const auto boolAttr = dyn_cast<BoolAttr>(attr); boolAttr.getValue()) {
                     opsToIsolate.push_back(op.getOperation());

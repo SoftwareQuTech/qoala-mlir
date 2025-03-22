@@ -36,7 +36,7 @@ namespace qoala::conversion::mir {
                 adaptor.getResAttrsAttr());
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
         // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
-        analysis::isolate::isolateOps(newFunc.getOperation(), rewriter);
+        analysis::isolate::isolateOpsInNewBlocks(newFunc.getOperation(), rewriter);
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
 
@@ -52,6 +52,7 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     CallOpLowering::createNewOpAndValues(func::CallOp op, func::CallOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
+        assert(op->getAttr("functionized") && "Call function does not have the 'functionized' attribute.");
         auto newCall = rewriter.create<qoalahost::CallOp>(
                 op.getLoc(),
                 adaptor.getCallee(),

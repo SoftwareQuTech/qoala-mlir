@@ -61,48 +61,60 @@ module {
     // CHECK: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
 
-    // CHECK: qoalahost.call @[[WRAPPER1]](%[[REG_MAIN0]]) : (i32) -> ()
+    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER1]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.init %0
 
-    // CHECK: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
+    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     %1 = qmem.qalloc : i32
 
-    // CHECK: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN1]]) : (i32) -> ()
+    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.init %1
 
     // We don't check the existence of the constants; they are eliminated by the translation process
     %cst = arith.constant 0.5890485 : f32
     %cst_0 = arith.constant 2.356194 : f32
 
+    // CHECK: ^[[BLOCK_4:.*]]:
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %cst_0
 
     %cst_1 = arith.constant 0.785398 : f32
 
-    // CHECK: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
+    // CHECK: ^[[BLOCK_5:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_y %0, %cst_1
 
-    // CHECK: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]]) : (i32) -> ()
+    // CHECK: ^[[BLOCK_6:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_z %0, %cst
 
-    // CHECK: qoalahost.call @[[WRAPPER7]](%[[REG_MAIN1]]) : (i32) -> ()
+    // CHECK: ^[[BLOCK_7:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER7]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.hadamard %1
 
-    // CHECK: qoalahost.call @[[WRAPPER8]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
+    // CHECK: ^[[BLOCK_8:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cnot %0, %1
 
     %cst_2 = arith.constant 1.570796 : f32
 
-    // CHECK: qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
+    // CHECK: ^[[BLOCK_9:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cz %0, %1
 
-    // CHECK: qoalahost.call @[[WRAPPER10]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
+    // CHECK: ^[[BLOCK_10:.*]]:
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER10]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.crot_x %0, %1, %cst_2
 
-    // CHECK: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER11]](%[[REG_MAIN0]]) : (i32) -> i1
+    // CHECK: ^[[BLOCK_11:.*]]:
+    // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER11]](%[[REG_MAIN0]]) : (i32) -> i1
     %2 = qmem.measure %0 : i1
 
-    // CHECK: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER12]](%[[REG_MAIN1]]) : (i32) -> i1
+    // CHECK: ^[[BLOCK_12:.*]]:
+    // CHECK-NEXT: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER12]](%[[REG_MAIN1]]) : (i32) -> i1
     %3 = qmem.measure %1 : i1
     qmem.return
   }
