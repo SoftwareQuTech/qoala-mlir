@@ -77,6 +77,22 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
     return success();
 }
 
+template<typename RotationOp>
+static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslation *moduleTranslation, NetQASMMCInstr::OpCode opCode) {
+    iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegReference(op.getQ());
+    const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
+    const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
+
+    iQoalaMCOperand * qbitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
+    iQoalaMCOperand *nOperand = iQoalaMCOperand::createImmediateOperand(nVal);
+    iQoalaMCOperand *expOperand = iQoalaMCOperand::createImmediateOperand(expVal);
+
+    return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+        moduleTranslation, op.getOperation(), opCode,
+        std::nullopt, std::nullopt, {qbitOperand, nOperand, expOperand}
+    );
+}
+
 static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
@@ -104,14 +120,14 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             .Case([&](ReturnOp op) -> LogicalResult {
                 return processReturnOp(moduleTranslation, op);
             })
-            .Case([](RotateXOp op) -> LogicalResult {
-                return success();
+            .Case([&](RotateXOp op) -> LogicalResult {
+                return createRotationInstr(op, moduleTranslation, NetQASMMCInstr::OP_ROT_X) ? success() : failure();
             })
-            .Case([](RotateYOp op) -> LogicalResult {
-                return success();
+            .Case([&](RotateYOp op) -> LogicalResult {
+                return createRotationInstr(op, moduleTranslation, NetQASMMCInstr::OP_ROT_Y) ? success() : failure();
             })
-            .Case([](RotateZOp op) -> LogicalResult {
-                return success();
+            .Case([&](RotateZOp op) -> LogicalResult {
+                return createRotationInstr(op, moduleTranslation, NetQASMMCInstr::OP_ROT_Z) ? success() : failure();
             })
             .Case([](HadamardOp op) -> LogicalResult {
                 return success();
