@@ -6,15 +6,25 @@
 #define DEBUG_TYPE "iqoala-context"
 
 namespace qoala::iqoala {
+    iQoalaContext::iQoalaContext() {
+        for (uint8_t i = 0; i < MAX_PHY_QUBITS; i++) {
+            this->qubits[i] = false;
+        }
+    }
+
     uint8_t iQoalaContext::allocateQubit() {
-        // TODO - implement this
-        return 0;
+        for (uint8_t i = 0; i < MAX_PHY_QUBITS; i++) {
+            if (!this->qubits[i]) {
+                this->qubits[i] = true;
+                return i;
+            }
+        }
+        return 0xFF;
     }
 
-    void iQoalaContext::releaseQubit(uint8_t reg) {
-        // TODO - implement this
+    void iQoalaContext::releaseQubit(const uint8_t reg) {
+        this->qubits[reg] = false;
     }
-
 
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type) {
         uint8_t lastAvailable = 0xFF;

@@ -3,6 +3,9 @@
 
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/DenseMap.h"
+
+#define MAX_PHY_QUBITS 16
 
 namespace qoala::iqoala {
     /**
@@ -12,7 +15,7 @@ namespace qoala::iqoala {
      */
     class iQoalaContext {
     public:
-        iQoalaContext() = default;
+        iQoalaContext();
         ~iQoalaContext() = default;
 
         uint8_t allocateRegister(assembly::iQoalaRegType type);
@@ -26,7 +29,8 @@ namespace qoala::iqoala {
         llvm::SmallVector<uint8_t, 16> cRegisters;
         llvm::SmallVector<uint8_t, 16> mRegisters;
         llvm::SmallVector<uint8_t, 16> qRegisters;
-        llvm::SmallVector<uint8_t, 32> qubits;
+        // Map for the physical qubits num->inUse
+        llvm::DenseMap<uint8_t, bool> qubits;
     };
 }
 #endif //IQOLACONTEXT_H
