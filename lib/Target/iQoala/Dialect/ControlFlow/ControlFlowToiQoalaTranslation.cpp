@@ -139,7 +139,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         return success();
     }
     // The mapped operation is not an integer comparison -> error
-    op.emitOpError("Conditional Branching instruction does not make use of a comparison instruction");
+    op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction");
     return failure();
 }
 
