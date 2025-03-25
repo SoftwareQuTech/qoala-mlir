@@ -164,7 +164,7 @@ static bool valueCanBeTracedToZeroConstant(const Value &value) {
     // directly by an arith.constant operation, i.e. we don't need to explore more than one operation
     // up in the data flow path.
 
-    // If the defining op does not exist (null), then the value is most likely, a block (function) arg
+    // If the defining op does not exist (null), then the value is *must be* a block (function) arg
     // If so, the value cannot be traced to zero
     if (Operation *definingOp = value.getDefiningOp()) {
         if (auto constantOp = dyn_cast<arith::ConstantIntOp>(definingOp)) {
