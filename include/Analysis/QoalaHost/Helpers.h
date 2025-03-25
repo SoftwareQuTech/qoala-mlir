@@ -6,6 +6,7 @@
 
 namespace qoala::analysis::isolate {
     mlir::Operation *getNextOperation(mlir::Operation *op);
+
     /**
      * Isolate the given operation in its own block.
      * @param opToIsolate Operation to isolate in its own block.
@@ -56,7 +57,6 @@ namespace qoala::analysis::isolate {
             isolateOp(opToIsolate, rewriter);
         }
     }
-    void isolateOps(mlir::Operation *funcOp, mlir::ConversionPatternRewriter &rewriter);
 }
 
 #endif //HELPERS_H

@@ -67,8 +67,6 @@ namespace qoala::conversion::mir {
             qoalahost::MainFuncOp, func::CallOp
         >(newFunc, rewriter, opCheck);
         LLVM_DEBUG(llvm::dbgs() << "***** AFTER *****\n" << newFunc << "\n***************\n");
-        // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
-        analysis::isolate::isolateOps(newFunc.getOperation(), rewriter);
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
 
