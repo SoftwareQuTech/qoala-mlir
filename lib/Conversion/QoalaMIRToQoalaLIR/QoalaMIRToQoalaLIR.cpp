@@ -101,7 +101,7 @@ namespace qoala::conversion {
 
         // Stage 2: Try to fold operations as much as possible, especially, constants
         LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 1. Folding (constant) operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 2. Folding (constant) operations *\n");
         LLVM_DEBUG(llvm::dbgs() << "************************************\n");
         if (mlir::failed(helpers::foldConstants(module))) {
             signalPassFailure();

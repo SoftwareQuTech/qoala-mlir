@@ -58,10 +58,10 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
         auto name = operation.getName().getStringRef().str();
         if (QoalaHostDialect::opIsNotFromAllowedDialects(operation)) {
-            return this->emitError() << "'" << getOperationName() << "' "
-                                            << "op contains an operation that is not from  the allowed list of dialects: ["
-                                            << QoalaHostDialect::getAllowedDialectNames()
-                                            << "]. Operation: '" << operation << "'";
+            return this->emitOpError() << "'" << getOperationName() << "' "
+                                          << "op contains an operation that is not from  the allowed list of dialects: ["
+                                          << QoalaHostDialect::getAllowedDialectNames()
+                                          << "]. Operation: '" << operation << "'";
         }
     }
     return success();

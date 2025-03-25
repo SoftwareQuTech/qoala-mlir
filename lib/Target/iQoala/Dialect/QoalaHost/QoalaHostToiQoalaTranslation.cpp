@@ -1,30 +1,34 @@
 #include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/Debug.h"
 #include "mlir/IR/Operation.h"
-#include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/ModuleTranslation.h"
-#include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
-
 #include "Dialect/QoalaHost/QoalaHost.h"
+
+#include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "qoalahost-translation"
 
 using namespace mlir;
+using namespace qoala::translate;
 using namespace qoala::dialects::qoalahost;
 
-static LogicalResult translateBlock(Block &block, qoala::translate::ModuleTranslation *moduleTranslation) {
-    (void) moduleTranslation->emplaceNewBlockInHostSection(&block);
+static LogicalResult translateBlock(Block &block, ModuleTranslation *moduleTranslation) {
     for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation->convertOperation(op))) {
-            return op.emitOpError("cannot covert operation '") << op << "'\n";
+            return op.emitOpError("cannot convert operation '") << op << "'\n";
         }
     }
     return success();
 }
 
-static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::translate::ModuleTranslation *moduleTranslation) {
+static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation *moduleTranslation) {
     moduleTranslation->setModuleName(mainFuncOP.getName());
+    // First, we put placeholder (empty) blocks for each one of the basic blocks of the
+    for (Block &block : mainFuncOP.getBlocks()) {
+        moduleTranslation->emplaceNewBlockInHostSection(&block);
+    }
+
+    // Then, we translate the block and the operations within it
     for (Block &block : mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")
@@ -34,7 +38,7 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, qoala::transl
     return success();
 }
 
-static LogicalResult translateQoalaHostOperation(Operation *operation, qoala::translate::ModuleTranslation *moduleTranslation) {
+static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)

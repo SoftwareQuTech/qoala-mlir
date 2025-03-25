@@ -1,6 +1,6 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
-// CHECK-NEXT: name: test_lower_constants
+// CHECK-NEXT: name: test_arith_operations
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -49,7 +49,7 @@ module {
     %1 = netqasm.measure %0 : i1
     netqasm.return
   }
-  qoalahost.main_func @test_lower_constants() {
+  qoalahost.main_func @test_arith_operations() {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
     %resA = arith.addi %cstA, %cstB : i32

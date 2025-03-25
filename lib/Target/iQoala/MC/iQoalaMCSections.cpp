@@ -3,6 +3,12 @@
 
 using namespace mlir;
 
+#if __cplusplus >= 202002L
+static std::string blockNameFmt = "b{}";
+#else
+static std::string blockNameFmt = "b%d";
+#endif
+
 namespace qoala::iqoala {
     void MetaSection::print(raw_ostream &os) const {
         os << "META START\n";
@@ -60,6 +66,7 @@ namespace qoala::iqoala {
 
     Block *HostSection::createNewBlock() {
         auto *block = new Block();
+        block->setName(helpers::formatString(blockNameFmt, this->hostBlocks.size()));
         this->hostBlocks.push_back(block);
         return block;
     }

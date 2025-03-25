@@ -69,6 +69,7 @@ namespace qoala::iqoala {
         void addInstruction(assembly::NetQASMMCInstr *instruction);
         void addArgument(const std::string &argName);
         void addReturnValue(const std::string &valName);
+        void resolveInternalInstrRefs() const;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -166,6 +167,9 @@ namespace qoala::iqoala {
                 delete instruction;
             }
         }
+        void setName(const std::string &name) { this->name = name; }
+        [[nodiscard]]
+        std::string getName() const { return this->name; }
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);

@@ -18,24 +18,11 @@ namespace qoala::assembly {
     }
 
     iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = SYMBOL_REFERENCE;
-        expr->symbolName = symName;
-        return expr;
+        return new iQoalaMCExpr(symName);
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createConstant(const uint32_t value) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = CONSTANT_I32;
-        expr->i32ConstVal = value;
-        return expr;
-    }
-
-    iQoalaMCExpr *iQoalaMCExpr::createConstant(const float value) {
-        const auto expr = new iQoalaMCExpr();
-        expr->kind = CONSTANT_F32;
-        expr->f32ConstVal = value;
-        return expr;
+    iQoalaMCExpr *iQoalaMCExpr::createInstructionRef(mlir::Operation *mlirOp) {
+        return new iQoalaMCExpr(mlirOp);
     }
 
     iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
@@ -85,6 +72,7 @@ namespace qoala::assembly {
         assert(this->isImmediate());
         return this->floatingPointVal;
     }
+
     iQoalaRegReference *iQoalaMCOperand::getRegRef() const {
         assert(this->isLocalRegister() || this->isRegister());
         return this->regRef;
@@ -98,7 +86,16 @@ namespace qoala::assembly {
     /* General functions for the ASM classes */
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
-    bool iQoalaMCExpr::isConstant() const { return kind == CONSTANT_I32 || kind == CONSTANT_F32; }
+    bool iQoalaMCExpr::isInstructionRef() const { return kind == INSTRUCTION_REFERENCE; }
+    mlir::Operation *iQoalaMCExpr::getTargetOp() const {
+        assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to get the target of a non-InstrRef expression.");
+        return this->instructionRef.targetOp;
+    }
+    void iQoalaMCExpr::resolveDisplacement(const int32_t displacement) {
+        assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to resolve the displacement of a non-InstrRef expression.");
+        this->instructionRef.displacement = displacement;
+        this->instructionRef.isResolved = true;
+    }
 
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
@@ -113,6 +110,7 @@ namespace qoala::assembly {
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
     iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return operands; };
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
     void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {
@@ -127,12 +125,10 @@ namespace qoala::assembly {
             case SYMBOL_REFERENCE:
                 os << this->symbolName;
                 break;
-            case CONSTANT_I32:
-                os << this->i32ConstVal;
-                break;
-            case CONSTANT_F32:
-                mlir::emitError(mlir::UnknownLoc()) << "Floats are not supported yet.";
-                os << this->f32ConstVal;
+            case INSTRUCTION_REFERENCE:
+                assert(this->instructionRef.isResolved && "Expression Instruction Ref is not resolved");
+                assert(this->instructionRef.displacement != 0 && "Expression Instruction Ref with displacement 0");
+                os << this->instructionRef.displacement;
                 break;
         }
     }
@@ -167,7 +163,7 @@ namespace qoala::assembly {
                 os << this->integerVal;
                 break;
             case IMMEDIATE_F32:
-                this->inst->getOriginalOp()->emitError("Float immediate is not supported yet!");
+                this->inst->getOriginalOp()->emitOpError("Float immediate is not supported yet!");
                 os << this->floatingPointVal;
                 break;
             case LOCAL_REGISTER:
@@ -175,7 +171,7 @@ namespace qoala::assembly {
                 os << this->regRef->formatRegister();
                 break;
             case EXPRESSION:
-                os << this->expression;
+                os << *this->expression;
                 break;
         }
     }

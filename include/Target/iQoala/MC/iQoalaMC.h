@@ -28,11 +28,12 @@ namespace qoala::assembly {
         enum ExprKind {
             INVALID,
             SYMBOL_REFERENCE,
-            CONSTANT_I32,
-            CONSTANT_F32
+            INSTRUCTION_REFERENCE
         };
     public:
-        iQoalaMCExpr() : kind(INVALID), i32ConstVal(0) { }
+        iQoalaMCExpr() : kind(INVALID), symbolName() { }
+        explicit iQoalaMCExpr(const std::string &symName) : kind(SYMBOL_REFERENCE), symbolName(symName) { }
+        explicit iQoalaMCExpr(mlir::Operation *mlirOp) : kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { };
         ~iQoalaMCExpr() override { }
 
         [[nodiscard]]
@@ -40,18 +41,23 @@ namespace qoala::assembly {
         [[nodiscard]]
         bool isSymbolRef() const;
         [[nodiscard]]
-        bool isConstant() const;
+        bool isInstructionRef() const;
+        [[nodiscard]]
+        mlir::Operation *getTargetOp() const;
+        void resolveDisplacement(int32_t displacement);
         void print(mlir::raw_ostream &os) const override;
 
         static iQoalaMCExpr *createSymbolRef(const std::string &symName);
-        static iQoalaMCExpr *createConstant(uint32_t value);
-        static iQoalaMCExpr *createConstant(float value);
+        static iQoalaMCExpr *createInstructionRef(mlir::Operation *mlirOp);
     private:
         ExprKind kind;
         union {
             std::string symbolName;
-            uint32_t i32ConstVal;
-            float f32ConstVal;
+            struct {
+                mlir::Operation *targetOp;
+                int32_t displacement;
+                bool isResolved;
+            } instructionRef;
         };
     };
 
@@ -166,6 +172,8 @@ namespace qoala::assembly {
         [[nodiscard]]
         iQoalaMCOperand *getOperand(unsigned i) const;
         [[nodiscard]]
+        std::vector<iQoalaMCOperand *> getOperands() const;
+        [[nodiscard]]
         unsigned int getNumOperands() const;
 
         void addOperand(iQoalaMCOperand *op);
@@ -202,8 +210,10 @@ namespace qoala::assembly {
             OP_BNZ,
             OP_BEQ,
             OP_BNE,
-            OP_BLT,
-            OP_BGE,
+            // NOTE: There are no "ble" (branch on less or equal)
+            // or "bgt" (branch on greater than) instructions
+            OP_BLT, // branch on less than
+            OP_BGE, // branch on greater of equal
             // Classical operations
             OP_ADD,
             OP_SUB,

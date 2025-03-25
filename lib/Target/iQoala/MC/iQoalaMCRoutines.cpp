@@ -1,6 +1,10 @@
 #include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
 
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "iQoalaMCRoutines"
+
 using namespace mlir;
 
 namespace qoala::iqoala {
@@ -8,7 +12,7 @@ namespace qoala::iqoala {
         return new LocalQuantumRoutine(name);
     }
 
-    RequestQuantumRoutine *RequestQuantumRoutine::createRequestRoutine(StringRef name) {
+    RequestQuantumRoutine *RequestQuantumRoutine::createRequestRoutine(const StringRef name) {
         return new RequestQuantumRoutine(name);
     }
 
@@ -24,7 +28,54 @@ namespace qoala::iqoala {
         this->returns.push_back(valName);
     }
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback) {
+    void LocalQuantumRoutine::resolveInternalInstrRefs() const {
+        DenseMap<Operation *, int32_t> operationToIndex;
+        DenseMap<assembly::iQoalaMCExpr *, Operation *> expressionsToResolve;
+
+        for (uint32_t i = 0; i < this->instructions.size(); i++) {
+            const auto *instruction = this->instructions[i];
+            Operation *opPtr = instruction->getOriginalOp();
+            // Hack to correctly compute branching displacements despite some MLIR ops maps
+            // to multiple NetQASM instructions. If this is the case, all the mapped instructions
+            // will share the same instruction->getOriginalOp() attribute. Since this is a
+            // problem for the operationToIndex map (the originalOp pointers are used as keys)
+            // we need to artificially "fix" duplicated key issue, by creating a "unique" key for
+            // the extra NetQASM instructions inserted.
+            if (operationToIndex.contains(instruction->getOriginalOp())) {
+                // This is an "introduced" instruction, we artificially create an op index pointer
+                // so we compute the jump displacements correctly
+                // With this hack, the very first operation that was mapped (i.e. the original MLIR
+                // operation) would be the instruction to jump to, if referenced by some branching
+                // instruction
+                opPtr += 4 * i;
+            }
+            LLVM_DEBUG(llvm::dbgs() << "+++ Emplacing ptr: '" << opPtr << "', i = " << i
+                << ", opcode = " << instruction->getOpcode() << ", op = " << instruction <<"\n");
+            const auto result = operationToIndex.try_emplace(opPtr, i);
+            (void) result;
+            assert(result.second && "Resolve Instr Refs: Op index pointer already present!");
+
+            for (const auto *param : instruction->getOperands()) {
+                if (param->isExpression() && param->getExpression()->isInstructionRef()) {
+                    expressionsToResolve.try_emplace(param->getExpression(), opPtr);
+                }
+            }
+        }
+
+        for (auto exprToResolve : expressionsToResolve) {
+            assert(operationToIndex.contains(exprToResolve.second) &&
+                "Resolve Instr Refs: Instruction containing an InstrRef comes from an MLIR operation not present in NetQASM body!");
+            assert(operationToIndex.contains(exprToResolve.first->getTargetOp()) &&
+                "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
+
+            const int32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
+            const int32_t targetIndex = operationToIndex[exprToResolve.second];
+
+            exprToResolve.first->resolveDisplacement(sourceIndex - targetIndex);
+        }
+    }
+
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
                  os << "sequential";
@@ -52,7 +103,7 @@ namespace qoala::iqoala {
         return os;
     }
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestType requestType) {
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestType requestType) {
         switch (requestType) {
             case RequestQuantumRoutine::CREATE_KEEP:
                 os << "create_keep";
@@ -68,7 +119,7 @@ namespace qoala::iqoala {
     }
 
 
-    raw_ostream &operator<<(raw_ostream &os, RequestQuantumRoutine::RequestRole requestRole) {
+    raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestRole requestRole) {
         switch (requestRole) {
             case RequestQuantumRoutine::CREATE:
                 os << "create";

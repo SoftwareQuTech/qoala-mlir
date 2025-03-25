@@ -35,7 +35,7 @@ namespace qoala::analysis {
                             // More than 1 use.
                             for (auto &use : result.getUses()) {
                                 auto usingOp = use.getOwner();
-                                usingOp->emitError(
+                                usingOp->emitOpError(
                                     "quantum operation is used more than once\n");
                             }
                             signalPassFailure();
@@ -44,7 +44,7 @@ namespace qoala::analysis {
                 }
             });
         } else {
-            operation->emitError("Not a ModuleOp: something went wrong.");
+            operation->emitOpError("Not a ModuleOp: something went wrong.");
             signalPassFailure();
             return;
         }

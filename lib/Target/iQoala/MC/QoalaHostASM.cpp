@@ -60,15 +60,15 @@ namespace qoala::assembly {
             case OP_BGT:
             case OP_BLT:
                 assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
-                assert(mcOperands[0]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isLocalRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
                 assert(mcOperands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
                 assert(mcOperands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
                 break;
             case OP_RUN_ROUTINE:
                 // TODO - assert the operands.
             default:
-                op->emitError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
+                op->emitOpError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
         }
         // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
@@ -114,7 +114,7 @@ namespace qoala::assembly {
     void QoalaHostMCInstr::print(raw_ostream &os) const {
         switch (this->opCode) {
             case OP_UNKNOWN:
-                this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
+                this->originalOp->emitOpError("Op code for this operation is unknown.\n");
                 break;
             case OP_ASSIGN_CVAL:
                 assert(this->operands.size() == 2);
@@ -167,32 +167,32 @@ namespace qoala::assembly {
             case OP_BEQ:
                 // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("beq", os, false, true);
                 break;
             case OP_BNE:
                 // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("bne", os, false, true);
                 break;
             case OP_BGT:
                 // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("bgt", os, false, true);
                 break;
             case OP_BLT:
                 // We assume the last operand is the symbol reference to jump to
                 assert(this->operands.size() == 3);
-                assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("blt", os, false, true);
                 break;
@@ -213,7 +213,7 @@ namespace qoala::assembly {
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
-                assert(this->operands[0]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isExpression());
                 printInstrGeneric("run_routine", os, true, true);
                 break;
@@ -222,7 +222,7 @@ namespace qoala::assembly {
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
-                assert(this->operands[0]->isRegister());
+                assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isExpression());
                 printInstrGeneric("run_request", os, true, true);
                 break;

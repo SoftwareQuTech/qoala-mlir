@@ -47,7 +47,7 @@ namespace qoala::assembly {
                 break;
             case OP_JMP:
                 assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
+                assert(mcOperands[0]->isExpression() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
                 break;
             case OP_BEQ:
             case OP_BNE:
@@ -56,7 +56,7 @@ namespace qoala::assembly {
                 assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
-                assert(mcOperands[2]->isImmediate() && "NetQASM 3-reg instruction: operand 2 must be an immediate");
+                assert(mcOperands[2]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
                 break;
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -73,8 +73,14 @@ namespace qoala::assembly {
                 assert(mcOperands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
                 assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
                 break;
+            case OP_BEZ:
+            case OP_BNZ:
+                assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
+                break;
             default:
-                op->emitError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
+                op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
         }
         // Generic way to create a generic NetQASMInstruction with the given opCode and operands
@@ -132,30 +138,58 @@ namespace qoala::assembly {
                 assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
-            // "undef" instruction is not inpreted by qoala-sim
+            // "undef" instruction is not interpreted by qoala-sim
             // Classical Logic
             case OP_JMP:
                 assert(this->operands.size() == 1);
-                assert(this->operands[0]->isImmediate());
+                assert(this->operands[0]->isExpression());
                 this->printInstrInGenericForm("jmp", os);
                 break;
             case OP_BEZ:
-                this->printOneRegOneImmInstr("bez", os);
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                assert(this->operands[1]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bez", os);
                 break;
             case OP_BNZ:
-                this->printOneRegOneImmInstr("bnz", os);
+                assert(this->operands.size() == 2);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isExpression());
+                assert(this->operands[1]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bnz", os);
                 break;
             case OP_BEQ:
-                this->printTwoRegsOneImmInstr("beq", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("beq", os);
                 break;
             case OP_BNE:
-                this->printTwoRegsOneImmInstr("bne", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bne", os);
                 break;
             case OP_BLT:
-                this->printTwoRegsOneImmInstr("ble", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("blt", os);
                 break;
             case OP_BGE:
-                this->printTwoRegsOneImmInstr("bge", os);
+                assert(this->operands.size() == 3);
+                assert(this->operands[0]->isRegister());
+                assert(this->operands[1]->isRegister());
+                assert(this->operands[2]->isExpression());
+                assert(this->operands[2]->getExpression()->isInstructionRef());
+                this->printInstrInGenericForm("bge", os);
                 break;
             // Classical Operations
             case OP_ADD:
@@ -228,7 +262,7 @@ namespace qoala::assembly {
             // Default case
             case OP_UNKNOWN:
             default:
-                this->originalOp->emitError("Op code for operation '") << *this->originalOp << "' is unknown.\n";
+                this->originalOp->emitOpError("Op code for this operation is unknown.\n");
                 break;
         }
     }

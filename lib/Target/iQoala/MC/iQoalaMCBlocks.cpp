@@ -7,7 +7,7 @@ namespace qoala::iqoala {
         this->instructions.push_back(instruction);
     }
 
-    raw_ostream &operator<<(raw_ostream &os, Block::BlockType block) {
+    raw_ostream &operator<<(raw_ostream &os, const Block::BlockType block) {
         switch (block) {
             case Block::CC:
                 os << "CC";
@@ -25,11 +25,8 @@ namespace qoala::iqoala {
         return os;
     }
 
-    // TODO - Move this constant to the iQoalaContext object
-    unsigned int blockNumber = 0;
-
     void Block::print(raw_ostream &os) const {
-        os << "b" << blockNumber << " { type = " << this->type << " }\n";
+        os << this->name << " { type = " << this->type << " }:\n";
         for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }

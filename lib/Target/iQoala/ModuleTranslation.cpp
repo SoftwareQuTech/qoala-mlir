@@ -1,11 +1,17 @@
 #include "mlir/IR/BuiltinOps.h"
+
+#include "Analysis/Helpers/Helpers.h"
+#include "Conversion/Helpers/Helpers.h"
+#include "Dialect/NetQASM/NetQASM.h"
+#include "Target/iQoala/Module.h"
+#include "Target/iQoala/iQoala.h"
+#include "Target/iQoala/MC/Helpers.h"
+#include "Target/iQoala/ModuleTranslation.h"
+#include "Target/iQoala/QoalaTranslationInterface.h"
+
 #include "llvm/Support/Debug.h"
 
-#include "Target/iQoala/ModuleTranslation.h"
-#include "Conversion/Helpers/Helpers.h"
-#include "Target/iQoala/MC/Helpers.h"
-#include "Target/iQoala/QoalaTranslationInterface.h"
-#include "Dialect/NetQASM/NetQASM.h"
+#define DEBUG_TYPE "module-translate"
 
 using namespace mlir;
 using namespace qoala;
@@ -13,9 +19,14 @@ using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::dialects::netqasm;
 
-#define DEBUG_TYPE "module-translate"
-
 namespace qoala::translate {
+#if  __cplusplus >= 202002L
+    /* When using C++20 or newer standard, the format must be "python-style" */
+    static const std::string paramNameFormat = "p{}";
+#else
+    /* When using C++17 or older standard, the format must be "C-style" */
+    static const std::string paramNameFormat = "p%d";
+#endif
     // A helper function to obtain the body of given module
     static mlir::Block &getModuleBody(Operation *module) {
         assert(llvm::isa<ModuleOp>(module));
@@ -36,10 +47,9 @@ namespace qoala::translate {
         // and invokes the "convertOperation" method on it.
         const QoalaTranslationDialectInterface *opIface = ifaces.getInterfaceFor(&op);
         if (!opIface) {
-            return op.emitError("cannot be converted to iQoala: missing "
-                                "`QoalaTranslationDialectInterface` registration for "
-                                "dialect for op: ")
-                    << op.getName();
+            return op.emitOpError("cannot be converted to iQoala: missing "
+                                  "`QoalaTranslationDialectInterface` registration for "
+                                  "dialect for op: ");
         }
         return opIface->convertOperation(&op, this);
     }
@@ -52,21 +62,24 @@ namespace qoala::translate {
         this->iQoalaModule->setModuleName(moduleName);
     }
 
-    iqoala::Block *ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
+    void ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
         auto *newBlock = this->iQoalaModule->addHostBlock();
         const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
-        (void)result;
-        assert(result.second && "attempting to map a block that is already mapped");
-        return newBlock;
+        (void) result;
+        assert(result.second && "Attempting to map a block that is already mapped");
     }
 
     void ModuleTranslation::mapValue(const Value &mlirVal, iQoalaRegReference *regRef) {
         if (regRef->isLocal()) {
-            this->localRegsMap.try_emplace(mlirVal, regRef);
-            return;
+            const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
+            (void) result;
+            assert(result.second && "Attempting to map a local value that is already mapped");
         }
         if (regRef->isQuantum()) {
-            this->quantumRegsMap.try_emplace(mlirVal, regRef);
+            const auto result = this->quantumRegsMap.try_emplace(mlirVal, regRef);
+            (void) result;
+            LLVM_DEBUG(llvm::dbgs() << "***** mapping a quantum value " << mlirVal << "\n");
+            assert(result.second && "Attempting to map a quantum value that is already mapped");
         }
     }
 
@@ -96,7 +109,9 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
-        this->cmpMap.try_emplace(mlirVal, mlirOp);
+        const auto result = this->cmpMap.try_emplace(mlirVal, mlirOp);
+        (void) result;
+        assert(result.second && "Attempting to map a comparison value that is already mapped");
     }
 
     Operation *ModuleTranslation::getMappedCmpOperation(const Value &mlirVal) const {
@@ -113,7 +128,7 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    static void loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
+    static LogicalResult loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
         Value &mlirArgValue, const uint8_t paramNum) {
         // Immediate with the number of the argument
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
@@ -121,11 +136,14 @@ namespace qoala::translate {
         SmallVector<iQoalaMCOperand *> immediateOperands;
         immediateOperands.push_back(immediateVal);
         // Despite this instruction yields a value, we don't need to map it to any
-        // mlir value, so we pass "nullptr" as the "result" argument when building
+        // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-            nullptr, C, immediateOperands,
+            std::nullopt, C, immediateOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/false);
+        if (!assignInstr) {
+            return failure();
+        }
         routine->addInstruction(assignInstr);
 
         // Use the "load" instruction to actually load the value
@@ -141,7 +159,11 @@ namespace qoala::translate {
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
             mlirArgValue, R, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
+        if (!loadInstr) {
+            return failure();
+        }
         routine->addInstruction(loadInstr);
+        return success();
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
@@ -155,17 +177,12 @@ namespace qoala::translate {
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 for (auto arg : localRoutine.getArguments()) {
                     const uint8_t argNum = arg.getArgNumber();
-                    // std::format was introduced as part of C++20 standard. We will use the old way
-                    // to format a string. More info on function `getNewFunctionName` in the file
-                    // `lib/Analysis/QMem/Functionize.cpp`.
-                    const auto nameFormat = "p%d";
-                    const int length = std::snprintf(nullptr, 0, nameFormat, argNum);
-                    std::vector<char> paramName(length + 1);
-                    std::sprintf(paramName.data(), nameFormat, argNum);
+                    routine->addArgument(helpers::formatString(paramNameFormat, argNum));
 
-                    routine->addArgument(std::string(paramName.data()));
                     LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                    loadArgument(this, routine, localRoutine, arg, argNum);
+                    if (failed(loadArgument(this, routine, localRoutine, arg, argNum))) {
+                        return failure();
+                    }
                 }
                 iQoalaModule->addRoutine(routine);
             }
@@ -202,6 +219,10 @@ namespace qoala::translate {
             if (failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }
+        }
+        // Finally, we need to resolve all the instruction references within the local routines
+        for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
+            quantumRoutine->resolveInternalInstrRefs();
         }
         return std::move(moduleTranslation.iQoalaModule);
     }

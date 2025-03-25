@@ -1,21 +1,21 @@
-#ifndef BUILTINTOIQOALATRANSLATION_H
-#define BUILTINTOIQOALATRANSLATION_H
+#ifndef CFTOIQOALATRANSLATION_H
+#define CFTOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/IR/BuiltinDialect.h"
+
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 
 namespace qoala::translate {
-    class BuiltinToiQoalaTranslation : public QoalaTranslationDialectInterface {
+    class ControlFlowToiQoalaTranslation : public QoalaTranslationDialectInterface {
     public:
         using QoalaTranslationDialectInterface::QoalaTranslationDialectInterface;
 
         mlir::LogicalResult convertOperation(mlir::Operation *op, ModuleTranslation *moduleTranslation) const final;
 
         static void registerInto(mlir::DialectRegistry &registry) {
-            registeriQoalaTranslation<mlir::BuiltinDialect, BuiltinToiQoalaTranslation>(registry);
+            registeriQoalaTranslation<mlir::cf::ControlFlowDialect, ControlFlowToiQoalaTranslation>(registry);
         }
     };
 }
-
-#endif //BUILTINTOIQOALATRANSLATION_H
+#endif //CFTOIQOALATRANSLATION_H
