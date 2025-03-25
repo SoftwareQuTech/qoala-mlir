@@ -80,16 +80,18 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
 template<typename RotationOp>
 static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslation *moduleTranslation, NetQASMMCInstr::OpCode opCode) {
     iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegReference(op.getQ());
+    assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
     const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
     const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
 
-    iQoalaMCOperand * qbitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
+    iQoalaMCOperand *qubitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
     iQoalaMCOperand *nOperand = iQoalaMCOperand::createImmediateOperand(nVal);
     iQoalaMCOperand *expOperand = iQoalaMCOperand::createImmediateOperand(expVal);
 
     return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
         moduleTranslation, op.getOperation(), opCode,
-        std::nullopt, std::nullopt, {qbitOperand, nOperand, expOperand}
+        std::nullopt, std::nullopt, {qubitOperand, nOperand, expOperand},
+        /*useOpOperands=*/false
     );
 }
 
@@ -99,11 +101,28 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
     // Use this example for applying different behavior depending on the type of the operation under analysis
     // This is the main "dispatcher" for translating operations belonging to NetQASM dialect
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
-            .Case([](QAllocOp op) -> LogicalResult {
-                return success();
+        .Case([&](QAllocOp op) -> LogicalResult {
+                SmallVector<iQoalaMCOperand *> processedOperands;
+                const uint32_t numQubit = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateQubit();
+                iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(numQubit);
+                processedOperands.push_back(immediateVal);
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
+                    op.getResult(), Q, processedOperands
+                    );
+                return instruction ? success() : failure();
             })
-            .Case([](QInitOp op) -> LogicalResult {
-                return success();
+            .Case([&](QInitOp op) -> LogicalResult {
+                iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegReference(op.getQ());
+                assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
+
+                iQoalaMCOperand *qubitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_INIT,
+                    std::nullopt, std::nullopt, {qubitOperand},
+                    /*useOpOperands=*/false
+                    );
+                return instruction ? success() : failure();
             })
             .Case([&](LocalRoutineOp op) -> LogicalResult {
                 LLVM_DEBUG(llvm::dbgs() << "Saw a local routine with name '" << op.getName() << "'\n");

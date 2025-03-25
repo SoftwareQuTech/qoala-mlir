@@ -6,6 +6,10 @@
 #define DEBUG_TYPE "iqoala-context"
 
 namespace qoala::iqoala {
+    uint8_t iQoalaContext::allocateQubit() {
+        // TODO - implement this
+        return 0;
+    }
 
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type) {
         uint8_t lastAvailable = 0xFF;

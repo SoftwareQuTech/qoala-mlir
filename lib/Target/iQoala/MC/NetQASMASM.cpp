@@ -70,14 +70,26 @@ namespace qoala::assembly {
                 break;
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1 reg, 1 imm instruction: operand 0 is not a register.");
-                assert(mcOperands[1]->isImmediate() && "NetQASM 1 reg, 1 imm instruction: operand 1 is not an immediate.");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 is not a register.");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate.");
                 break;
             case OP_BEZ:
             case OP_BNZ:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
+                break;
+            case OP_INIT:
+                assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg instruction: operand 0 must be a register");
+                break;
+            case OP_ROT_X:
+            case OP_ROT_Y:
+            case OP_ROT_Z:
+                assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 2-imm instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 2-imm instruction: operand 1 must be an immediate");
+                assert(mcOperands[2]->isImmediate() && "NetQASM 1-reg, 2-imm instruction: operand 2 must be an immediate");
                 break;
             default:
                 op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;

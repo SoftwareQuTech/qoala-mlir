@@ -16,6 +16,8 @@ namespace qoala::iqoala {
         ~iQoalaContext() = default;
 
         uint8_t allocateRegister(assembly::iQoalaRegType type);
+        uint8_t allocateQubit();
+        void releaseQubit(uint8_t reg);
 
     private:
         // Structures to keep track of the used registers.
@@ -24,6 +26,7 @@ namespace qoala::iqoala {
         llvm::SmallVector<uint8_t, 16> cRegisters;
         llvm::SmallVector<uint8_t, 16> mRegisters;
         llvm::SmallVector<uint8_t, 16> qRegisters;
+        llvm::SmallVector<uint8_t, 32> qubits;
     };
 }
 #endif //IQOLACONTEXT_H
