@@ -24,9 +24,6 @@ module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> () {
     %cst = arith.constant 25 : i32
-    %0 = netqasm.qalloc  : i32
-    netqasm.init %0
-    %1 = netqasm.measure %0 : i1
     netqasm.return
   }
   qoalahost.main_func @test_local_routine_args() {

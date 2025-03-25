@@ -44,9 +44,6 @@ module {
     %resC = arith.muli %cstA, %cstB : i32
     %resD = arith.divui %cstA, %cstB : i32
     %resE = arith.remui %cstA, %cstB : i32
-    %0 = netqasm.qalloc  : i32
-    netqasm.init %0
-    %1 = netqasm.measure %0 : i1
     netqasm.return
   }
   qoalahost.main_func @test_arith_operations() {
