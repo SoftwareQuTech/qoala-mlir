@@ -160,8 +160,12 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             .Case([](CrotXOp op) -> LogicalResult {
                 return success();
             })
-            .Case([](MeasureOp op) -> LogicalResult {
-                return success();
+            .Case([&](MeasureOp op) -> LogicalResult {
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                    moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS,
+                    op.getResult(), M, {}
+                    );
+                return instruction ? success() : failure();
             })
             .Case([](EprsOp op) -> LogicalResult {
                 return success();

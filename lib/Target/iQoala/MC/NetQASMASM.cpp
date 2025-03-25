@@ -20,6 +20,11 @@ namespace qoala::assembly {
             mcOperands.push_back(resultRegOperand);
         }
 
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (resVal.has_value()) {
+            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
+        }
+
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
                 iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
@@ -63,11 +68,16 @@ namespace qoala::assembly {
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
                 break;
-            case OP_STORE:
+            case OP_MEAS:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 1-imm instruction: operand 1 must be a register");
+                assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
+                assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                // Despite meas and load have the same operands, for "meas" the first operand must be the qubit
+                // to measure, and not the result yielded (which is second operand).
+                // To solve this issue, we simply reverse the order of "mcOperands"
+                mcOperands = {mcOperands[1], mcOperands[0]};
                 break;
+            case OP_STORE:
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 is not a register.");
@@ -99,11 +109,6 @@ namespace qoala::assembly {
         const auto instruction = new NetQASMMCInstr(op, opCode);
         for (iQoalaMCOperand *mcOperand : mcOperands) {
             instruction->addOperand(mcOperand);
-        }
-
-        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
         if (appendInstruction) {

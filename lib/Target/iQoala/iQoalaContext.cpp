@@ -11,6 +11,11 @@ namespace qoala::iqoala {
         return 0;
     }
 
+    void iQoalaContext::releaseQubit(uint8_t reg) {
+        // TODO - implement this
+    }
+
+
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type) {
         uint8_t lastAvailable = 0xFF;
         switch (type) {
