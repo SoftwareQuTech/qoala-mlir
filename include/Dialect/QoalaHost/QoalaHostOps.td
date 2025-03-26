@@ -77,13 +77,13 @@ def MainFuncOp: QoalaHost_Op<"main_func", [
 }
 
 /* According to the Qoala paper, iQoala QL blocks might only contain
- * calls to local/request routines. To ease the MLIR analysis, we add the
+ * calls to local routines. To ease the MLIR analysis, we add the
  * "Terminator" trait for the qoalahost.call operation. This effectively
  * only allows *one single* call instruction per block and must be the last
  * instruction of the block, since "call" will be a terminator operation.
  * This implies that no other call instructions are allowed in the same MLIR
  * block, since a block can only have one terminator.
- * In a mor pragmatic way, we will "isolate" call instructions inside its own
+ * In a more pragmatic way, we will "isolate" call instructions inside its own
  * block, so we can easily comply with the traits of the call operation.
  */
 def CallOp : QoalaHost_Op<"call",
