@@ -1,0 +1,40 @@
+// RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
+// CHECK: META START
+// CHECK-NEXT: name: test_call_local_routine
+// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: META END
+// CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+
+//CHECK: SUBROUTINE __qoala_wrapper0
+// CHECK-NEXT: params:
+// CHECK-NEXT: returns:
+// CHECK-NEXT: uses: [[QUBIT0:.*]]
+// Since "meas" is considered a "free", this subroutine does not keep the qubit 0
+// CHECK-NEXT: keeps: {{[[:space:]].*}}
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
+// CHECK-NEXT: init [[QUBIT_REG0]]
+// CHECK-NEXT: meas [[QUBIT_REG0]] M[[M_REG0:.*]]
+// CHECK-NEXT: NETQASM_END
+
+module {
+  qremote.remote @Bob
+  netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
+  netqasm.local_routine @__qoala_wrapper0() -> () {
+    %0 = netqasm.qalloc  : i32
+    netqasm.init %0
+    %1 = netqasm.measure %0 : i1
+    netqasm.return
+  }
+  qoalahost.main_func @test_call_local_routine() {
+    // Note: there is an implicit "^bb0" not-rendered block declaration here
+    // so this "call" operation is the one and only operation of the
+    // first block of the main function
+    qoalahost.call @__qoala_wrapper0() : () -> ()
+    ^bb1:
+        qoalahost.return
+  }
+}
