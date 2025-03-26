@@ -59,8 +59,6 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         assert(localRoutine && "NetQASM return: unknown local routine name!");
 
         // Add the name of the returned value to the local routine
-        // TODO - Differentiate if the returned value is a local registry or a qubit measure value.
-        // This impacts on the return name format to use
         localRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
 
         // Create an immediate with the number of the returned value
