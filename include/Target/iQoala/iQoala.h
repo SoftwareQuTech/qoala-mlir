@@ -5,6 +5,7 @@
 #include "llvm/ADT/StringRef.h"
 #include <utility>
 #include <vector>
+#include <set>
 #include <map>
 
 /**
@@ -56,7 +57,7 @@ namespace qoala::iqoala {
         explicit LocalQuantumRoutine(const mlir::StringRef newName) :
             QuantumRoutine(QRK_LOCAL, newName.str()) {}
             LocalQuantumRoutine(const LocalQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.usesQubits),
+            QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
             params(r.params), returns(r.returns), instructions(r.instructions) { }
         ~LocalQuantumRoutine() override {
             for (const auto instruction : this->instructions) {
@@ -70,6 +71,8 @@ namespace qoala::iqoala {
         void addArgument(const std::string &argName);
         void addReturnValue(const std::string &valName);
         void resolveInternalInstrRefs() const;
+        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
+        void releaseQubit(const mlir::Value &value);
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -78,15 +81,17 @@ namespace qoala::iqoala {
         }
     private:
         // The list of physical qubits this routine uses
-        std::vector<unsigned int> usesQubits;
+        std::set<unsigned int> usesQubits;
         // The list of physical qubits this routine keeps (and does not free automatically)
-        std::vector<unsigned int> keepsQubits;
+        std::set<unsigned int> keepsQubits;
         // The names of the registries where to find the params
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
         // The list of NetQASM MC instructions for this local quantum routine
         std::vector<assembly::NetQASMMCInstr *> instructions;
+        // Map to keep track of the *local* mlir value (within the local_routine) with its physical qubit num
+        mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
     };
 
     struct VirtualIDs {

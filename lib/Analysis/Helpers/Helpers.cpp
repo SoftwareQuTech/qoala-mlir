@@ -11,7 +11,7 @@ namespace qoala::helpers {
         this->addConversion([](Type type) { return type; });
     }
 
-    raw_ostream &helpers::operator<<(raw_ostream &os, const PrintInterface &printable) {
+    raw_ostream &operator<<(raw_ostream &os, const PrintInterface &printable) {
         printable.print(os);
         return os;
     }

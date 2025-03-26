@@ -13,6 +13,9 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+#include <set>
+#include <vector>
+
 namespace qoala::helpers {
     // This templated function is inspired by the implementation of llvm::isa<>()
     /**
@@ -244,6 +247,27 @@ namespace qoala::helpers {
      */
     template <typename PrintableTy>
     std::string formatVector(const std::vector<PrintableTy> &vector) {
+        std::stringstream result;
+        for (const PrintableTy &member : vector) {
+            result << member << ", ";
+        }
+        if (std::string partialResult = result.str(); partialResult.empty()) {
+            return partialResult;
+        } else {
+            return partialResult.substr(0, partialResult.length() - 2);
+        }
+    }
+
+    /**
+     * Helper function that returns a string containing the "string" representation of each member of
+     * the given set, separated by a comma. To this end, the parametric type of the vector members
+     * *must* implement the "<<" operator for the given type.
+     * @tparam PrintableTy
+     * @param vector An std::vector instance of `PrintableTy` type.
+     * @return A string with all the members printed, separated with commas.
+     */
+    template <typename PrintableTy>
+    std::string formatSet(const std::set<PrintableTy> &vector) {
         std::stringstream result;
         for (const PrintableTy &member : vector) {
             result << member << ", ";

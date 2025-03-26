@@ -75,21 +75,27 @@ namespace qoala::assembly {
             case OP_RUN_SUBROUTINE:
                 // TODO - assert the operands
                 type = CL;
+                break;
             case OP_RUN_REQUEST:
                 // TODO - assert the operands
                 type = CL;
+                break;
             case OP_RETURN_RESULT:
                 // TODO - assert the operands
                 type = CL;
+                break;
             case OP_SEND_MSG:
                 // TODO - assert the operands
                 type = CC;
+                break;
             case OP_RECV_MSG:
                 // TODO - assert the operands
                 type = CC;
+                break;
             case OP_BI_COND_MULTIPLY:
                 // TODO - assert the operands
                 type = CL;
+                break;
             default:
                 op->emitOpError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;

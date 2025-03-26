@@ -24,6 +24,26 @@ namespace qoala::iqoala {
         this->params.push_back(argName);
     }
 
+    void LocalQuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
+        const auto result = this->qubitMap.try_emplace(value, phyQubitNum);
+        (void) result;
+        assert(result.second && "Attempting to map a qubit value that has already been mapped");
+
+        this->usesQubits.emplace(phyQubitNum);
+        this->keepsQubits.emplace(phyQubitNum);
+    }
+
+    void LocalQuantumRoutine::releaseQubit(const Value &value) {
+        uint8_t phyQubitNum = 0xFF;
+        if (this->qubitMap.contains(value)) {
+            phyQubitNum = this->qubitMap.at(value);
+            this->qubitMap.erase(value);
+        }
+        if (this->keepsQubits.contains(phyQubitNum)) {
+            this->keepsQubits.erase(phyQubitNum);
+        }
+    }
+
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
     }
@@ -135,8 +155,8 @@ namespace qoala::iqoala {
         os << "SUBROUTINE " << this->name << "\n";
         os << "params: " << helpers::formatVector(this->params) << "\n";
         os << "returns: " << helpers::formatVector(this->returns) << "\n";
-        os << "uses: " << helpers::formatVector(this->usesQubits) << "\n";
-        os << "keeps: " << helpers::formatVector(this->keepsQubits) << "\n";
+        os << "uses: " << helpers::formatSet(this->usesQubits) << "\n";
+        os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
