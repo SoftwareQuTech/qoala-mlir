@@ -9,12 +9,14 @@
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns:
-// CHECK-NEXT: uses: [[QUBIT0:.*]]
-// Since "meas" is considered a "free", this subroutine does not keep the qubit 0
-// CHECK-NEXT: keeps: {{[[:space:]].*}}
-// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: params: {{[[:space:]]}}
+// Since we are matching the newline char in the last check, we need to start matching
+// on the same line!
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT0:.*]]
+// Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
+// CHECK-NEXT: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] M[[M_REG0:.*]]

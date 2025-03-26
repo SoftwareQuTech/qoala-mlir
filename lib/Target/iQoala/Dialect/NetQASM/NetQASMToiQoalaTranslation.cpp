@@ -172,6 +172,12 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             return success();
         })
         .Case([&](MeasureOp op) -> LogicalResult {
+            // Since measurements release the qubit, we need to register the qubit as not kept
+            const std::string localRoutineName = qoala::dialects::helpers::getParentNetQASMRoutineName(op.getOperation());
+            LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            assert(quantumRoutine && "NetQASM measure: unknown local routine!");
+
+            quantumRoutine->releaseQubit(op.getQ());
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS,
                 op.getResult(), M, {}
