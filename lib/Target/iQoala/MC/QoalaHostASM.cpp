@@ -31,11 +31,14 @@ namespace qoala::assembly {
             mcOperands.push_back(extraOperand);
         }
 
+        InstrType type = UNKNOWN;
+
         switch (opCode) {
             case OP_ASSIGN_CVAL:
                 assert(mcOperands.size() == 2 && "QoalaHost instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isLocalRegister() && "QoalaHost instruction builder: first operand must be a local register");
                 assert(mcOperands[1]->isImmediate() && "QoalaHost instruction builder: second operand must be an immediate");
+                type = CL;
                 break;
             case OP_ADD:
             case OP_SUBTRACT:
@@ -43,17 +46,20 @@ namespace qoala::assembly {
                 assert(mcOperands[0]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 0 must be a local register");
                 assert(mcOperands[1]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 1 must be a local register");
                 assert(mcOperands[2]->isLocalRegister() && "QoalaHost 3-reg instruction: operand 2 must be a local register");
+                type = CL;
                 break;
             case OP_MULTIPLY_CONSTANT:
                 assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 0 must be a local register");
                 assert(mcOperands[1]->isLocalRegister() && "QoalaHost 2-reg,1-imm instruction: operand 1 must be a local register");
                 assert(mcOperands[2]->isImmediate() && "QoalaHost 2-reg,1-imm instruction: operand 2 must be an immediate");
+                type = CL;
                 break;
             case OP_JUMP:
                 assert(mcOperands.size() == 1 && "QoalaHost instruction builder: expected 1 operand");
                 assert(mcOperands[0]->isExpression() && "QoalaHost jmp instruction: target operand must be an expression");
                 assert(mcOperands[0]->getExpression()->isSymbolRef() && "QoalaHost jmp instruction: target operand must be a block reference");
+                type = CL;
                 break;
             case OP_BEQ:
             case OP_BNE:
@@ -64,15 +70,34 @@ namespace qoala::assembly {
                 assert(mcOperands[1]->isLocalRegister() && "QoalaHost 2-reg,1-block-ref instruction: operand 1 must be a register");
                 assert(mcOperands[2]->isExpression() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be an expression");
                 assert(mcOperands[2]->getExpression()->isSymbolRef() && "QoalaHost 2-reg,1-block-ref instruction: operand 2 must be a block reference");
+                type = CL;
                 break;
-            case OP_RUN_ROUTINE:
-                // TODO - assert the operands.
+            case OP_RUN_SUBROUTINE:
+                // TODO - assert the operands
+                type = CL;
+            case OP_RUN_REQUEST:
+                // TODO - assert the operands
+                type = CL;
+            case OP_RETURN_RESULT:
+                // TODO - assert the operands
+                type = CL;
+            case OP_SEND_MSG:
+                // TODO - assert the operands
+                type = CC;
+            case OP_RECV_MSG:
+                // TODO - assert the operands
+                type = CC;
+            case OP_BI_COND_MULTIPLY:
+                // TODO - assert the operands
+                type = CL;
             default:
                 op->emitOpError("QoalaHost instruction builder: Don't know how to build operation of type: ") << opCode;
                 return nullptr;
         }
+        assert (type != UNKNOWN && "QoalaHost instruction builder: Unknown instruction type");
         // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
         const auto instruction = new QoalaHostMCInstr(op, opCode);
+        instruction->setInstructionType(type);
         for (iQoalaMCOperand *mcOperand : mcOperands) {
             instruction->addOperand(mcOperand);
         }
@@ -87,6 +112,10 @@ namespace qoala::assembly {
             block->appendInstruction(instruction);
         }
         return instruction;
+    }
+
+    void QoalaHostMCInstr::setInstructionType(const InstrType instrType) {
+        this->instructionType = instrType;
     }
 
     void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
@@ -200,22 +229,22 @@ namespace qoala::assembly {
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
-                printInstrGeneric("send_msg", os);
+                printInstrGeneric("send_cmsg", os);
                 break;
             case OP_RECV_MSG:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
-                printInstrGeneric("recv_msg", os, true);
+                printInstrGeneric("recv_cmsg", os, true);
                 break;
-            case OP_RUN_ROUTINE:
+            case OP_RUN_SUBROUTINE:
                 // For running routines, we assume the firs operand is the local register to assign , the result
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isExpression());
-                printInstrGeneric("run_routine", os, true, true);
+                printInstrGeneric("run_subroutine", os, true, true);
                 break;
             case OP_RUN_REQUEST:
                 // For running routines, we assume the firs operand is the local register to assign , the result

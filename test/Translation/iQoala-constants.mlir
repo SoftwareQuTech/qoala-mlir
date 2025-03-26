@@ -29,7 +29,10 @@ module {
   }
   qoalahost.main_func @test_lower_constants() {
     %cst = arith.constant 3 : i32
+    qoalahost.nop_term
+  ^bb0:
     qoalahost.call @__qoala_wrapper0() : () -> ()
+  ^bb1:
     qoalahost.return
   }
 }

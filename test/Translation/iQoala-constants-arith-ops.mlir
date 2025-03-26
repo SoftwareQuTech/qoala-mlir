@@ -55,7 +55,10 @@ module {
     %resA = arith.addi %cstA, %cstB : i32
     %resB = arith.subi %cstA, %cstB : i32
     %resC = arith.muli %cstA, %cstB : i32
+    qoalahost.nop_term
+  ^bb1:
     qoalahost.call @__qoala_wrapper0() : () -> ()
+  ^bb2:
     qoalahost.return
   }
 }

@@ -47,6 +47,8 @@ module {
     qmem.crot_x %0, %1, %cst_2
     %2 = qmem.measure %0 : i1
     %3 = qmem.measure %1 : i1
+
+    // CHECK: ^[[BLOCK_1:.*]]:
     // CHECK: qoalahost.return
     qmem.return
   }

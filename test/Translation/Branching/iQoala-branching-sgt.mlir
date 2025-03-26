@@ -21,6 +21,7 @@
 // CHECK: b2 { type = CL }
 // CHECK-NEXT: jump () : b3
 // CHECK: b3 { type = CL }
+// CHECK: b4 { type = CL }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -65,13 +66,14 @@ module {
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
     %jump = arith.cmpi sgt, %cstA, %cstB : i32
-    cf.cond_br %jump, ^bb0, ^bb1
-  ^bb0:
-    cf.br ^bb2
+    cf.cond_br %jump, ^bb1, ^bb2
   ^bb1:
-    cf.br ^bb2
+    cf.br ^bb3
   ^bb2:
+    cf.br ^bb3
+  ^bb3:
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
+  ^bb4:
     %1 = arith.addi %cstA, %cstB : i32
     qoalahost.return
   }

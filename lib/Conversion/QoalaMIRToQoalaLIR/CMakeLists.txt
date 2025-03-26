@@ -13,6 +13,7 @@ add_mlir_conversion_library(MLIRMIRToLIRPass
 
         LINK_LIBS
         QoalaConversionHelpers
+        MLIRQoalaHostAnalysis
         MLIRQMemAnalysisLibs
 
         DEPENDS

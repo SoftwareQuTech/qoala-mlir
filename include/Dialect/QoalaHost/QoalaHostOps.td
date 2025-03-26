@@ -76,9 +76,19 @@ def MainFuncOp: QoalaHost_Op<"main_func", [
     let hasRegionVerifier = 1;
 }
 
+/* According to the Qoala paper, iQoala QL blocks might only contain
+ * calls to local routines. To ease the MLIR analysis, we add the
+ * "Terminator" trait for the qoalahost.call operation. This effectively
+ * only allows *one single* call instruction per block and must be the last
+ * instruction of the block, since "call" will be a terminator operation.
+ * This implies that no other call instructions are allowed in the same MLIR
+ * block, since a block can only have one terminator.
+ * In a more pragmatic way, we will "isolate" call instructions inside its own
+ * block, so we can easily comply with the traits of the call operation.
+ */
 def CallOp : QoalaHost_Op<"call",
      [CallOpInterface, MemRefsNormalizable,
-      DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+      DeclareOpInterfaceMethods<SymbolUserOpInterface>, Terminator]> {
     let summary = "call operation";
     let description = [{
         The `func.call` operation represents a direct call to a function that is
@@ -187,7 +197,18 @@ def SendIntsOp : UsingRemote_Op<"send_ints"> {
     }];
 }
 
-def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
+/* According to the Qoala paper, iQoala CC blocks might only contain
+ * calls to "receive_message". To ease the MLIR analysis, we add the
+ * "Terminator" trait for the qoalahost.recv_ints and qoalahost-recv_floats
+ * operations. This effectively only allows *one single* recv instruction
+ * per block and must be the last instruction of the block, since "recv"
+ * will be a terminator operation. This implies that no other recv
+ * instructions are allowed in the same MLIR block, since a block can only
+ * have one terminator.
+ * In a mor pragmatic way, we will "isolate" recv instructions inside its own
+ * block, so we can easily comply with the traits of the recv operation.
+ */
+def RecvIntsOp : UsingRemote_Op<"recv_ints", [Terminator]> {
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -202,11 +223,38 @@ def SendFloatsOp : UsingRemote_Op<"send_floats"> {
     }];
 }
 
-def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
+def RecvFloatsOp : UsingRemote_Op<"recv_floats", [Terminator]> {
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
+    }];
+}
+
+def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
+    let summary = [{
+        "nop" operation with terminator trait. This operation is useful to
+        correctly group other operations in their respective blocks, e.g.
+        to form "CL" blocks that can only contain operations modelling
+        classical, local operations, involving only the CPS.
+        Without this nop "terminal" operation, we might need to add
+        another terminal operator (like return, branch or even qoalahost.call/recv)
+        to not violate the restriction that a block MUST have a terminal
+        operation.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def NopOp : QoalaHost_Op<"nop", [HasParent<"MainFuncOp">]> {
+    let summary = [{
+        QoalaHost "nop" operation. The difference with the NopTOp is that
+        this operation does not carry the "Terminator" trait, so it can be
+        placed in the middle of a block.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
     }];
 }
 

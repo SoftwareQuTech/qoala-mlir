@@ -1,11 +1,12 @@
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h"
 
-#include <mlir/Dialect/Arith/IR/Arith.h>
-#include <mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h>
+#include "Analysis/QoalaHost/Helpers.h"
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
 #include "llvm/Support/Debug.h"
 
-#define DEBUG_TYPE "mir-to-lir-pattens"
+#define DEBUG_TYPE "mir-to-lir-patterns"
 
 using namespace mlir;
 using namespace qoala::dialects;
@@ -34,6 +35,38 @@ namespace qoala::conversion::mir {
                 adaptor.getArgAttrsAttr(),
                 adaptor.getResAttrsAttr());
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
+        // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
+
+        // RecvInts and RecvFloats will stay isolated in a block
+        analysis::isolate::isolateOpsInNewBlocks<
+            qoalahost::MainFuncOp, qmem::RecvIntsOp, qmem::RecvFloatsOp
+        >(newFunc, rewriter);
+
+
+        // Call ops are a bit different.
+        // * If calling a request routine -> They stay in an isolated block
+        // * If calling a local routine -> They can be grouped with other calls to local routines
+        //   as long as the other call are also to local routines and are consecutive.
+        // To keep the implementation simple, we will assume that we have no more than one call to
+        // a local routine. If we have 2 or more consecutive calls, then we can easily merge them all
+        // into a single one. This optimization might require an extra pass before invoking this method.
+
+        // We will only isolate the "func.call" operations that have the
+        // "functionized" attribute, since they were created by the functionization
+        // algorithm, hence, the call op will be mapped to "qoalahost.call" operation, calling
+        // either a "netqasm.local_routine" or a "netqasm.request_routine" operations.
+        auto opCheck = [](Operation *operation) -> bool {
+            if (Attribute attr = operation->getAttr("functionized")) {
+                if (const auto boolAttr = dyn_cast<BoolAttr>(attr); boolAttr.getValue()) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        analysis::isolate::isolateOpsInNewBlocks<
+            qoalahost::MainFuncOp, func::CallOp
+        >(newFunc, rewriter, opCheck);
+        LLVM_DEBUG(llvm::dbgs() << "***** AFTER *****\n" << newFunc << "\n***************\n");
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
 
@@ -49,11 +82,20 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues>
     CallOpLowering::createNewOpAndValues(func::CallOp op, func::CallOp::Adaptor adaptor,
                                          ConversionPatternRewriter &rewriter) const {
+        assert(op->getAttr("functionized") && "Call function does not have the 'functionized' attribute.");
         auto newCall = rewriter.create<qoalahost::CallOp>(
                 op.getLoc(),
                 adaptor.getCallee(),
                 op->getResultTypes(),
                 op.getOperands());
+        // At this point, the block containing the new qoalahost.call op contains 2 terminators, since
+        // We inserted a new one when isolating the original func.call op.
+        // We need to remove the extra qoalahost.nop_term terminator operation
+        if (const auto opNextToCall = analysis::isolate::getNextOperation(op.getOperation())) {
+            assert(isa<qoalahost::NopTOp>(opNextToCall) && "Operation next to the call is not a NopTOp");
+            rewriter.eraseOp(opNextToCall);
+        }
+
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
     }
 
@@ -66,6 +108,13 @@ namespace qoala::conversion::mir {
                 convertedType,
                 adaptor.getRemoteAttr(),
                 adaptor.getLengthAttr());
+        // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
+        // We inserted a new one when isolating the original qmem.recv_ints op.
+        // We need to remove the extra qoalahost.nop_term terminator operation
+        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
+            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
+            rewriter.eraseOp(opNextToRecv);
+        }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
@@ -78,6 +127,13 @@ namespace qoala::conversion::mir {
                 convertedType,
                 adaptor.getRemoteAttr(),
                 adaptor.getLengthAttr());
+        // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
+        // We inserted a new one when isolating the original qmem.recv_floats op.
+        // We need to remove the extra qoalahost.nop_term terminator operation
+        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
+            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
+            rewriter.eraseOp(opNextToRecv);
+        }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
@@ -141,7 +197,6 @@ namespace qoala::conversion::mir {
             rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
             // TODO - Analyze the copied body and determine statistics, such as used and maintained qubits
             return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
-
         }
         auto newFunc = rewriter.create<netqasm::LocalRoutineOp>(
                 op.getLoc(),

@@ -59,11 +59,19 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             .Case([](SendIntsOp op) -> LogicalResult {
                 return success();
             })
-            .Case([](SendFloatsOp op) -> LogicalResult {
-                return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
-            })
             .Case([](RecvIntsOp op) -> LogicalResult {
                 return success();
+            })
+            .Case([](NopTOp op) -> LogicalResult {
+                // There is nothing to do here
+                return success();
+            })
+            .Case([](NopOp op) -> LogicalResult {
+                // There is nothing to do here
+                return success();
+            })
+            .Case([](SendFloatsOp op) -> LogicalResult {
+                return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](RecvFloatsOp op) -> LogicalResult {
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
