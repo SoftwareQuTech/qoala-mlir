@@ -1,6 +1,6 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
-// CHECK-NEXT: name: test_local_routine_ret_one_val
+// CHECK-NEXT: name: test_local_routine_rotations
 // CHECK-NEXT: parameters: Bob
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -35,7 +35,7 @@ module {
     %1 = netqasm.measure %0 : i1
     netqasm.return %1 : i1
   }
-  qoalahost.main_func @test_local_routine_ret_one_val() {
+  qoalahost.main_func @test_local_routine_rotations() {
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i1
   ^bb1:
     qoalahost.return
