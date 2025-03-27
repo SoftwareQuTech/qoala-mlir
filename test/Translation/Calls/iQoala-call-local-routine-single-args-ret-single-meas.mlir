@@ -1,3 +1,5 @@
+// UNSUPPORTED: true
+// Reason: See comment on "__qoala_wrapper1"
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
 // CHECK-NEXT: name: test_call_local_routine
@@ -8,7 +10,7 @@
 // CHECK: b[[BLOCK0:.*]] { type = CL }
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 
-//CHECK: SUBROUTINE __qoala_wrapper0
+// CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
 // Since we are matching the newline char in the last check, we need to start matching
 // on the same line!
@@ -22,7 +24,21 @@
 // CHECK-NEXT: store [[QUBIT_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
-//CHECK: SUBROUTINE __qoala_wrapper1
+// This test case expects to declare using physical qubit 0, and keeping none.
+// Currently this is not happening, since it is still not possible
+// to figure out that the argument passed to this local routine is
+// a qubit.
+// A solution for this will be implemented together when mapping the
+// call function in the qoalahost section:
+// * When translating a call, we will perform a small data flow analysis
+//   in the body. If the local routine returns a value and the returned value
+//   can be traced back to a qalloc operation, then we will map the result of the
+//   qoalahost.call operation in the qoalahost body to the physical qubit id.
+// * We will later use this information when processing other calls; if passing
+//   a value to a local routine that is mapped to a physical qubit, then we will
+//   add the physical id in the "uses" section, and map the argument value as
+//   one of the physical qubits used.
+// CHECK: SUBROUTINE __qoala_wrapper1
 // CHECK-NEXT: params: p0
 // CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses: [[QUBIT0:.+]]

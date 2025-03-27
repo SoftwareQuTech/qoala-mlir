@@ -65,7 +65,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(i);
 
         // Add the store instruction to the routine
-        auto *storeInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+        const auto *storeInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_STORE,
             std::nullopt, std::nullopt, {retValOperand, immediateVal},
             /*useOpOperands=*/false);
@@ -117,7 +117,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 );
             quantumRoutine->registerQubit(op.getResult(), numQubit);
             return instruction ? success() : failure();
-        }).Case([&](QFreeOp op) -> LogicalResult {
+        })
+        .Case([&](QFreeOp op) -> LogicalResult {
             // For the free operations, we simply register the qubit as not kept
             const std::string localRoutineName = qoala::dialects::helpers::getParentNetQASMRoutineName(op.getOperation());
             LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
