@@ -158,17 +158,30 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](RotateZOp op) -> LogicalResult {
             return createRotationInstr(op, moduleTranslation, NetQASMMCInstr::OP_ROT_Z) ? success() : failure();
         })
-        .Case([](HadamardOp op) -> LogicalResult {
-            return success();
+        .Case([&](HadamardOp op) -> LogicalResult {
+            const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_H,
+                std::nullopt, std::nullopt, {}
+                );
+            return instruction ? success() : failure();
         })
-        .Case([](CnotOp op) -> LogicalResult {
-            return success();
+        .Case([&](CnotOp op) -> LogicalResult {
+            const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CNOT,
+                std::nullopt, std::nullopt, {}
+                );
+            return instruction ? success() : failure();
         })
-        .Case([](CzOp op) -> LogicalResult {
-            return success();
+        .Case([&](CzOp op) -> LogicalResult {
+            const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CPHASE,
+                std::nullopt, std::nullopt, {}
+                );
+            return instruction ? success() : failure();
         })
-        .Case([](CrotXOp op) -> LogicalResult {
-            return success();
+        .Case([&](CrotXOp op) -> LogicalResult {
+            operation->emitError("NetQASM crot_x: Operation not supported.");
+            return failure();
         })
         .Case([&](MeasureOp op) -> LogicalResult {
             // Since measurements release the qubit, we need to register the qubit as not kept
@@ -190,7 +203,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             return success();
         })
         .Default([](Operation *op) -> LogicalResult {
-            return op->emitOpError("Unknown way to translate a NetQASM operation to iQoala: '") << *op << "'\n";
+            return op->emitOpError("Unknown way to translate a NetQASM operation to iQoala'");
         });
 }
 

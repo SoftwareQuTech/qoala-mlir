@@ -63,6 +63,8 @@ namespace qoala::assembly {
                 assert(mcOperands[1]->isRegister() && "NetQASM 3-reg instruction: operand 1 must be a register");
                 assert(mcOperands[2]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
                 break;
+            case OP_CPHASE:
+            case OP_CNOT:
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
@@ -89,6 +91,7 @@ namespace qoala::assembly {
                 assert(mcOperands[0]->isRegister() && "NetQASM 3-reg instruction: operand 0 must be a register");
                 assert(mcOperands[1]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
                 break;
+            case OP_H:
             case OP_INIT:
                 assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg instruction: operand 0 must be a register");
