@@ -11,6 +11,8 @@
 #include "Dialect/QNet/Passes.h"
 #include "llvm/Support/Debug.h"
 
+#include <type_traits>
+
 #define DEBUG_TYPE "netqasm-translation"
 
 using namespace mlir;
@@ -28,7 +30,9 @@ static const std::string returnNameFormat = "m{}";
 static const std::string returnNameFormat = "m%d";
 #endif
 
-static LogicalResult convertLocalRoutineOp(LocalRoutineOp &op, ModuleTranslation *moduleTranslation) {
+template<typename RoutineOp>
+static LogicalResult convertLocalRoutineOp(RoutineOp &op, ModuleTranslation *moduleTranslation) {
+    static_assert(std::is_same_v<RoutineOp, LocalRoutineOp> || std::is_same_v<RoutineOp, RequestRoutineOp>);
     for (Operation &operation : op.getBody().getOps()) {
         if (failed(moduleTranslation->convertOperation(operation))) {
             return operation.emitOpError("cannot convert the operation '") << operation << "'\n";
@@ -142,9 +146,9 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             }
             return convertLocalRoutineOp(op, moduleTranslation);
         })
-        .Case([](RequestRoutineOp op) -> LogicalResult {
+        .Case([&](RequestRoutineOp op) -> LogicalResult {
             LLVM_DEBUG(llvm::dbgs() << "Saw a request routine with name '" << op.getName() << "'\n");
-            return success();
+            return convertLocalRoutineOp(op, moduleTranslation);
         })
         .Case([&](ReturnOp op) -> LogicalResult {
             return processReturnOp(moduleTranslation, op);
