@@ -188,7 +188,25 @@ namespace qoala::translate {
             }
         }
         for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
-            // TODO - Implement how to handle the conversion of request routines
+            // We simply create the routine. Since request routines do not accept arguments,
+            // we don't need to process them
+            for (auto argument : localRoutine.getArguments()) {
+                if(!argument.getUses().empty()) {
+                    // Request routines do not support using the arguments
+                    // We check that, if there are arguments, at least they are not used
+#if __cplusplus >= 202002L
+                    const std::string errorFmt = "argument #{} from request routine '{}' is used. This is not supported";
+#else
+                    const std::string errorFmt = "argument #%d from request routine '%s' is used. This is not supported";
+#endif
+                    const std::string errorMessage = helpers::formatString(
+                        errorFmt, argument.getArgNumber(), localRoutine.getName().data());
+                    localRoutine.emitOpError(errorMessage);
+                    return failure();
+                }
+            }
+            auto *routine = RequestQuantumRoutine::createRequestRoutine(localRoutine.getName());
+            iQoalaModule->addRoutine(routine);
         }
         return success();
     }
