@@ -107,14 +107,14 @@ namespace qoala::iqoala {
         return os;
     }
 
-
     raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs) {
         switch (virtualIDs.type) {
+            // TODO - How does this work? how can we print this virtual ID allocation scheme?
             case VirtualIDs::VirtualIDType::ALL:
-                os << "all " << virtualIDs.args[0];
+                os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::INCREMENT:
-                os << "increment " << virtualIDs.args[0];
+                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::max_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
                 os << "custom " << helpers::formatVector(virtualIDs.args);
@@ -168,7 +168,7 @@ namespace qoala::iqoala {
     void RequestQuantumRoutine::print(raw_ostream &os) const {
         os << "REQUEST " << this->name << "\n";
         os << "callback_type: " << this->requestCallback << "\n";
-        os << "callback: " << this->callback->getName() << "\n";
+        os << "callback: " << (this->callback ? this->callback->getName() : "") << "\n";
         os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
@@ -176,13 +176,7 @@ namespace qoala::iqoala {
         os << "virt_ids: " << this->virtualIDs << "\n";
         os << "timeout: " << 1000 << "\n"; // This field is not described in the paper
         os << "fidelity: " << this->fidelity << "\n";
-        os << "typ: " << this->type << "\n";
+        os << "type: " << this->type << "\n";
         os << "role: " << this->requestRole << "\n";
-
-        os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
-            os << tabStr << *instruction << "\n";
-        }
-        os << "NETQASM_END\n";
     }
 }

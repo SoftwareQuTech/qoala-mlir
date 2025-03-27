@@ -103,7 +103,7 @@ namespace qoala::iqoala {
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
-        std::vector<unsigned int> args = {};
+        std::vector<unsigned int> args;
     };
 
     /* A class representing a single request quantum routine */
