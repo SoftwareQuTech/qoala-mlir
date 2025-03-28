@@ -161,6 +161,19 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             return convertLocalRoutineOp(op, moduleTranslation);
         })
         .Case([&](ReturnOp op) -> LogicalResult {
+            if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
+                // We don't need to check the validity of the return operation
+                // we will simply assume that it was validated in the lowering conversion passes
+                // Being this said we will test the first return type. If it is i1, then we
+                // are returning the measurement of a qubit, hence the type of the request operation
+                // must be changed to "create_measure"
+                if (operation->getOperandTypes()[0].isInteger(1)) {
+                    const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+                    RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
+                    reqRoutine->changeReqTypeToMeasure();
+                }
+                return success();
+            }
             return processReturnOp(moduleTranslation, op);
         })
         .Case([&](RotateXOp op) -> LogicalResult {
@@ -198,6 +211,10 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             return failure();
         })
         .Case([&](MeasureOp op) -> LogicalResult {
+            if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
+                // Nothing to do here: we simply measure the qubit whose result will be returned later
+                return success();
+            }
             // Since measurements release the qubit, we need to register the qubit as not kept
             const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
             LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
@@ -222,6 +239,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             return success();
         })
         .Case([](EprsMeasureOp op) -> LogicalResult {
+            // Nothing to do here: we simply measure the qubit whose result will be returned later
             return success();
         })
         .Default([](Operation *op) -> LogicalResult {

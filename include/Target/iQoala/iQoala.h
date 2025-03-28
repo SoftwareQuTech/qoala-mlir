@@ -129,9 +129,12 @@ namespace qoala::iqoala {
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
-        // TODO - Add methods similar to LocalQuantumRoutine to report entangled pairs, etc...
         void addEntangledPair();
+        [[nodiscard]]
+        unsigned int getNumPairs() const;
         void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
+        void changeReqTypeToMeasure();
+        void changeReqTypeToRSP();
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check

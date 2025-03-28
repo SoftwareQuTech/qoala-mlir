@@ -99,9 +99,21 @@ namespace qoala::iqoala {
         this->numPairs++;
     }
 
+    unsigned int RequestQuantumRoutine::getNumPairs() const {
+        return numPairs;
+    }
+
     void RequestQuantumRoutine::reportRemote(const std::string &remoteID, const uint8_t eprSocketID) {
         this->remoteID = remoteID;
         this->eprSocketID = eprSocketID;
+    }
+
+    void RequestQuantumRoutine::changeReqTypeToMeasure() {
+        this->type = MEASURE_DIRECTLY;
+    }
+
+    void RequestQuantumRoutine::changeReqTypeToRSP() {
+        this->type = RSP;
     }
 
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
