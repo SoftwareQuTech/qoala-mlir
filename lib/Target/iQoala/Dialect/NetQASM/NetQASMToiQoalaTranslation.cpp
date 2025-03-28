@@ -210,7 +210,12 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 );
             return instruction ? success() : failure();
         })
-        .Case([](EprsOp op) -> LogicalResult {
+        .Case([&](EprsOp op) -> LogicalResult {
+            const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+            RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
+            // The registration of the remote (remoteID and eprsSocketID)
+            // TODO - Search for the Remote name and its eprsSocketID in the module
+            reqRoutine->reportRemote("", 0);
             return success();
         })
         .Case([](EprsMeasureOp op) -> LogicalResult {
