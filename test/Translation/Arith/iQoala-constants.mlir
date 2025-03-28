@@ -1,7 +1,7 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
 // CHECK-NEXT: name: test_lower_constants
-// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
