@@ -6,7 +6,9 @@
 namespace qoala::dialects::helpers {
     bool operationIsInsideMainFunc(mlir::Operation *op);
     bool operationIsInsideLocalRoutineFunc(mlir::Operation *op);
-    std::string getParentNetQASMRoutineName(mlir::Operation *op);
+    bool operationIsInsideRequestRoutineFunc(mlir::Operation *op);
+    std::string getParentLocalRoutineName(mlir::Operation *op);
+    std::string getParentRequestRoutineName(mlir::Operation *op);
 }
 
 #endif //DIALECT_HELPERS_H

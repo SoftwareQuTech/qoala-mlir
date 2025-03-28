@@ -95,6 +95,15 @@ namespace qoala::iqoala {
         }
     }
 
+    void RequestQuantumRoutine::addEntangledPair() {
+        this->numPairs++;
+    }
+
+    void RequestQuantumRoutine::reportRemote(const std::string &remoteID, const uint8_t eprSocketID) {
+        this->remoteID = remoteID;
+        this->eprSocketID = eprSocketID;
+    }
+
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
@@ -170,7 +179,7 @@ namespace qoala::iqoala {
         os << "callback_type: " << this->requestCallback << "\n";
         os << "callback: " << (this->callback ? this->callback->getName() : "") << "\n";
         os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
-        os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
+        os << "remote_id: " << "{" << helpers::formatVector(this->remoteID) << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
         os << "num_pairs: " << this->numPairs << "\n";
         os << "virt_ids: " << this->virtualIDs << "\n";

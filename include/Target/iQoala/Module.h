@@ -22,6 +22,8 @@ namespace qoala::iqoala {
         [[nodiscard]]
         LocalQuantumRoutine *getLocalRoutineByName(mlir::StringRef name) const;
         [[nodiscard]]
+        RequestQuantumRoutine *getRequestRoutineByName(mlir::StringRef name) const;
+        [[nodiscard]]
         std::vector<LocalQuantumRoutine *> getLocalRoutines() const;
 
     private:

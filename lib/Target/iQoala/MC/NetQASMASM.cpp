@@ -115,7 +115,7 @@ namespace qoala::assembly {
         }
 
         if (appendInstruction) {
-            const std::string localRoutineName = dialects::helpers::getParentNetQASMRoutineName(op);
+            const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
             const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
             localRoutine->addInstruction(instruction);
         }

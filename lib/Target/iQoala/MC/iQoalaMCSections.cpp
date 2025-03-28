@@ -52,6 +52,10 @@ namespace qoala::iqoala {
         this->routines.push_back(routine);
     }
 
+    std::vector<RequestQuantumRoutine *> RequestSection::getRoutines() const {
+        return this->routines;
+    }
+
     void MetaSection::addRemote(const std::string &remoteName) {
         this->globalParams.push_back(remoteName);
         // TODO - We assume that all declared remotes are connected using

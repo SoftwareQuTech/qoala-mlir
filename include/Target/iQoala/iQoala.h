@@ -129,6 +129,10 @@ namespace qoala::iqoala {
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
+        // TODO - Add methods similar to LocalQuantumRoutine to report entangled pairs, etc...
+        void addEntangledPair();
+        void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
+
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
         static bool classof(const QuantumRoutine *rt) {
@@ -141,7 +145,7 @@ namespace qoala::iqoala {
         RequestCallback requestCallback;
         // The local quantum routine to invoke as callback
         LocalQuantumRoutine *callback;
-        // The name of the remote
+        // The name of the remote to entangle with
         std::string remoteID;
         // The id of the EPR socket to use
         unsigned int eprSocketID = 0;
@@ -154,6 +158,7 @@ namespace qoala::iqoala {
         // The request type
         RequestType type;
         // The Request role for this client
+        // TODO - Figure out how we can tell when the request role is "receive"
         RequestRole requestRole;
         // The set of NetQASM instructions for this request routine
         // This list SHOULD be unused! (i.e. always empty)
@@ -263,9 +268,11 @@ namespace qoala::iqoala {
                 delete routine;
             }
         }
+        void addRoutine(RequestQuantumRoutine *routine);
+        [[nodiscard]]
+        std::vector<RequestQuantumRoutine *> getRoutines() const;
 
         void print(mlir::raw_ostream &os) const override;
-        void addRoutine(RequestQuantumRoutine *routine);
     private:
         // The request section simply contains a list of RequestQuantumRoutines
         std::vector<RequestQuantumRoutine *> routines;

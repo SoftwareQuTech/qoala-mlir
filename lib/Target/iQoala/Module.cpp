@@ -51,6 +51,15 @@ namespace qoala::iqoala {
         return nullptr;
     }
 
+    RequestQuantumRoutine *iQoalaModule::getRequestRoutineByName(const StringRef name) const {
+        for (auto *localRoutine : this->iQoalaProgram.requestSection.getRoutines()) {
+            if (localRoutine->getName() == name) {
+                return localRoutine;
+            }
+        }
+        return nullptr;
+    }
+
     std::vector<LocalQuantumRoutine *> iQoalaModule::getLocalRoutines() const {
         return this->iQoalaProgram.netQASMSection.getRoutines();
     }
