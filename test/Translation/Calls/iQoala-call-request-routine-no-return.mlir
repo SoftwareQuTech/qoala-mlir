@@ -1,29 +1,9 @@
-// RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
-// CHECK-NEXT: name: test_call_request_routine
-// CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
-// CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = CL }
-// CHECK: b[[BLOCK1:.*]] { type = CL }
-
-//CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars:
-// CHECK-NEXT: remote_id: {Bob_id}
-// CHECK-NEXT: epr_socket_id: 0
-// CHECK-NEXT: num_pairs: 1
-// CHECK-NEXT: virt_ids: all 0
-// CHECK-NEXT: timeout: 1000
-// CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
-// CHECK-NEXT: role: create
+// RUN: qoala-translate %s --mlir-to-iqoala --verify-diagnostics
 
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
+  // expected-error@+1 {{request routine '__qoala_wrapper0' must return a value}}
   netqasm.request_routine @__qoala_wrapper0() -> () {
     %0 = netqasm.qalloc  : i32
     netqasm.eprs %0  {remote = @Bob}

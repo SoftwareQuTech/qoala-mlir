@@ -187,10 +187,39 @@ namespace qoala::translate {
                 iQoalaModule->addRoutine(routine);
             }
         }
-        for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+        for (auto requestRoutine : getModuleBody(mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+            // We make sure that the request routine returns something, either an i32 (an entangled qubit)
+            // or an i1 (a measurement of an entangled qubit)
+            FunctionType reqRoutineType = requestRoutine.getFunctionType();
+            const auto results = reqRoutineType.getResults();
+
+            if (results.empty()) {
+#if __cplusplus >= 202002L
+                const std::string errorFmt = "request routine '{}' must return a value";
+#else
+                const std::string errorFmt = "request routine '%s' must return a value";
+#endif
+                const std::string errorMessage = helpers::formatString(errorFmt, requestRoutine.getName().data());
+                requestRoutine.emitOpError(errorMessage);
+                return failure();
+            }
+
+            for (auto result : results) {
+                if (!(result.isInteger(1) || result.isInteger(32))) {
+#if __cplusplus >= 202002L
+                    const std::string errorFmt = "request routine '{}' returns an invalid type";
+#else
+                    const std::string errorFmt = "request routine '%s' returns an invalid type";
+#endif
+                    const std::string errorMessage = helpers::formatString(errorFmt, requestRoutine.getName().data());
+                    requestRoutine.emitOpError(errorMessage);
+                    return failure();
+                }
+            }
+
             // We simply create the routine. Since request routines do not accept arguments,
             // we don't need to process them
-            for (auto argument : localRoutine.getArguments()) {
+            for (auto argument : requestRoutine.getArguments()) {
                 if(!argument.getUses().empty()) {
                     // Request routines do not support using the arguments
                     // We check that, if there are arguments, at least they are not used
@@ -200,12 +229,12 @@ namespace qoala::translate {
                     const std::string errorFmt = "argument #%d from request routine '%s' is used. This is not supported";
 #endif
                     const std::string errorMessage = helpers::formatString(
-                        errorFmt, argument.getArgNumber(), localRoutine.getName().data());
-                    localRoutine.emitOpError(errorMessage);
+                        errorFmt, argument.getArgNumber(), requestRoutine.getName().data());
+                    requestRoutine.emitOpError(errorMessage);
                     return failure();
                 }
             }
-            auto *routine = RequestQuantumRoutine::createRequestRoutine(localRoutine.getName());
+            auto *routine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
             iQoalaModule->addRoutine(routine);
         }
         return success();
