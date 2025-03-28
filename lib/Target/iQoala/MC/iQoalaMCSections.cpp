@@ -5,8 +5,10 @@ using namespace mlir;
 
 #if __cplusplus >= 202002L
 static std::string blockNameFmt = "b{}";
+static std::string remoteIDFmt = "{}_id";
 #else
 static std::string blockNameFmt = "b%d";
+static std::string remoteIDFmt = "%s_id";
 #endif
 
 namespace qoala::iqoala {
@@ -56,12 +58,20 @@ namespace qoala::iqoala {
         return this->routines;
     }
 
+    void MetaSection::addParameter(const std::string &name) {
+        this->globalParams.push_back(name);
+    }
+
     void MetaSection::addRemote(const std::string &remoteName) {
-        this->globalParams.push_back(remoteName);
-        // TODO - We assume that all declared remotes are connected using
-        //  both classical and epr sockets
-        this->classicalSocketsMap.insert(std::pair{remoteName, 0});
-        this->eprsSocketsMap.insert(std::pair{remoteName, 0});
+        this->addParameter(helpers::formatString(remoteIDFmt, remoteName));
+    }
+
+    void MetaSection::addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID) {
+        this->classicalSocketsMap.emplace(remoteName, socketID);
+
+    }
+    void MetaSection::addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID) {
+        this->eprsSocketsMap.emplace(remoteName, socketID);
     }
 
     void MetaSection::setName(const std::string &programName) {

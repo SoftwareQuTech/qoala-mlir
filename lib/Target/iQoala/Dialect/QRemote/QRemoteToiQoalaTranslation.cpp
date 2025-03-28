@@ -12,12 +12,12 @@ using namespace mlir;
 using namespace qoala::translate;
 using namespace qoala::dialects::qremote;
 
-static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, ModuleTranslation *moduleTranslation) {
+static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, const ModuleTranslation *moduleTranslation) {
     moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr());
     return success();
 }
 
-static LogicalResult translateQRemoteOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
+static LogicalResult translateQRemoteOperation(Operation *operation, const ModuleTranslation *moduleTranslation) {
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](RemoteOp op)-> LogicalResult {
                 return translateRemoteDeclaration(op, moduleTranslation);

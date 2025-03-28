@@ -20,9 +20,19 @@ namespace qoala::iqoala {
            << this->iQoalaProgram.requestSection << "\n";
     }
 
-    void iQoalaModule::addRemoteDeclaration(const StringRef remoteName) {
+    void iQoalaModule::addRemoteDeclaration(const StringRef remoteName,
+        const bool classicalSocket, const bool eprsSocket) {
         const std::string temp = remoteName.str();
         this->iQoalaProgram.metaSection.addRemote(temp);
+        // We will create the classical and EPRS socket for the remote if needed
+        if (classicalSocket) {
+            const uint8_t classicalSocketID = this->iQoalaCtx->allocateClassicalSocketForRemote(temp);
+            this->iQoalaProgram.metaSection.addClassicalSocketForRemote(temp, classicalSocketID);
+        }
+        if (eprsSocket) {
+            const uint8_t eprsSocketID = this->iQoalaCtx->allocateEPRSSocketForRemote(temp);
+            this->iQoalaProgram.metaSection.addEPRSSocketForRemote(temp, eprsSocketID);
+        }
     }
 
     void iQoalaModule::setModuleName(const StringRef newModuleName) {

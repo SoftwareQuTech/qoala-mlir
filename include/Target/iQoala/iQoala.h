@@ -205,7 +205,10 @@ namespace qoala::iqoala {
         ~MetaSection() override = default;
 
         void print(mlir::raw_ostream &os) const override;
+        void addParameter(const std::string &name);
         void addRemote(const std::string &remoteName);
+        void addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID);
+        void addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID);
         void setName(const std::string &programName);
     private:
         // Name of the iQoala program

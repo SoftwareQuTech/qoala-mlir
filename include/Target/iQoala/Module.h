@@ -15,7 +15,7 @@ namespace qoala::iqoala {
         iQoalaContext *getiQoalaContext() const ;
 
         // TODO - This list of methods might grow in the future, e.g. addBlock and some others.
-        void addRemoteDeclaration(mlir::StringRef remoteName);
+        void addRemoteDeclaration(mlir::StringRef remoteName, bool classicalSocket = true, bool eprsSocket = true);
         void setModuleName(mlir::StringRef newModuleName);
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();

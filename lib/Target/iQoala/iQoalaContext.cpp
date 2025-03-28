@@ -62,4 +62,28 @@ namespace qoala::iqoala {
         }
         return lastAvailable;
     }
+
+    uint8_t iQoalaContext::allocateClassicalSocketForRemote(const std::string &remoteID) {
+        // If there is already a classical socket for this remote, simply return it:
+        if (this->classicalSocketIDs.contains(remoteID)) {
+            return this->classicalSocketIDs.at(remoteID);
+        }
+        const unsigned int newSocketID = this->classicalSocketIDs.size();
+        const auto result = this->classicalSocketIDs.try_emplace(remoteID, newSocketID);
+        (void) result;
+        assert(result.second && "Attempting to map a remote name that is already mapped");
+        return newSocketID;
+    }
+
+    uint8_t iQoalaContext::allocateEPRSSocketForRemote(const std::string &remoteID) {
+        // If there is already a classical socket for this remote, simply return it:
+        if (this->eprsSocketIDs.contains(remoteID)) {
+            return this->eprsSocketIDs.at(remoteID);
+        }
+        const unsigned int newSocketID = this->eprsSocketIDs.size();
+        const auto result = this->eprsSocketIDs.try_emplace(remoteID, newSocketID);
+        (void) result;
+        assert(result.second && "Attempting to map a remote name that is already mapped");
+        return newSocketID;
+    }
 };
