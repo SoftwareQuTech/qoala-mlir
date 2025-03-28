@@ -20,7 +20,7 @@ namespace qoala::iqoala {
            << this->iQoalaProgram.requestSection << "\n";
     }
 
-    void iQoalaModule::addRemoteDeclaration(const StringRef remoteName,
+    void iQoalaModule::addRemoteDeclaration(const StringRef &remoteName,
         const bool classicalSocket, const bool eprsSocket) {
         const std::string temp = remoteName.str();
         this->iQoalaProgram.metaSection.addRemote(temp);
@@ -73,6 +73,19 @@ namespace qoala::iqoala {
     std::vector<LocalQuantumRoutine *> iQoalaModule::getLocalRoutines() const {
         return this->iQoalaProgram.netQASMSection.getRoutines();
     }
+
+    uint8_t iQoalaModule::getClassicalSocketIDForRemote(const StringRef &remoteName) const {
+        return this->iQoalaProgram.metaSection.getClassicalSocketForRemote(remoteName.str());
+    }
+
+    uint8_t iQoalaModule::getEPRSSocketIDForRemote(const StringRef &remoteName) const {
+        return this->iQoalaProgram.metaSection.getEPRSSocketForRemote(remoteName.str());
+    }
+
+    std::string iQoalaModule::getParamNameForRemote(const std::string &remoteName) const {
+        return this->iQoalaProgram.metaSection.getParamNameForRemote(remoteName);
+    }
+
 
     Block *iQoalaModule::addHostBlock() {
         return this->iQoalaProgram.hostSection.createNewBlock();

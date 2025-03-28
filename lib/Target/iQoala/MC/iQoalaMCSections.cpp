@@ -63,7 +63,9 @@ namespace qoala::iqoala {
     }
 
     void MetaSection::addRemote(const std::string &remoteName) {
-        this->addParameter(helpers::formatString(remoteIDFmt, remoteName));
+        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName);
+        this->addParameter(remoteParamName);
+        this->remoteParamNames.emplace(remoteName, remoteParamName);
     }
 
     void MetaSection::addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID) {
@@ -73,6 +75,19 @@ namespace qoala::iqoala {
     void MetaSection::addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID) {
         this->eprsSocketsMap.emplace(remoteName, socketID);
     }
+
+    uint8_t MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
+        return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+    }
+
+    uint8_t MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
+        return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+    }
+
+    std::string MetaSection::getParamNameForRemote(const std::string &remoteName) const {
+        return this->remoteParamNames.at(remoteName);
+    }
+
 
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;

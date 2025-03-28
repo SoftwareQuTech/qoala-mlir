@@ -214,8 +214,11 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
             RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
             // The registration of the remote (remoteID and eprsSocketID)
-            // TODO - Search for the Remote name and its eprsSocketID in the module
-            reqRoutine->reportRemote("", 0);
+            // Search for the Remote name and its eprsSocketID in the module
+            const StringRef remoteName = op.getRemoteAttr().getValue();
+            const uint8_t eprsSocketID = moduleTranslation->getQoalaModule()->getEPRSSocketIDForRemote(remoteName);
+            const std::string remoteParamName = moduleTranslation->getQoalaModule()->getParamNameForRemote(remoteName.str());
+            reqRoutine->reportRemote(remoteParamName, eprsSocketID);
             return success();
         })
         .Case([](EprsMeasureOp op) -> LogicalResult {

@@ -209,6 +209,12 @@ namespace qoala::iqoala {
         void addRemote(const std::string &remoteName);
         void addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID);
         void addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID);
+        [[nodiscard]]
+        uint8_t getClassicalSocketForRemote(const std::string &remoteName) const;
+        [[nodiscard]]
+        uint8_t getEPRSSocketForRemote(const std::string &remoteName) const;
+        [[nodiscard]]
+        std::string getParamNameForRemote(const std::string &remoteName) const;
         void setName(const std::string &programName);
     private:
         // Name of the iQoala program
@@ -219,6 +225,8 @@ namespace qoala::iqoala {
         // Maps for classical ane epr sockets Remote_name (str) -> socket_id (int)
         std::map<std::string, unsigned int> classicalSocketsMap;
         std::map<std::string, unsigned int> eprsSocketsMap;
+        // Map between remote names and its globalParam name
+        std::map<std::string, std::string> remoteParamNames;
     };
 
     class HostSection : public assembly::iQoalaMC {
