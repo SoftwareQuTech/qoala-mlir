@@ -95,6 +95,14 @@ namespace qoala::iqoala {
         }
     }
 
+    void VirtualIDs::addArg(uint32_t arg) {
+        this->args.push_back(arg);
+    }
+
+    void VirtualIDs::setType(const VirtualIDType type) {
+        this->type = type;
+    }
+
     void RequestQuantumRoutine::addEntangledPair() {
         this->numPairs++;
     }
@@ -119,6 +127,11 @@ namespace qoala::iqoala {
     void RequestQuantumRoutine::changeReqTypeToRSP() {
         this->type = RSP;
     }
+
+    void RequestQuantumRoutine::addVirtualIDArg(const uint32_t virtualID) {
+        this->virtualIDs.addArg(virtualID);
+    }
+
 
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {

@@ -94,12 +94,16 @@ namespace qoala::iqoala {
         mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
     };
 
-    struct VirtualIDs {
+    class VirtualIDs {
+    public:
         enum VirtualIDType { ALL, INCREMENT, CUSTOM };
         VirtualIDs() : type(ALL) { }
         VirtualIDs(const VirtualIDs &vids) = default;
         explicit VirtualIDs(const VirtualIDType type) : type(type) { }
         ~VirtualIDs() = default;
+
+        void addArg(uint32_t arg);
+        void setType(VirtualIDType type);
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
@@ -136,6 +140,7 @@ namespace qoala::iqoala {
         void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
         void changeReqTypeToMeasure();
         void changeReqTypeToRSP();
+        void addVirtualIDArg(uint32_t virtualID);
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
