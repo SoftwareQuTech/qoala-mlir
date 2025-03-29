@@ -1,5 +1,6 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Operation.h"
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
@@ -49,12 +50,34 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {
-                // std::string callee = op.getCallee().str();
-                // for (auto kk : op.getArgOperands()) {
-                //     // TODO - Create an expression for the arguments
-                // }
-                // qoala::iqoala::Block *iQoalaBlock = moduleTranslation.getMappediQoalaBlock(op->getBlock());
-                return success();
+                // Prepare vectors with the results and their local register types
+                std::vector<Value> yieldedResults;
+                std::vector<iQoalaRegType> localRegTypes;
+                for (Value result : op.getResults()) {
+                    yieldedResults.push_back(result);
+                    localRegTypes.push_back(LOCAL);
+                }
+
+                // Set the correct opcode depending on the type of the callee
+                QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
+                if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(op.getCallee())) {
+                    opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
+                }
+                if (moduleTranslation->getQoalaModule()->hasRequestRoutineWithName(op.getCallee())) {
+                    opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
+                }
+
+                if (opCode == QoalaHostMCInstr::OP_UNKNOWN) {
+                    op.emitOpError("Call op: Calling an operation of un unknown type");
+                    return failure();
+                }
+
+                // Create qoalahost MC instruction
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                    moduleTranslation, op.getOperation(), opCode,
+                    yieldedResults, localRegTypes
+                );
+                return instruction ? success() : failure();
             })
             .Case([](ReturnOp op) -> LogicalResult {
                 return success();

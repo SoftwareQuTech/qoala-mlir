@@ -244,7 +244,7 @@ namespace qoala::assembly {
                 printInstrGeneric("recv_cmsg", os, true);
                 break;
             case OP_RUN_SUBROUTINE:
-                // For running routines, we assume the firs operand is the local register to assign , the result
+                // For running routines, we assume the firs operand is the local register to assign, the result
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);
@@ -253,7 +253,7 @@ namespace qoala::assembly {
                 printInstrGeneric("run_subroutine", os, true, true);
                 break;
             case OP_RUN_REQUEST:
-                // For running routines, we assume the firs operand is the local register to assign , the result
+                // For running routines, we assume the firs operand is the local register to assign, the result
                 // The second is the name of the routine, and all the rest of the operands are the args.
                 // We make this assumption, so we avoid dealing with "variadic args"
                 assert(this->operands.size() >= 2);

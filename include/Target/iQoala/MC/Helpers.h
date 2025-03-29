@@ -17,7 +17,7 @@ namespace qoala::iqoala::helpers {
                         typename InstrType::OpCode opCode,
                         const std::vector<mlir::Value> &results,
                         const std::vector<assembly::iQoalaRegType> &resultRegTypes,
-                        mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands,
+                        mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands = {},
                         const bool useOpOperands = true, const bool appendInstruction = true){
         std::vector<assembly::iQoalaRegReference *>resRegRefs;
         for (const assembly::iQoalaRegType resultRegType : resultRegTypes) {

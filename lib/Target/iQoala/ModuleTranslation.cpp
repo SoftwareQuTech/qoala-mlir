@@ -33,8 +33,8 @@ namespace qoala::translate {
         return module->getRegion(0).front();
     }
 
-    ModuleOp *ModuleTranslation::getMLIRModule() const { return mlirModule; }
-    iQoalaModule *ModuleTranslation::getQoalaModule() const { return iQoalaModule.get(); }
+    ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
+    iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
     ModuleTranslation::ModuleTranslation (ModuleOp *module,
                                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)

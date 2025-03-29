@@ -144,8 +144,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](QInitOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_INIT,
-                {}, {}, {}
-                );
+                {}, {});
             return instruction ? success() : failure();
         })
         .Case([&](LocalRoutineOp op) -> LogicalResult {
@@ -192,21 +191,21 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](HadamardOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_H,
-                {}, {}, {}
+                {}, {}
                 );
             return instruction ? success() : failure();
         })
         .Case([&](CnotOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CNOT,
-                {}, {}, {}
+                {}, {}
                 );
             return instruction ? success() : failure();
         })
         .Case([&](CzOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CPHASE,
-                {}, {}, {}
+                {}, {}
                 );
             return instruction ? success() : failure();
         })
@@ -227,7 +226,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             quantumRoutine->releaseQubit(op.getQ());
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS,
-                {op.getResult()}, {M}, {}
+                {op.getResult()}, {M}
                 );
             return instruction ? success() : failure();
         })
