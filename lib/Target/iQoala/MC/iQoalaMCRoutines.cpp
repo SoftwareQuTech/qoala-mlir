@@ -99,6 +99,10 @@ namespace qoala::iqoala {
         this->numPairs++;
     }
 
+    void RequestQuantumRoutine::addReturnValue(const std::string &valName) {
+        this->returns.push_back(valName);
+    }
+
     unsigned int RequestQuantumRoutine::getNumPairs() const {
         return numPairs;
     }
@@ -130,7 +134,6 @@ namespace qoala::iqoala {
 
     raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs) {
         switch (virtualIDs.type) {
-            // TODO - How does this work? how can we print this virtual ID allocation scheme?
             case VirtualIDs::VirtualIDType::ALL:
                 os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;

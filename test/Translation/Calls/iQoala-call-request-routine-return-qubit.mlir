@@ -11,7 +11,7 @@
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential
 // CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars:
+// CHECK-NEXT: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1

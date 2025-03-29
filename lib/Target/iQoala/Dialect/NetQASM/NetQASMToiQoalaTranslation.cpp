@@ -167,10 +167,14 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 // Being this said we will test the first return type. If it is i1, then we
                 // are returning the measurement of a qubit, hence the type of the request operation
                 // must be changed to "create_measure"
+                const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+                RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
                 if (operation->getOperandTypes()[0].isInteger(1)) {
-                    const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
-                    RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
                     reqRoutine->changeReqTypeToMeasure();
+                }
+                for (uint32_t i = 0; i < op.getNumOperands(); i++) {
+                    // We also need to report the returned variable name
+                    reqRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
                 }
                 return success();
             }

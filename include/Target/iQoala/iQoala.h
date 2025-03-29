@@ -130,6 +130,7 @@ namespace qoala::iqoala {
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
         void addEntangledPair();
+        void addReturnValue(const std::string &valName);
         [[nodiscard]]
         unsigned int getNumPairs() const;
         void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
