@@ -71,7 +71,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         // Add the store instruction to the routine
         const auto *storeInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_STORE,
-            std::nullopt, std::nullopt, {retValOperand, immediateVal},
+            {}, {}, {retValOperand, immediateVal},
             /*useOpOperands=*/false);
 
         if (!storeInstr) {
@@ -94,7 +94,7 @@ static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslatio
 
     return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
         moduleTranslation, op.getOperation(), opCode,
-        std::nullopt, std::nullopt, {qubitOperand, nOperand, expOperand},
+        {}, {}, {qubitOperand, nOperand, expOperand},
         /*useOpOperands=*/false
     );
 }
@@ -127,7 +127,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
 
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-                op.getResult(), Q, processedOperands
+                {op.getResult()}, {Q}, processedOperands
                 );
             quantumRoutine->registerQubit(op.getResult(), numQubit);
             return instruction ? success() : failure();
@@ -144,7 +144,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](QInitOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_INIT,
-                std::nullopt, std::nullopt, {}
+                {}, {}, {}
                 );
             return instruction ? success() : failure();
         })
@@ -192,21 +192,21 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](HadamardOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_H,
-                std::nullopt, std::nullopt, {}
+                {}, {}, {}
                 );
             return instruction ? success() : failure();
         })
         .Case([&](CnotOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CNOT,
-                std::nullopt, std::nullopt, {}
+                {}, {}, {}
                 );
             return instruction ? success() : failure();
         })
         .Case([&](CzOp op) -> LogicalResult {
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CPHASE,
-                std::nullopt, std::nullopt, {}
+                {}, {}, {}
                 );
             return instruction ? success() : failure();
         })
@@ -227,7 +227,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             quantumRoutine->releaseQubit(op.getQ());
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS,
-                op.getResult(), M, {}
+                {op.getResult()}, {M}, {}
                 );
             return instruction ? success() : failure();
         })

@@ -9,20 +9,20 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const std::vector<Value> &resVals, std::vector<iQoalaRegReference *> &resRegRefs,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
         const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
 
-        if (resRegRef.has_value()) {
-            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+        for (iQoalaRegReference *resRegRef : resRegRefs) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
 
             mcOperands.push_back(resultRegOperand);
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
+        for (uint32_t i = 0; i < resVals.size(); ++i) {
+            moduleTranslation->mapValue(resVals[i], mcOperands[i]->getRegRef());
         }
 
         if (useOpOperands) {

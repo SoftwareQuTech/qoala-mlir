@@ -139,7 +139,7 @@ namespace qoala::translate {
         // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-            std::nullopt, C, immediateOperands,
+            {}, {C}, immediateOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!assignInstr) {
             return failure();
@@ -157,7 +157,7 @@ namespace qoala::translate {
         // Pass that extra operand to create the respective load instruction
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
-            mlirArgValue, R, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
+            {mlirArgValue}, {R}, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!loadInstr) {
             return failure();

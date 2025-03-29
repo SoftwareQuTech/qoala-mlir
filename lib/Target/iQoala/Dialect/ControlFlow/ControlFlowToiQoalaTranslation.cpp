@@ -64,7 +64,7 @@ static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslatio
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-        std::nullopt, std::nullopt, {targetBlockOperand},
+        {}, {}, {targetBlockOperand},
         /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
@@ -123,7 +123,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op.getOperation(), opcode,
-            std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
+            {}, {}, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
@@ -131,7 +131,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-            std::nullopt, std::nullopt, {falseTargetBlockOperand},
+            {}, {}, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();
@@ -153,7 +153,7 @@ static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation,
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-        std::nullopt, std::nullopt, {destOperand},
+        {}, {}, {destOperand},
         /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
@@ -222,7 +222,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), opcode,
-            std::nullopt, std::nullopt, cmpOperands,
+            {}, {}, cmpOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
@@ -230,7 +230,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-            std::nullopt, std::nullopt, {falseTargetBlockOperand},
+            {}, {}, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();
