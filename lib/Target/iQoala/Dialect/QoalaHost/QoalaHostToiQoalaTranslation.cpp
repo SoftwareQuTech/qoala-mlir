@@ -60,10 +60,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
-                if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(op.getCallee())) {
+                const StringRef callee = op.getCallee();
+                if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (moduleTranslation->getQoalaModule()->hasRequestRoutineWithName(op.getCallee())) {
+                if (moduleTranslation->getQoalaModule()->hasRequestRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 
@@ -72,10 +73,15 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     return failure();
                 }
 
+                // We will set the callee as an "extra" operand, which will be the last of the
+                // operands of the MC instruction
+                iQoalaMCExpr *calleeSymExpr = iQoalaMCExpr::createSymbolRef(callee.str());
+                iQoalaMCOperand *calleeOperand = iQoalaMCOperand::createExprOperand(calleeSymExpr);
+
                 // Create qoalahost MC instruction
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                     moduleTranslation, op.getOperation(), opCode,
-                    yieldedResults, localRegTypes
+                    yieldedResults, localRegTypes , {calleeOperand}
                 );
                 return instruction ? success() : failure();
             })

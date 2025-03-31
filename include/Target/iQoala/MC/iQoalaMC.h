@@ -156,9 +156,11 @@ namespace qoala::assembly {
     class iQoalaMCInstruction : public iQoalaMC {
     public:
         /* The first declaration of all op codes is assumed to mean "unknown" */
-        explicit iQoalaMCInstruction(mlir::Operation *op) : originalOp(op), opCode(0) { }
-        iQoalaMCInstruction(mlir::Operation *op, const uint32_t opCode) : originalOp(op), opCode(opCode), operands({}) { }
-        iQoalaMCInstruction(const iQoalaMCInstruction &inst) : originalOp(inst.originalOp), opCode(inst.opCode), operands(inst.operands) { }
+        explicit iQoalaMCInstruction(mlir::Operation *op) : originalOp(op), opCode(0), numResults(0) { }
+        iQoalaMCInstruction(mlir::Operation *op, const uint32_t opCode, uint32_t numResults) :
+            originalOp(op), opCode(opCode), operands({}), numResults(numResults) { }
+        iQoalaMCInstruction(const iQoalaMCInstruction &inst) : originalOp(inst.originalOp), opCode(inst.opCode),
+            operands(inst.operands), numResults(inst.numResults) { }
         ~iQoalaMCInstruction() override {
             for (const auto operand : this->operands) {
                 delete operand;
@@ -183,6 +185,9 @@ namespace qoala::assembly {
         mlir::Operation *originalOp;
         unsigned int opCode;
         std::vector<iQoalaMCOperand *> operands;
+        // The number of results that this instruction yields. It will be
+        // placed as the first operands.
+        uint32_t numResults;
     };
 
     class NetQASMMCInstr : public iQoalaMCInstruction {
@@ -313,6 +318,7 @@ namespace qoala::assembly {
         void printInstrGeneric(const std::string &mnemonic, mlir::raw_ostream &os,
                                bool firstIsSSAReg = false,
                                bool lastIsImmediate = false) const;
+        void printCallInstr(const std::string &mnemonic, mlir::raw_ostream &os) const;
 
     private:
         InstrType instructionType;

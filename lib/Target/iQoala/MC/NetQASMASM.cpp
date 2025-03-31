@@ -109,7 +109,7 @@ namespace qoala::assembly {
                 return nullptr;
         }
         // Generic way to create a generic NetQASMInstruction with the given opCode and operands
-        const auto instruction = new NetQASMMCInstr(op, opCode);
+        const auto instruction = new NetQASMMCInstr(op, opCode, /*numResults=*/1);
         for (iQoalaMCOperand *mcOperand : mcOperands) {
             instruction->addOperand(mcOperand);
         }
