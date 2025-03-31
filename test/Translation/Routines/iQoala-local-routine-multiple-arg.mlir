@@ -6,9 +6,11 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
-// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 5
-// CHECK-NEXT: %[[HOST_REG2:.*]] = assign_cval () : 2
+// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
+// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 5
+// CHECK-NEXT: %[[HOST_REG2:.*]] = assign_cval() : 2
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK-NEXT: run_subroutine(%[[HOST_REG0]], %[[HOST_REG1]], %[[HOST_REG2]]) : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: p0, p1, p2
