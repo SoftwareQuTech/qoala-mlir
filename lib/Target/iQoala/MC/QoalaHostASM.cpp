@@ -171,7 +171,12 @@ namespace qoala::assembly {
             os << *this->operands[1] << " = ";
             i++;
         } else {
-            // TODO - The cal returns multiple results, print a tuple of results.
+            // The call returns multiple results, print a tuple of results.
+            os << "tuple<";
+            for (; i <= this->numResults; i++) {
+                os << *this->operands[i]<< (i < this->numResults ? "; " : "");
+            }
+            os << "> = ";
         }
 
         os << mnemonic << "(";
