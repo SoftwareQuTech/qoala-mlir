@@ -177,8 +177,13 @@ namespace qoala::assembly {
         os << mnemonic << "(";
         last = this->operands.size();
 
-        for (; i < last; i++) {
-            os << *this->operands[i] << (i + 1 < last ? ", " : "");
+        // Arguments for the run_request/run_subroutine are tuples, so we use them like that
+        if (i < last) {
+            os << "tuple<";
+            for (; i < last; i++) {
+                os << *this->operands[i] << (i + 1 < last ? "; " : "");
+            }
+            os << ">";
         }
         os << ")";
 

@@ -21,7 +21,7 @@
 // CHECK: b2 { type = CL }
 // CHECK-NEXT: jump() : b3
 // CHECK: b3 { type = CL }
-// CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine(%[[HOST_REG0]]) : __qoala_wrapper0
+// CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
 // CHECK: b4 { type = CL }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG1]])
 

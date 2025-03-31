@@ -11,7 +11,7 @@
 // CHECK: b1 { type = CL }
 // TODO - We don't check the run_subroutine generation, since it returns
 //  multiple values, which is not supported yet.
-// %[[HOST_REG2:.*]] = run_subroutine(%[[HOST_REG0]], %[[HOST_REG1]]) : __qoala_wrapper0
+// %[[HOST_REG2:.*]] = run_subroutine(tuple<%[[HOST_REG0]]; %[[HOST_REG1]]>) : __qoala_wrapper0
 // CHECK: b2 { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0
