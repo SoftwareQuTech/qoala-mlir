@@ -6,10 +6,16 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::vector<Value> &resVals, std::vector<iQoalaRegReference *> &resRegRefs,
+        const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
         const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaRegReference *>resRegRefs;
+
+        for (const iQoalaRegType resultRegType : resultRegTypes) {
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType);
+            resRegRefs.push_back(iQoalaRegReference::createRegReference(resultRegType, regNumber));
+        }
 
         for (iQoalaRegReference *resRegRef : resRegRefs) {
             iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);

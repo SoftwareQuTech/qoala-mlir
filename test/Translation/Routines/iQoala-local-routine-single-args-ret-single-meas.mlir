@@ -1,4 +1,3 @@
-// UNSUPPORTED: true
 // Reason: See comment on "__qoala_wrapper1"
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
@@ -10,7 +9,7 @@
 // CHECK: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine(%[[HOST_REG0]]) : __qoala_wrapper0
+// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
 // CHECK: b[[BLOCK2:.*]] { type = CL }
 
 // CHECK: SUBROUTINE __qoala_wrapper0

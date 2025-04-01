@@ -19,15 +19,9 @@ namespace qoala::iqoala::helpers {
                         const std::vector<assembly::iQoalaRegType> &resultRegTypes,
                         mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands = {},
                         const bool useOpOperands = true, const bool appendInstruction = true){
-        std::vector<assembly::iQoalaRegReference *>resRegRefs;
-        for (const assembly::iQoalaRegType resultRegType : resultRegTypes) {
-            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType);
-            resRegRefs.push_back(assembly::iQoalaRegReference::createRegReference(resultRegType, regNumber));
-        }
-
         return InstrType::build(
             moduleTranslation, mlirOperation,
-            results, resRegRefs,
+            results, resultRegTypes,
             opCode, extraOperands,
             useOpOperands, appendInstruction);
     }

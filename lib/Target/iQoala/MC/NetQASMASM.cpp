@@ -9,10 +9,19 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::vector<Value> &resVals, std::vector<iQoalaRegReference *> &resRegRefs,
+        const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction) {
+        const bool appendInstruction
+        ) {
         SmallVector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaRegReference *>resRegRefs;
+        const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
+        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+
+        for (const iQoalaRegType resultRegType : resultRegTypes) {
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType, localRoutine);
+            resRegRefs.push_back(iQoalaRegReference::createRegReference(resultRegType, regNumber));
+        }
 
         for (iQoalaRegReference *resRegRef : resRegRefs) {
             iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
@@ -115,8 +124,6 @@ namespace qoala::assembly {
         }
 
         if (appendInstruction) {
-            const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
-            const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
             localRoutine->addInstruction(instruction);
         }
         return instruction;

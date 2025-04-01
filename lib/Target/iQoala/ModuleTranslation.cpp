@@ -132,14 +132,11 @@ namespace qoala::translate {
         Value &mlirArgValue, const uint8_t paramNum) {
         // Immediate with the number of the argument
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
-        // Assign that immediate value to a registry
-        SmallVector<iQoalaMCOperand *> immediateOperands;
-        immediateOperands.push_back(immediateVal);
         // Despite this instruction yields a value, we don't need to map it to any
         // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-            {}, {C}, immediateOperands,
+            {}, {C}, {immediateVal},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!assignInstr) {
             return failure();

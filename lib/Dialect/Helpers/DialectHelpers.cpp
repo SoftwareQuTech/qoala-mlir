@@ -19,12 +19,20 @@ namespace qoala::dialects::helpers {
     }
 
     std::string getParentLocalRoutineName(mlir::Operation *op) {
+        // If the operation is a LocalRoutineOp, there is no need to look for a parent
+        if (auto localRoutineOp = dyn_cast<netqasm::LocalRoutineOp>(op)) {
+            return localRoutineOp.getSymName().str();
+        }
         auto parent = op->getParentOfType<netqasm::LocalRoutineOp>();
         assert(parent != nullptr);
         return parent.getSymName().str();
     }
 
     std::string getParentRequestRoutineName(mlir::Operation *op) {
+        // If the operation is a RequestRoutineOp, there is no need to look for a parent
+        if (auto localRoutineOp = dyn_cast<netqasm::RequestRoutineOp>(op)) {
+            return localRoutineOp.getSymName().str();
+        }
         auto parent = op->getParentOfType<netqasm::RequestRoutineOp>();
         assert(parent != nullptr);
         return parent.getSymName().str();
