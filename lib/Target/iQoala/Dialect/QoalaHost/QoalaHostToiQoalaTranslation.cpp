@@ -14,9 +14,10 @@
 using namespace mlir;
 using namespace qoala::translate;
 using namespace qoala::assembly;
+using namespace qoala::iqoala;
 using namespace qoala::dialects::qoalahost;
 
-static LogicalResult translateBlock(Block &block, ModuleTranslation *moduleTranslation) {
+static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
     for (Operation &op : block.getOperations()) {
         if (failed(moduleTranslation->convertOperation(op))) {
             return op.emitOpError("cannot convert operation '") << op << "'\n";
@@ -28,12 +29,12 @@ static LogicalResult translateBlock(Block &block, ModuleTranslation *moduleTrans
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation *moduleTranslation) {
     moduleTranslation->setModuleName(mainFuncOP.getName());
     // First, we put placeholder (empty) blocks for each one of the basic blocks of the
-    for (Block &block : mainFuncOP.getBlocks()) {
+    for (mlir::Block &block : mainFuncOP.getBlocks()) {
         moduleTranslation->emplaceNewBlockInHostSection(&block);
     }
 
     // Then, we translate the block and the operations within it
-    for (Block &block : mainFuncOP.getBlocks()) {
+    for (mlir::Block &block : mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")
                     << mainFuncOP.getSymName() << "'\n";
@@ -62,9 +63,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
                 if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(callee)) {
+                    LocalQuantumRoutine *routine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(callee);
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
                 if (moduleTranslation->getQoalaModule()->hasRequestRoutineWithName(callee)) {
+                    RequestQuantumRoutine *routine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(callee);
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 
@@ -85,7 +88,21 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 );
                 return instruction ? success() : failure();
             })
-            .Case([](ReturnOp op) -> LogicalResult {
+            .Case([&](ReturnOp op) -> LogicalResult {
+                for (const auto returnedValue :op.getOperands()) {
+                    iQoalaRegReference *retValRef = moduleTranslation->getMappedRegReference(returnedValue);
+                    assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
+                    iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
+                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RETURN_RESULT,
+                        {}, {} , {retValueOperand},
+                        /*useOpOperands=*/false
+                    );
+                    if (!instruction) {
+                        op.emitOpError("Return op: could not create return_value instruction");
+                        return failure();
+                    }
+                }
                 return success();
             })
             .Case([](SendIntsOp op) -> LogicalResult {
@@ -102,10 +119,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // There is nothing to do here
                 return success();
             })
-            .Case([](SendFloatsOp op) -> LogicalResult {
+            .Case([](const SendFloatsOp op) -> LogicalResult {
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
-            .Case([](RecvFloatsOp op) -> LogicalResult {
+            .Case([](const RecvFloatsOp op) -> LogicalResult {
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
             .Default([](Operation *op) -> LogicalResult {
