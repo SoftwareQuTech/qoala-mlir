@@ -1,3 +1,6 @@
+#include <vector>
+#include <unordered_set>
+
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -13,56 +16,41 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTADDBLOCKDEPENDENCIES
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostAddBlockDependenciesPass : public impl::QoalaHostAddBlockDependenciesBase<QoalaHostAddBlockDependenciesPass> {
-        using QoalaHostAddBlockDependenciesBase::QoalaHostAddBlockDependenciesBase;
-        void runOnOperation() override;
-    };
-
+class QoalaHostAddBlockDependenciesPass
+    : public impl::QoalaHostAddBlockDependenciesBase<
+          QoalaHostAddBlockDependenciesPass> {
+    using QoalaHostAddBlockDependenciesBase::QoalaHostAddBlockDependenciesBase;
+    void runOnOperation() override;
+};
 
     void QoalaHostAddBlockDependenciesPass::runOnOperation() {
-        // LLVM_DEBUG(llvm::dbgs() << "Hello world!\n");
-        // TODO: try this https://mlir.llvm.org/docs/Tutorials/UnderstandingTheIRStructure/ :check:
-        // TODO: try to do this with a walker :check:
-        // Operation *operation = getOperation();
-
-        // ModuleOp module = llvm::dyn_cast<ModuleOp>(operation);
-        // for (Region &reg : operation->getRegions()) {
-        //     for (Block &blk : reg.getBlocks()) {
-        //         for (Operation &func : blk.getOperations()) {
-        //             if(auto mainFunc = dyn_cast<MainFuncOp>(&func)) {
-        //                 LLVM_DEBUG(llvm::dbgs() << mainFunc.getSymName() << "\n");
-        //             }
-        //         }
-        //     }
-        // }
-        // operation->walk([&](MainFuncOp mainFunc) {
-        //     LLVM_DEBUG(llvm::dbgs() << mainFunc.getSymName() << "\n");
-        // });
-        // operation->walk([&](Block *block) {
-        //     LLVM_DEBUG(llvm::dbgs() << "Block: " << block << "\n");
-    
-        //     for (auto *pred : block->getPredecessors()) {
-        //         LLVM_DEBUG(llvm::dbgs() << "  Predecessor: " << pred << "\n");
-        //     }
-        // });
-        LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostAddBlockDependenciesPass: Building Dependency Graph ===\n");
+        LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostAddBlockDependenciesPass: "
+                                "Building Block Dependency Graph ===\n");
 
         Operation *operation = getOperation();
 
-        // The dependency graph: from consumer -> list of producers
-        llvm::DenseMap<Operation *, llvm::SmallVector<Operation *, 4>> dependencyGraph;
+        // Block-level dependency graph: block -> set of blocks it depends on.
+        // We use a set to avoid duplicated dependencies between blocks.
+        llvm::DenseMap<Block *, std::unordered_set<Block *>> blockDeps;
 
-        // All operations we encounter (nodes)
-        llvm::SmallVector<Operation *, 32> allOps;
-
-        // Walk all ops and collect data dependencies
+        // Walk all operations and build the block dependency graph
         operation->walk([&](Operation *op) {
-            allOps.push_back(op);
+            Block *consumerBlock = op->getBlock();
 
             for (Value operand : op->getOperands()) {
                 if (Operation *producer = operand.getDefiningOp()) {
-                    dependencyGraph[op].push_back(producer);
-                    LLVM_DEBUG(llvm::dbgs() << "Dependency: " << *op << " ← " << *producer << "\n");
+                    Block *producerBlock = producer->getBlock();
+
+                    if (producerBlock != consumerBlock) {
+                        // Insert only if not already present (avoid duplicate prints)
+                        if (blockDeps[consumerBlock].insert(producerBlock).second) {
+                            LLVM_DEBUG(llvm::dbgs() << "Block \n"); 
+                            consumerBlock->print(llvm::dbgs());
+                            LLVM_DEBUG(llvm::dbgs() << "depends on block:\n");
+                            producerBlock->print(llvm::dbgs());
+                            LLVM_DEBUG(llvm::dbgs() << "\n");
+                        }
+                    }
                 }
             }
         });
