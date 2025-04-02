@@ -3,6 +3,7 @@
 
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
@@ -10,7 +11,7 @@
 #define DEBUG_TYPE "qoalahost-add-deps-pass"
 
 using namespace mlir;
-using namespace qoala::dialects::qoalahost;
+using namespace qoala::dialects;
 
 namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTADDBLOCKDEPENDENCIES
@@ -38,21 +39,22 @@ class QoalaHostAddBlockDependenciesPass
         int idCounter = 0;
 
         // Assign a unique ID to each block inside qoalahost.main_func
-        operation->walk([&](MainFuncOp mainFunc) {
+        operation->walk([&](qoalahost::MainFuncOp mainFunc) {
             for (Block &block : mainFunc.getBody().getBlocks()) {
                 std::string id = "block_" + std::to_string(idCounter++);
                 blockIdMap[&block] = id;
             }
 
-            // Track communication operations order
+            // Track classical communication operations order
+            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication dependencies ===\n");
             std::vector<Operation *> commOps;
             mainFunc.walk([&](Operation *op) {
-                if (isa<SendIntsOp, RecvIntsOp, SendFloatsOp, RecvFloatsOp>(op)) {
+                if (isa<qoalahost::SendIntsOp, qoalahost::RecvIntsOp, qoalahost::SendFloatsOp, qoalahost::RecvFloatsOp>(op)) {
                     commOps.push_back(op);
                 }
             });
 
-            // Add artificial dependencies based on order of communication ops
+            // Add dependencies based on order of classical communication ops
             for (size_t i = 1; i < commOps.size(); ++i) {
                 Block *prevBlock = commOps[i - 1]->getBlock();
                 Block *currBlock = commOps[i]->getBlock();
@@ -62,7 +64,40 @@ class QoalaHostAddBlockDependenciesPass
                     if (blockDeps[currBlock].insert(prevBlock).second) {
                         LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n"); 
                         currBlock->print(llvm::dbgs());
-                        LLVM_DEBUG(llvm::dbgs() << "depends on " << blockIdMap[prevBlock] << ":\n");
+                        LLVM_DEBUG(llvm::dbgs() << "classical comm depends on " << blockIdMap[prevBlock] << ":\n");
+                        prevBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs() << "\n");
+                    }
+                }
+            }
+
+            // Track call to request routine operations order
+            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines dependencies ===\n");
+            std::vector<Operation *> requestCallOps;
+            mainFunc.walk([&](Operation *op) {
+                if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
+                    auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
+                    if (!symRef)
+                        return;
+                    
+                    Operation *callee = SymbolTable::lookupNearestSymbolFrom(operation, symRef);
+                    if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
+                        requestCallOps.push_back(op);
+                    }
+                }
+            });
+
+            // Add dependencies based on order of calls to request routines
+            for (size_t i = 1; i < requestCallOps.size(); ++i) {
+                Block *prevBlock = requestCallOps[i - 1]->getBlock();
+                Block *currBlock = requestCallOps[i]->getBlock();
+
+                if (prevBlock != currBlock) {
+                    // Insert dependency: currBlock depends on prevBlock
+                    if (blockDeps[currBlock].insert(prevBlock).second) {
+                        LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n"); 
+                        currBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs() << "quantum comm depends on " << blockIdMap[prevBlock] << ":\n");
                         prevBlock->print(llvm::dbgs());
                         LLVM_DEBUG(llvm::dbgs() << "\n");
                     }
@@ -70,6 +105,7 @@ class QoalaHostAddBlockDependenciesPass
             }
 
             // Walk all operations in the main_func to build dependency graph
+            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking data dependencies ===\n");
             mainFunc.walk([&](Operation *op) {
                 Block *consumerBlock = op->getBlock();
 
@@ -114,7 +150,7 @@ class QoalaHostAddBlockDependenciesPass
             
                 auto predListAttr = builder.getArrayAttr(predIdAttrs);
             
-                builder.create<NopMetaOp>(block.front().getLoc(), blockIdAttr, predListAttr);
+                builder.create<qoalahost::NopMetaOp>(block.front().getLoc(), blockIdAttr, predListAttr);
             
                 LLVM_DEBUG(llvm::dbgs() << "Inserted NopMetaOp in " << blockId << " with dependencies " << predListAttr << "\n");
             }
