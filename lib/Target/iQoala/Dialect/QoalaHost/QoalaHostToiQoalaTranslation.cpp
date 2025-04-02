@@ -1,5 +1,6 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Operation.h"
+#include "Analysis/NetQASM/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"
@@ -15,6 +16,7 @@ using namespace mlir;
 using namespace qoala::translate;
 using namespace qoala::assembly;
 using namespace qoala::iqoala;
+using namespace qoala::analysis;
 using namespace qoala::dialects::qoalahost;
 
 static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
