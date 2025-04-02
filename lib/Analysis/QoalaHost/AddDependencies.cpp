@@ -44,6 +44,31 @@ class QoalaHostAddBlockDependenciesPass
                 blockIdMap[&block] = id;
             }
 
+            // Track communication operations order
+            std::vector<Operation *> commOps;
+            mainFunc.walk([&](Operation *op) {
+                if (isa<SendIntsOp, RecvIntsOp, SendFloatsOp, RecvFloatsOp>(op)) {
+                    commOps.push_back(op);
+                }
+            });
+
+            // Add artificial dependencies based on order of communication ops
+            for (size_t i = 1; i < commOps.size(); ++i) {
+                Block *prevBlock = commOps[i - 1]->getBlock();
+                Block *currBlock = commOps[i]->getBlock();
+
+                if (prevBlock != currBlock) {
+                    // Insert dependency: currBlock depends on prevBlock
+                    if (blockDeps[currBlock].insert(prevBlock).second) {
+                        LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n"); 
+                        currBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs() << "depends on " << blockIdMap[prevBlock] << ":\n");
+                        prevBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs() << "\n");
+                    }
+                }
+            }
+
             // Walk all operations in the main_func to build dependency graph
             mainFunc.walk([&](Operation *op) {
                 Block *consumerBlock = op->getBlock();
