@@ -79,6 +79,7 @@ module {
     ^bb13:
 // CHECK: qoalahost.nop_meta "block_13" ["block_0", "block_11"]
         qoalahost.send_floats %cstD {remote = @Bob} : tensor<1xf32>
-    qoalahost.return
+    %cst = arith.constant 4 : i32
+    qoalahost.return %cst : i32
   }
 }
