@@ -72,7 +72,7 @@ namespace dependencies {
  * operation At the beginning of each block.
  * @param module module to walk for tracking and adding dependencies.
  */
-void addDependencies(mlir::ModuleOp &module);
+mlir::LogicalResult addDependencies(mlir::ModuleOp &module);
 } // namespace dependencies
 } // namespace qoala::analysis
 

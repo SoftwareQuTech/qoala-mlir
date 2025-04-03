@@ -15,7 +15,7 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::dependencies {
-void addDependencies(ModuleOp &moduleOp) {
+LogicalResult addDependencies(ModuleOp &moduleOp) {
     LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostDependencies: "
                                "Building Block Dependency Graph ===\n");
 
@@ -145,5 +145,7 @@ void addDependencies(ModuleOp &moduleOp) {
                        << " with dependencies " << predListAttr << "\n");
         }
     });
+
+    return success();
 }
 } // namespace qoala::analysis::dependencies
