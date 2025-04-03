@@ -24,7 +24,7 @@ static LogicalResult processOperandsForMul(
     // We will manually map the other operand to its register reference and iQoalaOperand
     assert(mulOp.getOperands().size() == 2 && "Arith mul: instruction does not have correct number of operands");
     const Value operandA = mulOp.getOperand(0);
-    const Value operandB = mulOp.getOperand(0);
+    const Value operandB = mulOp.getOperand(1);
     if (auto constOp = dyn_cast<arith::ConstantIntOp>(operandA.getDefiningOp())) {
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(constOp.value()));
         iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandB);

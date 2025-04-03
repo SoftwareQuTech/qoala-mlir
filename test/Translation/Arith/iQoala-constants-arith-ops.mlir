@@ -8,15 +8,15 @@
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
-// CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c(%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG1]])
+// CHECK-NEXT: %[[HOST_REG3:.*]] = sub_cval_c(%[[HOST_REG0]], %[[HOST_REG1]])
 // The compiler will check in order which one of the operands is a constant
 // whose value can be "forwarded". Being that said, HOST_REG0 is the first operand
 // which is a constant and can be forwarded:
-// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const(%[[HOST_REG1:.*]]) : 3
+// CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const(%[[HOST_REG1]]) : 3
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
-// %[[HOST_REG4:.*]] = quot(%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
-// %[[HOST_REG4:.*]] = rem(%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// %[[HOST_REG4:.*]] = quot(%[[HOST_REG0]], %[[HOST_REG1]])
+// %[[HOST_REG4:.*]] = rem(%[[HOST_REG0]], %[[HOST_REG1]])
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 
