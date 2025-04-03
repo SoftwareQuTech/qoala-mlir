@@ -6,6 +6,25 @@
 #define DEBUG_TYPE "iqoala-context"
 
 namespace qoala::iqoala {
+    iQoalaContext::iQoalaContext() {
+        for (uint8_t i = 0; i < MAX_PHY_QUBITS; i++) {
+            this->qubits[i] = false;
+        }
+    }
+
+    uint8_t iQoalaContext::allocateQubit() {
+        for (uint8_t i = 0; i < MAX_PHY_QUBITS; i++) {
+            if (!this->qubits[i]) {
+                this->qubits[i] = true;
+                return i;
+            }
+        }
+        return 0xFF;
+    }
+
+    void iQoalaContext::releaseQubit(const uint8_t reg) {
+        this->qubits[reg] = false;
+    }
 
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type) {
         uint8_t lastAvailable = 0xFF;
@@ -42,5 +61,29 @@ namespace qoala::iqoala {
                 break;
         }
         return lastAvailable;
+    }
+
+    uint8_t iQoalaContext::allocateClassicalSocketForRemote(const std::string &remoteID) {
+        // If there is already a classical socket for this remote, simply return it:
+        if (this->classicalSocketIDs.contains(remoteID)) {
+            return this->classicalSocketIDs.at(remoteID);
+        }
+        const unsigned int newSocketID = this->classicalSocketIDs.size();
+        const auto result = this->classicalSocketIDs.try_emplace(remoteID, newSocketID);
+        (void) result;
+        assert(result.second && "Attempting to map a remote name that is already mapped");
+        return newSocketID;
+    }
+
+    uint8_t iQoalaContext::allocateEPRSSocketForRemote(const std::string &remoteID) {
+        // If there is already a classical socket for this remote, simply return it:
+        if (this->eprsSocketIDs.contains(remoteID)) {
+            return this->eprsSocketIDs.at(remoteID);
+        }
+        const unsigned int newSocketID = this->eprsSocketIDs.size();
+        const auto result = this->eprsSocketIDs.try_emplace(remoteID, newSocketID);
+        (void) result;
+        assert(result.second && "Attempting to map a remote name that is already mapped");
+        return newSocketID;
     }
 };

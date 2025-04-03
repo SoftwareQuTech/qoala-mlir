@@ -24,6 +24,26 @@ namespace qoala::iqoala {
         this->params.push_back(argName);
     }
 
+    void LocalQuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
+        const auto result = this->qubitMap.try_emplace(value, phyQubitNum);
+        (void) result;
+        assert(result.second && "Attempting to map a qubit value that has already been mapped");
+
+        this->usesQubits.emplace(phyQubitNum);
+        this->keepsQubits.emplace(phyQubitNum);
+    }
+
+    void LocalQuantumRoutine::releaseQubit(const Value &value) {
+        uint8_t phyQubitNum = 0xFF;
+        if (this->qubitMap.contains(value)) {
+            phyQubitNum = this->qubitMap.at(value);
+            this->qubitMap.erase(value);
+        }
+        if (this->keepsQubits.contains(phyQubitNum)) {
+            this->keepsQubits.erase(phyQubitNum);
+        }
+    }
+
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
     }
@@ -75,6 +95,44 @@ namespace qoala::iqoala {
         }
     }
 
+    void VirtualIDs::addArg(uint32_t arg) {
+        this->args.push_back(arg);
+    }
+
+    void VirtualIDs::setType(const VirtualIDType type) {
+        this->type = type;
+    }
+
+    void RequestQuantumRoutine::addEntangledPair() {
+        this->numPairs++;
+    }
+
+    void RequestQuantumRoutine::addReturnValue(const std::string &valName) {
+        this->returns.push_back(valName);
+    }
+
+    unsigned int RequestQuantumRoutine::getNumPairs() const {
+        return numPairs;
+    }
+
+    void RequestQuantumRoutine::reportRemote(const std::string &remoteID, const uint8_t eprSocketID) {
+        this->remoteID = remoteID;
+        this->eprSocketID = eprSocketID;
+    }
+
+    void RequestQuantumRoutine::changeReqTypeToMeasure() {
+        this->type = MEASURE_DIRECTLY;
+    }
+
+    void RequestQuantumRoutine::changeReqTypeToRSP() {
+        this->type = RSP;
+    }
+
+    void RequestQuantumRoutine::addVirtualIDArg(const uint32_t virtualID) {
+        this->virtualIDs.addArg(virtualID);
+    }
+
+
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
@@ -87,14 +145,13 @@ namespace qoala::iqoala {
         return os;
     }
 
-
     raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs) {
         switch (virtualIDs.type) {
             case VirtualIDs::VirtualIDType::ALL:
-                os << "all " << virtualIDs.args[0];
+                os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::INCREMENT:
-                os << "increment " << virtualIDs.args[0];
+                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::max_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
                 os << "custom " << helpers::formatVector(virtualIDs.args);
@@ -135,8 +192,8 @@ namespace qoala::iqoala {
         os << "SUBROUTINE " << this->name << "\n";
         os << "params: " << helpers::formatVector(this->params) << "\n";
         os << "returns: " << helpers::formatVector(this->returns) << "\n";
-        os << "uses: " << helpers::formatVector(this->usesQubits) << "\n";
-        os << "keeps: " << helpers::formatVector(this->keepsQubits) << "\n";
+        os << "uses: " << helpers::formatSet(this->usesQubits) << "\n";
+        os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
@@ -148,7 +205,7 @@ namespace qoala::iqoala {
     void RequestQuantumRoutine::print(raw_ostream &os) const {
         os << "REQUEST " << this->name << "\n";
         os << "callback_type: " << this->requestCallback << "\n";
-        os << "callback: " << this->callback->getName() << "\n";
+        os << "callback: " << (this->callback ? this->callback->getName() : "") << "\n";
         os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
@@ -156,13 +213,7 @@ namespace qoala::iqoala {
         os << "virt_ids: " << this->virtualIDs << "\n";
         os << "timeout: " << 1000 << "\n"; // This field is not described in the paper
         os << "fidelity: " << this->fidelity << "\n";
-        os << "typ: " << this->type << "\n";
+        os << "type: " << this->type << "\n";
         os << "role: " << this->requestRole << "\n";
-
-        os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
-            os << tabStr << *instruction << "\n";
-        }
-        os << "NETQASM_END\n";
     }
 }

@@ -13,8 +13,19 @@ namespace qoala::dialects::helpers {
         return parent != nullptr;
     }
 
-    std::string getParentNetQASMRoutineName(mlir::Operation *op) {
+    bool operationIsInsideRequestRoutineFunc(mlir::Operation *op) {
+        const auto parent = op->getParentOfType<netqasm::RequestRoutineOp>();
+        return parent != nullptr;
+    }
+
+    std::string getParentLocalRoutineName(mlir::Operation *op) {
         auto parent = op->getParentOfType<netqasm::LocalRoutineOp>();
+        assert(parent != nullptr);
+        return parent.getSymName().str();
+    }
+
+    std::string getParentRequestRoutineName(mlir::Operation *op) {
+        auto parent = op->getParentOfType<netqasm::RequestRoutineOp>();
         assert(parent != nullptr);
         return parent.getSymName().str();
     }

@@ -45,7 +45,7 @@ namespace qoala::translate {
         // This is the entry point of the translation of any operation.
         // It simply tries to get a registered translation class for the operation (type)
         // and invokes the "convertOperation" method on it.
-        const QoalaTranslationDialectInterface *opIface = ifaces.getInterfaceFor(&op);
+        const QoalaTranslationDialectInterface *opIface = this->ifaces.getInterfaceFor(&op);
         if (!opIface) {
             return op.emitOpError("cannot be converted to iQoala: missing "
                                   "`QoalaTranslationDialectInterface` registration for "
@@ -167,7 +167,7 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
-        for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
+        for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
             if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
                 // Since this routine is intended to be provided by the runtime,
@@ -184,11 +184,60 @@ namespace qoala::translate {
                         return failure();
                     }
                 }
-                iQoalaModule->addRoutine(routine);
+                this->iQoalaModule->addRoutine(routine);
             }
         }
-        for (auto localRoutine : getModuleBody(mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
-            // TODO - Implement how to handle the conversion of request routines
+        for (auto requestRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+            // We make sure that the request routine returns something, either an i32 (an entangled qubit)
+            // or an i1 (a measurement of an entangled qubit)
+            FunctionType reqRoutineType = requestRoutine.getFunctionType();
+            const auto results = reqRoutineType.getResults();
+
+            if (results.empty()) {
+#if __cplusplus >= 202002L
+                const std::string errorFmt = "request routine '{}' must return a value";
+#else
+                const std::string errorFmt = "request routine '%s' must return a value";
+#endif
+                const std::string errorMessage = helpers::formatString(errorFmt, requestRoutine.getName().data());
+                requestRoutine.emitOpError(errorMessage);
+                return failure();
+            }
+
+            for (auto result : results) {
+                if (!(result.isInteger(1) || result.isInteger(32))) {
+#if __cplusplus >= 202002L
+                    const std::string errorFmt = "request routine '{}' returns an invalid type";
+#else
+                    const std::string errorFmt = "request routine '%s' returns an invalid type";
+#endif
+                    const std::string errorMessage = helpers::formatString(errorFmt, requestRoutine.getName().data());
+                    requestRoutine.emitOpError(errorMessage);
+                    return failure();
+                }
+            }
+
+            // We simply create the routine. Since request routines do not accept arguments,
+            // we don't need to process them
+            for (auto argument : requestRoutine.getArguments()) {
+                if(!argument.getUses().empty()) {
+                    // Request routines do not support using the arguments
+                    // We check that, if there are arguments, at least they are not used
+#if __cplusplus >= 202002L
+                    const std::string errorFmt = "argument #{} from request routine '{}' is used. This is not supported";
+#else
+                    const std::string errorFmt = "argument #%d from request routine '%s' is used. This is not supported";
+#endif
+                    const std::string errorMessage = helpers::formatString(
+                        errorFmt, argument.getArgNumber(), requestRoutine.getName().data());
+                    requestRoutine.emitOpError(errorMessage);
+                    return failure();
+                }
+            }
+            auto *routine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
+            const uint8_t phyQubitNum = this->iQoalaModule->getiQoalaContext()->allocateQubit();
+            routine->addVirtualIDArg(phyQubitNum);
+            this->iQoalaModule->addRoutine(routine);
         }
         return success();
     }

@@ -1,7 +1,7 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
 // CHECK-NEXT: name: test_arith_operations
-// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
@@ -44,9 +44,6 @@ module {
     %resC = arith.muli %cstA, %cstB : i32
     %resD = arith.divui %cstA, %cstB : i32
     %resE = arith.remui %cstA, %cstB : i32
-    %0 = netqasm.qalloc  : i32
-    netqasm.init %0
-    %1 = netqasm.measure %0 : i1
     netqasm.return
   }
   qoalahost.main_func @test_arith_operations() {

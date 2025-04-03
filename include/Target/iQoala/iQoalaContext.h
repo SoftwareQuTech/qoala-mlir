@@ -3,6 +3,9 @@
 
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/DenseMap.h"
+
+#define MAX_PHY_QUBITS 16
 
 namespace qoala::iqoala {
     /**
@@ -12,10 +15,14 @@ namespace qoala::iqoala {
      */
     class iQoalaContext {
     public:
-        iQoalaContext() = default;
+        iQoalaContext();
         ~iQoalaContext() = default;
 
         uint8_t allocateRegister(assembly::iQoalaRegType type);
+        uint8_t allocateQubit();
+        void releaseQubit(uint8_t reg);
+        uint8_t allocateClassicalSocketForRemote(const std::string &remoteID);
+        uint8_t allocateEPRSSocketForRemote(const std::string &remoteID);
 
     private:
         // Structures to keep track of the used registers.
@@ -24,6 +31,12 @@ namespace qoala::iqoala {
         llvm::SmallVector<uint8_t, 16> cRegisters;
         llvm::SmallVector<uint8_t, 16> mRegisters;
         llvm::SmallVector<uint8_t, 16> qRegisters;
+        // Map for the physical qubits num->inUse
+        llvm::DenseMap<uint8_t, bool> qubits;
+        // Map for the remoteNames -> eprsSocketID
+        llvm::StringMap<unsigned int> eprsSocketIDs;
+        // Map for the remoteNames -> classicalSocketID
+        llvm::StringMap<unsigned int> classicalSocketIDs;
     };
 }
 #endif //IQOLACONTEXT_H

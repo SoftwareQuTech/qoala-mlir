@@ -15,7 +15,7 @@ namespace qoala::iqoala::helpers {
     InstrType *buildInstruction(translate::ModuleTranslation *moduleTranslation,
                         mlir::Operation *mlirOperation,
                         typename InstrType::OpCode opCode,
-                        const std::optional<mlir::Value>result,
+                        const std::optional<mlir::Value> result,
                         const std::optional<assembly::iQoalaRegType> resultRegType,
                         mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands,
                         const bool useOpOperands = true, const bool appendInstruction = true){

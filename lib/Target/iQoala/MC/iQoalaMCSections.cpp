@@ -5,8 +5,10 @@ using namespace mlir;
 
 #if __cplusplus >= 202002L
 static std::string blockNameFmt = "b{}";
+static std::string remoteIDFmt = "{}_id";
 #else
 static std::string blockNameFmt = "b%d";
+static std::string remoteIDFmt = "%s_id";
 #endif
 
 namespace qoala::iqoala {
@@ -52,13 +54,40 @@ namespace qoala::iqoala {
         this->routines.push_back(routine);
     }
 
-    void MetaSection::addRemote(const std::string &remoteName) {
-        this->globalParams.push_back(remoteName);
-        // TODO - We assume that all declared remotes are connected using
-        //  both classical and epr sockets
-        this->classicalSocketsMap.insert(std::pair{remoteName, 0});
-        this->eprsSocketsMap.insert(std::pair{remoteName, 0});
+    std::vector<RequestQuantumRoutine *> RequestSection::getRoutines() const {
+        return this->routines;
     }
+
+    void MetaSection::addParameter(const std::string &name) {
+        this->globalParams.push_back(name);
+    }
+
+    void MetaSection::addRemote(const std::string &remoteName) {
+        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName);
+        this->addParameter(remoteParamName);
+        this->remoteParamNames.emplace(remoteName, remoteParamName);
+    }
+
+    void MetaSection::addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID) {
+        this->classicalSocketsMap.emplace(remoteName, socketID);
+
+    }
+    void MetaSection::addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID) {
+        this->eprsSocketsMap.emplace(remoteName, socketID);
+    }
+
+    uint8_t MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
+        return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+    }
+
+    uint8_t MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
+        return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+    }
+
+    std::string MetaSection::getParamNameForRemote(const std::string &remoteName) const {
+        return this->remoteParamNames.at(remoteName);
+    }
+
 
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;

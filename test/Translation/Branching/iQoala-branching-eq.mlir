@@ -7,7 +7,7 @@
 
 // CHECK: META START
 // CHECK-NEXT: name: test_branching_eq
-// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END

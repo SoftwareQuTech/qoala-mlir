@@ -1,7 +1,7 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
 // CHECK-NEXT: name: test_local_routine_ret_one_val
-// CHECK-NEXT: parameters: Bob
+// CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
@@ -29,9 +29,6 @@ module {
     %cstA = arith.constant 1 : i32
     %cstB = arith.constant 2 : i32
     %cstC = arith.constant 3 : i32
-    %0 = netqasm.qalloc  : i32
-    netqasm.init %0
-    %1 = netqasm.measure %0 : i1
     netqasm.return %cstA, %cstB, %cstC : i32, i32, i32
   }
   qoalahost.main_func @test_local_routine_ret_one_val() {
