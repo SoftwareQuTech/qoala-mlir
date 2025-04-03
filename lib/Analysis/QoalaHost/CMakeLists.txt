@@ -1,5 +1,6 @@
 add_mlir_dialect_library(MLIRQoalaHostAnalysis
     IsolateOperations.cpp
+    Dependencies.cpp
     AddDependencies.cpp
     
 
