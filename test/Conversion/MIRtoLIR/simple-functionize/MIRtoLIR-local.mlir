@@ -58,18 +58,22 @@ module {
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
-    // CHECK: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
+    // CHECK: qoalahost.nop_meta "block_0" []
+    // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
 
     // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_1" ["block_0"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER1]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.init %0
 
     // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_2" []
     // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     %1 = qmem.qalloc : i32
 
     // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_3" ["block_2"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.init %1
 
@@ -78,44 +82,54 @@ module {
     %cst_0 = arith.constant 2.356194 : f32
 
     // CHECK: ^[[BLOCK_4:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_4" ["block_0"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %cst_0
 
     %cst_1 = arith.constant 0.785398 : f32
 
     // CHECK: ^[[BLOCK_5:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_5" ["block_0"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_y %0, %cst_1
 
     // CHECK: ^[[BLOCK_6:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_6" ["block_0"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_z %0, %cst
 
     // CHECK: ^[[BLOCK_7:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_7" ["block_2"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER7]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.hadamard %1
 
     // CHECK: ^[[BLOCK_8:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_8" ["block_0", "block_2"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cnot %0, %1
 
     %cst_2 = arith.constant 1.570796 : f32
 
     // CHECK: ^[[BLOCK_9:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_9" ["block_0", "block_2"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cz %0, %1
 
     // CHECK: ^[[BLOCK_10:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_10" ["block_0", "block_2"]
     // CHECK-NEXT: qoalahost.call @[[WRAPPER10]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.crot_x %0, %1, %cst_2
 
     // CHECK: ^[[BLOCK_11:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_11" ["block_0"]
     // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER11]](%[[REG_MAIN0]]) : (i32) -> i1
     %2 = qmem.measure %0 : i1
 
     // CHECK: ^[[BLOCK_12:.*]]:
+    // CHECK-NEXT: qoalahost.nop_meta "block_12" ["block_2"]
     // CHECK-NEXT: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER12]](%[[REG_MAIN1]]) : (i32) -> i1
     %3 = qmem.measure %1 : i1
+    // CHECK: qoalahost.nop_meta "block_13" []
     qmem.return
   }
 }

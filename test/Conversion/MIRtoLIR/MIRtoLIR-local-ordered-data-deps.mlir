@@ -22,6 +22,7 @@ module {
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
+    // CHECK: qoalahost.nop_meta "block_0" []
     %0 = qmem.qalloc : i32
     qmem.init %0
     %1 = qmem.qalloc : i32
@@ -46,7 +47,8 @@ module {
     %3 = qmem.measure %1 : i1
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK: qoalahost.return
+    // CHECK-NEXT: qoalahost.nop_meta "block_1" []
+    // CHECK-NEXT: qoalahost.return
     qmem.return
   }
 }
