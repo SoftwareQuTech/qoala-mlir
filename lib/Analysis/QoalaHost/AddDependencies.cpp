@@ -31,113 +31,96 @@ void QoalaHostAddBlockDependenciesPass::runOnOperation() {
     Operation *operation = getOperation();
 
     // Block-level dependency graph: block -> set of blocks it depends on.
-    // We use a set to avoid duplicated dependencies between blocks.
     llvm::DenseMap<Block *, std::unordered_set<Block *>> blockDeps;
 
     // Block -> string ID (e.g., block_0)
     llvm::DenseMap<Block *, std::string> blockIdMap;
     int idCounter = 0;
 
-    // Assign a unique ID to each block inside qoalahost.main_func
     operation->walk([&](qoalahost::MainFuncOp mainFunc) {
         for (Block &block : mainFunc.getBody().getBlocks()) {
             std::string id = "block_" + std::to_string(idCounter++);
             blockIdMap[&block] = id;
         }
 
-        // Track classical communication operations order
-        LLVM_DEBUG(llvm::dbgs()
-                   << "\n=== Tracking communication dependencies ===\n");
         std::vector<Operation *> commOps;
+        std::vector<Operation *> requestCallOps;
+
         mainFunc.walk([&](Operation *op) {
+            Block *consumerBlock = op->getBlock();
+
+            // Track classical communication ops
             if (isa<qoalahost::SendIntsOp, qoalahost::RecvIntsOp,
                     qoalahost::SendFloatsOp, qoalahost::RecvFloatsOp>(op)) {
                 commOps.push_back(op);
             }
-        });
 
-        // Add dependencies based on order of classical communication ops
-        for (size_t i = 1; i < commOps.size(); ++i) {
-            Block *prevBlock = commOps[i - 1]->getBlock();
-            Block *currBlock = commOps[i]->getBlock();
-
-            if (prevBlock != currBlock) {
-                // Insert dependency: currBlock depends on prevBlock
-                if (blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
-                    currBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "classical comm depends on "
-                                            << blockIdMap[prevBlock] << ":\n");
-                    prevBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "\n");
-                }
-            }
-        }
-
-        // Track call to request routine operations order
-        LLVM_DEBUG(llvm::dbgs()
-                   << "\n=== Tracking request routines dependencies ===\n");
-        std::vector<Operation *> requestCallOps;
-        mainFunc.walk([&](Operation *op) {
+            // Track request routine call ops
             if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
                 auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
-                if (!symRef)
-                    return;
-
-                Operation *callee =
-                    SymbolTable::lookupNearestSymbolFrom(operation, symRef);
-                if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
-                    requestCallOps.push_back(op);
+                if (symRef) {
+                    Operation *callee =
+                        SymbolTable::lookupNearestSymbolFrom(operation, symRef);
+                    if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
+                        requestCallOps.push_back(op);
+                    }
                 }
             }
-        });
 
-        // Add dependencies based on order of calls to request routines
-        for (size_t i = 1; i < requestCallOps.size(); ++i) {
-            Block *prevBlock = requestCallOps[i - 1]->getBlock();
-            Block *currBlock = requestCallOps[i]->getBlock();
-
-            if (prevBlock != currBlock) {
-                // Insert dependency: currBlock depends on prevBlock
-                if (blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
-                    currBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "quantum comm depends on "
-                                            << blockIdMap[prevBlock] << ":\n");
-                    prevBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "\n");
-                }
-            }
-        }
-
-        // Walk all operations in the main_func to build dependency graph
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking data dependencies ===\n");
-        mainFunc.walk([&](Operation *op) {
-            Block *consumerBlock = op->getBlock();
-
+            // Track data dependencies
             for (Value operand : op->getOperands()) {
                 if (Operation *producer = operand.getDefiningOp()) {
                     Block *producerBlock = producer->getBlock();
-
-                    // Insert only if not already present (avoid duplicate
-                    // prints)
-                    if (producerBlock != consumerBlock) {
-                        if (blockDeps[consumerBlock]
-                                .insert(producerBlock)
-                                .second) {
-                            LLVM_DEBUG(llvm::dbgs()
-                                       << blockIdMap[consumerBlock] << " \n");
-                            consumerBlock->print(llvm::dbgs());
-                            LLVM_DEBUG(llvm::dbgs()
-                                       << "depends on "
-                                       << blockIdMap[producerBlock] << ":\n");
-                            producerBlock->print(llvm::dbgs());
-                            LLVM_DEBUG(llvm::dbgs() << "\n");
-                        }
+                    if (producerBlock != consumerBlock &&
+                        blockDeps[consumerBlock].insert(producerBlock).second) {
+                        LLVM_DEBUG(llvm::dbgs()
+                                   << blockIdMap[consumerBlock] << " \n");
+                        consumerBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs()
+                                   << "depends on " << blockIdMap[producerBlock]
+                                   << ":\n");
+                        producerBlock->print(llvm::dbgs());
+                        LLVM_DEBUG(llvm::dbgs() << "\n");
                     }
                 }
             }
         });
+
+        // Classical communication ordering dependencies
+        LLVM_DEBUG(llvm::dbgs()
+                   << "\n=== Tracking communication dependencies ===\n");
+        for (size_t i = 1; i < commOps.size(); ++i) {
+            Block *prevBlock = commOps[i - 1]->getBlock();
+            Block *currBlock = commOps[i]->getBlock();
+
+            if (prevBlock != currBlock &&
+                blockDeps[currBlock].insert(prevBlock).second) {
+                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
+                currBlock->print(llvm::dbgs());
+                LLVM_DEBUG(llvm::dbgs()
+                           << "depends on " << blockIdMap[prevBlock] << ":\n");
+                prevBlock->print(llvm::dbgs());
+                LLVM_DEBUG(llvm::dbgs() << "\n");
+            }
+        }
+
+        // Request routine call ordering dependencies
+        LLVM_DEBUG(llvm::dbgs()
+                   << "\n=== Tracking request routines dependencies ===\n");
+        for (size_t i = 1; i < requestCallOps.size(); ++i) {
+            Block *prevBlock = requestCallOps[i - 1]->getBlock();
+            Block *currBlock = requestCallOps[i]->getBlock();
+
+            if (prevBlock != currBlock &&
+                blockDeps[currBlock].insert(prevBlock).second) {
+                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
+                currBlock->print(llvm::dbgs());
+                LLVM_DEBUG(llvm::dbgs()
+                           << "depends on " << blockIdMap[prevBlock] << ":\n");
+                prevBlock->print(llvm::dbgs());
+                LLVM_DEBUG(llvm::dbgs() << "\n");
+            }
+        }
 
         // Insert NopMetaOp into each block with its ID and predecessor IDs
         OpBuilder builder(mainFunc.getContext());
