@@ -59,7 +59,7 @@ namespace qoala::analysis::dependencies {
                 blockIdMap[&block] = id;
             }
 
-            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies in one walk ===\n");
+            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies ===\n");
 
             std::vector<Operation *> commOps;
             std::vector<Operation *> requestCallOps;
@@ -89,11 +89,8 @@ namespace qoala::analysis::dependencies {
                     if (Operation *producer = operand.getDefiningOp()) {
                         Block *producerBlock = producer->getBlock();
                         if (producerBlock != consumerBlock && blockDeps[consumerBlock].insert(producerBlock).second) {
-                            LLVM_DEBUG(llvm::dbgs() << blockIdMap[consumerBlock] << " \n");
-                            consumerBlock->print(llvm::dbgs());
-                            LLVM_DEBUG(llvm::dbgs() << "depends on " << blockIdMap[producerBlock] << ":\n");
-                            producerBlock->print(llvm::dbgs());
-                            LLVM_DEBUG(llvm::dbgs() << "\n");
+                            LLVM_DEBUG(llvm::dbgs() << blockIdMap[consumerBlock] << " depends on "
+                                                    << blockIdMap[producerBlock] << "\n");
                         }
                     }
                 }
@@ -106,11 +103,8 @@ namespace qoala::analysis::dependencies {
                 Block *currBlock = commOps[i]->getBlock();
 
                 if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
-                    currBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "classical comm depends on " << blockIdMap[prevBlock] << ":\n");
-                    prevBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "\n");
+                    LLVM_DEBUG(llvm::dbgs()
+                               << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
                 }
             }
 
@@ -121,11 +115,8 @@ namespace qoala::analysis::dependencies {
                 Block *currBlock = requestCallOps[i]->getBlock();
 
                 if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " \n");
-                    currBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "quantum comm depends on " << blockIdMap[prevBlock] << ":\n");
-                    prevBlock->print(llvm::dbgs());
-                    LLVM_DEBUG(llvm::dbgs() << "\n");
+                    LLVM_DEBUG(llvm::dbgs()
+                               << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
                 }
             }
 
@@ -144,7 +135,7 @@ namespace qoala::analysis::dependencies {
                     predIds.push_back(blockIdMap[pred]);
                 }
                 std::sort(predIds.begin(), predIds.end());
-                
+
                 auto predListAttr = builder.getStrArrayAttr(predIds);
 
                 builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
