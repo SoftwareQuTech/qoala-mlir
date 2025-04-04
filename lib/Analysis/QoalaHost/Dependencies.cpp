@@ -130,11 +130,8 @@ namespace qoala::analysis::dependencies {
             }
         }
 
-        // Insert BlkMeta into each block with its ID and predecessor IDs
-        OpBuilder builder(mainFunc.getContext());
-
         for (Block &block: mainFunc.getBody().getBlocks()) {
-            builder.setInsertionPointToStart(&block);
+            OpBuilder builder = OpBuilder::atBlockBegin(&block);
 
             std::string blockId = blockIdMap[&block];
             auto blockIdAttr = builder.getStringAttr(blockId);
@@ -150,7 +147,7 @@ namespace qoala::analysis::dependencies {
 
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted NopMetaOp in " << blockId << " with dependencies " << predListAttr
+            LLVM_DEBUG(llvm::dbgs() << "Inserted BlkMeta in " << blockId << " with dependencies " << predListAttr
                                     << "\n");
         }
 
