@@ -19,29 +19,22 @@ namespace qoala::analysis::dependencies {
         // NOTE: We make the following assumptions regarding the `return` operation:
         //
         // 1. If the `return` op returns a value, it will be captured in the data
-        // flow
-        //    graph through operand dependencies. This will naturally result in
+        //    flow graph through operand dependencies. This will naturally result in
         //    block-level dependencies showing up in the graph.
         //
-        // 2. If the `return` op does not return a value and exists purely for
-        // MLIR's
+        // 2. If the `return` op does not return a value and exists purely for MLIR's
         //    structural correctness, then it will not introduce any explicit block
         //    dependency. In this case, it is treated as a semantic terminator with
         //    no effect on ordering.
         //
-        // 3. In HIR passes, we expect  transformations such as dead code
-        // elimination and loop
-        //    unrolling to ensure that the `return` op remains correctly placed at
-        //    the end of a region or block. This pass does not enforce reordering
-        //    constraints for return; it is the responsibility of those later
-        //    passes.
-        //
-        // 4. In some edge cases, a data dependency may exist between the `return`
-        // op and another
-        //    operation that is internal to the same block. In such cases, we assume
-        //    that other passes will lift the producer operation into a separate
-        //    block as needed, allowing the dependency to be reflected in the block
-        //    dependency graph properly.
+        // 3. In HIR, passes such as dead code elimination and loop unrolling are
+        //    expected to run before this pass. As a result, we assume that no
+        //    operations exist after the `return` op when this pass runs. Since block
+        //    reordering has not yet occurred, we also assume the `return` remains at
+        //    the end of its block and serves only as a semantic terminator if it
+        //    returns nothing. It is the responsibility of later passes that modify
+        //    block ordering to preserve this property.
+
 
         LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostDependencies: "
                                    "Building Block Dependency Graph ===\n");
