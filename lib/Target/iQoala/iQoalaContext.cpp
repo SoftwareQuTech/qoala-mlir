@@ -5,6 +5,8 @@
 
 #define DEBUG_TYPE "iqoala-context"
 
+using namespace mlir;
+
 namespace qoala::iqoala {
     uint8_t LocalRoutineRegisters::allocateCRegistry() {
         const uint8_t lastAvailable = this->cRegisters.size();
@@ -120,5 +122,18 @@ namespace qoala::iqoala {
         (void) result;
         assert(result.second && "Attempting to map a remote name that is already mapped");
         return newSocketID;
+    }
+
+    void iQoalaContext::mapValueToQubitID(const Value &value, uint8_t qubitID) {
+        const auto result = this->valuesToQubitIDs.try_emplace(value, qubitID);
+        (void) result;
+        assert(result.second && "Attempting to map a value that is already mapped");
+    }
+
+    uint8_t iQoalaContext::getQubitIDFor(const Value &value) const {
+        if (this->valuesToQubitIDs.contains(value)) {
+            return this->valuesToQubitIDs.at(value);
+        }
+        return 0xFF;
     }
 };

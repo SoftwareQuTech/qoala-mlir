@@ -53,18 +53,16 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {
-                // Prepare vectors with the results and their local register types
-                std::vector<Value> yieldedResults;
-                std::vector<iQoalaRegType> localRegTypes;
-                for (Value result : op.getResults()) {
-                    yieldedResults.push_back(result);
-                    localRegTypes.push_back(LOCAL);
-                }
-
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
                 if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(callee)) {
+                    // The qubit references returned by the local routine *must not* be used as yielded values
+                    // by this call op. This information will be kept inside the "uses" and "keeps" header section
+                    // of the local routines
+                    // In this sense, we need to map the MLIR value yielded by the return to a qubit ID in the
+                    // qoala section, so we can use this information when calling other routines later
+                    iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
                     LocalQuantumRoutine *routine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(callee);
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
@@ -76,6 +74,14 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 if (opCode == QoalaHostMCInstr::OP_UNKNOWN) {
                     op.emitOpError("Call op: Calling an operation of un unknown type");
                     return failure();
+                }
+
+                // Prepare vectors with the results and their local register types
+                std::vector<Value> yieldedResults;
+                std::vector<iQoalaRegType> localRegTypes;
+                for (Value result : op.getResults()) {
+                    yieldedResults.push_back(result);
+                    localRegTypes.push_back(LOCAL);
                 }
 
                 // We will set the callee as an "extra" operand, which will be the last of the
