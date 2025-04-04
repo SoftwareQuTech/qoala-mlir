@@ -47,6 +47,8 @@ namespace qoala::analysis::dependencies {
                                    "Building Block Dependency Graph ===\n");
 
         // Block-level dependency graph: block -> set of blocks it depends on.
+        // Note: we use an `std::unordered_set` rather than `llvm::SmallPtrSet` becasue we cannot estimate the size of
+        // this set. Depending on the program it could grow large.
         llvm::DenseMap<Block *, std::unordered_set<Block *>> blockDeps;
 
         // Block -> string ID (e.g., block_0)
