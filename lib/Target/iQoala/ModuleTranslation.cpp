@@ -2,11 +2,13 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Target/iQoala/Module.h"
 #include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
+
 #include "Target/iQoala/QoalaTranslationInterface.h"
 
 #include "llvm/Support/Debug.h"
@@ -18,6 +20,8 @@ using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::dialects::netqasm;
+using namespace qoala::dialects::qoalahost;
+using namespace qoala::dialects::qremote;
 
 namespace qoala::translate {
 #if  __cplusplus >= 202002L
@@ -258,11 +262,41 @@ namespace qoala::translate {
             return nullptr;
         }
 
-        // TODO - We might need to explore other module-level operations separately
+        // We need to explore other module-level operations separately
+        // We use getOps here instead of walk for 2 reasons:
+        // * We want to explore operations within the region of the module, *not* nested further
+        // * We want to proceed using a strict order to translate operations:
 
-        // Then we explore all the operations in the body
+        // First, the remote declarations
+        for (auto mainFunc : mlirModule.getOps<RemoteOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
+                return nullptr;
+            }
+        }
+
+        // Second, the main function
+        for (auto mainFunc : mlirModule.getOps<MainFuncOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
+                return nullptr;
+            }
+        }
+
+        // Third, local routines and request routines
+        for (auto mainFunc : mlirModule.getOps<LocalRoutineOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
+                return nullptr;
+            }
+        }
+        for (auto mainFunc : mlirModule.getOps<RequestRoutineOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
+                return nullptr;
+            }
+        }
+
+        // Lastly, everything else
         for (Operation &op : getModuleBody(originalModule).getOperations()) {
-            if (failed(moduleTranslation.convertOperation(op))) {
+            if (!isa<MainFuncOp, LocalRoutineOp, RequestRoutineOp, RemoteOp>(&op) &&
+                failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }
         }
