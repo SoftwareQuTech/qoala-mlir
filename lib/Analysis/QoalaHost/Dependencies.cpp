@@ -74,6 +74,12 @@ namespace qoala::analysis::dependencies {
                 }
 
                 // Track request routine call ops
+                // Note: This code checks whether the callee is a `netqasm.request_routine` by resolving
+                // the symbol reference and inspecting the corresponding operation. An alternative approach
+                // could be to collect all declared request routine names beforehand (e.g., in a set) and
+                // then check for membership when encountering a call. However, that might introduce overhead
+                // if the set grows large. For now, this direct resolution is acceptable, and the logic may
+                // be refactored and put in a helper function later if needed.
                 if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
                     auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
                     if (symRef) {
