@@ -129,7 +129,7 @@ namespace qoala::analysis::dependencies {
                 }
             }
 
-            // Insert NopMetaOp into each block with its ID and predecessor IDs
+            // Insert BlkMeta into each block with its ID and predecessor IDs
             OpBuilder builder(mainFunc.getContext());
 
             for (Block &block: mainFunc.getBody().getBlocks()) {
@@ -139,20 +139,15 @@ namespace qoala::analysis::dependencies {
                 auto blockIdAttr = builder.getStringAttr(blockId);
 
                 // Collect and sort (for determinism) predecessor block IDs
-                std::vector<std::string> predIds;
+                std::vector<mlir::StringRef> predIds;
                 for (Block *pred: blockDeps[&block]) {
                     predIds.push_back(blockIdMap[pred]);
                 }
                 std::sort(predIds.begin(), predIds.end());
+                
+                auto predListAttr = builder.getStrArrayAttr(predIds);
 
-                std::vector<Attribute> predIdAttrs;
-                for (const auto &id: predIds) {
-                    predIdAttrs.push_back(builder.getStringAttr(id));
-                }
-
-                auto predListAttr = builder.getArrayAttr(predIdAttrs);
-
-                builder.create<qoalahost::NopMetaOp>(block.front().getLoc(), blockIdAttr, predListAttr);
+                builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
                 LLVM_DEBUG(llvm::dbgs() << "Inserted NopMetaOp in " << blockId << " with dependencies " << predListAttr
                                         << "\n");

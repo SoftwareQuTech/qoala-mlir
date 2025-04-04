@@ -30,7 +30,7 @@ module {
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
-  // CHECK-NEXT: qoalahost.nop_meta "block_0" []
+  // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", predecessors = []}
   qmem.func @test_local_quantum_program() {
     %0 = qmem.qalloc : i32
     qmem.init %0

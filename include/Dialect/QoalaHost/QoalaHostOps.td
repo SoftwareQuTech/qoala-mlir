@@ -247,10 +247,10 @@ def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
     }];
 }
 
-def NopMetaOp : QoalaHost_Op<"nop_meta", [HasParent<"MainFuncOp">]> {
+def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
   let arguments = (ins
     StrAttr:$block_id,
-    ArrayAttr:$predecessors
+    StrArrayAttr:$predecessors
   );
 
   let summary = [{
@@ -262,7 +262,7 @@ def NopMetaOp : QoalaHost_Op<"nop_meta", [HasParent<"MainFuncOp">]> {
   }];
 
   let assemblyFormat = [{
-    $block_id $predecessors attr-dict
+    operands attr-dict
   }];
 }
 

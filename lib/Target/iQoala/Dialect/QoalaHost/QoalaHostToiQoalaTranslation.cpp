@@ -66,7 +66,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // There is nothing to do here
                 return success();
             })
-            .Case([](NopMetaOp op) -> LogicalResult {
+            .Case([](BlkMeta op) -> LogicalResult {
                 // There is nothing to do here
                 return success();
             })

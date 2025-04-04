@@ -22,7 +22,7 @@ module {
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
-    // CHECK: qoalahost.nop_meta "block_0" []
+    // CHECK: qoalahost.blk_meta {block_id = "block_0", predecessors = []}
     %0 = qmem.qalloc : i32
     qmem.init %0
     %1 = qmem.qalloc : i32
@@ -50,7 +50,7 @@ module {
     %3 = qmem.measure %1 : i1
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.nop_meta "block_1" []
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
     // CHECK-NEXT: qoalahost.return
     qmem.return
   }
