@@ -53,103 +53,106 @@ namespace qoala::analysis::dependencies {
         llvm::DenseMap<Block *, std::string> blockIdMap;
         int idCounter = 0;
 
-        moduleOp.walk([&](qoalahost::MainFuncOp mainFunc) {
-            for (Block &block: mainFunc.getBody().getBlocks()) {
-                std::string id = "block_" + std::to_string(idCounter++);
-                blockIdMap[&block] = id;
+        mlir::ModuleOp mod = llvm::cast<mlir::ModuleOp>(moduleOp);
+        auto mainFuncs = mod.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
+        // We get the first main func op; since it's unique in the module, it's safe to "ignore" the rest of the
+        // iterator
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+
+        for (Block &block: mainFunc.getBody().getBlocks()) {
+            std::string id = "block_" + std::to_string(idCounter++);
+            blockIdMap[&block] = id;
+        }
+
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies ===\n");
+
+        std::vector<Operation *> commOps;
+        std::vector<Operation *> requestCallOps;
+
+        mainFunc.walk([&](Operation *op) {
+            Block *consumerBlock = op->getBlock();
+
+            // Track classical communication ops
+            if (isa<qoalahost::SendIntsOp, qoalahost::RecvIntsOp, qoalahost::SendFloatsOp, qoalahost::RecvFloatsOp>(
+                        op)) {
+                commOps.push_back(op);
             }
 
-            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies ===\n");
-
-            std::vector<Operation *> commOps;
-            std::vector<Operation *> requestCallOps;
-
-            mainFunc.walk([&](Operation *op) {
-                Block *consumerBlock = op->getBlock();
-
-                // Track classical communication ops
-                if (isa<qoalahost::SendIntsOp, qoalahost::RecvIntsOp, qoalahost::SendFloatsOp, qoalahost::RecvFloatsOp>(
-                            op)) {
-                    commOps.push_back(op);
-                }
-
-                // Track request routine call ops
-                // Note: This code checks whether the callee is a `netqasm.request_routine` by resolving
-                // the symbol reference and inspecting the corresponding operation. An alternative approach
-                // could be to collect all declared request routine names beforehand (e.g., in a set) and
-                // then check for membership when encountering a call. However, that might introduce overhead
-                // if the set grows large. For now, this direct resolution is acceptable, and the logic may
-                // be refactored and put in a helper function later if needed.
-                if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
-                    auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
-                    if (symRef) {
-                        Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                        if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
-                            requestCallOps.push_back(op);
-                        }
+            // Track request routine call ops
+            // Note: This code checks whether the callee is a `netqasm.request_routine` by resolving
+            // the symbol reference and inspecting the corresponding operation. An alternative approach
+            // could be to collect all declared request routine names beforehand (e.g., in a set) and
+            // then check for membership when encountering a call. However, that might introduce overhead
+            // if the set grows large. For now, this direct resolution is acceptable, and the logic may
+            // be refactored and put in a helper function later if needed.
+            if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
+                auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
+                if (symRef) {
+                    Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+                    if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
+                        requestCallOps.push_back(op);
                     }
                 }
+            }
 
-                // Track data dependencies
-                for (Value operand: op->getOperands()) {
-                    if (Operation *producer = operand.getDefiningOp()) {
-                        Block *producerBlock = producer->getBlock();
-                        if (producerBlock != consumerBlock && blockDeps[consumerBlock].insert(producerBlock).second) {
-                            LLVM_DEBUG(llvm::dbgs() << blockIdMap[consumerBlock] << " depends on "
-                                                    << blockIdMap[producerBlock] << "\n");
-                        }
+            // Track data dependencies
+            for (Value operand: op->getOperands()) {
+                if (Operation *producer = operand.getDefiningOp()) {
+                    Block *producerBlock = producer->getBlock();
+                    if (producerBlock != consumerBlock && blockDeps[consumerBlock].insert(producerBlock).second) {
+                        LLVM_DEBUG(llvm::dbgs()
+                                   << blockIdMap[consumerBlock] << " depends on " << blockIdMap[producerBlock] << "\n");
                     }
                 }
-            });
-
-            // Classical communication ordering dependencies
-            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication dependencies ===\n");
-            for (size_t i = 1; i < commOps.size(); ++i) {
-                Block *prevBlock = commOps[i - 1]->getBlock();
-                Block *currBlock = commOps[i]->getBlock();
-
-                if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs()
-                               << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
-                }
-            }
-
-            // Request routine call ordering dependencies
-            LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines dependencies ===\n");
-            for (size_t i = 1; i < requestCallOps.size(); ++i) {
-                Block *prevBlock = requestCallOps[i - 1]->getBlock();
-                Block *currBlock = requestCallOps[i]->getBlock();
-
-                if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                    LLVM_DEBUG(llvm::dbgs()
-                               << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
-                }
-            }
-
-            // Insert BlkMeta into each block with its ID and predecessor IDs
-            OpBuilder builder(mainFunc.getContext());
-
-            for (Block &block: mainFunc.getBody().getBlocks()) {
-                builder.setInsertionPointToStart(&block);
-
-                std::string blockId = blockIdMap[&block];
-                auto blockIdAttr = builder.getStringAttr(blockId);
-
-                // Collect and sort (for determinism) predecessor block IDs
-                std::vector<mlir::StringRef> predIds;
-                for (Block *pred: blockDeps[&block]) {
-                    predIds.push_back(blockIdMap[pred]);
-                }
-                std::sort(predIds.begin(), predIds.end());
-
-                auto predListAttr = builder.getStrArrayAttr(predIds);
-
-                builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
-
-                LLVM_DEBUG(llvm::dbgs() << "Inserted NopMetaOp in " << blockId << " with dependencies " << predListAttr
-                                        << "\n");
             }
         });
+
+        // Classical communication ordering dependencies
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication dependencies ===\n");
+        for (size_t i = 1; i < commOps.size(); ++i) {
+            Block *prevBlock = commOps[i - 1]->getBlock();
+            Block *currBlock = commOps[i]->getBlock();
+
+            if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
+                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
+            }
+        }
+
+        // Request routine call ordering dependencies
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines dependencies ===\n");
+        for (size_t i = 1; i < requestCallOps.size(); ++i) {
+            Block *prevBlock = requestCallOps[i - 1]->getBlock();
+            Block *currBlock = requestCallOps[i]->getBlock();
+
+            if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
+                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
+            }
+        }
+
+        // Insert BlkMeta into each block with its ID and predecessor IDs
+        OpBuilder builder(mainFunc.getContext());
+
+        for (Block &block: mainFunc.getBody().getBlocks()) {
+            builder.setInsertionPointToStart(&block);
+
+            std::string blockId = blockIdMap[&block];
+            auto blockIdAttr = builder.getStringAttr(blockId);
+
+            // Collect and sort (for determinism) predecessor block IDs
+            std::vector<mlir::StringRef> predIds;
+            for (Block *pred: blockDeps[&block]) {
+                predIds.push_back(blockIdMap[pred]);
+            }
+            std::sort(predIds.begin(), predIds.end());
+
+            auto predListAttr = builder.getStrArrayAttr(predIds);
+
+            builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
+
+            LLVM_DEBUG(llvm::dbgs() << "Inserted NopMetaOp in " << blockId << " with dependencies " << predListAttr
+                                    << "\n");
+        }
 
         return success();
     }
