@@ -247,15 +247,23 @@ def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
     }];
 }
 
-def NopOp : QoalaHost_Op<"nop", [HasParent<"MainFuncOp">]> {
-    let summary = [{
-        QoalaHost "nop" operation. The difference with the NopTOp is that
-        this operation does not carry the "Terminator" trait, so it can be
-        placed in the middle of a block.
-    }];
-    let assemblyFormat = [{
-        operands attr-dict
-    }];
+def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
+  let arguments = (ins
+    StrAttr:$block_id,
+    StrArrayAttr:$predecessors
+  );
+
+  let summary = [{
+    A "no-op" operation that semantically does nothing, but is used to store
+    metadata about the block in which it appears. Specifically, it records the
+    block's unique identifier as a string and a list of its predecessor block
+    identifiers. This information can be used for analysis or transformations
+    without affecting program semantics.
+  }];
+
+  let assemblyFormat = [{
+    operands attr-dict
+  }];
 }
 
 #endif // QOALAHOST_OPS_TD

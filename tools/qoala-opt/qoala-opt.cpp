@@ -10,6 +10,9 @@
 #include "Dialect/QMem/Passes.h"
 #include "Dialect/QMem/QMemDialect.h"
 
+#include "Dialect/QoalaHost/Passes.h"
+#include "Dialect/QoalaHost/QoalaHostDialect.h"
+
 #include "Dialect/NetQASM/NetQASMDialect.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "Dialect/QRemote/QRemoteDialect.h"
@@ -30,9 +33,10 @@ int main(int argc, char **argv) {
 
     // We also register all the passes from MLIR
     mlir::registerAllPasses();
-    // And also the passes from QNet
+    // And also the passes from QMem, QNet and QoalaHost
     qoala::analysis::registerQNetPasses();
     qoala::analysis::registerQMemPasses();
+    qoala::analysis::registerQoalaHostPasses();
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
     qoala::conversion::registerQoalaHIRToQoalaMIRPasses();
     // And the pass that converts QMem to QoalaHost dialect

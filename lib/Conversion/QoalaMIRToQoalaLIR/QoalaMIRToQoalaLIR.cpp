@@ -7,6 +7,7 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
+#include "Analysis/QoalaHost/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
@@ -167,6 +168,13 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* 8. Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
         if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
+            signalPassFailure();
+        }
+        // Stage 9: Add Block Dependencies
+        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Dependencies *\n");
+        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
+        if (failed(analysis::dependencies::addDependencies(module))) {
             signalPassFailure();
         }
     }
