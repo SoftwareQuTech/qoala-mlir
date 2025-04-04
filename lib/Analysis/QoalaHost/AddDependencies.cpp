@@ -13,17 +13,16 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTADDBLOCKDEPENDENCIES
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-class QoalaHostAddBlockDependenciesPass
-    : public impl::QoalaHostAddBlockDependenciesBase<
-          QoalaHostAddBlockDependenciesPass> {
-    using QoalaHostAddBlockDependenciesBase::QoalaHostAddBlockDependenciesBase;
-    void runOnOperation() override;
-};
+    class QoalaHostAddBlockDependenciesPass
+        : public impl::QoalaHostAddBlockDependenciesBase<QoalaHostAddBlockDependenciesPass> {
+        using QoalaHostAddBlockDependenciesBase::QoalaHostAddBlockDependenciesBase;
+        void runOnOperation() override;
+    };
 
-void QoalaHostAddBlockDependenciesPass::runOnOperation() {
-    ModuleOp module = dyn_cast<ModuleOp>(getOperation());
-    assert(module); // We expect the cast to succeed
-    LLVM_DEBUG(llvm::dbgs() << "QoalaHostAddBlockDependenciesPass\n");
-    dependencies::addDependencies(module);
-}
+    void QoalaHostAddBlockDependenciesPass::runOnOperation() {
+        ModuleOp module = dyn_cast<ModuleOp>(getOperation());
+        assert(module); // We expect the cast to succeed
+        LLVM_DEBUG(llvm::dbgs() << "QoalaHostAddBlockDependenciesPass\n");
+        dependencies::addDependencies(module);
+    }
 } // namespace qoala::analysis
