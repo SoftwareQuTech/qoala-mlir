@@ -70,7 +70,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
                         Value qoalaHostValue = op.getOperand(argNum);
 
-                        if (failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
+                        if (context->valueIsMappedToQubit(qoalaHostValue) &&
+                            failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
                             qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
                             return failure();
                         }
@@ -118,15 +119,29 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
                 }
 
+                SmallVector<iQoalaMCOperand *> callMCOperands;
+                for (const Value callArg : op.getOperands()) {
+                    if (!context->valueIsMappedToQubit(callArg)) {
+                        // If the value is mapped to a qubit, then we don't need to use it
+                        // as an operand of the MC instruction
+                        iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(callArg);
+                        assert(regRef && "QoalaHost call op builder: operand not mapped");
+                        assert(regRef->isLocal() && "QoalaHost call op builder: mapped register is not local");
+                        callMCOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
+                    }
+                }
+
                 // We will set the callee as an "extra" operand, which will be the last of the
                 // operands of the MC instruction
                 iQoalaMCExpr *calleeSymExpr = iQoalaMCExpr::createSymbolRef(callee.str());
                 iQoalaMCOperand *calleeOperand = iQoalaMCOperand::createExprOperand(calleeSymExpr);
+                callMCOperands.push_back(calleeOperand);
 
                 // Create qoalahost MC instruction
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                     moduleTranslation, op.getOperation(), opCode,
-                    yieldedResults, localRegTypes , {calleeOperand}
+                    yieldedResults, localRegTypes , callMCOperands,
+                    /*useOpOperands=*/false
                 );
                 return instruction ? success() : failure();
             })

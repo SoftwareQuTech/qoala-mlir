@@ -173,22 +173,26 @@ namespace qoala::translate {
     LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
         const Value &qoalaHostQubitVal, const Value &localRoutineArgVal, const uint8_t argIndex) {
         // Follow the iQoala call convertion "for qubits"
-        auto localRoutine = dyn_cast<LocalRoutineOp>(localRoutineOp);
         const iQoalaContext *ctx = this->iQoalaModule->getiQoalaContext();
+        const uint32_t phyQubitID = ctx->getQubitIDFor(qoalaHostQubitVal);
         LLVM_DEBUG(llvm::dbgs() << "mapping:" << qoalaHostQubitVal << "\n");
 
         assert(ctx->valueIsMappedToQubit(qoalaHostQubitVal) && "Arg is not mapped to a qubit in the QoalaHost section.");
         LLVM_DEBUG(llvm::dbgs() << "Argument " << static_cast<unsigned>(argIndex) << " is mapped to Qubit as value: " << localRoutineArgVal <<"\n");
 
-        // TODO - Insert some instructions in the iQoala local routine, so we can "load" the
-        //  qubit argument as per the calling convention
-
-        // TODO - Create a RegReference for the qubit loaded in the iQoala local routine
-
-        // TODO - Map the internal local value to the RegReference of the convention call loaded qubit
+        // Insert a "set" instruction in the iQoala local routine, so we can "load" the
+        // qubit argument as per the calling convention
+        auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            this, localRoutineOp, NetQASMMCInstr::OP_SET,
+            {localRoutineArgVal}, {Q}, {iQoalaMCOperand::createImmediateOperand(phyQubitID)},
+            /*useOpOperands=*/false, /*appendInstruction=*/false);
+        if (!loadInstr) {
+            return failure();
+        }
+        iQoalaRoutine->addInstruction(loadInstr);
 
         // Register the qubit for the "uses" and "keeps"
-        iQoalaRoutine->registerQubit(localRoutineArgVal, ctx->getQubitIDFor(qoalaHostQubitVal));
+        iQoalaRoutine->registerQubit(localRoutineArgVal, phyQubitID);
         return success();
     }
 
@@ -310,13 +314,20 @@ namespace qoala::translate {
         }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after remote translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 
-        // Second, the main function
+        // Second, the main function and recursively, all the called routines
         for (auto mainFunc : mlirModule.getOps<MainFuncOp>()) {
             if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
                 return nullptr;
             }
         }
+        // After translating the main function and the called routines, we need to resolve
+        // all the instruction references within the local routines
+        for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
+            quantumRoutine->resolveInternalInstrRefs();
+        }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
+        // TODO - What we do with routines that are not called? We should translate them
+        //  manually and then resolve the internal instruction references
 
         // Third, everything else
         for (Operation &op : getModuleBody(originalModule).getOperations()) {
@@ -326,10 +337,6 @@ namespace qoala::translate {
             }
         }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after other translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
-        // Finally, we need to resolve all the instruction references within the local routines
-        for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
-            quantumRoutine->resolveInternalInstrRefs();
-        }
         return std::move(moduleTranslation.iQoalaModule);
     }
 }
