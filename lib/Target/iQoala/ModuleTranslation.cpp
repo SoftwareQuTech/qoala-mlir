@@ -134,11 +134,11 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *routine, Operation *localRoutineOp,
-        const Value &mlirArgValue, const uint8_t paramNum) {
+    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
+        const Value &localRoutineArgVal, const uint8_t argIndex) {
         auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
         // Immediate with the number of the argument
-        iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
+        iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(argIndex));
         // Despite this instruction yields a value, we don't need to map it to any
         // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
@@ -148,7 +148,7 @@ namespace qoala::translate {
         if (!assignInstr) {
             return failure();
         }
-        routine->addInstruction(assignInstr);
+        iQoalaRoutine->addInstruction(assignInstr);
 
         // Use the "load" instruction to actually load the value
         // Here, the yielded registry needs to be mapped to the mlir value of the function
@@ -161,14 +161,37 @@ namespace qoala::translate {
         // Pass that extra operand to create the respective load instruction
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             this, op.getOperation(), NetQASMMCInstr::OP_LOAD,
-            {mlirArgValue}, {R}, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
+            {localRoutineArgVal}, {R}, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!loadInstr) {
             return failure();
         }
-        routine->addInstruction(loadInstr);
+        iQoalaRoutine->addInstruction(loadInstr);
         return success();
     }
+
+    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
+        const Value &qoalaHostQubitVal, const Value &localRoutineArgVal, const uint8_t argIndex) {
+        // Follow the iQoala call convertion "for qubits"
+        auto localRoutine = dyn_cast<LocalRoutineOp>(localRoutineOp);
+        const iQoalaContext *ctx = this->iQoalaModule->getiQoalaContext();
+        LLVM_DEBUG(llvm::dbgs() << "mapping:" << qoalaHostQubitVal << "\n");
+
+        assert(ctx->valueIsMappedToQubit(qoalaHostQubitVal) && "Arg is not mapped to a qubit in the QoalaHost section.");
+        LLVM_DEBUG(llvm::dbgs() << "Argument " << static_cast<unsigned>(argIndex) << " is mapped to Qubit as value: " << localRoutineArgVal <<"\n");
+
+        // TODO - Insert some instructions in the iQoala local routine, so we can "load" the
+        //  qubit argument as per the calling convention
+
+        // TODO - Create a RegReference for the qubit loaded in the iQoala local routine
+
+        // TODO - Map the internal local value to the RegReference of the convention call loaded qubit
+
+        // Register the qubit for the "uses" and "keeps"
+        iQoalaRoutine->registerQubit(localRoutineArgVal, ctx->getQubitIDFor(qoalaHostQubitVal));
+        return success();
+    }
+
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
         for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
@@ -181,19 +204,21 @@ namespace qoala::translate {
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 for (auto arg : localRoutine.getArguments()) {
                     // We need to load arguments
-                    if (netqasm::blockArgIsQubit(arg)) {
-                        // Follow the "qubit" call convertion for qubits
-                        // TODO - Bring the code from QoalaHost translation
-                    } else {
+                    const uint8_t argNum = arg.getArgNumber();
+                    if (!netqasm::blockArgIsQubit(arg)) {
                         // Follow the classical call convention for other args
-                        const uint8_t argNum = arg.getArgNumber();
                         routine->addArgument(helpers::formatString(paramNameFormat, argNum));
 
                         LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
                         if (failed(this->loadClassicalArgWithCallConv(routine, localRoutine.getOperation(), arg, argNum))) {
                             return failure();
                         }
-                    }
+                    }/* else {
+                        // For qubit arguments, we will do this when processing the call operations
+                        // since we need to allocate physical qubits. Doing it later simplifies the
+                        // process to keep track of the allocated physical qubits, and which are
+                        // the MLIR values that are mapped to those qubits.
+                    }*/
                 }
                 this->iQoalaModule->addRoutine(routine);
             }

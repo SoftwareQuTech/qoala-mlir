@@ -33,8 +33,13 @@ namespace qoala::translate {
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
-        mlir::LogicalResult loadClassicalArgWithCallConv(iqoala::LocalQuantumRoutine *routine,
-            mlir::Operation *localRoutineOp, const mlir::Value &mlirArgValue, uint8_t paramNum);
+
+        /* Functions for following "call convention" for arguments in the local quantum routines */
+        mlir::LogicalResult loadClassicalArgWithCallConv(iqoala::LocalQuantumRoutine *iQoalaRoutine,
+            mlir::Operation *localRoutineOp, const mlir::Value &localRoutineArgVal, uint8_t argIndex);
+        mlir::LogicalResult loadQuantumArgWithCalConv(iqoala::LocalQuantumRoutine *iQoalaRoutine,
+            mlir::Operation *localRoutineOp, const mlir::Value &qoalaHostQubitVal,
+            const mlir::Value &localRoutineArgVal, uint8_t argIndex);
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;

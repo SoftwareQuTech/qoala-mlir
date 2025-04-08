@@ -83,7 +83,7 @@ namespace qoala::analysis::netqasm {
     }
 
     template<typename RoutineType>
-    std::map<uint32_t, Value> getRoutineArgVals(RoutineType *routine) {
+    static std::map<uint32_t, Value> getRoutineArgVals(RoutineType *routine) {
         std::map<uint32_t, Value> result;
         for (auto blockArg : routine->front().getArguments()) {
             result.emplace(blockArg.getArgNumber(), blockArg);

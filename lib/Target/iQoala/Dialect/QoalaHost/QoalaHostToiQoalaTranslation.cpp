@@ -60,27 +60,21 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const StringRef callee = op.getCallee();
 
                 if (Operation *calledFunction = netqasm::getLocalRoutineWithName(mlirModule, callee)) {
-                    // First we map the arguments to the local MLIR values.
-                    // TODO - Move this logic to moduletranslation
-                    // For the arguments, values that are already mapped to physical qubit IDs, cannot
-                    // be used as arguments in iQoala. We need to pass this information as a "uses" value
-                    // in the routine header.
                     LocalQuantumRoutine *localRoutine = iQoalaModule->getLocalRoutineByName(callee);
-                    std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+                    // First, we introduce the mappings of physical qubits used as arguments
+                    // following the call convention
+                    // Get the information about the MLIR values (block args) that model the routine args
+                    // We use this information to map the qubitID within the body of the netqasm local routine
+                    // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
+                    const std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+                    for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
+                        Value qoalaHostValue = op.getOperand(argNum);
 
-                    for (uint32_t argNum = 0;  argNum < op.getNumOperands(); argNum++) {
-                        const auto argOperand = op.getOperand(argNum);
-                        if (context->valueIsMappedToQubit(argOperand)) {
-                            LLVM_DEBUG(llvm::dbgs() << "Argument " << argNum << " is mapped to Qubit as value: " << localRoutineArgs.at(argNum) <<"\n");
-                            // TODO - Insert some instructions in the iQoala local routine, so we can "load" the
-                            //  qubit argument as per the calling convention
-                            // TODO - Create a RegReference for the qubit loaded in the iQoala local routine
-                            // TODO - Map the internal local value to the RegReference of the convention call loaded qubit
-                            // Register the qubit for the "uses" and "keeps"
-                            localRoutine->registerQubit(localRoutineArgs.at(argNum), context->getQubitIDFor(argOperand));
+                        if (failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
+                            qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
+                            return failure();
                         }
                     }
-
                     // Then we translate the called function
                     if (failed(moduleTranslation->convertOperation(*calledFunction))) {
                         return failure();
