@@ -130,6 +130,10 @@ namespace qoala::iqoala {
         assert(result.second && "Attempting to map a value that is already mapped");
     }
 
+    bool iQoalaContext::valueIsMappedToQubit(const Value &value) const {
+        return this->getQubitIDFor(value) != 0xFF;
+    }
+
     uint8_t iQoalaContext::getQubitIDFor(const Value &value) const {
         if (this->valuesToQubitIDs.contains(value)) {
             return this->valuesToQubitIDs.at(value);

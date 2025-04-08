@@ -38,6 +38,8 @@ namespace qoala::iqoala {
 
         [[nodiscard]]
         std::string getName() const { return name; }
+        [[nodiscard]]
+        virtual uint8_t getQubitNum(const mlir::Value &value) const = 0;
 
         // LLVM RTTI
         [[nodiscard]]
@@ -73,6 +75,8 @@ namespace qoala::iqoala {
         void resolveInternalInstrRefs() const;
         void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
         void releaseQubit(const mlir::Value &value);
+        [[nodiscard]]
+        uint8_t getQubitNum(const mlir::Value &value) const override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -141,6 +145,8 @@ namespace qoala::iqoala {
         void changeReqTypeToMeasure();
         void changeReqTypeToRSP();
         void addVirtualIDArg(uint32_t virtualID);
+        [[nodiscard]]
+        uint8_t getQubitNum(const mlir::Value &value) const override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check

@@ -44,6 +44,13 @@ namespace qoala::iqoala {
         }
     }
 
+    uint8_t LocalQuantumRoutine::getQubitNum(const Value &value) const {
+        if (this->qubitMap.contains(value)) {
+            return this->qubitMap.at(value);
+        }
+        return 0xFF;
+    }
+
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
     }
@@ -132,6 +139,11 @@ namespace qoala::iqoala {
         this->virtualIDs.addArg(virtualID);
     }
 
+    [[nodiscard]]
+    uint8_t RequestQuantumRoutine::getQubitNum(const Value &value) const override {
+        // TODO - Implement this map for request quantum routines!
+        return 0;
+    }
 
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {

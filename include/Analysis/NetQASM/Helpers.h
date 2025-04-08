@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include "Target/iQoala/iQoala.h"
 #include "mlir/IR/BuiltinOps.h"
 
 namespace qoala::analysis::netqasm {
@@ -25,23 +26,17 @@ namespace qoala::analysis::netqasm {
     mlir::Operation *getRequestRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
 
     /**
-     * Looks for a function with the given name inside the given MLIR module, and checks whether
-     * that function returns one or more qubits or not. If a function with the given name could
-     * not be found in the module, this function returns `false`.
+     * Looks for a function with the given name inside the given MLIR module, and creates a map between
+     * the indexes of the returned MLIR values thar represent a qubit and the physical qubit IDs allocated
+     * for those values.
      * @param mlirModule The MLIR module to search for the function.
      * @param functionName The function name to analyze.
-     * @return Whether the given function returns a pointer or not. If a function with the given
-     *         name is not found in the module, this function returns `false`.
+     * @param quantumRoutine The iQoala object that represents the quantum routine to analyze.
+     * @return A map that relates the returned indexes of qubits with the physical qubit IDs allocated
+     *         within the body of the MLIR quantum routine.
      */
-    bool localRoutineReturnsQubit(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
-
-    /**
-     * Computes the indexes of the return values that represent a qubit value.
-     * @param mlirModule The MLIR module to search for the function.
-     * @param functionName The function name to analyze.
-     * @return A vector with indexes of the return values that represent a qubit
-     */
-    std::vector<uint32_t> getReturnedQubitIndexes(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
+    std::map<uint32_t, uint8_t> getReturnedQubitsMap(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName,
+        const iqoala::QuantumRoutine *quantumRoutine);
 
     /**
      * Determines if the given block argument (value) <b>is used</b> as a qubit or not.

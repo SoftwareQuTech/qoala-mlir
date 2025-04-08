@@ -1,3 +1,5 @@
+#include <Target/iQoala/iQoala.h>
+
 #include "Analysis/NetQASM/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
@@ -19,14 +21,6 @@ namespace qoala::analysis::netqasm {
         return routineOp;
     }
 
-    template <typename RoutineOpType>
-    static void eso(RoutineOpType routine) {
-        LocalRoutineOp op;
-        op.walk([&](QAllocOp qalloc) -> void {
-
-        });
-    }
-
     Operation *getLocalRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
         return getRoutineWithName<LocalRoutineOp>(mlirModule, functionName);
     }
@@ -35,12 +29,9 @@ namespace qoala::analysis::netqasm {
         return getRoutineWithName<RequestRoutineOp>(mlirModule, functionName);
     }
 
-    bool localRoutineReturnsQubit(ModuleOp *mlirModule, const StringRef &functionName) {
-        return !getReturnedQubitIndexes(mlirModule, functionName).empty();
-    }
-
-    std::vector<uint32_t> getReturnedQubitIndexes(ModuleOp *mlirModule, const StringRef &functionName) {
-        std::vector<uint32_t> result;
+    std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
+        const iqoala::QuantumRoutine *quantumRoutine) {
+        std::map<uint32_t, uint8_t> result;
         if (auto localRoutineOp = dyn_cast_if_present<LocalRoutineOp>(getLocalRoutineWithName(mlirModule, functionName))) {
             const auto returnOps = localRoutineOp.getOps<ReturnOp>();
             assert(!returnOps.empty() && "LocalRoutineOp with no return statement.");
@@ -58,7 +49,7 @@ namespace qoala::analysis::netqasm {
                 //   a qubit.
                 if (auto definingOp = returnVal.value().getDefiningOp()) {
                     if (isa<QAllocOp>(definingOp)) {
-                        result.push_back(returnVal.index());
+                        result.emplace(returnVal.index(), quantumRoutine->getQubitNum(returnVal.value()));
                     }
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the

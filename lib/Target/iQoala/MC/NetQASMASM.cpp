@@ -36,6 +36,7 @@ namespace qoala::assembly {
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
+                LLVM_DEBUG(llvm::dbgs() << "Analyzing operand: " << operandVal << "\n");
                 iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
                 assert(regRef && "NetQASM Instruction Builder: operand not mapped");
                 assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
