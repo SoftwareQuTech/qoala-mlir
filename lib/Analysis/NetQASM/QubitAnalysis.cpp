@@ -81,4 +81,23 @@ namespace qoala::analysis::netqasm {
         }
         return false;
     }
+
+    template<typename RoutineType>
+    std::map<uint32_t, Value> getRoutineArgVals(RoutineType *routine) {
+        std::map<uint32_t, Value> result;
+        for (auto blockArg : routine->front().getArguments()) {
+            result.emplace(blockArg.getArgNumber(), blockArg);
+        }
+        return result;
+    }
+
+    std::map<uint32_t, Value> getRoutineArgValues(Operation *routine) {
+        if (auto localRoutine = dyn_cast<LocalRoutineOp>(routine)) {
+            return getRoutineArgVals(&localRoutine);
+        }
+        if (auto requestRoutine = dyn_cast<RequestRoutineOp>(routine)) {
+            return getRoutineArgVals(&requestRoutine);
+        }
+        return {};
+    }
 }

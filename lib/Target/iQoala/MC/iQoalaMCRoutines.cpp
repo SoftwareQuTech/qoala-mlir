@@ -30,6 +30,7 @@ namespace qoala::iqoala {
         assert(result.second && "Attempting to map a qubit value that has already been mapped");
 
         this->usesQubits.emplace(phyQubitNum);
+        // We eagerly mark the qubit as "keeps"... only if we qfree or measure it we delete it from the "keeps".
         this->keepsQubits.emplace(phyQubitNum);
     }
 
@@ -140,7 +141,7 @@ namespace qoala::iqoala {
     }
 
     [[nodiscard]]
-    uint8_t RequestQuantumRoutine::getQubitNum(const Value &value) const override {
+    uint8_t RequestQuantumRoutine::getQubitNum(const Value &value) const {
         // TODO - Implement this map for request quantum routines!
         return 0;
     }

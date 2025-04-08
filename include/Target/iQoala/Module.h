@@ -23,10 +23,6 @@ namespace qoala::iqoala {
         [[nodiscard]]
         RequestQuantumRoutine *getRequestRoutineByName(mlir::StringRef name) const;
         [[nodiscard]]
-        bool hasLocalRoutineWithName(const mlir::StringRef &name) const;
-        [[nodiscard]]
-        bool hasRequestRoutineWithName(const mlir::StringRef &name) const;
-        [[nodiscard]]
         std::vector<LocalQuantumRoutine *> getLocalRoutines() const;
         [[nodiscard]]
         uint8_t getClassicalSocketIDForRemote(const mlir::StringRef &remoteName) const;

@@ -45,6 +45,14 @@ namespace qoala::analysis::netqasm {
      * @return Whether the argument is a qubit or not.
      */
     bool blockArgIsQubit(const mlir::BlockArgument &blockArg);
+
+    /**
+     * Computes a map linking the indexes of the arguments and the MLIR values *inside* the
+     * routine body.
+     * @param routine The routine operation to analyze
+     * @return A map between the argument indexes and the respective MLIR values
+     */
+    std::map<uint32_t, mlir::Value> getRoutineArgValues(mlir::Operation *routine);
 }
 
 #endif //HELPERS_H

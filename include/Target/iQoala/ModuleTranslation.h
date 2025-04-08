@@ -3,7 +3,6 @@
 
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LLVM.h"
 #include "Target/iQoala/Export.h"
 #include "Target/iQoala/iQoala.h"
@@ -18,7 +17,6 @@ namespace qoala::translate {
         ModuleTranslation(mlir::ModuleOp *module,
                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
 
-        // TODO - Define the public functions that we need to place in this class
 	    mlir::LogicalResult convertOperation(mlir::Operation &op);
 	    mlir::LogicalResult convertFunctionSignatures();
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
@@ -35,6 +33,8 @@ namespace qoala::translate {
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
+        mlir::LogicalResult loadClassicalArgWithCallConv(iqoala::LocalQuantumRoutine *routine,
+            mlir::Operation *localRoutineOp, const mlir::Value &mlirArgValue, uint8_t paramNum);
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;

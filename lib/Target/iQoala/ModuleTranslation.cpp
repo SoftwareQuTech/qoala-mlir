@@ -1,6 +1,7 @@
 #include "mlir/IR/BuiltinOps.h"
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/NetQASM/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
@@ -19,6 +20,7 @@ using namespace mlir;
 using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
+using namespace qoala::analysis;
 using namespace qoala::dialects::netqasm;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::dialects::qremote;
@@ -132,14 +134,15 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    static LogicalResult loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
-        Value &mlirArgValue, const uint8_t paramNum) {
+    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *routine, Operation *localRoutineOp,
+        const Value &mlirArgValue, const uint8_t paramNum) {
+        auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
         // Immediate with the number of the argument
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
         // Despite this instruction yields a value, we don't need to map it to any
         // mlir value, so we pass "std::nullopt" as the "result" argument when building
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
+            this, op.getOperation(), NetQASMMCInstr::OP_SET,
             {}, {C}, {immediateVal},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!assignInstr) {
@@ -157,7 +160,7 @@ namespace qoala::translate {
         iQoalaRegReference *setRegRef = iQoalaRegReference::createRegReference(setResultOperand->getRegRef());
         // Pass that extra operand to create the respective load instruction
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
+            this, op.getOperation(), NetQASMMCInstr::OP_LOAD,
             {mlirArgValue}, {R}, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
             /*useOpOperands=*/false, /*appendInstruction=*/false);
         if (!loadInstr) {
@@ -177,12 +180,19 @@ namespace qoala::translate {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 for (auto arg : localRoutine.getArguments()) {
-                    const uint8_t argNum = arg.getArgNumber();
-                    routine->addArgument(helpers::formatString(paramNameFormat, argNum));
+                    // We need to load arguments
+                    if (netqasm::blockArgIsQubit(arg)) {
+                        // Follow the "qubit" call convertion for qubits
+                        // TODO - Bring the code from QoalaHost translation
+                    } else {
+                        // Follow the classical call convention for other args
+                        const uint8_t argNum = arg.getArgNumber();
+                        routine->addArgument(helpers::formatString(paramNameFormat, argNum));
 
-                    LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                    if (failed(loadArgument(this, routine, localRoutine, arg, argNum))) {
-                        return failure();
+                        LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
+                        if (failed(this->loadClassicalArgWithCallConv(routine, localRoutine.getOperation(), arg, argNum))) {
+                            return failure();
+                        }
                     }
                 }
                 this->iQoalaModule->addRoutine(routine);
@@ -273,6 +283,7 @@ namespace qoala::translate {
                 return nullptr;
             }
         }
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after remote translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 
         // Second, the main function
         for (auto mainFunc : mlirModule.getOps<MainFuncOp>()) {
@@ -280,26 +291,16 @@ namespace qoala::translate {
                 return nullptr;
             }
         }
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 
-        // Third, local routines and request routines
-        for (auto mainFunc : mlirModule.getOps<LocalRoutineOp>()) {
-            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
-                return nullptr;
-            }
-        }
-        for (auto mainFunc : mlirModule.getOps<RequestRoutineOp>()) {
-            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
-                return nullptr;
-            }
-        }
-
-        // Lastly, everything else
+        // Third, everything else
         for (Operation &op : getModuleBody(originalModule).getOperations()) {
             if (!isa<MainFuncOp, LocalRoutineOp, RequestRoutineOp, RemoteOp>(&op) &&
                 failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }
         }
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after other translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
         // Finally, we need to resolve all the instruction references within the local routines
         for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
             quantumRoutine->resolveInternalInstrRefs();

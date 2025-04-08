@@ -46,8 +46,10 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
 }
 
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
-    // TODO - Implement this dispatcher
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
+    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
+    iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
+    iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
                 return translateMainFunction(op, moduleTranslation);
@@ -56,18 +58,49 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
-                if (moduleTranslation->getQoalaModule()->hasLocalRoutineWithName(callee)) {
-                    // The qubit references returned by the local routine *must not* be used as yielded values
-                    // by this call op. This information will be kept inside the "uses" and "keeps" header section
-                    // of the local routines
-                    // In this sense, we need to map the MLIR value yielded by the return to a qubit ID in the
-                    // qoala section, so we can use this information when calling other routines later
-                    iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
-                    LocalQuantumRoutine *routine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(callee);
+
+                if (Operation *calledFunction = netqasm::getLocalRoutineWithName(mlirModule, callee)) {
+                    // First we map the arguments to the local MLIR values.
+                    // TODO - Move this logic to moduletranslation
+                    // For the arguments, values that are already mapped to physical qubit IDs, cannot
+                    // be used as arguments in iQoala. We need to pass this information as a "uses" value
+                    // in the routine header.
+                    LocalQuantumRoutine *localRoutine = iQoalaModule->getLocalRoutineByName(callee);
+                    std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+
+                    for (uint32_t argNum = 0;  argNum < op.getNumOperands(); argNum++) {
+                        const auto argOperand = op.getOperand(argNum);
+                        if (context->valueIsMappedToQubit(argOperand)) {
+                            LLVM_DEBUG(llvm::dbgs() << "Argument " << argNum << " is mapped to Qubit as value: " << localRoutineArgs.at(argNum) <<"\n");
+                            // TODO - Insert some instructions in the iQoala local routine, so we can "load" the
+                            //  qubit argument as per the calling convention
+                            // TODO - Create a RegReference for the qubit loaded in the iQoala local routine
+                            // TODO - Map the internal local value to the RegReference of the convention call loaded qubit
+                            // Register the qubit for the "uses" and "keeps"
+                            localRoutine->registerQubit(localRoutineArgs.at(argNum), context->getQubitIDFor(argOperand));
+                        }
+                    }
+
+                    // Then we translate the called function
+                    if (failed(moduleTranslation->convertOperation(*calledFunction))) {
+                        return failure();
+                    }
+
+                    // Then, we need to identify the yielded values that represent a qubit and map them
+                    // in the qoalahost section to the physical qubitID
+                    const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, localRoutine);
+
+                    for (auto &[retIndex, qubitId] : returnedQubitsMap) {
+                        const Value retValue = op.getResult(retIndex);
+                        context->mapValueToQubitID(retValue, qubitId);
+                    }
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (moduleTranslation->getQoalaModule()->hasRequestRoutineWithName(callee)) {
-                    RequestQuantumRoutine *routine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(callee);
+                if (Operation *calledFunction = netqasm::getRequestRoutineWithName(mlirModule, callee)) {
+                    // First of all, we translate the called function
+                    if (failed(moduleTranslation->convertOperation(*calledFunction))) {
+                        return failure();
+                    }
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 
@@ -76,12 +109,19 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     return failure();
                 }
 
+                // The qubit references returned by the local routine *must not* be used as yielded values
+                // by this call op. This information will be kept inside the "uses" and "keeps" header section
+                // of the local routines
+                // In this sense, we need to map the MLIR value yielded by the return to a qubit ID in the
+                // qoala section, so we can use this information when calling other routines later
                 // Prepare vectors with the results and their local register types
                 std::vector<Value> yieldedResults;
                 std::vector<iQoalaRegType> localRegTypes;
                 for (Value result : op.getResults()) {
-                    yieldedResults.push_back(result);
-                    localRegTypes.push_back(LOCAL);
+                    if (!context->valueIsMappedToQubit(result)) {
+                        yieldedResults.push_back(result);
+                        localRegTypes.push_back(LOCAL);
+                    }
                 }
 
                 // We will set the callee as an "extra" operand, which will be the last of the

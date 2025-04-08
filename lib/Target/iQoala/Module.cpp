@@ -70,24 +70,6 @@ namespace qoala::iqoala {
         return nullptr;
     }
 
-    bool iQoalaModule::hasLocalRoutineWithName(const StringRef &name) const {
-        for (const auto *localRoutine : this->iQoalaProgram.netQASMSection.getRoutines()) {
-            if (localRoutine->getName() == name) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool iQoalaModule::hasRequestRoutineWithName(const StringRef &name) const {
-        for (const auto *localRoutine : this->iQoalaProgram.requestSection.getRoutines()) {
-            if (localRoutine->getName() == name) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     std::vector<LocalQuantumRoutine *> iQoalaModule::getLocalRoutines() const {
         return this->iQoalaProgram.netQASMSection.getRoutines();
     }
