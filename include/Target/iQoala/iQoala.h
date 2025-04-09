@@ -36,10 +36,14 @@ namespace qoala::iqoala {
         QuantumRoutine(const QuantumRoutine &r) = default;
         ~QuantumRoutine() override = default;
 
+        virtual void addInstruction(assembly::NetQASMMCInstr *instruction) = 0;
         [[nodiscard]]
         std::string getName() const { return name; }
+        virtual void addArgument(const std::string &argName) = 0;
         [[nodiscard]]
         virtual uint8_t getQubitNum(const mlir::Value &value) const = 0;
+        virtual void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) = 0;
+        virtual void releaseQubit(const mlir::Value &value) = 0;
 
         // LLVM RTTI
         [[nodiscard]]
@@ -69,12 +73,12 @@ namespace qoala::iqoala {
 
         static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
-        void addInstruction(assembly::NetQASMMCInstr *instruction);
-        void addArgument(const std::string &argName);
+        void addInstruction(assembly::NetQASMMCInstr *instruction) override;
+        void addArgument(const std::string &argName) override;
         void addReturnValue(const std::string &valName);
         void resolveInternalInstrRefs() const;
-        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
-        void releaseQubit(const mlir::Value &value);
+        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
+        void releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
 
@@ -145,6 +149,10 @@ namespace qoala::iqoala {
         void changeReqTypeToMeasure();
         void changeReqTypeToRSP();
         void addVirtualIDArg(uint32_t virtualID);
+        void addArgument(const std::string &argName) override;
+        void addInstruction(assembly::NetQASMMCInstr *instruction) override;
+        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
+        void releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
 

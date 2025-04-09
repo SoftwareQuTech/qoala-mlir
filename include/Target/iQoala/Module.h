@@ -19,6 +19,8 @@ namespace qoala::iqoala {
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();
         [[nodiscard]]
+        QuantumRoutine *getRoutineByName(mlir::StringRef name) const;
+        [[nodiscard]]
         LocalQuantumRoutine *getLocalRoutineByName(mlir::StringRef name) const;
         [[nodiscard]]
         RequestQuantumRoutine *getRequestRoutineByName(mlir::StringRef name) const;

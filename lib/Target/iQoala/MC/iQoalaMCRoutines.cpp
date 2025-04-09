@@ -140,6 +140,23 @@ namespace qoala::iqoala {
         this->virtualIDs.addArg(virtualID);
     }
 
+    void RequestQuantumRoutine::addArgument(const std::string &argName) {
+        // TODO
+    }
+
+    void RequestQuantumRoutine::addInstruction(assembly::NetQASMMCInstr *instruction) {
+        // Since request routines do not have attached instructions,
+        // there is literally nothing to do here.
+    }
+
+    void RequestQuantumRoutine::registerQubit(const Value &value, uint8_t phyQubitNum) {
+        // TODO
+    }
+
+    void RequestQuantumRoutine::releaseQubit(const Value &value) {
+        // TODO
+    }
+
     [[nodiscard]]
     uint8_t RequestQuantumRoutine::getQubitNum(const Value &value) const {
         // TODO - Implement this map for request quantum routines!

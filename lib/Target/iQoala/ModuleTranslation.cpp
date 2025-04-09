@@ -170,7 +170,7 @@ namespace qoala::translate {
         return success();
     }
 
-    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
+    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(QuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
         const Value &qoalaHostQubitVal, const Value &localRoutineArgVal, const uint8_t argIndex) {
         // Follow the iQoala call convertion "for qubits"
         const iQoalaContext *ctx = this->iQoalaModule->getiQoalaContext();
@@ -257,9 +257,11 @@ namespace qoala::translate {
                 }
             }
 
-            // We simply create the routine. Since request routines do not accept arguments,
-            // we don't need to process them
+            auto *reqRoutine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
+
+            // We process the arguments of the request routine.
             for (auto argument : requestRoutine.getArguments()) {
+                // The arguments *must* be qubit references
                 if(!argument.getUses().empty()) {
                     // Request routines do not support using the arguments
                     // We check that, if there are arguments, at least they are not used
@@ -273,11 +275,20 @@ namespace qoala::translate {
                     requestRoutine.emitOpError(errorMessage);
                     return failure();
                 }
+                const uint8_t argNum = argument.getArgNumber();
+                if (!netqasm::blockArgIsQubit(argument)) {
+                    // Follow the classical call convention for other args
+                    reqRoutine->addArgument(helpers::formatString(paramNameFormat, argNum));
+
+                    LLVM_DEBUG(llvm::dbgs() << "Arg " << argument << "\n");
+                    if (failed(this->loadQuantumArgWithCalConv(reqRoutine, requestRoutine.getOperation(), argument, argNum))) {
+                        return failure();
+                    }
+                }
             }
-            auto *routine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
             const uint8_t phyQubitNum = this->iQoalaModule->getiQoalaContext()->allocateQubit();
-            routine->addVirtualIDArg(phyQubitNum);
-            this->iQoalaModule->addRoutine(routine);
+            reqRoutine->addVirtualIDArg(phyQubitNum);
+            this->iQoalaModule->addRoutine(reqRoutine);
         }
         return success();
     }
