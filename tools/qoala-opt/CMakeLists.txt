@@ -5,6 +5,12 @@ set(LIBS
     ${conversion_libs}
     MLIROptLib
     )
-add_llvm_executable(qoala-opt qoala-opt.cpp)
+add_mlir_tool(qoala-opt
+    qoala-opt.cpp
+
+    DEPENDS
+    ${LIBS}
+)
 llvm_update_compile_flags(qoala-opt)
 target_link_libraries(qoala-opt PRIVATE ${LIBS})
+mlir_check_all_link_libraries(qoala-opt)
