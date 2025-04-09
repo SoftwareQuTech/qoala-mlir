@@ -113,7 +113,8 @@ namespace qoala::assembly {
                 type = CL;
                 break;
             case OP_RETURN_RESULT:
-                // TODO - assert the operands
+                assert(mcOperands.size() == 1 && "QoalaHost instruction builder: return_result operation returns more than 1 value");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost instruction builder: return_result operation returns a value that is not a register");
                 type = CL;
                 break;
             case OP_SEND_MSG:
