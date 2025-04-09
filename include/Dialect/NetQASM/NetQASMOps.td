@@ -21,6 +21,7 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/NetQASM/NetQASMDialect.td"
+include "Analysis/Helpers/NetQASMInterfaces.td"
 
 
 class NetQASM_Op<string mnemonic, list<Trait> traits = []> :
@@ -87,7 +88,7 @@ class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
 
 def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
-        IsolatedFromAbove, Symbol]> {
+        IsolatedFromAbove, Symbol, DeclareOpInterfaceMethods<NetQASMRoutineInterface>]> {
     let summary = "Function declaration/definition for a netqasm local routine";
     let description = [{
         This function declaration operation differs from func.func operation in
@@ -135,7 +136,7 @@ def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
 
 def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
-        IsolatedFromAbove, Symbol]> {
+        IsolatedFromAbove, Symbol, DeclareOpInterfaceMethods<NetQASMRoutineInterface>]> {
     let summary = "Function declaration/definition for a netqasm request routine";
     let description = [{
         This function declaration operation differs from func.func operation in
