@@ -10,8 +10,7 @@ namespace qoala::assembly {
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
         const bool appendInstruction) {
         SmallVector<iQoalaMCOperand *> mcOperands;
-        std::vector<iQoalaRegReference *>resRegRefs;
-        uint32_t mcOperandsLength = 0;
+        SmallVector<iQoalaRegReference *>resRegRefs;
 
         for (const iQoalaRegType resultRegType : resultRegTypes) {
             const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType);
@@ -30,7 +29,6 @@ namespace qoala::assembly {
         }
 
         if (useOpOperands) {
-            mcOperandsLength = op->getNumOperands();
             for (const Value operandVal : op->getOperands()) {
                 iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
                 assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
@@ -91,13 +89,16 @@ namespace qoala::assembly {
             case OP_RUN_SUBROUTINE:
             case OP_RUN_REQUEST:
                 // The total number of operands should be:
-                assert(mcOperands.size() == resRegRefs.size() + mcOperandsLength + extraOperands.size() && "Qoalahost instruction builder: call operation has invalid number of operands");
+                // We don't consider the size of mcOperands, since for these types of operations, we expect them
+                // to be included manually as "extraOperands", since arguments used as qubits must not be included
+                // as function arguments.
+                assert(mcOperands.size() == resRegRefs.size() + extraOperands.size() && "Qoalahost instruction builder: call operation has invalid number of operands");
                 // Assert the yielded results
                 for (; i < resRegRefs.size(); i++) {
                     assert(mcOperands[i]->isLocalRegister() && "Qoalahost instruction builder: call operation result is not a local register operand");
                 }
                 // Assert the arguments of the function
-                for (; (i - resRegRefs.size()) < mcOperandsLength; i++) {
+                for (; (i - resRegRefs.size()) < (extraOperands.size() - 1); i++) {
                     assert(mcOperands[i]->isLocalRegister() && "Qoalahost instruction builder: call operation argument is not a local register operand");
                 }
                 // Last operand must be the callee
