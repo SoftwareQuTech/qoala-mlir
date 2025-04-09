@@ -45,11 +45,49 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
     return success();
 }
 
+static LogicalResult processCallToLocalRoutine(ModuleTranslation *moduleTranslation, CallOp &op,
+    Operation *calledFunction, const StringRef &callee) {
+    const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
+    iQoalaContext *context = iQoalaModule->getiQoalaContext();
+    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
+
+    LocalQuantumRoutine *localRoutine = iQoalaModule->getLocalRoutineByName(callee);
+    // First, we introduce the mappings of physical qubits used as arguments
+    // following the call convention
+    // Get the information about the MLIR values (block args) that model the routine args
+    // We use this information to map the qubitID within the body of the netqasm local routine
+    // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
+    const std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+    for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
+        Value qoalaHostValue = op.getOperand(argNum);
+
+        if (context->valueIsMappedToQubit(qoalaHostValue) &&
+            failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
+            qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
+                return failure();
+            }
+    }
+    // Then we translate the called function
+    if (failed(moduleTranslation->convertOperation(*calledFunction))) {
+        return failure();
+    }
+
+    // Then, we need to identify the yielded values that represent a qubit and map them
+    // in the qoalahost section to the physical qubitID
+    const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, localRoutine);
+
+    for (auto &[retIndex, qubitId] : returnedQubitsMap) {
+        const Value retValue = op.getResult(retIndex);
+        context->mapValueToQubitID(retValue, qubitId);
+    }
+    return success();
+}
+
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
-    iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
-    iQoalaContext *context = iQoalaModule->getiQoalaContext();
+    const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
+    const iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
                 return translateMainFunction(op, moduleTranslation);
@@ -60,34 +98,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const StringRef callee = op.getCallee();
 
                 if (Operation *calledFunction = netqasm::getLocalRoutineWithName(mlirModule, callee)) {
-                    LocalQuantumRoutine *localRoutine = iQoalaModule->getLocalRoutineByName(callee);
-                    // First, we introduce the mappings of physical qubits used as arguments
-                    // following the call convention
-                    // Get the information about the MLIR values (block args) that model the routine args
-                    // We use this information to map the qubitID within the body of the netqasm local routine
-                    // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
-                    const std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
-                    for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
-                        Value qoalaHostValue = op.getOperand(argNum);
-
-                        if (context->valueIsMappedToQubit(qoalaHostValue) &&
-                            failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
-                            qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
-                            return failure();
-                        }
-                    }
-                    // Then we translate the called function
-                    if (failed(moduleTranslation->convertOperation(*calledFunction))) {
+                    if (failed(processCallToLocalRoutine(moduleTranslation, op, calledFunction, callee))) {
                         return failure();
-                    }
-
-                    // Then, we need to identify the yielded values that represent a qubit and map them
-                    // in the qoalahost section to the physical qubitID
-                    const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, localRoutine);
-
-                    for (auto &[retIndex, qubitId] : returnedQubitsMap) {
-                        const Value retValue = op.getResult(retIndex);
-                        context->mapValueToQubitID(retValue, qubitId);
                     }
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
@@ -119,6 +131,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
                 }
 
+                // We also need to check the operands; if the value used as operand is
+                // mapped to a qubit, then we don't need to pass it as a routine argument.
                 SmallVector<iQoalaMCOperand *> callMCOperands;
                 for (const Value callArg : op.getOperands()) {
                     if (!context->valueIsMappedToQubit(callArg)) {

@@ -54,6 +54,7 @@ namespace qoala::analysis::netqasm {
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the
                     //  qoalahost section and check if it is marked as qubit there
+                    assert(false && "Function returns an argument.");
                 }
             }
         }
