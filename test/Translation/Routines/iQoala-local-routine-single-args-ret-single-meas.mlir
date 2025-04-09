@@ -7,9 +7,11 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
+// This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
+// This call does not required an argument, since __qoala_wrapper "uses 0"
+// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
 // CHECK: b[[BLOCK2:.*]] { type = CL }
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -41,16 +43,15 @@
 //   add the physical id in the "uses" section, and map the argument value as
 //   one of the physical qubits used.
 // CHECK: SUBROUTINE __qoala_wrapper1
-// CHECK-NEXT: params: p0
-// CHECK-NEXT: returns: m0
+// CHECK-NEXT: params:
+// CHECK-NEXT: returns:
 // CHECK-NEXT: uses: [[QUBIT0:.+]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: {{[[:space:]]}}
 // CHECK-SAME: NETQASM_START
-// CHECK-NEXT: set [[CREG0:.*]] [[QUBIT0]]
-// CHECK-NEXT: load [[RREG0:.*]] @input[[[CREG0]]]
-// CHECK-NEXT: meas [[RREG0]] [[M_REG0:.*]]
-// CHECK-NEXT: store [[M_REG0]] @output[0]
+// CHECK-NEXT: set [[QREG0:.*]] [[QUBIT0]]
+// CHECK-NEXT: meas [[QREG0]] [[MREG0:.*]]
+// CHECK-NEXT: store [[MREG0]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
 module {
@@ -71,7 +72,7 @@ module {
     // first block of the main function
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
     ^bb1:
-        %1 = qoalahost.call @__qoala_wrapper0(%0) : (i32) -> i1
+        %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
     ^bb2:
         qoalahost.return
   }
