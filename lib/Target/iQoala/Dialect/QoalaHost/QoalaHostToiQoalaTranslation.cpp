@@ -45,13 +45,18 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
     return success();
 }
 
-static LogicalResult processCallToLocalRoutine(ModuleTranslation *moduleTranslation, CallOp &op,
-    Operation *calledFunction, const StringRef &callee) {
+static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
+    const std::string calleeStr = callee.str();
 
-    LocalQuantumRoutine *localRoutine = iQoalaModule->getLocalRoutineByName(callee);
+    Operation *calledFunction =  netqasm::getRoutineWithName(mlirModule, callee);
+    if (!calledFunction) {
+        return failure();
+    }
+
+    QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
     // First, we introduce the mappings of physical qubits used as arguments
     // following the call convention
     // Get the information about the MLIR values (block args) that model the routine args
@@ -62,7 +67,7 @@ static LogicalResult processCallToLocalRoutine(ModuleTranslation *moduleTranslat
         Value qoalaHostValue = op.getOperand(argNum);
 
         if (context->valueIsMappedToQubit(qoalaHostValue) &&
-            failed(moduleTranslation->loadQuantumArgWithCalConv(localRoutine, calledFunction,
+            failed(moduleTranslation->loadQuantumArgWithCalConv(routine, calledFunction,
             qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
                 return failure();
             }
@@ -74,7 +79,7 @@ static LogicalResult processCallToLocalRoutine(ModuleTranslation *moduleTranslat
 
     // Then, we need to identify the yielded values that represent a qubit and map them
     // in the qoalahost section to the physical qubitID
-    const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, localRoutine);
+    const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, routine);
 
     for (auto &[retIndex, qubitId] : returnedQubitsMap) {
         const Value retValue = op.getResult(retIndex);
@@ -96,18 +101,17 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
+                const std::string calleeStr = callee.str();
 
-                if (Operation *calledFunction = netqasm::getLocalRoutineWithName(mlirModule, callee)) {
-                    if (failed(processCallToLocalRoutine(moduleTranslation, op, calledFunction, callee))) {
-                        return failure();
-                    }
+                if (failed(processCallToRoutine(moduleTranslation, op, callee))) {
+                    return failure();
+                }
+
+                // Compute the right opcode
+                if (netqasm::hasLocalRoutineWithName(mlirModule, callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (Operation *calledFunction = netqasm::getRequestRoutineWithName(mlirModule, callee)) {
-                    // First of all, we translate the called function
-                    if (failed(moduleTranslation->convertOperation(*calledFunction))) {
-                        return failure();
-                    }
+                if (netqasm::hasRequestRoutineWithName(mlirModule, callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 

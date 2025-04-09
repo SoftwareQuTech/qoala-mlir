@@ -6,24 +6,30 @@
 
 namespace qoala::analysis::netqasm {
     /**
-     * Searches for a given <b>local routine</b> operation in the given MLIR module. If not found, this
-     * function returns `nullptr`.
+     * Determines if there is a <b>local routine</b> operation in the given MLIR module.
      * @param mlirModule The MLIR module to search for the function.
      * @param functionName The function name to search for.
-     * @return An `mlir::Operation` pointer to the found function, `nullptr` if a function with the name was
-     *         not found. The returned pointer can safely be casted to `qoala::dialects::netqasm::LocalRoutineOp`.
+     * @return `true` if there is a `LocalRoutineOp` with the given name. `false` otherwise.
      */
-    mlir::Operation *getLocalRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
+    bool hasLocalRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
 
     /**
-     * Searches for a given <b>request routine</b> operation in the given MLIR module. If not found, this
+     * Determines if there is a <b>local routine</b> operation in the given MLIR module.
+     * @param mlirModule The MLIR module to search for the function.
+     * @param functionName The function name to search for.
+     * @return `true` if there is a `LocalRoutineOp` with the given name. `false` otherwise.
+     */
+    bool hasRequestRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
+
+    /**
+     * Searches for a given <b>request or local routine</b> operation in the given MLIR module. If not found, this
      * function returns `nullptr`.
      * @param mlirModule The MLIR module to search for the function.
      * @param functionName The function name to search for.
      * @return An `mlir::Operation` pointer to the found function, `nullptr` if a function with the name was
      *         not found. The returned pointer can safely be casted to `qoala::dialects::netqasm::RequestRoutineOp`.
      */
-    mlir::Operation *getRequestRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
+    mlir::Operation *getRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
 
     /**
      * Looks for a function with the given name inside the given MLIR module, and creates a map between

@@ -275,16 +275,6 @@ namespace qoala::translate {
                     requestRoutine.emitOpError(errorMessage);
                     return failure();
                 }
-                const uint8_t argNum = argument.getArgNumber();
-                if (!netqasm::blockArgIsQubit(argument)) {
-                    // Follow the classical call convention for other args
-                    reqRoutine->addArgument(helpers::formatString(paramNameFormat, argNum));
-
-                    LLVM_DEBUG(llvm::dbgs() << "Arg " << argument << "\n");
-                    if (failed(this->loadQuantumArgWithCalConv(reqRoutine, requestRoutine.getOperation(), argument, argNum))) {
-                        return failure();
-                    }
-                }
             }
             const uint8_t phyQubitNum = this->iQoalaModule->getiQoalaContext()->allocateQubit();
             reqRoutine->addVirtualIDArg(phyQubitNum);

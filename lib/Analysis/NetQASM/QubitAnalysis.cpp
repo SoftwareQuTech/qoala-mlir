@@ -21,23 +21,28 @@ namespace qoala::analysis::netqasm {
         return routineOp;
     }
 
-    Operation *getLocalRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        return getRoutineWithName<LocalRoutineOp>(mlirModule, functionName);
+    bool hasLocalRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
+        return getRoutineWithName<LocalRoutineOp>(mlirModule, functionName) != nullptr;
     }
 
-    Operation *getRequestRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
+    bool hasRequestRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
+        return getRoutineWithName<RequestRoutineOp>(mlirModule, functionName) != nullptr;
+    }
+
+    Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
+        if (const auto localRoutine = getRoutineWithName<LocalRoutineOp>(mlirModule, functionName)) {
+            return localRoutine;
+        }
         return getRoutineWithName<RequestRoutineOp>(mlirModule, functionName);
     }
 
     std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
         const iqoala::QuantumRoutine *quantumRoutine) {
         std::map<uint32_t, uint8_t> result;
-        if (auto localRoutineOp = dyn_cast_if_present<LocalRoutineOp>(getLocalRoutineWithName(mlirModule, functionName))) {
-            const auto returnOps = localRoutineOp.getOps<ReturnOp>();
-            assert(!returnOps.empty() && "LocalRoutineOp with no return statement.");
+        if (auto routineOp = dyn_cast_if_present<helpers::NetQASMRoutineInterface>(getRoutineWithName(mlirModule, functionName))) {
+            const auto returnOp = routineOp.getReturnOperation();
 
-            auto returnOp = *returnOps.begin();
-            for (auto returnVal : llvm::enumerate(returnOp.getOperands())) {
+            for (auto returnVal : llvm::enumerate(returnOp->getOperands())) {
                 // Assumption: In general, local routines return either qubit references
                 // OR measurement values, but NOT both (mixed value types).
                 // Being this said, we have two options to check if the local routine
