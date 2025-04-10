@@ -101,28 +101,32 @@ static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslatio
 
 static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
+    const iQoalaModule *module = moduleTranslation->getQoalaModule();
+    iQoalaContext *context = module->getiQoalaContext();
     // This is the main "dispatcher" for translating operations belonging to NetQASM dialect
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
         .Case([&](QAllocOp op) -> LogicalResult {
             if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
                 // We need to report to the RequestRoutine object that we are creating 1 entangled pair
                 const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
-                RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
-                reqRoutine->addEntangledPair();
+                RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
+                const uint32_t phyQubitID = context->allocateQubit();
+                reqRoutine->addEntangledQubitID(phyQubitID);
+                reqRoutine->registerQubit(op.getResult(), phyQubitID);
                 // The registration of the remote (remoteID and eprsSocketID) will be done when
                 // processing the eprs instruction.
                 return success();
             }
 
             SmallVector<iQoalaMCOperand *> processedOperands;
-            const uint32_t numQubit = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateQubit();
+            const uint32_t numQubit = context->allocateQubit();
             iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(numQubit);
             processedOperands.push_back(immediateVal);
 
             // Register the allocated qubit in the "uses" and (preemptively) in the "keep" section
             // of the local routine header
             const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(operation);
-            LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
             assert(quantumRoutine && "NetQASM call: unknown local routine!");
 
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
@@ -135,7 +139,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](QFreeOp op) -> LogicalResult {
             // For the free operations, we simply register the qubit as not kept
             const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(operation);
-            LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
             assert(quantumRoutine && "NetQASM qfree: unknown local routine!");
 
             quantumRoutine->releaseQubit(op.getQ());
@@ -167,13 +171,15 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 // are returning the measurement of a qubit, hence the type of the request operation
                 // must be changed to "create_measure"
                 const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
-                RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
+                RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
                 if (operation->getOperandTypes()[0].isInteger(1)) {
                     reqRoutine->changeReqTypeToMeasure();
                 }
                 for (uint32_t i = 0; i < op.getNumOperands(); i++) {
                     // We also need to report the returned variable name
-                    reqRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
+                    if (reqRoutine->getQubitNum(op.getOperand(i)) == 0xFF) {
+                        reqRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
+                    }
                 }
                 return success();
             }
@@ -220,7 +226,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             }
             // Since measurements release the qubit, we need to register the qubit as not kept
             const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
-            LocalQuantumRoutine *quantumRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+            LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
             assert(quantumRoutine && "NetQASM measure: unknown local routine!");
 
             quantumRoutine->releaseQubit(op.getQ());
@@ -232,12 +238,12 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         })
         .Case([&](EprsOp op) -> LogicalResult {
             const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
-            RequestQuantumRoutine *reqRoutine = moduleTranslation->getQoalaModule()->getRequestRoutineByName(reqRoutineName);
+            RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
             // The registration of the remote (remoteID and eprsSocketID)
             // Search for the Remote name and its eprsSocketID in the module
             const StringRef remoteName = op.getRemoteAttr().getValue();
-            const uint8_t eprsSocketID = moduleTranslation->getQoalaModule()->getEPRSSocketIDForRemote(remoteName);
-            const std::string remoteParamName = moduleTranslation->getQoalaModule()->getParamNameForRemote(remoteName.str());
+            const uint8_t eprsSocketID = module->getEPRSSocketIDForRemote(remoteName);
+            const std::string remoteParamName = module->getParamNameForRemote(remoteName.str());
             reqRoutine->reportRemote(remoteParamName, eprsSocketID);
             return success();
         })

@@ -41,9 +41,9 @@ namespace qoala::iqoala {
         std::string getName() const { return name; }
         virtual void addArgument(const std::string &argName) = 0;
         [[nodiscard]]
-        virtual uint8_t getQubitNum(const mlir::Value &value) const = 0;
-        virtual void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) = 0;
-        virtual void releaseQubit(const mlir::Value &value) = 0;
+        virtual uint8_t getQubitNum(const mlir::Value &value) const;
+        virtual void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
+        virtual uint8_t releaseQubit(const mlir::Value &value);
 
         // LLVM RTTI
         [[nodiscard]]
@@ -52,6 +52,8 @@ namespace qoala::iqoala {
         // LLVM RTTI kind
         const QuantumRoutineKind kind;
     protected:
+        // Map to keep track of the *local* mlir value (within the local/request routine) with its physical qubit num
+        mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
         std::string name;
     };
 
@@ -78,7 +80,7 @@ namespace qoala::iqoala {
         void addReturnValue(const std::string &valName);
         void resolveInternalInstrRefs() const;
         void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
-        void releaseQubit(const mlir::Value &value) override;
+        uint8_t releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
 
@@ -98,8 +100,6 @@ namespace qoala::iqoala {
         std::vector<std::string> returns;
         // The list of NetQASM MC instructions for this local quantum routine
         std::vector<assembly::NetQASMMCInstr *> instructions;
-        // Map to keep track of the *local* mlir value (within the local_routine) with its physical qubit num
-        mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
     };
 
     class VirtualIDs {
@@ -130,7 +130,7 @@ namespace qoala::iqoala {
             callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
             QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
-            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
+            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), entangledQubitsIDs(r.entangledQubitsIDs),
             virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
             instructions(r.instructions) { }
         ~RequestQuantumRoutine() override {
@@ -141,10 +141,8 @@ namespace qoala::iqoala {
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
-        void addEntangledPair();
+        void addEntangledQubitID(uint32_t phyQubitID);
         void addReturnValue(const std::string &valName);
-        [[nodiscard]]
-        unsigned int getNumPairs() const;
         void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
         void changeReqTypeToMeasure();
         void changeReqTypeToRSP();
@@ -152,7 +150,7 @@ namespace qoala::iqoala {
         void addArgument(const std::string &argName) override;
         void addInstruction(assembly::NetQASMMCInstr *instruction) override;
         void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
-        void releaseQubit(const mlir::Value &value) override;
+        uint8_t releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
 
@@ -171,9 +169,9 @@ namespace qoala::iqoala {
         // The name of the remote to entangle with
         std::string remoteID;
         // The id of the EPR socket to use
-        unsigned int eprSocketID = 0;
-        // The number of the pairs provided by this request routine
-        unsigned int numPairs = 0;
+        uint32_t eprSocketID = 0;
+        // The local physical IDs of the entangled qubits pairs provided by this request routine
+        std::vector<uint32_t> entangledQubitsIDs;
         // The method to handle virtual IDs for the entangled qubits
         VirtualIDs virtualIDs;
         // The minimum fidelity value for the communication
