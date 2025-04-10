@@ -117,6 +117,10 @@ namespace qoala::iqoala {
         }
     }
 
+    void LocalQuantumRoutine::finalizeRoutine() {
+        // Nothing to do here
+    }
+
     void VirtualIDs::addArg(uint32_t arg) {
         this->args.push_back(arg);
     }
@@ -124,6 +128,21 @@ namespace qoala::iqoala {
     void VirtualIDs::setType(const VirtualIDType type) {
         this->type = type;
     }
+
+    void VirtualIDs::resolve() {
+        if (this->args.size() == 1) {
+            this->type = ALL;
+            return;
+        }
+
+        for (uint32_t i = 1; i < this->args.size(); i++) {
+            if (this->args[i-1] + 1 != this->args[i]) {
+                this->type = CUSTOM;
+            }
+        }
+        this->type = INCREMENT;
+    }
+
 
     void RequestQuantumRoutine::addEntangledQubitID(const uint32_t phyQubitID) {
         this->entangledQubitsIDs.push_back(phyQubitID);
@@ -172,6 +191,11 @@ namespace qoala::iqoala {
         return QuantumRoutine::getQubitNum(value);
     }
 
+    void RequestQuantumRoutine::finalizeRoutine() {
+        // We resolve the virtual IDs method depending on how thw qubit IDs were assigned
+        this->virtualIDs.resolve();
+    }
+
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
@@ -190,7 +214,7 @@ namespace qoala::iqoala {
                 os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::INCREMENT:
-                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::max_element(virtualIDs.args.begin(), virtualIDs.args.end()));
+                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
                 os << "custom " << helpers::formatVector(virtualIDs.args);

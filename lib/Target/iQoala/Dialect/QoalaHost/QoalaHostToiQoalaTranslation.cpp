@@ -51,7 +51,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
     const std::string calleeStr = callee.str();
 
-    Operation *calledFunction =  netqasm::getRoutineWithName(mlirModule, callee);
+    Operation *calledFunction = netqasm::getRoutineWithName(mlirModule, callee);
     if (!calledFunction) {
         return failure();
     }
@@ -86,6 +86,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         const Value retValue = op.getResult(retIndex);
         context->mapValueToQubitID(retValue, qubitId);
     }
+    routine->finalizeRoutine();
     return success();
 }
 

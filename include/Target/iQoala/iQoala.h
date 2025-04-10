@@ -44,6 +44,7 @@ namespace qoala::iqoala {
         virtual uint8_t getQubitNum(const mlir::Value &value) const;
         virtual void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
         virtual uint8_t releaseQubit(const mlir::Value &value);
+        virtual void finalizeRoutine() = 0;
 
         // LLVM RTTI
         [[nodiscard]]
@@ -83,6 +84,7 @@ namespace qoala::iqoala {
         uint8_t releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
+        void finalizeRoutine() override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -112,6 +114,7 @@ namespace qoala::iqoala {
 
         void addArg(uint32_t arg);
         void setType(VirtualIDType type);
+        void resolve();
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
@@ -153,6 +156,7 @@ namespace qoala::iqoala {
         uint8_t releaseQubit(const mlir::Value &value) override;
         [[nodiscard]]
         uint8_t getQubitNum(const mlir::Value &value) const override;
+        void finalizeRoutine() override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
