@@ -240,9 +240,10 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
         .Case([&](EprsOp op) -> LogicalResult {
             const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
             RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
+            // Mark the allocated qubit as entangled
+            reqRoutine->addEntangledQubitID(reqRoutine->getQubitNum(op.getQ()));
             // The registration of the remote (remoteID and eprsSocketID)
             // Search for the Remote name and its eprsSocketID in the module
-            reqRoutine->addEntangledQubitID(reqRoutine->getQubitNum(op.getQ()));
             const StringRef remoteName = op.getRemoteAttr().getValue();
             const uint8_t eprsSocketID = module->getEPRSSocketIDForRemote(remoteName);
             const std::string remoteParamName = module->getParamNameForRemote(remoteName.str());
