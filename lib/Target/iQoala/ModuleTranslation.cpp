@@ -327,12 +327,13 @@ namespace qoala::translate {
             quantumRoutine->resolveInternalInstrRefs();
         }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
-        // TODO - What we do with routines that are not called? We should translate them
-        //  manually and then resolve the internal instruction references
 
-        // Third, everything else
+        // Third, everything else... that has not been visited yet
         for (Operation &op : getModuleBody(originalModule).getOperations()) {
-            if (!isa<MainFuncOp, LocalRoutineOp, RequestRoutineOp, RemoteOp>(&op) &&
+            // If a local/request routine gets translated here, it means that it is not called
+            // from the qoalahost section. Should we consider it as dead code and delete them?
+            // Note: We filter out RemoteOps, since they were already translated before
+            if (!isa<RemoteOp>(&op) && !iQoalaContext.isOperationVisited(&op) &&
                 failed(moduleTranslation.convertOperation(op))) {
                 return nullptr;
             }

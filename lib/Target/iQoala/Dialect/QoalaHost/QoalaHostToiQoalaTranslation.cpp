@@ -55,6 +55,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     if (!calledFunction) {
         return failure();
     }
+    context->markOperationAsVisited(calledFunction);
 
     QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
     // First, we introduce the mappings of physical qubits used as arguments
@@ -92,9 +93,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
-    const iQoalaContext *context = iQoalaModule->getiQoalaContext();
+    iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
+                context->markOperationAsVisited(op.getOperation());
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {

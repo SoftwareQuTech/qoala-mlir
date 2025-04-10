@@ -42,6 +42,8 @@ namespace qoala::iqoala {
         bool valueIsMappedToQubit(const mlir::Value &value) const;
         [[nodiscard]]
         uint8_t getQubitIDFor(const mlir::Value &value) const;
+        void markOperationAsVisited(mlir::Operation *operation);
+        bool isOperationVisited(const mlir::Operation *operation) const;
 
     private:
         // Structures to keep track of the host registers.
@@ -55,6 +57,8 @@ namespace qoala::iqoala {
         llvm::StringMap<unsigned int> eprsSocketIDs;
         // Map for the remoteNames -> classicalSocketID
         llvm::StringMap<unsigned int> classicalSocketIDs;
+        // Set for keeping track of the visited (translated) operations of the module
+        llvm::SmallPtrSet<mlir::Operation *, 32> visitedOps;
     };
 }
 #endif //IQOLACONTEXT_H

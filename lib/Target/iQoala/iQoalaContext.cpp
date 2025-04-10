@@ -140,4 +140,11 @@ namespace qoala::iqoala {
         }
         return 0xFF;
     }
+    void iQoalaContext::markOperationAsVisited(Operation *operation) {
+        this->visitedOps.insert(operation);
+    }
+
+    bool iQoalaContext::isOperationVisited(const Operation *operation) const {
+        return this->visitedOps.contains(operation);
+    }
 };
