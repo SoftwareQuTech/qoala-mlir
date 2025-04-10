@@ -111,8 +111,9 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
                 RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
                 const uint32_t phyQubitID = context->allocateQubit();
-                reqRoutine->addEntangledQubitID(phyQubitID);
+                LLVM_DEBUG(llvm::dbgs() << "!!!!!!!!!!!!! Allocated qubit: " << phyQubitID << "\n");
                 reqRoutine->registerQubit(op.getResult(), phyQubitID);
+                reqRoutine->addVirtualIDArg(phyQubitID);
                 // The registration of the remote (remoteID and eprsSocketID) will be done when
                 // processing the eprs instruction.
                 return success();
@@ -241,6 +242,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
             // The registration of the remote (remoteID and eprsSocketID)
             // Search for the Remote name and its eprsSocketID in the module
+            reqRoutine->addEntangledQubitID(reqRoutine->getQubitNum(op.getQ()));
             const StringRef remoteName = op.getRemoteAttr().getValue();
             const uint8_t eprsSocketID = module->getEPRSSocketIDForRemote(remoteName);
             const std::string remoteParamName = module->getParamNameForRemote(remoteName.str());

@@ -276,8 +276,6 @@ namespace qoala::translate {
                     return failure();
                 }
             }
-            const uint8_t phyQubitNum = this->iQoalaModule->getiQoalaContext()->allocateQubit();
-            reqRoutine->addVirtualIDArg(phyQubitNum);
             this->iQoalaModule->addRoutine(reqRoutine);
         }
         return success();

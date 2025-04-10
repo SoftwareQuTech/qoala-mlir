@@ -91,9 +91,9 @@ namespace qoala::iqoala {
         }
     private:
         // The list of physical qubits this routine uses
-        std::set<unsigned int> usesQubits;
+        std::set<uint32_t> usesQubits;
         // The list of physical qubits this routine keeps (and does not free automatically)
-        std::set<unsigned int> keepsQubits;
+        std::set<uint32_t> keepsQubits;
         // The names of the registries where to find the params
         std::vector<std::string> params;
         // The names of the registries that are used to return values
@@ -115,7 +115,7 @@ namespace qoala::iqoala {
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
-        std::vector<unsigned int> args;
+        std::vector<uint32_t> args;
     };
 
     /* A class representing a single request quantum routine */
@@ -244,8 +244,8 @@ namespace qoala::iqoala {
         // Can be i32 or f32, but for some reason, these are just "strings" in the examples from qoala-sim
         std::vector<std::string> globalParams;
         // Maps for classical ane epr sockets Remote_name (str) -> socket_id (int)
-        std::map<std::string, unsigned int> classicalSocketsMap;
-        std::map<std::string, unsigned int> eprsSocketsMap;
+        std::map<std::string, uint32_t> classicalSocketsMap;
+        std::map<std::string, uint32_t> eprsSocketsMap;
         // Map between remote names and its globalParam name
         std::map<std::string, std::string> remoteParamNames;
     };
