@@ -9,12 +9,24 @@
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
-// CHECK-NEXT: run_subroutine() : __qoala_wrapper0
+// CHECK-NEXT: run_request() : __qoala_wrapper0
 // CHECK: b[[BLOCK2:.*]] { type = CL }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper1
 // CHECK: b[[BLOCK3:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG2]])
+
+// CHECK: SUBROUTINE __qoala_wrapper1
+// Used qubits should not be marked as parameters
+// CHECK-NEXT: params:
+// CHECK-NEXT: returns: m0
+// CHECK-NEXT: uses: [[QUBIT0:.*]]
+// CHECK-NEXT: keeps:
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
+// CHECK-NEXT: meas [[QUBIT_REG0]] [[M_REG0:.*]]
+// CHECK-NEXT: store [[M_REG0]] @output[0]
+// CHECK-NEXT: NETQASM_END
 
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential
@@ -28,18 +40,6 @@
 // CHECK-NEXT: fidelity: 1.000000e+00
 // CHECK-NEXT: type: create_keep
 // CHECK-NEXT: role: create
-
-// CHECK: SUBROUTINE __qoala_wrapper1
-// Used qubits should not be marked as parameters
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns: m0
-// CHECK-NEXT: uses: [[QUBIT0]]
-// CHECK-NEXT: keeps:
-// CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
-// CHECK-NEXT: meas [[QUBIT_REG0]] [[M_REG0:.*]]
-// CHECK-NEXT: store [[M_REG0]] @output[0]
-// CHECK-NEXT: NETQASM_END
 
 module {
   qremote.remote @Bob

@@ -6,8 +6,6 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
-// TODO - We don't check the run_subroutine generation, since it returns
-//  multiple values, which is not supported yet.
 // CHECK-NEXT: tuple<%[[HOST_REG0:.*]]; %[[HOST_REG1:.*]]; %[[HOST_REG2:.*]]> = run_subroutine() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 
