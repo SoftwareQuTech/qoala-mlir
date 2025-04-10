@@ -11,11 +11,11 @@
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns: m0
-// CHECK-NEXT: uses:
-// CHECK-NEXT: keeps:
-// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
+// CHECK-NEXT: uses: {{[[:space:]]}}
+// CHECK-SAME: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 1
 // CHECK-NEXT: store C[[C_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END

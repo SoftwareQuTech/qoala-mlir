@@ -31,7 +31,7 @@ static const std::string returnNameFormat = "m%d";
 #endif
 
 template<typename RoutineOp>
-static LogicalResult convertLocalRoutineOp(RoutineOp &op, ModuleTranslation *moduleTranslation) {
+static LogicalResult convertRoutineOp(RoutineOp &op, ModuleTranslation *moduleTranslation) {
     static_assert(std::is_same_v<RoutineOp, LocalRoutineOp> || std::is_same_v<RoutineOp, RequestRoutineOp>);
     for (Operation &operation : op.getBody().getOps()) {
         if (failed(moduleTranslation->convertOperation(operation))) {
@@ -153,11 +153,11 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 // This case is, most likely, the "__qoala_convert_float_angle" builtin runtime function declaration
                 return convertiQoalaRuntimeFunctionDeclaration(op);
             }
-            return convertLocalRoutineOp(op, moduleTranslation);
+            return convertRoutineOp(op, moduleTranslation);
         })
         .Case([&](RequestRoutineOp op) -> LogicalResult {
             LLVM_DEBUG(llvm::dbgs() << "Saw a request routine with name '" << op.getName() << "'\n");
-            return convertLocalRoutineOp(op, moduleTranslation);
+            return convertRoutineOp(op, moduleTranslation);
         })
         .Case([&](ReturnOp op) -> LogicalResult {
             if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {

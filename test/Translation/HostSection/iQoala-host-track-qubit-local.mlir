@@ -17,8 +17,8 @@
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG2]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns: m0
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
 // CHECK-NEXT: uses: [[QUBIT0:.*]]
 // CHECK-NEXT: keeps: [[QUBIT0]]
 // CHECK-NEXT: NETQASM_START
@@ -29,11 +29,11 @@
 
 // CHECK: SUBROUTINE __qoala_wrapper1
 // Used qubits should not be marked as parameters
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns: m0
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
 // CHECK-NEXT: uses: [[QUBIT0]]
-// CHECK-NEXT: keeps:
-// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] [[M_REG0:.*]]
 // CHECK-NEXT: store [[M_REG0]] @output[0]

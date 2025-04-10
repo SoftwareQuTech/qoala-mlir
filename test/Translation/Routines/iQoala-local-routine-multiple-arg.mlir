@@ -14,10 +14,10 @@
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: p0, p1, p2
-// CHECK-NEXT: returns:
-// CHECK-NEXT: uses:
-// CHECK-NEXT: keeps:
-// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: {{[[:space:]]}}
+// CHECK-SAME: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 0
 // CHECK-NEXT: load R[[R_REG0:.*]] @input[C[[C_REG0]]]
 // CHECK-NEXT: set C[[C_REG1:.*]] 1
