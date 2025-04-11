@@ -6,21 +6,23 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
-// This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
-// to create the entangled pair
 // CHECK-NEXT: run_request() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
-// This call does not yield a result, because __qoala_wrapper1 request uses qubitID 1
-// to create the entangled pair
-// CHECK-NEXT: tuple<%0; %1; %2> = run_subroutine() : __qoala_wrapper1
-// CHECK: b[[BLOCK2:.*]] { type = CL }
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper1
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK-NEXT: run_request() : __qoala_wrapper2
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper3
+// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK-NEXT: tuple<%0; %1; %2; %3; %4> = run_subroutine() : __qoala_wrapper4
+// CHECK: b[[BLOCK5:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper1
 // CHECK-NEXT: params: {{[[:space:]]}}
-// CHECK-SAME: returns: m0, m1, m2
-// CHECK-NEXT: uses: [[QUBIT3:.*]]
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT3:.*]]
 // CHECK-NEXT: keeps: [[QUBIT3]]
-// CHECK-SAME: NETQASM_START
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REGA:.*]] [[QUBIT3]]
 // CHECK-NEXT: init [[Q_REGA:.*]]
 // CHECK-NEXT: NETQASM_END
@@ -29,9 +31,9 @@
 //CHECK: SUBROUTINE __qoala_wrapper3
 // CHECK-NEXT: params: {{[[:space:]]}}
 // CHECK-SAME: returns: {{[[:space:]]}}
-// CHECK-NEXT: uses: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
-// CHECK-NEXT: keeps: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: uses: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
+// CHECK-NEXT: keeps: [[QUBIT0]], [[QUBIT1]], [[QUBIT2]], [[QUBIT3]], [[QUBIT4]]
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REGB0:.*]] [[QUBIT0]]
 // CHECK-NEXT: set [[Q_REGB1:.*]] [[QUBIT1]]
 // CHECK-NEXT: set [[Q_REGB2:.*]] [[QUBIT2]]
