@@ -126,7 +126,7 @@ namespace qoala::assembly {
                 type = CC;
                 break;
             case OP_BI_COND_MULTIPLY:
-                // TODO - assert the operands
+                // TODO - assert the operands - bi_cond_mul instruction is not supported yet
                 type = CL;
                 break;
             default:

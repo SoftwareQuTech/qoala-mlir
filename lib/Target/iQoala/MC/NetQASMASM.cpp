@@ -162,7 +162,6 @@ namespace qoala::assembly {
             case OP_LEA:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
-                // TODO - Check if the second argument of a lea (address) is an expr or immediate
                 assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
