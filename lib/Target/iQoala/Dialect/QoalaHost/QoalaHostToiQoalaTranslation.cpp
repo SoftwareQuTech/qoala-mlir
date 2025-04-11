@@ -64,6 +64,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     // We use this information to map the qubitID within the body of the netqasm local routine
     // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
     const std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+    assert (localRoutineArgs.size() == op.getNumOperands() && "Process call: caller and callee number of args do not match. Malformed MLIR?");
     for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
         Value qoalaHostValue = op.getOperand(argNum);
 
