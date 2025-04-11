@@ -18,13 +18,12 @@
 
 // CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
-// CHECK-SAME: returns: m0
-// CHECK-NEXT: uses: [[QUBIT0:.*]]
+// CHECK-SAME: returns:  {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT0:.*]]
 // CHECK-NEXT: keeps: [[QUBIT0]]
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
-// CHECK-NEXT: store [[QUBIT_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
 // CHECK: SUBROUTINE __qoala_wrapper1

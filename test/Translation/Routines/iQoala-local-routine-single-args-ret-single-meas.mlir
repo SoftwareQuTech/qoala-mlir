@@ -18,14 +18,13 @@
 // CHECK-NEXT: params: {{[[:space:]]}}
 // Since we are matching the newline char in the last check, we need to start matching
 // on the same line!
-// CHECK-SAME: returns: m0
-// CHECK-NEXT: uses: [[QUBIT0:.*]]
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT0:.*]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
-// CHECK-NEXT: keeps: [[QUBIT0:.*]]
+// CHECK-NEXT: keeps: [[QUBIT0]]
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
-// CHECK-NEXT: store [[QUBIT_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END
 
 // This test case expects to declare using physical qubit 0, and keeping none.
@@ -43,9 +42,9 @@
 //   add the physical id in the "uses" section, and map the argument value as
 //   one of the physical qubits used.
 // CHECK: SUBROUTINE __qoala_wrapper1
-// CHECK-NEXT: params:
-// CHECK-NEXT: returns:
-// CHECK-NEXT: uses: [[QUBIT0:.+]]
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
+// CHECK-NEXT: uses: [[QUBIT0]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: {{[[:space:]]}}
 // CHECK-SAME: NETQASM_START

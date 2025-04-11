@@ -51,15 +51,20 @@ static LogicalResult convertiQoalaRuntimeFunctionDeclaration(LocalRoutineOp &op)
 static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, ReturnOp &op) {
     // Counter-intuitive: the returned values are the *operands* of the return op
     for (uint32_t i = 0; i < op.getNumOperands(); i++) {
+        // Get the local routine of the operation under analysis
+        std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
+        LocalQuantumRoutine *localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
+
+        if (localRoutine->getQubitNum(op.getOperand(i)) != 0xFF) {
+            // returned qubit values must not be reported ad return values
+            continue;
+        }
+
         // Get the register reference for the returned val
         Value returnedVal = op.getOperand(i);
         iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegReference(returnedVal);
         assert(retValRegRef && "NetQASM return: trying to return a value that is not mapped!");
         iQoalaMCOperand *retValOperand = iQoalaMCOperand::createRegisterOperand(retValRegRef);
-
-        // And the local routine of the operation under analysis
-        std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
-        LocalQuantumRoutine *localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
         assert(localRoutine && "NetQASM return: unknown local routine name!");
 
         // Add the name of the returned value to the local routine
