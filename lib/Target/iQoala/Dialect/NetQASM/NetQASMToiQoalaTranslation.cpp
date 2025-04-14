@@ -56,7 +56,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         LocalQuantumRoutine *localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
 
         if (localRoutine->getQubitNum(op.getOperand(i)) != 0xFF) {
-            // returned qubit values must not be reported ad return values
+            // returned qubit values must not be reported as return values
             continue;
         }
 

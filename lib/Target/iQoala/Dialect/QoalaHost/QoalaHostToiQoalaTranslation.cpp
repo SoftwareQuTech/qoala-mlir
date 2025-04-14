@@ -185,9 +185,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             .Case([](SendIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return success();
             })
             .Case([](RecvIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return success();
             })
             .Case([](NopTOp op) -> LogicalResult {
@@ -199,9 +201,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](const RecvFloatsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
             .Default([](Operation *op) -> LogicalResult {

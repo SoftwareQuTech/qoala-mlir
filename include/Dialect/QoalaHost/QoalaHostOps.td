@@ -191,6 +191,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
 }
 
 def SendIntsOp : UsingRemote_Op<"send_ints"> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -209,6 +211,8 @@ def SendIntsOp : UsingRemote_Op<"send_ints"> {
  * block, so we can easily comply with the traits of the recv operation.
  */
 def RecvIntsOp : UsingRemote_Op<"recv_ints", [Terminator]> {
+    // TODO - This operation yields a tensor as a result. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -217,6 +221,8 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [Terminator]> {
 }
 
 def SendFloatsOp : UsingRemote_Op<"send_floats"> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -224,6 +230,8 @@ def SendFloatsOp : UsingRemote_Op<"send_floats"> {
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats", [Terminator]> {
+    // TODO - This operation yields a tensor as a result. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
