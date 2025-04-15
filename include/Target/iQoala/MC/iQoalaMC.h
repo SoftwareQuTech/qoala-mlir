@@ -263,7 +263,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static NetQASMMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             const std::vector<mlir::Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction, bool mapResults);
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -309,7 +309,7 @@ namespace qoala::assembly {
         /* Base entry point for creating QoalaHost instructions */
         static QoalaHostMCInstr *build(translate::ModuleTranslation *moduleTranslation, mlir::Operation *op,
             const std::vector<mlir::Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes, OpCode opCode,
-            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction);
+            mlir::SmallVector<iQoalaMCOperand *> &extraOperands, bool useOpOperands, bool appendInstruction, bool mapResults);
 
         void setInstructionType(InstrType instrType);
 

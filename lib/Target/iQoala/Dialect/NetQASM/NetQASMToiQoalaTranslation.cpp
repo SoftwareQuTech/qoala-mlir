@@ -62,7 +62,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
 
         // Get the register reference for the returned val
         Value returnedVal = op.getOperand(i);
-        iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegReference(returnedVal);
+        iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegRefForRoutine(returnedVal);
         assert(retValRegRef && "NetQASM return: trying to return a value that is not mapped!");
         iQoalaMCOperand *retValOperand = iQoalaMCOperand::createRegisterOperand(retValRegRef);
         assert(localRoutine && "NetQASM return: unknown local routine name!");

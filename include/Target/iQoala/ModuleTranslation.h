@@ -34,10 +34,12 @@ namespace qoala::translate {
         mlir::Operation *popFrame();
 
         /* Mapping functions */
-        void mapValue(const std::optional<mlir::Operation *> &routine,
-            const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
+        void mapValueForRoutine(const mlir::Value &mlirVal, const std::optional<mlir::Operation *> &routine,
+            assembly::iQoalaRegReference *regRef);
+        // TODO - remove the default value of the second argument!
         [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedRegReference(const mlir::Value &mlirVal) const;
+        assembly::iQoalaRegReference *getMappedRegRefForRoutine(const mlir::Value &mlirVal,
+            const std::optional<mlir::Operation *> &routine = std::nullopt) const;
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;

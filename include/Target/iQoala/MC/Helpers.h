@@ -18,12 +18,14 @@ namespace qoala::iqoala::helpers {
                         const std::vector<mlir::Value> &results,
                         const std::vector<assembly::iQoalaRegType> &resultRegTypes,
                         mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands = {},
-                        const bool useOpOperands = true, const bool appendInstruction = true){
+                        const bool useOpOperands = true, const bool appendInstruction = true,
+                        const bool mapResults = true){
         return InstrType::build(
             moduleTranslation, mlirOperation,
             results, resultRegTypes,
             opCode, extraOperands,
-            useOpOperands, appendInstruction);
+            useOpOperands, appendInstruction,
+            mapResults);
     }
 }
 

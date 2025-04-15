@@ -8,7 +8,7 @@ namespace qoala::assembly {
     QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction) {
+        const bool appendInstruction, const bool mapResults) {
         SmallVector<iQoalaMCOperand *> mcOperands;
         SmallVector<iQoalaRegReference *>resRegRefs;
 
@@ -24,15 +24,17 @@ namespace qoala::assembly {
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        for (uint32_t i = 0; i < resVals.size(); ++i) {
-            assert(mcOperands[i]->getRegRef()->isLocal() && "QoalaHost Instruction Builder: trying to create an instruction"
-                                                            "yielding a result on a non-local register.");
-            moduleTranslation->mapValue(std::nullopt, resVals[i], mcOperands[i]->getRegRef());
+        if (mapResults) {
+            for (uint32_t i = 0; i < resVals.size(); ++i) {
+                assert(mcOperands[i]->getRegRef()->isLocal() && "QoalaHost Instruction Builder: trying to create an instruction"
+                                                                "yielding a result on a non-local register.");
+                moduleTranslation->mapValueForRoutine(resVals[i], std::nullopt, mcOperands[i]->getRegRef());
+            }
         }
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandVal);
                 assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
                 assert(regRef->isLocal() && "QoalaHost Instruction Builder: mapped register is not local");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));

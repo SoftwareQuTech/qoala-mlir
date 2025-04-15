@@ -91,6 +91,11 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     return success();
 }
 
+static void mapArgLoadInstrForCallOp(ModuleTranslation *moduleTranslation, Operation *callOp) {
+    assert(isa<CallOp>(callOp) && "Trying to map the argument values for an op which is not a call");
+    moduleTranslation.map
+}
+
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -148,7 +153,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     if (!context->valueIsMappedToQubit(callArg)) {
                         // If the value is mapped to a qubit, then we don't need to use it
                         // as an operand of the MC instruction
-                        iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(callArg);
+                        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(callArg);
                         assert(regRef && "QoalaHost call op builder: operand not mapped");
                         assert(regRef->isLocal() && "QoalaHost call op builder: mapped register is not local");
                         callMCOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
@@ -171,7 +176,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             })
             .Case([&](ReturnOp op) -> LogicalResult {
                 for (const auto returnedValue :op.getOperands()) {
-                    iQoalaRegReference *retValRef = moduleTranslation->getMappedRegReference(returnedValue);
+                    iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForRoutine(returnedValue);
                     assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
                     iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(

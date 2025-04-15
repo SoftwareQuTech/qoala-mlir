@@ -108,8 +108,8 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         iQoalaMCOperand *falseTargetBlockOperand = iQoalaMCOperand::createExprOperand(falseBlockSymExpr);
 
         // Process the operands of the arith.cmpi
-        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
-        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getLhs());
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getRhs());
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         iQoalaMCOperand *cmpRight1Operand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
 
@@ -180,13 +180,13 @@ static SmallVector<iQoalaMCOperand *> createCmpOperands(const ModuleTranslation 
     const bool leftIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getLhs());
     const bool rightIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getRhs());
     if (!leftIsZero) {
-        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getLhs());
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         operands.push_back(cmpLeftOperand);
     }
 
     if (!rightIsZero) {
-        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getRhs());
         iQoalaMCOperand *cmpRightOperand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
         operands.push_back(cmpRightOperand);
     }

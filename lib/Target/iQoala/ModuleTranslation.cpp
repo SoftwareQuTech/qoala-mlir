@@ -90,7 +90,8 @@ namespace qoala::translate {
         assert(result.second && "Attempting to map a block that is already mapped");
     }
 
-    void ModuleTranslation::mapValue(const std::optional<Operation *> &routine, const Value &mlirVal, iQoalaRegReference *regRef) {
+    void ModuleTranslation::mapValueForRoutine(const Value &mlirVal, const std::optional<Operation *> &routine,
+        iQoalaRegReference *regRef) {
         if (regRef->isLocal()) {
             const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
             (void) result;
@@ -104,7 +105,8 @@ namespace qoala::translate {
         }
     }
 
-    iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
+    iQoalaRegReference *ModuleTranslation::getMappedRegRefForRoutine(const Value &mlirVal,
+        const std::optional<Operation *> &routine) const {
         // To ease the de-allocation process, we return copies of the references
         if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
             return new iQoalaRegReference(*localReg);
@@ -159,7 +161,7 @@ namespace qoala::translate {
         auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             this, op.getOperation(), NetQASMMCInstr::OP_SET,
             {}, {C}, {immediateVal},
-            /*useOpOperands=*/false, /*appendInstruction=*/false);
+            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
         if (!assignInstr) {
             return failure();
         }

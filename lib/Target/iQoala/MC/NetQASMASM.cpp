@@ -14,7 +14,7 @@ namespace qoala::assembly {
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
         const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction
+        const bool appendInstruction, const bool mapResults
         ) {
         SmallVector<iQoalaMCOperand *> mcOperands;
         std::vector<iQoalaRegReference *>resRegRefs;
@@ -33,19 +33,21 @@ namespace qoala::assembly {
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        for (uint32_t i = 0; i < resVals.size(); ++i) {
-            assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
-                                                              "yielding a result on a non-quantum register.");
-            Operation *lastCalledOp = moduleTranslation->peekFrame();
-            assert(lastCalledOp && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
-                                    "that it is not included in a Local or Request routine body.");
-            moduleTranslation->mapValue(lastCalledOp, resVals[i], mcOperands[i]->getRegRef());
+        if (mapResults) {
+            for (uint32_t i = 0; i < resVals.size(); ++i) {
+                assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
+                                                                  "yielding a result on a non-quantum register.");
+                Operation *lastCalledOp = moduleTranslation->peekFrame();
+                assert(lastCalledOp && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
+                                        "that it is not included in a Local or Request routine body.");
+                moduleTranslation->mapValueForRoutine(resVals[i], lastCalledOp, mcOperands[i]->getRegRef());
+            }
         }
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
                 LLVM_DEBUG(llvm::dbgs() << "Analyzing operand: " << operandVal << "\n");
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandVal);
                 assert(regRef && "NetQASM Instruction Builder: operand not mapped");
                 assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
