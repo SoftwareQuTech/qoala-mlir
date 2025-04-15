@@ -25,7 +25,9 @@ namespace qoala::assembly {
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
         for (uint32_t i = 0; i < resVals.size(); ++i) {
-            moduleTranslation->mapValue(resVals[i], mcOperands[i]->getRegRef());
+            assert(mcOperands[i]->getRegRef()->isLocal() && "QoalaHost Instruction Builder: trying to create an instruction"
+                                                            "yielding a result on a non-local register.");
+            moduleTranslation->mapValue(std::nullopt, resVals[i], mcOperands[i]->getRegRef());
         }
 
         if (useOpOperands) {

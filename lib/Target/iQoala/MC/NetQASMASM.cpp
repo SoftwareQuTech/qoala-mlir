@@ -1,3 +1,6 @@
+#include <Dialect/NetQASM/NetQASM.cpp.inc>
+
+#include "Analysis/NetQASM/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
@@ -31,7 +34,12 @@ namespace qoala::assembly {
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
         for (uint32_t i = 0; i < resVals.size(); ++i) {
-            moduleTranslation->mapValue(resVals[i], mcOperands[i]->getRegRef());
+            assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
+                                                              "yielding a result on a non-quantum register.");
+            Operation *parentRoutine = analysis::netqasm::getParentNetQASMRoutine(op);
+            assert(parentRoutine && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
+                                    "that it is not included in a Local or Request routine body.");
+            moduleTranslation->mapValue(parentRoutine, resVals[i], mcOperands[i]->getRegRef());
         }
 
         if (useOpOperands) {

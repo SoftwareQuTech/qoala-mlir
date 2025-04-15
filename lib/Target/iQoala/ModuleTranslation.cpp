@@ -75,7 +75,7 @@ namespace qoala::translate {
         assert(result.second && "Attempting to map a block that is already mapped");
     }
 
-    void ModuleTranslation::mapValue(const Value &mlirVal, iQoalaRegReference *regRef) {
+    void ModuleTranslation::mapValue(const std::optional<Operation *> &routine, const Value &mlirVal, iQoalaRegReference *regRef) {
         if (regRef->isLocal()) {
             const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
             (void) result;

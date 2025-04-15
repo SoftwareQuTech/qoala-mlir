@@ -58,7 +58,7 @@ namespace qoala::analysis::netqasm {
                     }
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the
-                    //  qoalahost section and check if it is marked as qubit there
+                    //  qoalahost section and check if it is marked as qubit there?
                     assert(false && "Function returns an argument.");
                 }
             }
@@ -105,5 +105,14 @@ namespace qoala::analysis::netqasm {
             return getRoutineArgVals(&requestRoutine);
         }
         return {};
+    }
+
+    Operation *getParentNetQASMRoutine(Operation *operation) {
+        if (isa<LocalRoutineOp, RequestRoutineOp>(operation)) {
+            return operation;
+        }
+        const auto parentLocalRoutine = operation->getParentOfType<LocalRoutineOp>().getOperation();
+        const auto parentRequestRoutine = operation->getParentOfType<RequestRoutineOp>().getOperation();
+        return parentLocalRoutine ? parentLocalRoutine : parentRequestRoutine;
     }
 }

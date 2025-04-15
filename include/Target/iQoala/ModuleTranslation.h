@@ -27,7 +27,8 @@ namespace qoala::translate {
         iqoala::Block *getMappediQoalaBlock(const mlir::Block *mlirBlock) const;
 
         /* Mapping functions */
-        void mapValue(const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
+        void mapValue(const std::optional<mlir::Operation *> &routine,
+            const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
         [[nodiscard]]
         assembly::iQoalaRegReference *getMappedRegReference(const mlir::Value &mlirVal) const;
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);

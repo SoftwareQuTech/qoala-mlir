@@ -59,6 +59,16 @@ namespace qoala::analysis::netqasm {
      * @return A map between the argument indexes and the respective MLIR values
      */
     std::map<uint32_t, mlir::Value> getRoutineArgValues(mlir::Operation *routine);
+
+    /**
+     * Returns a pointer to the closest surrounding LocalRoutineOp or RequestRoutineOp.
+     * If the given operation itself is of LocalRoutineOp or RequestRoutineOp, this method
+     * will simply return the same pointer.
+     * @param operation The operation to analyze
+     * @return A pointer to the surrounding LocalRoutineOp *or* RequestRoutineOp, `nullptr` if the
+     *         given instruction is not in the body of a local or request routine.
+     */
+    mlir::Operation *getParentNetQASMRoutine(mlir::Operation *operation);
 }
 
 #endif //HELPERS_H
