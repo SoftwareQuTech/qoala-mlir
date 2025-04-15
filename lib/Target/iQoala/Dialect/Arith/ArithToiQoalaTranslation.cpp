@@ -65,8 +65,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-                        {op.getResult()}, {C}, processedOperands
-                        );
+                        {op.getResult()}, {C}, processedOperands);
                     return instruction ? success() : failure();
                 }
                 return op.emitOpError("Arith constant operation not in host or netqasm section!\n");

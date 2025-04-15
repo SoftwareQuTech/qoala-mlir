@@ -1,11 +1,11 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Operation.h"
 #include "Analysis/NetQASM/Helpers.h"
-#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
+
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #include "llvm/Support/Debug.h"
@@ -98,10 +98,12 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
+                moduleTranslation->pushFrame(op.getOperation());
                 context->markOperationAsVisited(op.getOperation());
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {
+                moduleTranslation->pushFrame(op.getOperation());
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
@@ -182,6 +184,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                         return failure();
                     }
                 }
+                (void) moduleTranslation->popFrame();
                 return success();
             })
             .Case([](SendIntsOp op) -> LogicalResult {

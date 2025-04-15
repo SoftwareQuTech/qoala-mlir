@@ -9,7 +9,6 @@
 #include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
-
 #include "Target/iQoala/QoalaTranslationInterface.h"
 
 #include "llvm/Support/Debug.h"
@@ -35,7 +34,7 @@ namespace qoala::translate {
 #endif
     // A helper function to obtain the body of given module
     static mlir::Block &getModuleBody(Operation *module) {
-        assert(llvm::isa<ModuleOp>(module));
+        assert(isa<ModuleOp>(module));
         return module->getRegion(0).front();
     }
 
@@ -58,6 +57,22 @@ namespace qoala::translate {
                                   "dialect for op: ");
         }
         return opIface->convertOperation(&op, this);
+    }
+
+    void ModuleTranslation::pushFrame(Operation *op) {
+        assert((isa<MainFuncOp>(op) || isa<LocalRoutineOp>(op) || isa<RequestRoutineOp>(op)) &&
+            "ModuleTranslation: trying to push an operation of an invalid type on the stack");
+        this->translationStack.push(op);
+    }
+
+    Operation *ModuleTranslation::peekFrame() {
+        return this->translationStack.top();
+    }
+
+    Operation *ModuleTranslation::popFrame() {
+        Operation *op = this->peekFrame();
+        this->translationStack.pop();
+        return op;
     }
 
     void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {

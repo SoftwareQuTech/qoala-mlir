@@ -1,6 +1,8 @@
 #ifndef MODULETRANSLATION_H
 #define MODULETRANSLATION_H
 
+#include <stack>
+
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LLVM.h"
@@ -25,6 +27,11 @@ namespace qoala::translate {
         /* Block-related functions */
         void emplaceNewBlockInHostSection(mlir::Block *mlirBlock);
         iqoala::Block *getMappediQoalaBlock(const mlir::Block *mlirBlock) const;
+
+        /* Stack manipulation while analyzing the module */
+        void pushFrame(mlir::Operation *op);
+        mlir::Operation *peekFrame();
+        mlir::Operation *popFrame();
 
         /* Mapping functions */
         void mapValue(const std::optional<mlir::Operation *> &routine,
@@ -58,7 +65,11 @@ namespace qoala::translate {
         // Mappings MLIR and MC objects
         mlir::DenseMap<mlir::Block *, iqoala::Block *> qoalaHostBlocksMap;
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> localRegsMap;
+        // Quantum registers map are a bit more complex.
+        // Since quantum routines can be called more than once, we need to allow mapping the
+        // value to multiple register references, depending on the call operation.
         mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> quantumRegsMap;
+        std::stack<mlir::Operation *> translationStack;
         // Map for comparison instructions
         // When encountering a cf.cond_br instruction, we should look into this map
         // to check for the corresponding comparison operation

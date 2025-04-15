@@ -36,10 +36,10 @@ namespace qoala::assembly {
         for (uint32_t i = 0; i < resVals.size(); ++i) {
             assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
                                                               "yielding a result on a non-quantum register.");
-            Operation *parentRoutine = analysis::netqasm::getParentNetQASMRoutine(op);
-            assert(parentRoutine && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
+            Operation *lastCalledOp = moduleTranslation->peekFrame();
+            assert(lastCalledOp && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
                                     "that it is not included in a Local or Request routine body.");
-            moduleTranslation->mapValue(parentRoutine, resVals[i], mcOperands[i]->getRegRef());
+            moduleTranslation->mapValue(lastCalledOp, resVals[i], mcOperands[i]->getRegRef());
         }
 
         if (useOpOperands) {
