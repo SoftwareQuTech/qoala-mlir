@@ -25,8 +25,7 @@
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
 // CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: set C[[C_REG0:.*]] 0
-// CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[C_REG0]]]
+// CHECK-NEXT: load R[[ARG0_REG:.*]] @input[0]
 // CHECK-NEXT: set C[[C_REG1:.*]] 0
 // CHECK-NEXT: bnz R[[ARG0_REG]] 2
 // CHECK-NEXT: jmp 3

@@ -18,10 +18,8 @@
 // CHECK-NEXT: uses: {{[[:space:]]}}
 // CHECK-SAME: keeps: {{[[:space:]]}}
 // CHECK-SAME: NETQASM_START
-// CHECK-NEXT: set C[[C_REG0:.*]] 0
-// CHECK-NEXT: load R[[R_REG0:.*]] @input[C[[C_REG0]]]
-// CHECK-NEXT: set C[[C_REG1:.*]] 1
-// CHECK-NEXT: load R[[R_REG1:.*]] @input[C[[C_REG1]]]
+// CHECK-NEXT: load R[[R_REG0:.*]] @input[0]
+// CHECK-NEXT: load R[[R_REG1:.*]] @input[1]
 // CHECK-NEXT: set C[[C_REG2:.*]] 11
 // CHECK-NEXT: add C[[C_REG3:.*]] R[[R_REG0]] C[[C_REG2]]
 // CHECK-NEXT: sub C[[C_REG4:.*]] R[[R_REG1]] C[[C_REG2]]
