@@ -73,6 +73,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     if (!calledFunction) {
         return failure();
     }
+    moduleTranslation->pushNewFrame(calledFunction);
     context->markOperationAsVisited(calledFunction);
 
     QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
@@ -120,7 +121,6 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {
-                moduleTranslation->pushNewFrame(op.getOperation());
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
