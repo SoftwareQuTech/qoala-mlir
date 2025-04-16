@@ -91,11 +91,6 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     return success();
 }
 
-static void mapArgLoadInstrForCallOp(ModuleTranslation *moduleTranslation, Operation *callOp) {
-    assert(isa<CallOp>(callOp) && "Trying to map the argument values for an op which is not a call");
-    moduleTranslation.map
-}
-
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -103,12 +98,12 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](MainFuncOp op) -> LogicalResult {
-                moduleTranslation->pushFrame(op.getOperation());
+                moduleTranslation->pushNewFrame(op.getOperation());
                 context->markOperationAsVisited(op.getOperation());
                 return translateMainFunction(op, moduleTranslation);
             })
             .Case([&](CallOp op) -> LogicalResult {
-                moduleTranslation->pushFrame(op.getOperation());
+                moduleTranslation->pushNewFrame(op.getOperation());
                 // Set the correct opcode depending on the type of the callee
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();

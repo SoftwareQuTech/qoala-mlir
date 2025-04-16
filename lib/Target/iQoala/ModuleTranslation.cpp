@@ -59,19 +59,41 @@ namespace qoala::translate {
         return opIface->convertOperation(&op, this);
     }
 
-    void ModuleTranslation::pushFrame(Operation *op) {
+    void ModuleTranslation::ModuleStack::pushNewStackFrame(Operation *op) {
+        const ModuleStackFrame newStack(op);
+        this->frames.push(newStack);
+        this->frameScopes.try_emplace(newStack, ValueContainer{});
+    }
+
+
+    ModuleTranslation::ModuleStackFrame ModuleTranslation::ModuleStack::peekFrame() {
+        return this->frames.top();
+    }
+
+    void ModuleTranslation::ModuleStack::popFrame() {
+        const ModuleStackFrame topFrame = this->peekFrame();
+        this->frames.pop();
+        assert(this->frameScopes.contains(topFrame));
+        this->frameScopes.erase(topFrame);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::operator<(const ModuleStackFrame &other) const {
+        return this->operation < other.operation;
+    }
+
+    void ModuleTranslation::pushNewFrame(Operation *op) {
         assert((isa<MainFuncOp>(op) || isa<LocalRoutineOp>(op) || isa<RequestRoutineOp>(op)) &&
             "ModuleTranslation: trying to push an operation of an invalid type on the stack");
-        this->translationStack.push(op);
+        this->translationStack.pushNewStackFrame(op);
     }
 
     Operation *ModuleTranslation::peekFrame() {
-        return this->translationStack.top();
+        return this->translationStack.peekFrame().getOperation();
     }
 
     Operation *ModuleTranslation::popFrame() {
         Operation *op = this->peekFrame();
-        this->translationStack.pop();
+        this->translationStack.popFrame();
         return op;
     }
 
@@ -152,34 +174,34 @@ namespace qoala::translate {
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
     LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
-        const Value &localRoutineArgVal, const uint8_t argIndex) {
+        const Value &localRoutineArgVal = nullptr, const uint8_t argIndex = 0) {
         auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
         // Immediate with the number of the argument
-        iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(argIndex));
-        // Despite this instruction yields a value, we don't need to map it to any
-        // mlir value, so we pass "std::nullopt" as the "result" argument when building
-        auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            this, op.getOperation(), NetQASMMCInstr::OP_SET,
-            {}, {C}, {immediateVal},
-            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
-        if (!assignInstr) {
-            return failure();
-        }
-        iQoalaRoutine->addInstruction(assignInstr);
+        // iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(argIndex));
+        // // Despite this instruction yields a value, we don't need to map it to any
+        // // mlir value, so we pass "std::nullopt" as the "result" argument when building
+        // auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+        //     this, op.getOperation(), NetQASMMCInstr::OP_SET,
+        //     {}, {C}, {immediateVal},
+        //     /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
+        // if (!assignInstr) {
+        //     return failure();
+        // }
+        // iQoalaRoutine->addInstruction(assignInstr);
 
         // Use the "load" instruction to actually load the value
         // Here, the yielded registry needs to be mapped to the mlir value of the function
         // argument so we pass it to the builder for mapping
         // First, get the register reference yielded from the last instruction
-        const auto *setResultOperand = assignInstr->getOperand(0);
-        assert(setResultOperand->isRegister() && "NetQASM local routine param: result of set is not a register");
+        // const auto *setResultOperand = assignInstr->getOperand(0);
+        // assert(setResultOperand->isRegister() && "NetQASM local routine param: result of set is not a register");
         // Create an operand with it
-        iQoalaRegReference *setRegRef = iQoalaRegReference::createRegReference(setResultOperand->getRegRef());
+        // iQoalaRegReference *setRegRef = iQoalaRegReference::createRegReference(setResultOperand->getRegRef());
         // Pass that extra operand to create the respective load instruction
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             this, op.getOperation(), NetQASMMCInstr::OP_LOAD,
-            {localRoutineArgVal}, {R}, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
-            /*useOpOperands=*/false, /*appendInstruction=*/false);
+            {}, {R}, {iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(argIndex))},
+            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
         if (!loadInstr) {
             return failure();
         }
@@ -188,28 +210,30 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(QuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
-        const Value &qoalaHostQubitVal, const Value &localRoutineArgVal, const uint8_t argIndex) {
+        const Value &qoalaHostQubitVal = nullptr, const Value &localRoutineArgVal = nullptr, const uint8_t argIndex = 0) {
         // Follow the iQoala call convertion "for qubits"
-        const iQoalaContext *ctx = this->iQoalaModule->getiQoalaContext();
-        const uint32_t phyQubitID = ctx->getQubitIDFor(qoalaHostQubitVal);
-        LLVM_DEBUG(llvm::dbgs() << "mapping:" << qoalaHostQubitVal << "\n");
-
-        assert(ctx->valueIsMappedToQubit(qoalaHostQubitVal) && "Arg is not mapped to a qubit in the QoalaHost section.");
-        LLVM_DEBUG(llvm::dbgs() << "Argument " << static_cast<unsigned>(argIndex) << " is mapped to Qubit as value: " << localRoutineArgVal <<"\n");
+        // const iQoalaContext *ctx = this->iQoalaModule->getiQoalaContext();
+        // const uint32_t phyQubitID = ctx->getQubitIDFor(qoalaHostQubitVal);
+        // LLVM_DEBUG(llvm::dbgs() << "mapping:" << qoalaHostQubitVal << "\n");
+        //
+        // assert(ctx->valueIsMappedToQubit(qoalaHostQubitVal) && "Arg is not mapped to a qubit in the QoalaHost section.");
 
         // Insert a "set" instruction in the iQoala local routine, so we can "load" the
         // qubit argument as per the calling convention
+        // Since at this stage we are simply creating skeletons of the function signatures, we will use a
+        // "placeholder" operand for the qubitID. This operand will be replaced with the real one (allocating the
+        // qubit ID) when tr
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             this, localRoutineOp, NetQASMMCInstr::OP_SET,
-            {localRoutineArgVal}, {Q}, {iQoalaMCOperand::createImmediateOperand(phyQubitID)},
-            /*useOpOperands=*/false, /*appendInstruction=*/false);
+            {}, {Q}, {iQoalaMCOperand::createPlaceholderOperand()},
+            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
         if (!loadInstr) {
             return failure();
         }
         iQoalaRoutine->addInstruction(loadInstr);
 
         // Register the qubit for the "uses" and "keeps"
-        iQoalaRoutine->registerQubit(localRoutineArgVal, phyQubitID);
+        //iQoalaRoutine->registerQubit(localRoutineArgVal, phyQubitID);
         return success();
     }
 
@@ -234,12 +258,16 @@ namespace qoala::translate {
                         if (failed(this->loadClassicalArgWithCallConv(routine, localRoutine.getOperation(), arg, argNum))) {
                             return failure();
                         }
-                    }/* else {
+                    } else {
                         // For qubit arguments, we will do this when processing the call operations
                         // since we need to allocate physical qubits. Doing it later simplifies the
                         // process to keep track of the allocated physical qubits, and which are
                         // the MLIR values that are mapped to those qubits.
-                    }*/
+
+                        if (failed(this->loadQuantumArgWithCalConv(routine, localRoutine.getOperation()))) {
+                            return failure();
+                        }
+                    }
                 }
                 this->iQoalaModule->addRoutine(routine);
             }

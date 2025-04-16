@@ -25,6 +25,11 @@ namespace qoala::assembly {
         return new iQoalaMCExpr(mlirOp);
     }
 
+    iQoalaMCOperand *iQoalaMCOperand::createPlaceholderOperand() {
+        // This creates an *invalid* operand. Needs to be replaced later
+        return new iQoalaMCOperand();
+    }
+
     iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
         const auto operand = new iQoalaMCOperand();
         operand->kind = IMMEDIATE_I32;

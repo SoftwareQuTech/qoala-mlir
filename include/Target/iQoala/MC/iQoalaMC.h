@@ -137,6 +137,7 @@ namespace qoala::assembly {
         [[nodiscard]]
         iQoalaMCExpr *getExpression() const;
 
+        static iQoalaMCOperand *createPlaceholderOperand();
         static iQoalaMCOperand *createImmediateOperand(uint32_t val);
         static iQoalaMCOperand *createImmediateOperand(float val);
         static iQoalaMCOperand *createRegisterOperand(iQoalaRegReference *regRef);
