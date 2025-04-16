@@ -114,9 +114,13 @@ namespace qoala::assembly {
     unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
-    iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    iQoalaMCOperand *iQoalaMCInstruction::getOperand(const unsigned i) const { return operands[i]; }
     std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return operands; };
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
+
+    void iQoalaMCInstruction::replaceOperand(unsigned i, iQoalaMCOperand *newOperand) {
+        this->operands[i] = newOperand;
+    }
 
     void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {
         op->setInst(this);

@@ -168,7 +168,7 @@ namespace qoala::assembly {
             }
         }
 
-        void setOpcode(unsigned int opCode);
+        void setOpcode(unsigned int newOpCode);
         [[nodiscard]]
         unsigned int getOpcode() const;
 
@@ -178,6 +178,7 @@ namespace qoala::assembly {
         std::vector<iQoalaMCOperand *> getOperands() const;
         [[nodiscard]]
         unsigned int getNumOperands() const;
+        void replaceOperand(unsigned i, iQoalaMCOperand *newOperand);
 
         void addOperand(iQoalaMCOperand *op);
         [[nodiscard]]
