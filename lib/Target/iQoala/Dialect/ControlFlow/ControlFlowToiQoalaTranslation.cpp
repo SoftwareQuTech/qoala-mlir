@@ -110,6 +110,8 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Process the operands of the arith.cmpi
         iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getLhs());
         iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getRhs());
+        assert(cmpOpLeft && "Conditional Branch: left operand not mapped to an MLIR Value!");
+        assert(cmpOpRight && "Conditional Branch: right operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         iQoalaMCOperand *cmpRight1Operand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
 
@@ -181,12 +183,14 @@ static SmallVector<iQoalaMCOperand *> createCmpOperands(const ModuleTranslation 
     const bool rightIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getRhs());
     if (!leftIsZero) {
         iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getLhs());
+        assert(cmpOpLeft && "Conditional Branch: left operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         operands.push_back(cmpLeftOperand);
     }
 
     if (!rightIsZero) {
         iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForRoutine(cmpIOp.getRhs());
+        assert(cmpOpRight && "Conditional Branch: right operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpRightOperand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
         operands.push_back(cmpRightOperand);
     }
