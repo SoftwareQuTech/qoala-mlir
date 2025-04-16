@@ -26,8 +26,8 @@ namespace qoala::analysis::netqasm {
      * function returns `nullptr`.
      * @param mlirModule The MLIR module to search for the function.
      * @param functionName The function name to search for.
-     * @return An `mlir::Operation` pointer to the found function, `nullptr` if a function with the name was
-     *         not found. The returned pointer can safely be casted to `qoala::dialects::netqasm::RequestRoutineOp`.
+     * @return An `mlir::Operation` pointer to the found function, `nullptr` if a function with the given name was
+     *         not found.
      */
     mlir::Operation *getRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
 

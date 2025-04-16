@@ -30,15 +30,20 @@ namespace qoala::iqoala {
             QRK_QUANTUM
         };
         QuantumRoutine() : kind(QRK_LOCAL) { }
-        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind) { }
+        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind), qubitMap({}) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
-        kind(kind), name(std::move(name)) {}
+        kind(kind), qubitMap({}), name(std::move(name)) {}
+        explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name,
+            const std::vector<assembly::iQoalaMCInstruction *> &instructions) :
+        kind(kind), qubitMap({}), name(std::move(name)), instructions(instructions) {}
         QuantumRoutine(const QuantumRoutine &r) = default;
         ~QuantumRoutine() override = default;
 
         virtual void addInstruction(assembly::NetQASMMCInstr *instruction) = 0;
         [[nodiscard]]
         std::string getName() const { return name; }
+        [[nodiscard]]
+        std::vector<assembly::iQoalaMCInstruction *> getInstructions() const { return this->instructions; }
         virtual void addArgument(const std::string &argName) = 0;
         [[nodiscard]]
         virtual uint8_t getQubitNum(const mlir::Value &value) const;
@@ -56,6 +61,9 @@ namespace qoala::iqoala {
         // Map to keep track of the *local* mlir value (within the local/request routine) with its physical qubit num
         mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
         std::string name;
+        // The list of NetQASM MC instructions for this quantum routine. In the particular case of a request routine
+        // this list SHOULD be unused! (i.e. always empty)
+        std::vector<assembly::iQoalaMCInstruction *> instructions;
     };
 
     /* A class representing a local quantum routine. These routines only host a list of
@@ -66,8 +74,8 @@ namespace qoala::iqoala {
         explicit LocalQuantumRoutine(const mlir::StringRef newName) :
             QuantumRoutine(QRK_LOCAL, newName.str()) {}
             LocalQuantumRoutine(const LocalQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
-            params(r.params), returns(r.returns), instructions(r.instructions) { }
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
+            params(r.params), returns(r.returns) { }
         ~LocalQuantumRoutine() override {
             for (const auto instruction : this->instructions) {
                 delete instruction;
@@ -100,8 +108,6 @@ namespace qoala::iqoala {
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
-        // The list of NetQASM MC instructions for this local quantum routine
-        std::vector<assembly::NetQASMMCInstr *> instructions;
     };
 
     class VirtualIDs {
@@ -132,10 +138,9 @@ namespace qoala::iqoala {
             QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
             callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), returns(r.returns), requestCallback(r.requestCallback),
             callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), entangledQubitsIDs(r.entangledQubitsIDs),
-            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
-            instructions(r.instructions) { }
+            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole) { }
         ~RequestQuantumRoutine() override {
            for (const auto instruction : this->instructions) {
                delete instruction;
@@ -185,9 +190,6 @@ namespace qoala::iqoala {
         // The Request role for this client
         // TODO - Figure out how we can tell when the request role is "receive"
         RequestRole requestRole;
-        // The set of NetQASM instructions for this request routine
-        // This list SHOULD be unused! (i.e. always empty)
-        std::vector<assembly::NetQASMMCInstr *> instructions;
     };
 
 

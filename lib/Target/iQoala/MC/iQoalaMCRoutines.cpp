@@ -259,7 +259,7 @@ namespace qoala::iqoala {
         os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
+        for (const assembly::iQoalaMCInstruction *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }
         os << "NETQASM_END\n";
