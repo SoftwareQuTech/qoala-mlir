@@ -9,8 +9,8 @@ namespace qoala::assembly {
         const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
         const bool appendInstruction, const bool mapResults) {
-        SmallVector<iQoalaMCOperand *> mcOperands;
-        SmallVector<iQoalaRegReference *>resRegRefs;
+        std::vector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaRegReference *>resRegRefs;
 
         for (const iQoalaRegType resultRegType : resultRegTypes) {
             const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType);

@@ -69,7 +69,9 @@ namespace qoala::translate {
         mlir::Operation *peekFrame();
         mlir::Operation *popFrame();
 
-        /* Mapping functions */
+        /* Functions for Mapping MLIR values to the RegReference objects
+         * These functions search for the respective value using the emulated stack
+         */
         void mapValueForRoutine(const mlir::Value &mlirVal, const std::optional<mlir::Operation *> &routine,
             assembly::iQoalaRegReference *regRef);
         // TODO - remove the default value of the second argument!

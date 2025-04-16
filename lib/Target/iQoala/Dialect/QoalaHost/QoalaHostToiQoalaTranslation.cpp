@@ -45,6 +45,24 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
     return success();
 }
 
+static void mapCallConvInstrForFrame(iQoalaContext *context, const QuantumRoutine *routine) {
+    // We need to add mapping for the MLIR values fo the already-existing call convention instructions
+    for (iQoalaMCInstruction *instruction : routine->getInstructions()) {
+        for (uint32_t i = 0; i < instruction->getNumOperands(); i++) {
+            if (const iQoalaMCOperand *operand = instruction->getOperand(i); !operand->isValid()) {
+                // The operand is a placeholder; it needs to be replaced with an immediate operand that
+                // contains the last qubit ID available at this moment.
+                const uint32_t qubitID = context->allocateQubit();
+                iQoalaMCOperand *newOperand = iQoalaMCOperand::createImmediateOperand(qubitID);
+                instruction->replaceOperand(i, newOperand);
+                // TODO - Map the MLIR value of "this call" to the RegReference
+                //  (use the module translation to attach the MLIR value ot the current frame mapping)
+                delete operand;
+            }
+        }
+    }
+}
+
 static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
@@ -58,6 +76,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     context->markOperationAsVisited(calledFunction);
 
     QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
+    mapCallConvInstrForFrame(context, routine);
     // First, we introduce the mappings of physical qubits used as arguments
     // following the call convention
     // Get the information about the MLIR values (block args) that model the routine args
@@ -68,11 +87,9 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
         Value qoalaHostValue = op.getOperand(argNum);
 
-        if (context->valueIsMappedToQubit(qoalaHostValue) &&
-            failed(moduleTranslation->loadQuantumArgWithCalConv(routine, calledFunction,
-            qoalaHostValue, localRoutineArgs.at(argNum), argNum))) {
-                return failure();
-            }
+        if (context->valueIsMappedToQubit(qoalaHostValue)) {
+            return failure();
+        }
     }
     // Then we translate the called function
     if (failed(moduleTranslation->convertOperation(*calledFunction))) {

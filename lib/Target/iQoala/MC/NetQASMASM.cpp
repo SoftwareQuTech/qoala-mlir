@@ -16,7 +16,7 @@ namespace qoala::assembly {
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
         const bool appendInstruction, const bool mapResults
         ) {
-        SmallVector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaMCOperand *> mcOperands;
         std::vector<iQoalaRegReference *>resRegRefs;
         const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
         const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
@@ -88,7 +88,7 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                assert(mcOperands[1]->isRegister() || mcOperands[1]->isImmediate() && "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
                 break;
             case OP_MEAS:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -160,7 +160,7 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[1]->isRegister() || this->operands[1]->isImmediate());
                 printStoreOrLoad(os);
                 break;
             case OP_STORE:
