@@ -124,22 +124,6 @@ namespace qoala::iqoala {
         return newSocketID;
     }
 
-    void iQoalaContext::mapValueToQubitID(const Value &value, uint8_t qubitID) {
-        const auto result = this->valuesToQubitIDs.try_emplace(value, qubitID);
-        (void) result;
-        assert(result.second && "Attempting to map a value that is already mapped");
-    }
-
-    bool iQoalaContext::valueIsMappedToQubit(const Value &value) const {
-        return this->getQubitIDFor(value) != 0xFF;
-    }
-
-    uint8_t iQoalaContext::getQubitIDFor(const Value &value) const {
-        if (this->valuesToQubitIDs.contains(value)) {
-            return this->valuesToQubitIDs.at(value);
-        }
-        return 0xFF;
-    }
     void iQoalaContext::markOperationAsVisited(Operation *operation) {
         this->visitedOps.insert(operation);
     }

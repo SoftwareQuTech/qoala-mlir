@@ -37,17 +37,14 @@ namespace qoala::assembly {
             for (uint32_t i = 0; i < resVals.size(); ++i) {
                 assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
                                                                   "yielding a result on a non-quantum register.");
-                Operation *lastCalledOp = moduleTranslation->peekFrame();
-                assert(lastCalledOp && "NetQASM Instruction Builder: building a NetQASM MC instruction for an operation"
-                                        "that it is not included in a Local or Request routine body.");
-                moduleTranslation->mapValueForRoutine(resVals[i], lastCalledOp, mcOperands[i]->getRegRef());
+                moduleTranslation->mapValueToRegRef(resVals[i], mcOperands[i]->getRegRef());
             }
         }
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
                 LLVM_DEBUG(llvm::dbgs() << "Analyzing operand: " << operandVal << "\n");
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandVal);
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandVal);
                 assert(regRef && "NetQASM Instruction Builder: operand not mapped");
                 assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));

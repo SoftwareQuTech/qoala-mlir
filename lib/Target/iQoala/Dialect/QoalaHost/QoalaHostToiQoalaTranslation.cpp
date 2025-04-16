@@ -45,18 +45,17 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
     return success();
 }
 
-static void mapCallConvInstrForFrame(iQoalaContext *context, const QuantumRoutine *routine) {
+static void replacePlaceholderMCOperands(iQoalaContext *context, const QuantumRoutine *routine) {
     // We need to add mapping for the MLIR values fo the already-existing call convention instructions
     for (iQoalaMCInstruction *instruction : routine->getInstructions()) {
         for (uint32_t i = 0; i < instruction->getNumOperands(); i++) {
             if (const iQoalaMCOperand *operand = instruction->getOperand(i); !operand->isValid()) {
                 // The operand is a placeholder; it needs to be replaced with an immediate operand that
-                // contains the last qubit ID available at this moment.
+                // contains the qubit ID of an allocated qubit
                 const uint32_t qubitID = context->allocateQubit();
                 iQoalaMCOperand *newOperand = iQoalaMCOperand::createImmediateOperand(qubitID);
                 instruction->replaceOperand(i, newOperand);
-                // TODO - Map the MLIR value of "this call" to the RegReference
-                //  (use the module translation to attach the MLIR value ot the current frame mapping)
+                // Free the memory for the replaced placeholder
                 delete operand;
             }
         }
@@ -73,23 +72,36 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     if (!calledFunction) {
         return failure();
     }
+    QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
+
+    // Some preparations before processing arguments
     moduleTranslation->pushNewFrame(calledFunction);
     context->markOperationAsVisited(calledFunction);
+    replacePlaceholderMCOperands(context, routine);
 
-    QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
-    mapCallConvInstrForFrame(context, routine);
     // First, we introduce the mappings of physical qubits used as arguments
     // following the call convention
     // Get the information about the MLIR values (block args) that model the routine args
     // We use this information to map the qubitID within the body of the netqasm local routine
     // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
-    const std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
+    std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
     assert (localRoutineArgs.size() == op.getNumOperands() && "Process call: caller and callee number of args do not match. Malformed MLIR?");
     for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
-        Value qoalaHostValue = op.getOperand(argNum);
+        Value valueAtCaller = op.getOperand(argNum);
+        Value &valueAtCallee = localRoutineArgs[argNum];
 
-        if (context->valueIsMappedToQubit(qoalaHostValue)) {
-            return failure();
+        if (moduleTranslation->valueIsMappedToQubitInCurrentFrame(valueAtCaller)) {
+            // In this case, the argument is mapped to a qubit reference
+            // TODO - What to do here?
+        } else {
+            // In this case, we can safely assume that the value is mapped to a classical value.
+            //assert(moduleTranslation->valueIsMappedInCurrentFrame(valueAtCaller) && "Process call: value is not mapped to a classical nor qubit value");
+            for (const iQoalaMCInstruction *loadInstr : netqasm::getLoadMCInstructions(routine)) {
+                if (loadInstr->getOperand(1)->getIntegerVal() == argNum) {
+                    moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
+                    //moduleTranslation->mapValueToRegRef(valueAtCaller, );
+                }
+            }
         }
     }
     // Then we translate the called function
@@ -97,14 +109,15 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         return failure();
     }
 
+    // TODO - Remove all this code
     // Then, we need to identify the yielded values that represent a qubit and map them
     // in the qoalahost section to the physical qubitID
     const std::map<uint32_t, uint8_t> returnedQubitsMap = netqasm::getReturnedQubitsMap(mlirModule, callee, routine);
 
-    for (auto &[retIndex, qubitId] : returnedQubitsMap) {
-        const Value retValue = op.getResult(retIndex);
-        context->mapValueToQubitID(retValue, qubitId);
-    }
+    // for (auto &[retIndex, qubitId] : returnedQubitsMap) {
+    //     const Value retValue = op.getResult(retIndex);
+    //     context->mapValueToQubitID(retValue, qubitId);
+    // }
     routine->finalizeRoutine();
     return success();
 }
@@ -152,7 +165,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 std::vector<Value> yieldedResults;
                 std::vector<iQoalaRegType> localRegTypes;
                 for (Value result : op.getResults()) {
-                    if (!context->valueIsMappedToQubit(result)) {
+                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(result)) {
                         yieldedResults.push_back(result);
                         localRegTypes.push_back(LOCAL);
                     }
@@ -162,10 +175,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // mapped to a qubit, then we don't need to pass it as a routine argument.
                 SmallVector<iQoalaMCOperand *> callMCOperands;
                 for (const Value callArg : op.getOperands()) {
-                    if (!context->valueIsMappedToQubit(callArg)) {
+                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(callArg)) {
                         // If the value is mapped to a qubit, then we don't need to use it
                         // as an operand of the MC instruction
-                        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(callArg);
+                        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(callArg);
                         assert(regRef && "QoalaHost call op builder: operand not mapped");
                         assert(regRef->isLocal() && "QoalaHost call op builder: mapped register is not local");
                         callMCOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
@@ -188,7 +201,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             })
             .Case([&](ReturnOp op) -> LogicalResult {
                 for (const auto returnedValue :op.getOperands()) {
-                    iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForRoutine(returnedValue);
+                    iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForValue(returnedValue);
                     assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
                     iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(

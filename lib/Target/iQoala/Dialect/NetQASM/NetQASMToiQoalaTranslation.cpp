@@ -62,7 +62,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
 
         // Get the register reference for the returned val
         Value returnedVal = op.getOperand(i);
-        iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegRefForRoutine(returnedVal);
+        iQoalaRegReference *retValRegRef = moduleTranslation->getMappedRegRefForValue(returnedVal);
         assert(retValRegRef && "NetQASM return: trying to return a value that is not mapped!");
         iQoalaMCOperand *retValOperand = iQoalaMCOperand::createRegisterOperand(retValRegRef);
         assert(localRoutine && "NetQASM return: unknown local routine name!");
@@ -83,12 +83,13 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
             return failure();
         }
     }
+    (void) moduleTranslation->popFrame();
     return success();
 }
 
 template<typename RotationOp>
 static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslation *moduleTranslation, NetQASMMCInstr::OpCode opCode) {
-    iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegRefForRoutine(op.getQ());
+    iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegRefForValue(op.getQ());
     assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
     const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
     const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
@@ -187,6 +188,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                         reqRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
                     }
                 }
+                moduleTranslation->popFrame();
                 return success();
             }
             return processReturnOp(moduleTranslation, op);

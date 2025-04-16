@@ -17,7 +17,7 @@ using namespace qoala::dialects;
 using namespace qoala::translate;
 
 static LogicalResult processOperandsForMul(
-    const ModuleTranslation *moduleTranslation, arith::MulIOp &mulOp,
+    ModuleTranslation *moduleTranslation, arith::MulIOp &mulOp,
     SmallVector<iQoalaMCOperand *> &mappedOperands) {
     // Due to the folding of instructions when lowering from MIR to LIR, we can safely assume that
     // one of the operands *has to be* the value of an arith.constant operation.
@@ -27,7 +27,7 @@ static LogicalResult processOperandsForMul(
     const Value operandB = mulOp.getOperand(1);
     if (auto constOp = dyn_cast<arith::ConstantIntOp>(operandA.getDefiningOp())) {
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(constOp.value()));
-        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandB);
+        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandB);
         assert(regRef && "Operands processor for mul: operand not mapped");
         assert(regRef->isLocal() && "Operands processor for mul: mapped register is not quantum");
         iQoalaMCOperand *otherMulOp = iQoalaMCOperand::createRegisterOperand(regRef);
@@ -37,7 +37,7 @@ static LogicalResult processOperandsForMul(
     }
     if (auto constOp = dyn_cast<arith::ConstantIntOp>(operandB.getDefiningOp())) {
         iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(constOp.value()));
-        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandA);
+        iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandA);
         assert(regRef && "Operands processor for mul: operand not mapped");
         assert(regRef->isLocal() && "Operands processor for mul: mapped register is not quantum");
         iQoalaMCOperand *otherMulOp = iQoalaMCOperand::createRegisterOperand(regRef);

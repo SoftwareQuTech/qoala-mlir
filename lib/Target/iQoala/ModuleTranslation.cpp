@@ -59,26 +59,65 @@ namespace qoala::translate {
         return opIface->convertOperation(&op, this);
     }
 
-    void ModuleTranslation::ModuleStack::pushNewStackFrame(Operation *op) {
-        const ModuleStackFrame newStack(op);
-        this->frames.push(newStack);
-        this->frameScopes.try_emplace(newStack, ValueContainer{});
+
+    void ModuleTranslation::ModuleStackFrame::mapValueInScope(const Value &value, iQoalaRegReference *regRef) {
+        const auto result = this->valuesInScope.try_emplace(value, regRef);
+        (void) result;
+        assert(result.second && "Attempting to map a value that is already mapped");
     }
 
+    bool ModuleTranslation::ModuleStackFrame::isValueInScope(const Value &value) const {
+        return this->valuesInScope.contains(value);
+    }
 
-    ModuleTranslation::ModuleStackFrame ModuleTranslation::ModuleStack::peekFrame() {
+    iQoalaRegReference *ModuleTranslation::ModuleStackFrame::getRegReferenceForValue(const Value &value) const {
+        if (this->valuesInScope.contains(value)) {
+            return this->valuesInScope.at(value);
+        }
+        return nullptr;
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isModule() const {
+        return isa<ModuleOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isQoalaHost() const {
+        return isa<MainFuncOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isLocalRoutine() const {
+        return isa<LocalRoutineOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isRequestRoutine() const {
+        return isa<RequestRoutineOp>(this->operation);
+    }
+
+    void ModuleTranslation::ModuleStack::pushNewStackFrame(Operation *op) {
+        auto *newFrame = new ModuleStackFrame(op);
+        this->frames.push(newFrame);
+    }
+
+    ModuleTranslation::ModuleStackFrame *ModuleTranslation::ModuleStack::peekFrame() {
         return this->frames.top();
     }
 
     void ModuleTranslation::ModuleStack::popFrame() {
-        const ModuleStackFrame topFrame = this->peekFrame();
         this->frames.pop();
-        assert(this->frameScopes.contains(topFrame));
-        this->frameScopes.erase(topFrame);
     }
 
-    bool ModuleTranslation::ModuleStackFrame::operator<(const ModuleStackFrame &other) const {
-        return this->operation < other.operation;
+    void ModuleTranslation::ModuleStack::mapValueInCurrentStackFrame(const Value &value, iQoalaRegReference *regRef) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->mapValueInScope(value, regRef);
+    }
+
+    bool ModuleTranslation::ModuleStack::valueIsMapped(const Value &value) {
+        return this->getRegRefForValue(value) != nullptr;
+    }
+
+    iQoalaRegReference *ModuleTranslation::ModuleStack::getRegRefForValue(const Value &value) {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getRegReferenceForValue(value);
     }
 
     void ModuleTranslation::pushNewFrame(Operation *op) {
@@ -88,7 +127,7 @@ namespace qoala::translate {
     }
 
     Operation *ModuleTranslation::peekFrame() {
-        return this->translationStack.peekFrame().getOperation();
+        return this->translationStack.peekFrame()->getOperation();
     }
 
     Operation *ModuleTranslation::popFrame() {
@@ -112,45 +151,35 @@ namespace qoala::translate {
         assert(result.second && "Attempting to map a block that is already mapped");
     }
 
-    void ModuleTranslation::mapValueForRoutine(const Value &mlirVal, const std::optional<Operation *> &routine,
-        iQoalaRegReference *regRef) {
+    void ModuleTranslation::mapValueToRegRef(const Value &mlirVal, iQoalaRegReference *regRef) {
+        const ModuleStackFrame *currentFrame = this->translationStack.peekFrame();
         if (regRef->isLocal()) {
-            const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
-            (void) result;
-            assert(result.second && "Attempting to map a local value that is already mapped");
+            assert(currentFrame->isQoalaHost() && "Attempting to map a local registry on a non-QoalaHost frame");
         }
         if (regRef->isQuantum()) {
-            const auto result = this->quantumRegsMap.try_emplace(mlirVal, regRef);
-            (void) result;
-            LLVM_DEBUG(llvm::dbgs() << "***** mapping a quantum value " << mlirVal << "\n");
-            assert(result.second && "Attempting to map a quantum value that is already mapped");
+            assert((currentFrame->isLocalRoutine() || currentFrame->isRequestRoutine()) && "Attempting to map a local registry on a non local/request routine frame");
         }
+        LLVM_DEBUG(llvm::dbgs() << "*** Mapping value '" << mlirVal << "' to reference '" << *regRef);
+        this->translationStack.mapValueInCurrentStackFrame(mlirVal, regRef);
     }
 
-    iQoalaRegReference *ModuleTranslation::getMappedRegRefForRoutine(const Value &mlirVal,
-        const std::optional<Operation *> &routine) const {
+    bool ModuleTranslation::valueIsMappedInCurrentFrame(const Value &value) {
+        return this->translationStack.getRegRefForValue(value);
+    }
+
+    bool ModuleTranslation::valueIsMappedToQubitInCurrentFrame(const Value &value) {
+        if (const iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(value)) {
+            return regRef->isQuantum();
+        }
+        return false;
+    }
+
+    iQoalaRegReference *ModuleTranslation::getMappedRegRefForValue(const Value &mlirVal) {
         // To ease the de-allocation process, we return copies of the references
-        if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
-            return new iQoalaRegReference(*localReg);
-        }
-        if (const auto quantumReg = this->getMappedQuantumRegReference(mlirVal)) {
-            return new iQoalaRegReference(*quantumReg);
-        }
-        return nullptr;
-    }
-
-    iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
-        if (this->localRegsMap.contains(mlirVal)) {
-            return this->localRegsMap.at(mlirVal);
-        }
-        return nullptr;
-    }
-
-    iQoalaRegReference *ModuleTranslation::getMappedQuantumRegReference(const Value &mlirVal) const {
-        if (this->quantumRegsMap.contains(mlirVal)) {
-            return this->quantumRegsMap.at(mlirVal);
-        }
-        return nullptr;
+        const iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(mlirVal);
+        LLVM_DEBUG(llvm::dbgs() << "**!!** Value: '" << mlirVal << "' mapped: '" << (regRef ? "true" : "false") <<"'\n");
+        assert(regRef && "Value is not mapped");
+        return new iQoalaRegReference(*regRef);
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
@@ -173,6 +202,7 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
+    // TODO- Remove commented code and unused args!
     LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
         const Value &localRoutineArgVal = nullptr, const uint8_t argIndex = 0) {
         auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
@@ -209,6 +239,7 @@ namespace qoala::translate {
         return success();
     }
 
+    // TODO- Remove commented code and unused args!
     LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(QuantumRoutine *iQoalaRoutine, Operation *localRoutineOp,
         const Value &qoalaHostQubitVal = nullptr, const Value &localRoutineArgVal = nullptr, const uint8_t argIndex = 0) {
         // Follow the iQoala call convertion "for qubits"
@@ -260,7 +291,7 @@ namespace qoala::translate {
                         }
                     } else {
                         // For qubit arguments, we will do this when processing the call operations
-                        // since we need to allocate physical qubits. Doing it later simplifies the
+                        // TODO - MOVE THIS COMMENT: since we need to allocate physical qubits. Doing it later simplifies the
                         // process to keep track of the allocated physical qubits, and which are
                         // the MLIR values that are mapped to those qubits.
 

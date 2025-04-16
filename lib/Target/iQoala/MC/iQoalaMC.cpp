@@ -185,19 +185,45 @@ namespace qoala::assembly {
         }
     }
 
+    void iQoalaRegReference::print(mlir::raw_ostream &os) const {
+        os << "Register: '";
+        switch (this->type) {
+            case LOCAL:
+                os << "LOCAL";
+                break;
+            case R:
+                os << "R";
+                break;
+            case C:
+                os << "C";
+                break;
+            case M:
+                os << "M";
+                break;
+            case Q:
+                os << "Q";
+                break;
+        }
+        os << "', number: '" << this->num << "'\n";
+    }
+
     // Implementations of the "<<" operator
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr) {
         instr.print(os);
         return os;
     }
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper) {
-        oper.print(os);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &operand) {
+        operand.print(os);
         return os;
 
     }
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr) {
         expr.print(os);
         return os;
+    }
 
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaRegReference &regRef) {
+        regRef.print(os);
+        return os;
     }
 }

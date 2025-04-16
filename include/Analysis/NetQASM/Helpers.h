@@ -61,6 +61,14 @@ namespace qoala::analysis::netqasm {
     std::map<uint32_t, mlir::Value> getRoutineArgValues(mlir::Operation *routine);
 
     /**
+     * Returns a vector with all the instructions of type `load` that are used to load arguments
+     * of the routine.
+     * @param routine The Quantum routine to analyze
+     * @return A vector with all the MC instructions that load an argument
+     */
+    std::vector<assembly::iQoalaMCInstruction *> getLoadMCInstructions(const iqoala::QuantumRoutine *routine);
+
+    /**
      * Returns a pointer to the closest surrounding LocalRoutineOp or RequestRoutineOp.
      * If the given operation itself is of LocalRoutineOp or RequestRoutineOp, this method
      * will simply return the same pointer.

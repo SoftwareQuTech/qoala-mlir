@@ -37,11 +37,6 @@ namespace qoala::iqoala {
         void releaseQubit(uint8_t reg);
         uint8_t allocateClassicalSocketForRemote(const std::string &remoteID);
         uint8_t allocateEPRSSocketForRemote(const std::string &remoteID);
-        void mapValueToQubitID(const mlir::Value &value, uint8_t qubitID);
-        [[nodiscard]]
-        bool valueIsMappedToQubit(const mlir::Value &value) const;
-        [[nodiscard]]
-        uint8_t getQubitIDFor(const mlir::Value &value) const;
         void markOperationAsVisited(mlir::Operation *operation);
         bool isOperationVisited(const mlir::Operation *operation) const;
 

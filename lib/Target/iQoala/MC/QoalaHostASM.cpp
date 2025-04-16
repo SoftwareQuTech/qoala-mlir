@@ -28,13 +28,13 @@ namespace qoala::assembly {
             for (uint32_t i = 0; i < resVals.size(); ++i) {
                 assert(mcOperands[i]->getRegRef()->isLocal() && "QoalaHost Instruction Builder: trying to create an instruction"
                                                                 "yielding a result on a non-local register.");
-                moduleTranslation->mapValueForRoutine(resVals[i], std::nullopt, mcOperands[i]->getRegRef());
+                moduleTranslation->mapValueToRegRef(resVals[i], mcOperands[i]->getRegRef());
             }
         }
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForRoutine(operandVal);
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandVal);
                 assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
                 assert(regRef->isLocal() && "QoalaHost Instruction Builder: mapped register is not local");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));

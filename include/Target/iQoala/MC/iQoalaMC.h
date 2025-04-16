@@ -61,12 +61,14 @@ namespace qoala::assembly {
         };
     };
 
-    class iQoalaRegReference {
+    class iQoalaRegReference : public helpers::PrintInterface {
     public :
         iQoalaRegReference() : type(R), num(0) { }
         iQoalaRegReference(const iQoalaRegType type, const uint32_t num) : type(type), num(num) { }
         iQoalaRegReference(const iQoalaRegReference &ref) = default;
-        ~iQoalaRegReference() = default;
+        ~iQoalaRegReference() override = default;
+
+        void print(mlir::raw_ostream &os) const override;
 
         static iQoalaRegReference *createRegReference(iQoalaRegType type, uint32_t num);
         static iQoalaRegReference *createRegReference(const iQoalaRegReference *regRef);
@@ -327,8 +329,9 @@ namespace qoala::assembly {
     };
 
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr);
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &operand);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaRegReference &regRef);
 }
 
 #endif //QOALA_MLIR_IQOALAMC_H

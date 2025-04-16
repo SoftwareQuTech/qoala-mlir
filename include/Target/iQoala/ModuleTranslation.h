@@ -23,13 +23,28 @@ namespace qoala::translate {
         class ModuleStackFrame {
         public:
             ModuleStackFrame() = delete;
-            explicit ModuleStackFrame(mlir::Operation *op) : operation(op) {};
+            explicit ModuleStackFrame(mlir::Operation *op) : operation(op) {}
+
+            /* Methods for mapping values */
+            void mapValueInScope(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
+            [[nodiscard]]
+            bool isValueInScope(const mlir::Value &value) const;
+            [[nodiscard]]
+            assembly::iQoalaRegReference *getRegReferenceForValue(const mlir::Value &value) const;
 
             [[nodiscard]]
             mlir::Operation *getOperation() const { return this->operation; }
-            bool operator<(const ModuleStackFrame &other) const;
+            [[nodiscard]]
+            bool isModule() const;
+            [[nodiscard]]
+            bool isQoalaHost() const;
+            [[nodiscard]]
+            bool isLocalRoutine() const;
+            [[nodiscard]]
+            bool isRequestRoutine() const;
         private:
             mlir::Operation *operation;
+            mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *>valuesInScope;
         };
         /**
          * This class represents the "stack" when translating the module
@@ -39,14 +54,19 @@ namespace qoala::translate {
          */
         class ModuleStack {
         public:
+            /* Stack handling methods */
             void pushNewStackFrame(mlir::Operation *op);
             [[nodiscard]]
-            ModuleStackFrame peekFrame();
+            ModuleStackFrame *peekFrame();
             void popFrame();
+
+            /* Methods for mapping values */
+            void mapValueInCurrentStackFrame(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
+            bool valueIsMapped(const mlir::Value &value);
+            assembly::iQoalaRegReference *getRegRefForValue(const mlir::Value &value);
+
         private:
-            using ValueContainer = std::map<mlir::Value, assembly::iQoalaRegReference>;
-            std::stack<ModuleStackFrame> frames;
-            std::map<ModuleStackFrame, ValueContainer> frameScopes;
+            std::stack<ModuleStackFrame *> frames;
         };
     public:
         friend std::unique_ptr<iqoala::iQoalaModule>
@@ -72,12 +92,11 @@ namespace qoala::translate {
         /* Functions for Mapping MLIR values to the RegReference objects
          * These functions search for the respective value using the emulated stack
          */
-        void mapValueForRoutine(const mlir::Value &mlirVal, const std::optional<mlir::Operation *> &routine,
-            assembly::iQoalaRegReference *regRef);
-        // TODO - remove the default value of the second argument!
+        void mapValueToRegRef(const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
         [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedRegRefForRoutine(const mlir::Value &mlirVal,
-            const std::optional<mlir::Operation *> &routine = std::nullopt) const;
+        assembly::iQoalaRegReference *getMappedRegRefForValue(const mlir::Value &mlirVal);
+        bool valueIsMappedInCurrentFrame(const mlir::Value &value);
+        bool valueIsMappedToQubitInCurrentFrame(const mlir::Value &value);
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
@@ -94,21 +113,11 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
     private:
-        [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedLocalRegReference(const mlir::Value &mlirVal) const;
-        [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedQuantumRegReference(const mlir::Value &mlirVal) const;
-
         mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         QoalaTranslationInterfaces ifaces;
         // Mappings MLIR and MC objects
         mlir::DenseMap<mlir::Block *, iqoala::Block *> qoalaHostBlocksMap;
-        mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> localRegsMap;
-        // Quantum registers map are a bit more complex.
-        // Since quantum routines can be called more than once, we need to allow mapping the
-        // value to multiple register references, depending on the call operation.
-        mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> quantumRegsMap;
         ModuleStack translationStack;
         // Map for comparison instructions
         // When encountering a cf.cond_br instruction, we should look into this map
