@@ -54,11 +54,13 @@ namespace qoala::translate {
          */
         class ModuleStack {
         public:
+            ModuleStack() = default;
+            ~ModuleStack();
             /* Stack handling methods */
             void pushNewStackFrame(mlir::Operation *op);
             [[nodiscard]]
             ModuleStackFrame *peekFrame();
-            void popFrame();
+            ModuleStackFrame *popFrame();
 
             /* Methods for mapping values */
             void mapValueInCurrentStackFrame(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
@@ -94,7 +96,7 @@ namespace qoala::translate {
          */
         void mapValueToRegRef(const mlir::Value &mlirVal, assembly::iQoalaRegReference *regRef);
         [[nodiscard]]
-        assembly::iQoalaRegReference *getMappedRegRefForValue(const mlir::Value &mlirVal);
+        assembly::iQoalaRegReference *getMappedRegRefForValue(const mlir::Value &mlirVal, bool copy = true);
         bool valueIsMappedInCurrentFrame(const mlir::Value &value);
         bool valueIsMappedToQubitInCurrentFrame(const mlir::Value &value);
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
@@ -103,10 +105,9 @@ namespace qoala::translate {
 
         /* Functions for following "call convention" for arguments in the local quantum routines */
         mlir::LogicalResult loadClassicalArgWithCallConv(iqoala::LocalQuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp, const mlir::Value &localRoutineArgVal, uint8_t argIndex);
+            mlir::Operation *localRoutineOp, uint32_t argIndex);
         mlir::LogicalResult loadQuantumArgWithCalConv(iqoala::QuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp, const mlir::Value &qoalaHostQubitVal,
-            const mlir::Value &localRoutineArgVal, uint8_t argIndex);
+            mlir::Operation *localRoutineOp);
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;

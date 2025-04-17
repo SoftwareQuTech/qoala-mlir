@@ -107,24 +107,16 @@ namespace qoala::analysis::netqasm {
         return {};
     }
 
-    std::vector<assembly::iQoalaMCInstruction *> getLoadMCInstructions(const iqoala::QuantumRoutine *routine) {
+    std::vector<assembly::iQoalaMCInstruction *> filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
+        const assembly::NetQASMMCInstr::OpCode opCode) {
         std::vector<assembly::iQoalaMCInstruction *> result;
         if (isa<iqoala::LocalQuantumRoutine>(routine)) {
             for (assembly::iQoalaMCInstruction *instruction : routine->getInstructions()) {
-                if (instruction->getOpcode() == assembly::NetQASMMCInstr::OpCode::OP_LOAD) {
+                if (instruction->getOpcode() == opCode) {
                     result.push_back(instruction);
                 }
             }
         }
         return result;
-    }
-
-    Operation *getParentNetQASMRoutine(Operation *operation) {
-        if (isa<LocalRoutineOp, RequestRoutineOp>(operation)) {
-            return operation;
-        }
-        const auto parentLocalRoutine = operation->getParentOfType<LocalRoutineOp>().getOperation();
-        const auto parentRequestRoutine = operation->getParentOfType<RequestRoutineOp>().getOperation();
-        return parentLocalRoutine ? parentLocalRoutine : parentRequestRoutine;
     }
 }

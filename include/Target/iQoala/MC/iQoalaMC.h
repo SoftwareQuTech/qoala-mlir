@@ -81,7 +81,7 @@ namespace qoala::assembly {
         uint32_t getNum() const;
         [[nodiscard]]
         uint32_t getQubitID() const;
-        void setQubitID(const uint32_t qubitID);
+        void setQubitID(uint32_t qubitID);
         [[nodiscard]]
         bool representsAQubit() const;
         [[nodiscard]]
@@ -107,7 +107,7 @@ namespace qoala::assembly {
             EXPRESSION
         };
 
-        iQoalaMCOperand() : inst(nullptr), kind(INVALID), integerVal(0) { };
+        iQoalaMCOperand() : inst(nullptr), kind(INVALID), integerVal(0) { }
         ~iQoalaMCOperand() override {
             // We do not need to deallocate the instruction, since it will be deallocated
             // in the destructor of the corresponding block.

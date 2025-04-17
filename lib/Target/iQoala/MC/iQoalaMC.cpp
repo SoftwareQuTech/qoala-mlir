@@ -1,6 +1,7 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/Diagnostics.h"
+
+#define DEBUG_TYPE "iQoalaMC"
 
 namespace qoala::assembly {
     iQoalaRegType iQoalaRegReference::getType() const { return this->type; }
@@ -218,7 +219,7 @@ namespace qoala::assembly {
                 os << "Q";
                 break;
         }
-        os << "', number: '" << this->num << "'\n";
+        os << "', number: '" << this->num << ", qubitID: '" << this->qubitID << "'\n";
     }
 
     // Implementations of the "<<" operator

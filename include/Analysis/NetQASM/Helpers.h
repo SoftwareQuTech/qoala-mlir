@@ -42,7 +42,7 @@ namespace qoala::analysis::netqasm {
      *         within the body of the MLIR quantum routine.
      */
     std::map<uint32_t, uint8_t> getReturnedQubitsMap(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName,
-        const iqoala::QuantumRoutine *quantumRoutine);
+                                                     const iqoala::QuantumRoutine *quantumRoutine);
 
     /**
      * Determines if the given block argument (value) <b>is used</b> as a qubit or not.
@@ -61,22 +61,13 @@ namespace qoala::analysis::netqasm {
     std::map<uint32_t, mlir::Value> getRoutineArgValues(mlir::Operation *routine);
 
     /**
-     * Returns a vector with all the instructions of type `load` that are used to load arguments
-     * of the routine.
+     * Returns a vector with all the instructions of the given opCode.
      * @param routine The Quantum routine to analyze
+     * @param opCode The given OpCode to filter
      * @return A vector with all the MC instructions that load an argument
      */
-    std::vector<assembly::iQoalaMCInstruction *> getLoadMCInstructions(const iqoala::QuantumRoutine *routine);
-
-    /**
-     * Returns a pointer to the closest surrounding LocalRoutineOp or RequestRoutineOp.
-     * If the given operation itself is of LocalRoutineOp or RequestRoutineOp, this method
-     * will simply return the same pointer.
-     * @param operation The operation to analyze
-     * @return A pointer to the surrounding LocalRoutineOp *or* RequestRoutineOp, `nullptr` if the
-     *         given instruction is not in the body of a local or request routine.
-     */
-    mlir::Operation *getParentNetQASMRoutine(mlir::Operation *operation);
+    std::vector<assembly::iQoalaMCInstruction *> filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
+        assembly::NetQASMMCInstr::OpCode opCode);
 }
 
 #endif //HELPERS_H
