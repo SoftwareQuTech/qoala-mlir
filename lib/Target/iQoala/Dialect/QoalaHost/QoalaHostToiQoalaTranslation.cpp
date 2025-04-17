@@ -49,7 +49,7 @@ static void replacePlaceholderMCOperands(iQoalaContext *context, const QuantumRo
     // We need to add mapping for the MLIR values fo the already-existing call convention instructions
     for (iQoalaMCInstruction *instruction : routine->getInstructions()) {
         for (uint32_t i = 0; i < instruction->getNumOperands(); i++) {
-            if (const iQoalaMCOperand *operand = instruction->getOperand(i); !operand->isValid()) {
+            if (const iQoalaMCOperand *operand = instruction->getOperand(i); operand->isPlaceHolder()) {
                 // The operand is a placeholder; it needs to be replaced with an immediate operand that
                 // contains the qubit ID of an allocated qubit
                 const uint32_t qubitID = context->allocateQubit();
@@ -93,13 +93,13 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         if (moduleTranslation->valueIsMappedToQubitInCurrentFrame(valueAtCaller)) {
             // In this case, the argument is mapped to a qubit reference
             // TODO - What to do here?
+            //moduleTranslation->mapValueToRegRef(valueAtCallee);
         } else {
             // In this case, we can safely assume that the value is mapped to a classical value.
             //assert(moduleTranslation->valueIsMappedInCurrentFrame(valueAtCaller) && "Process call: value is not mapped to a classical nor qubit value");
             for (const iQoalaMCInstruction *loadInstr : netqasm::getLoadMCInstructions(routine)) {
                 if (loadInstr->getOperand(1)->getIntegerVal() == argNum) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
-                    //moduleTranslation->mapValueToRegRef(valueAtCaller, );
                 }
             }
         }

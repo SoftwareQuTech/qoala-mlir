@@ -3,6 +3,14 @@
 #include "mlir/IR/Diagnostics.h"
 
 namespace qoala::assembly {
+    iQoalaRegType iQoalaRegReference::getType() const { return this->type; }
+    uint32_t iQoalaRegReference::getNum() const { return this->num; }
+    uint32_t iQoalaRegReference::getQubitID() const { return this->qubitID; }
+    void iQoalaRegReference::setQubitID(const uint32_t qubitID) { this->qubitID = qubitID; }
+    bool iQoalaRegReference::representsAQubit() const { return this->qubitID != 0xFF; }
+    bool iQoalaRegReference::isLocal() const { return this->type == LOCAL; }
+    bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/return this->type >= 1; }
+
     /* Builders */
     iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
         const auto regReference = new iQoalaRegReference();
@@ -26,8 +34,10 @@ namespace qoala::assembly {
     }
 
     iQoalaMCOperand *iQoalaMCOperand::createPlaceholderOperand() {
-        // This creates an *invalid* operand. Needs to be replaced later
-        return new iQoalaMCOperand();
+        // This creates a placeholder operand. Needs to be replaced later
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = PLACEHOLDER;
+        return operand;
     }
 
     iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
@@ -105,6 +115,7 @@ namespace qoala::assembly {
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
+    bool iQoalaMCOperand::isPlaceHolder() const { return kind == PLACEHOLDER; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
     bool iQoalaMCOperand::isRegister() const { return kind == REGISTER; }
     bool iQoalaMCOperand::isLocalRegister() const { return kind == LOCAL_REGISTER; }
@@ -168,6 +179,9 @@ namespace qoala::assembly {
         switch(this->kind) {
             case INVALID:
                 assert(false && "Op code for operand is unknown.\n");
+            case PLACEHOLDER:
+                os << "PLACEHOLDER_OPERAND";
+                break;
             case IMMEDIATE_I32:
                 os << this->integerVal;
                 break;

@@ -280,7 +280,7 @@ namespace qoala::translate {
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 for (auto arg : localRoutine.getArguments()) {
                     // We need to load arguments
-                    const uint8_t argNum = arg.getArgNumber();
+                    const uint32_t argNum = arg.getArgNumber();
                     if (!netqasm::blockArgIsQubit(arg)) {
                         // Follow the classical call convention for other args
                         routine->addArgument(helpers::formatString(paramNameFormat, argNum));

@@ -17,7 +17,7 @@ namespace qoala::translate {
 }
 
 namespace qoala::assembly {
-    enum iQoalaRegType { LOCAL, R, C, M, Q };
+    enum iQoalaRegType { LOCAL = 0, R, C, M, Q };
 
     class iQoalaMC : public helpers::PrintInterface{ };
 
@@ -32,7 +32,7 @@ namespace qoala::assembly {
         };
     public:
         iQoalaMCExpr() : kind(INVALID), symbolName() { }
-        explicit iQoalaMCExpr(const std::string &symName) : kind(SYMBOL_REFERENCE), symbolName(symName) { }
+        explicit iQoalaMCExpr(std::string symName) : kind(SYMBOL_REFERENCE), symbolName(std::move(symName)) { }
         explicit iQoalaMCExpr(mlir::Operation *mlirOp) : kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { };
         ~iQoalaMCExpr() override { }
 
@@ -76,22 +76,30 @@ namespace qoala::assembly {
         [[nodiscard]]
         std::string formatRegister() const;
         [[nodiscard]]
-        iQoalaRegType getType() const { return type; }
+        iQoalaRegType getType() const;
         [[nodiscard]]
-        uint32_t getNum() const { return num; }
+        uint32_t getNum() const;
         [[nodiscard]]
-        bool isLocal() const { return type == LOCAL; }
+        uint32_t getQubitID() const;
+        void setQubitID(const uint32_t qubitID);
         [[nodiscard]]
-        bool isQuantum() const { return type == C || type == Q || type == M || type == R; }
+        bool representsAQubit() const;
+        [[nodiscard]]
+        bool isLocal() const;
+        [[nodiscard]]
+        bool isQuantum() const;
     private:
         iQoalaRegType type;
         uint32_t num;
+        /* QubitID for the regRef object. Will hold the value 0xFF if the regReg does not represent a qubit */
+        uint32_t qubitID = 0xFF;
     };
 
     class iQoalaMCOperand : public iQoalaMC {
     public:
         enum OperandKind {
             INVALID,
+            PLACEHOLDER,
             IMMEDIATE_I32,
             IMMEDIATE_F32,
             REGISTER,
@@ -118,6 +126,8 @@ namespace qoala::assembly {
 
         [[nodiscard]]
         bool isValid() const;
+        [[nodiscard]]
+        bool isPlaceHolder() const;
         [[nodiscard]]
         bool isImmediate() const;
         [[nodiscard]]
