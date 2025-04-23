@@ -48,29 +48,32 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
 static void replacePlaceholderMCOperands(const ModuleTranslation *moduleTranslation, const QuantumRoutine *routine,
     const netqasm::ArgValueMap &argValsMap, const DenseMap<Value, uint32_t> &valueToQubitMap) {
     iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
+    std::string routineName = routine->getName();
 
     // We need to add mapping for the MLIR values fo the already-existing call convention instructions
     for (uint32_t i = 0; i < routine->getNumInstructions(); i++) {
-        iQoalaMCInstruction *instruction = routine->getInstruction(i);
-        BlockArgument routineArgVal = moduleTranslation->getValueForMCInstruction(instruction);
-        const uint32_t mappedQubitID = valueToQubitMap.at(argValsMap.getCallerValueForArg(routineArgVal));
+        if (iQoalaMCInstruction *instruction = routine->getInstruction(i); instruction->hasPlaceholderOperand()) {
+            // If the instruction has a placeholder operand, we need to replace it
+            BlockArgument routineArgVal = moduleTranslation->getValueForMCInstruction(instruction);
+            const uint32_t mappedQubitID = valueToQubitMap.at(argValsMap.getCallerValueForArg(routineArgVal));
 
-        for (uint32_t j = 0; j < instruction->getNumOperands(); j++) {
-            if (const iQoalaMCOperand *operand = instruction->getOperand(j); operand->isPlaceHolder()) {
-                // The operand is a placeholder; it needs to be replaced with an immediate operand that
-                // contains the qubit ID of the allocated qubit (either existent or newly allocated)
-                uint32_t qubitID;
-                if (mappedQubitID != 0xFF) {
-                    // Qubit is already mapped, used the value
-                    qubitID = mappedQubitID;
-                } else {
-                    // qubit is not mapped; allocate a new qubit
-                    qubitID = context->allocateQubit();
+            for (uint32_t j = 0; j < instruction->getNumOperands(); j++) {
+                if (const iQoalaMCOperand *operand = instruction->getOperand(j); operand->isPlaceHolder()) {
+                    // The operand is a placeholder; it needs to be replaced with an immediate operand that
+                    // contains the qubit ID of the allocated qubit (either existent or newly allocated)
+                    uint32_t qubitID;
+                    if (mappedQubitID != 0xFF) {
+                        // Qubit is already mapped, used the value
+                        qubitID = mappedQubitID;
+                    } else {
+                        // qubit is not mapped; allocate a new qubit
+                        qubitID = context->allocateQubit();
+                    }
+                    iQoalaMCOperand *newOperand = iQoalaMCOperand::createImmediateOperand(qubitID);
+                    instruction->replaceOperand(j, newOperand);
+                    // Free the memory for the replaced placeholder
+                    delete operand;
                 }
-                iQoalaMCOperand *newOperand = iQoalaMCOperand::createImmediateOperand(qubitID);
-                instruction->replaceOperand(j, newOperand);
-                // Free the memory for the replaced placeholder
-                delete operand;
             }
         }
     }

@@ -259,6 +259,7 @@ namespace qoala::translate {
             } else {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
+                std::string routineName = localRoutine.getName().str();
                 for (auto arg : localRoutine.getArguments()) {
                     // We need to load arguments
                     const uint32_t argNum = arg.getArgNumber();

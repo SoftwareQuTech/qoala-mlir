@@ -130,6 +130,16 @@ namespace qoala::assembly {
     std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return operands; };
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
 
+
+    bool iQoalaMCInstruction::hasPlaceholderOperand() const {
+        for (const iQoalaMCOperand *operand : this->operands) {
+            if (operand->isPlaceHolder()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void iQoalaMCInstruction::replaceOperand(unsigned i, iQoalaMCOperand *newOperand) {
         this->operands[i] = newOperand;
     }

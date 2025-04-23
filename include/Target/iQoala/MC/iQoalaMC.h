@@ -190,6 +190,8 @@ namespace qoala::assembly {
         std::vector<iQoalaMCOperand *> getOperands() const;
         [[nodiscard]]
         unsigned int getNumOperands() const;
+        [[nodiscard]]
+        bool hasPlaceholderOperand() const;
         void replaceOperand(unsigned i, iQoalaMCOperand *newOperand);
 
         void addOperand(iQoalaMCOperand *op);
