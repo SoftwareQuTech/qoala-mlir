@@ -12,7 +12,7 @@
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // This call does not yield a result, because __qoala_wrapper1 request uses qubitID 1
 // to create the entangled pair
-// CHECK-NEXT: tuple<%0; %1; %2> = run_subroutine() : __qoala_wrapper1
+// CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]> = run_subroutine() : __qoala_wrapper1
 // CHECK: b[[BLOCK2:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper1

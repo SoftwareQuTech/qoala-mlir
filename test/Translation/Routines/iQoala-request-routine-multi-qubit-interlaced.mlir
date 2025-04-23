@@ -14,7 +14,7 @@
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper3
 // CHECK: b[[BLOCK1:.*]] { type = CL }
-// CHECK-NEXT: tuple<%0; %1; %2; %3; %4> = run_subroutine() : __qoala_wrapper4
+// CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]; [[MEAS_3:.*]]; [[MEAS_4:.*]]> = run_subroutine() : __qoala_wrapper4
 // CHECK: b[[BLOCK5:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper1
