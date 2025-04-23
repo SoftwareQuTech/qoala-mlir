@@ -1,5 +1,6 @@
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Analysis/Helpers/Helpers.h"
+#include "Dialect/Helpers/DialectHelpers.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
@@ -68,7 +69,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
 }
 
 /* Call operation verifier */
-LogicalResult qoalahost::CallOp::verifySymbolUses(mlir::SymbolTableCollection &symbolTable) {
+LogicalResult qoalahost::CallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
     // Search the symbol in the parent SymbolTables
     // The declared symbol MUST come from a netqasm.local_routine OR netqasm.request_routine operation
     if (symbolTable.lookupNearestSymbolFrom<netqasm::LocalRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
@@ -80,6 +81,21 @@ LogicalResult qoalahost::CallOp::verifySymbolUses(mlir::SymbolTableCollection &s
     return this->emitOpError() << "'" << this->getCalleeAttr() << "' "
                                << "does not reference a valid defined by either netqasm.local_routine or "
                                << "netqasm.request_routine.";
+}
+
+LogicalResult qoalahost::CallOp::verify() {
+    auto module = this->getOperation()->getParentOfType<ModuleOp>();
+    assert(module);
+    if (const Operation *callee = helpers::getRoutineWithName(&module, this->getCallee()); !callee) {
+        this->emitOpError() << "Called function '" << this->getCallee() << "' was not found in the module.";
+    } else {
+        auto netQASMRoutine = dyn_cast<NetQASMRoutineInterface>(callee);
+        if (this->getArgOperands().size() != netQASMRoutine.getArgsList().size()) {
+            this->emitError() << "Call operation does not match the number of arguments of the callee.";
+        }
+    }
+
+    return success();
 }
 
 /* Helper functions from the QoalaHostDialect class */

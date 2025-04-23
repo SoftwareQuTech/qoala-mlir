@@ -12,6 +12,10 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
         InterfaceMethod<[{
             Returns the return operation of this routine
         }], "::mlir::Operation *", "getReturnOperation"
+        >,
+        InterfaceMethod<[{
+            Returns the ArgumentsRange for this routine
+        }], "::mlir::ArrayAttr", "getArgsList"
         >
     ];
 }

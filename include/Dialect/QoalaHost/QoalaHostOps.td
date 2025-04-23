@@ -157,6 +157,8 @@ def CallOp : QoalaHost_Op<"call",
     let assemblyFormat = [{
         $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
     }];
+
+    let hasVerifier = 1;
  }
 
 def ReturnOp: QoalaHost_Op<"return", [Pure, HasParent<"MainFuncOp">, ReturnLike, Terminator]> {

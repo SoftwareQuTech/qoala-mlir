@@ -83,6 +83,14 @@ Operation *netqasm::RequestRoutineOp::getReturnOperation() {
     return *returnOps.begin();
 }
 
+ArrayAttr netqasm::RequestRoutineOp::getArgsList() {
+    return this->getArgAttrsAttr();
+}
+
+ArrayAttr netqasm::LocalRoutineOp::getArgsList() {
+    return this->getArgAttrsAttr();
+}
+
 /* Helper functions from the NetQASMDialect class */
 bool netqasm::NetQASMDialect::opIsNotFromAllowedDialects(Operation &operation) {
     return !belongsToDialect<

@@ -40,7 +40,6 @@ namespace qoala::dialects::helpers {
         return parent.getSymName().str();
     }
 
-
     template <typename RoutineOpType>
     static Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
         Operation *routineOp = nullptr;
