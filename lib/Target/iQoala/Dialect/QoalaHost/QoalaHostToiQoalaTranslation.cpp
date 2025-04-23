@@ -5,7 +5,7 @@
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
-
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #include "llvm/Support/Debug.h"
@@ -17,6 +17,7 @@ using namespace qoala::translate;
 using namespace qoala::assembly;
 using namespace qoala::iqoala;
 using namespace qoala::analysis;
+using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::qoalahost;
 
 static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
@@ -85,7 +86,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
     const std::string calleeStr = callee.str();
 
-    Operation *calledFunction = netqasm::getRoutineWithName(mlirModule, callee);
+    Operation *calledFunction = getRoutineWithName(mlirModule, callee);
     if (!calledFunction) {
         return failure();
     }
@@ -164,10 +165,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // Compute the right opcode
-                if (netqasm::hasLocalRoutineWithName(mlirModule, callee)) {
+                if (hasLocalRoutineWithName(mlirModule, callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (netqasm::hasRequestRoutineWithName(mlirModule, callee)) {
+                if (hasRequestRoutineWithName(mlirModule, callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 

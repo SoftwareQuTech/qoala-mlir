@@ -1,40 +1,14 @@
 #include "Analysis/NetQASM/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/iQoala.h"
 
 using namespace mlir;
 using namespace qoala::dialects;
+using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::netqasm;
 
 namespace qoala::analysis::netqasm {
-    template <typename RoutineOpType>
-    static Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        Operation *routineOp = nullptr;
-        mlirModule->walk([&](RoutineOpType routine) -> WalkResult {
-            if (routine.getSymNameAttr() == functionName) {
-                routineOp = routine.getOperation();
-                return WalkResult::interrupt();
-            }
-            return WalkResult::advance();
-        });
-        return routineOp;
-    }
-
-    bool hasLocalRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        return getRoutineWithName<LocalRoutineOp>(mlirModule, functionName) != nullptr;
-    }
-
-    bool hasRequestRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        return getRoutineWithName<RequestRoutineOp>(mlirModule, functionName) != nullptr;
-    }
-
-    Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        if (const auto localRoutine = getRoutineWithName<LocalRoutineOp>(mlirModule, functionName)) {
-            return localRoutine;
-        }
-        return getRoutineWithName<RequestRoutineOp>(mlirModule, functionName);
-    }
-
     std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
         const iqoala::QuantumRoutine *quantumRoutine) {
         std::map<uint32_t, uint8_t> result;
