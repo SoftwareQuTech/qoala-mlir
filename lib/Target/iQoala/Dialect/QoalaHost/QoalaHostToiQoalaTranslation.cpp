@@ -94,7 +94,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     // a qubit in the current stack frame:
     DenseMap<Value, uint32_t> valueToQubitMap;
     for (Value arg : op.getOperands()) {
-        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg)->getQubitID());
+        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg, /*copy=*/false)->getQubitID());
     }
 
     // Some preparations before processing arguments
