@@ -41,9 +41,13 @@ namespace qoala::iqoala {
 
         virtual void addInstruction(assembly::NetQASMMCInstr *instruction) = 0;
         [[nodiscard]]
-        std::string getName() const { return name; }
+        std::string getName() const { return this->name; }
+        [[nodiscard]]
+        uint32_t getNumInstructions() const { return this->instructions.size(); }
         [[nodiscard]]
         std::vector<assembly::iQoalaMCInstruction *> getInstructions() const { return this->instructions; }
+        [[nodiscard]]
+        assembly::iQoalaMCInstruction *getInstruction(const uint32_t i) const { return this->instructions[i]; }
         virtual void addArgument(const std::string &argName) = 0;
         [[nodiscard]]
         virtual uint8_t getQubitNum(const mlir::Value &value) const;
@@ -53,7 +57,7 @@ namespace qoala::iqoala {
 
         // LLVM RTTI
         [[nodiscard]]
-        QuantumRoutineKind getKind() const { return kind; }
+        QuantumRoutineKind getKind() const { return this->kind; }
     private:
         // LLVM RTTI kind
         const QuantumRoutineKind kind;

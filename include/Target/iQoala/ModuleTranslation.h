@@ -102,17 +102,22 @@ namespace qoala::translate {
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
-
-        /* Functions for following "call convention" for arguments in the local quantum routines */
-        mlir::LogicalResult loadClassicalArgWithCallConv(iqoala::LocalQuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp, uint32_t argIndex);
-        mlir::LogicalResult loadQuantumArgWithCalConv(iqoala::QuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp);
+        mlir::BlockArgument getValueForMCInstruction(const assembly::iQoalaMCInstruction *mcInst) const;
 
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
+
+    protected:
+        /* Functions for following "call convention" for arguments in the local quantum routines */
+        mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg, iqoala::LocalQuantumRoutine *iQoalaRoutine,
+            mlir::Operation *localRoutineOp, uint32_t argIndex);
+        mlir::LogicalResult loadQuantumArgWithCalConv(const mlir::BlockArgument &blockArg, iqoala::QuantumRoutine *iQoalaRoutine,
+            mlir::Operation *localRoutineOp);
+        mlir::LogicalResult convertLocalRoutines();
+        mlir::LogicalResult convertRequestRoutines() const;
+
     private:
         mlir::ModuleOp *mlirModule;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
@@ -126,6 +131,9 @@ namespace qoala::translate {
         // The static type of the key is mlir::Operation *, but they are safe to dyn_cast
         // (using MLIR's dyn_cast) to arith::CmpIOp.
         mlir::DenseMap<mlir::Value, mlir::Operation *> cmpMap;
+        // Map for tracking MLIR values of function arguments to the MC instruction
+        // that are used to retrieve those values in the MC model
+        mlir::DenseMap<assembly::iQoalaMCInstruction *, mlir::BlockArgument> mcArgsValsMap;
     };
 }
 

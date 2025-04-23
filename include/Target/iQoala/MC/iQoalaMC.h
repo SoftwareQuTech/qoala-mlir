@@ -170,7 +170,7 @@ namespace qoala::assembly {
     public:
         /* The first declaration of all op codes is assumed to mean "unknown" */
         explicit iQoalaMCInstruction(mlir::Operation *op) : originalOp(op), opCode(0), numResults(0) { }
-        iQoalaMCInstruction(mlir::Operation *op, const uint32_t opCode, uint32_t numResults) :
+        iQoalaMCInstruction(mlir::Operation *op, const uint32_t opCode, const uint32_t numResults) :
             originalOp(op), opCode(opCode), operands({}), numResults(numResults) { }
         iQoalaMCInstruction(const iQoalaMCInstruction &inst) : originalOp(inst.originalOp), opCode(inst.opCode),
             operands(inst.operands), numResults(inst.numResults) { }

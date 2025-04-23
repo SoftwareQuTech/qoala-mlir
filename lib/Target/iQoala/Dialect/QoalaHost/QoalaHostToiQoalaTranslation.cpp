@@ -45,16 +45,30 @@ static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTransla
     return success();
 }
 
-static void replacePlaceholderMCOperands(iQoalaContext *context, const QuantumRoutine *routine) {
+static void replacePlaceholderMCOperands(const ModuleTranslation *moduleTranslation, const QuantumRoutine *routine,
+    const netqasm::ArgValueMap &argValsMap, const DenseMap<Value, uint32_t> &valueToQubitMap) {
+    iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
+
     // We need to add mapping for the MLIR values fo the already-existing call convention instructions
-    for (iQoalaMCInstruction *instruction : routine->getInstructions()) {
-        for (uint32_t i = 0; i < instruction->getNumOperands(); i++) {
-            if (const iQoalaMCOperand *operand = instruction->getOperand(i); operand->isPlaceHolder()) {
+    for (uint32_t i = 0; i < routine->getNumInstructions(); i++) {
+        iQoalaMCInstruction *instruction = routine->getInstruction(i);
+        BlockArgument routineArgVal = moduleTranslation->getValueForMCInstruction(instruction);
+        const uint32_t mappedQubitID = valueToQubitMap.at(argValsMap.getCallerValueForArg(routineArgVal));
+
+        for (uint32_t j = 0; j < instruction->getNumOperands(); j++) {
+            if (const iQoalaMCOperand *operand = instruction->getOperand(j); operand->isPlaceHolder()) {
                 // The operand is a placeholder; it needs to be replaced with an immediate operand that
-                // contains the qubit ID of an allocated qubit
-                const uint32_t qubitID = context->allocateQubit();
+                // contains the qubit ID of the allocated qubit (either existent or newly allocated)
+                uint32_t qubitID;
+                if (mappedQubitID != 0xFF) {
+                    // Qubit is already mapped, used the value
+                    qubitID = mappedQubitID;
+                } else {
+                    // qubit is not mapped; allocate a new qubit
+                    qubitID = context->allocateQubit();
+                }
                 iQoalaMCOperand *newOperand = iQoalaMCOperand::createImmediateOperand(qubitID);
-                instruction->replaceOperand(i, newOperand);
+                instruction->replaceOperand(j, newOperand);
                 // Free the memory for the replaced placeholder
                 delete operand;
             }
@@ -72,36 +86,35 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     if (!calledFunction) {
         return failure();
     }
-    QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
 
     // BEFORE pushing a new frame on the stack, we have to discover the arguments that are mapped to
     // a qubit in the current stack frame:
-    DenseMap<Value, bool> valueIsMappedToQubit;
+    DenseMap<Value, uint32_t> valueToQubitMap;
     for (Value arg : op.getOperands()) {
-        valueIsMappedToQubit.insert({arg, moduleTranslation->valueIsMappedToQubitInCurrentFrame(arg)});
+        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg)->getQubitID());
     }
 
     // Some preparations before processing arguments
-    moduleTranslation->pushNewFrame(calledFunction);
-    replacePlaceholderMCOperands(context, routine);
-
-    // First, we map the MLIR the values to their regRefs following the call convention
     // Get the information about the MLIR values (block args) that model the routine args
     // We use this information to map the qubitID within the body of the netqasm local routine
     // so users of the MLIR value inside the MLIR local routine can know that the value is a qubit.
-    std::map<uint32_t, Value> localRoutineArgs = netqasm::getRoutineArgValues(calledFunction);
-    assert (localRoutineArgs.size() == op.getNumOperands() && "Process call: caller and callee number of args do not match. Malformed MLIR?");
-    for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
-        Value valueAtCaller = op.getOperand(argNum);
-        Value &valueAtCallee = localRoutineArgs[argNum];
+    const netqasm::ArgValueMap valuesArgMap = netqasm::getRoutineArgValues(calledFunction, op.getOperands());
+    QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
+    moduleTranslation->pushNewFrame(calledFunction);
+    replacePlaceholderMCOperands(moduleTranslation, routine, valuesArgMap, valueToQubitMap);
 
-        LLVM_DEBUG(llvm::dbgs() << "val @ caller: '" << valueAtCaller << "'\nvalue @ callee: '" << valueAtCallee << "'");
+    // First, we map the MLIR the values to their regRefs following the call convention
+    for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
+        const Value valueAtCaller = op.getOperand(argNum);
+        const Value &valueAtCallee = valuesArgMap.getBlockArgForCallerValue(valueAtCaller);
 
         // TODO - Double check the correctness of this
-        if (valueIsMappedToQubit[valueAtCaller]) {
+        if (valueToQubitMap[valueAtCaller] != 0xFF) {
             // In this case, the argument is mapped to a qubit reference
-            for (const iQoalaMCInstruction *loadInstr : netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
-                moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
+            for (const iQoalaMCInstruction *setInstr : netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
+                moduleTranslation->mapValueToRegRef(valueAtCallee, setInstr->getOperand(0)->getRegRef());
+                // Register the qubit for the "uses" and "keeps"
+                routine->registerQubit(valueAtCallee, setInstr->getOperand(1)->getIntegerVal());
             }
         } else {
             // In this case, we can safely assume that the value is mapped to a classical value.
@@ -208,9 +221,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     // We get the register reference for the value, but NOT a copy of the object, since we need
                     // to mutate the original one
                     iQoalaRegReference *regRefCaller = moduleTranslation->getMappedRegRefForValue(valueAtCaller, /*copy=*/false);
-                    LLVM_DEBUG(llvm::dbgs() << "value at caller: " << valueAtCaller << "\n");
                     regRefCaller->setQubitID(qubitId);
-                    LLVM_DEBUG(llvm::dbgs() << "regRef Caller: " << *regRefCaller << "");
                 }
                 return instruction ? success() : failure();
             })

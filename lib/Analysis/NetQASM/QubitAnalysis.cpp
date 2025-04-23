@@ -1,7 +1,6 @@
-#include <Target/iQoala/iQoala.h>
-
 #include "Analysis/NetQASM/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
+#include "Target/iQoala/iQoala.h"
 
 using namespace mlir;
 using namespace qoala::dialects;
@@ -88,21 +87,34 @@ namespace qoala::analysis::netqasm {
         return false;
     }
 
+    Value ArgValueMap::getCallerValueForArg(const BlockArgument &blockArg) const {
+        return this->calleeArgsToCallerArgMap.at(blockArg);
+    }
+
+    BlockArgument ArgValueMap::getBlockArgForCallerValue(const Value &callerVal) const {
+        return this->callerArgsToCalleeArgMap.at(callerVal);
+    }
+
+    void ArgValueMap::mapCallerArgToCalleeArgValue(const Value &callerVal, const BlockArgument &blockArg) {
+        this->callerArgsToCalleeArgMap.try_emplace(callerVal, blockArg);
+        this->calleeArgsToCallerArgMap.try_emplace(blockArg, callerVal);
+    }
+
     template<typename RoutineType>
-    static std::map<uint32_t, Value> getRoutineArgVals(RoutineType *routine) {
-        std::map<uint32_t, Value> result;
-        for (auto blockArg : routine->front().getArguments()) {
-            result.emplace(blockArg.getArgNumber(), blockArg);
+    static ArgValueMap getRoutineArgVals(RoutineType routine, const OperandRange &callOperands) {
+        ArgValueMap result;
+        for (auto blockArg : routine.front().getArguments()) {
+            result.mapCallerArgToCalleeArgValue(callOperands[blockArg.getArgNumber()], blockArg);
         }
         return result;
     }
 
-    std::map<uint32_t, Value> getRoutineArgValues(Operation *routine) {
-        if (auto localRoutine = dyn_cast<LocalRoutineOp>(routine)) {
-            return getRoutineArgVals(&localRoutine);
+    ArgValueMap getRoutineArgValues(Operation *routine, const OperandRange &callOperands) {
+        if (const auto localRoutine = dyn_cast<LocalRoutineOp>(routine)) {
+            return getRoutineArgVals(localRoutine, callOperands);
         }
-        if (auto requestRoutine = dyn_cast<RequestRoutineOp>(routine)) {
-            return getRoutineArgVals(&requestRoutine);
+        if (const auto requestRoutine = dyn_cast<RequestRoutineOp>(routine)) {
+            return getRoutineArgVals(requestRoutine, callOperands);
         }
         return {};
     }

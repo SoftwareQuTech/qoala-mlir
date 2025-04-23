@@ -52,13 +52,26 @@ namespace qoala::analysis::netqasm {
      */
     bool blockArgIsQubit(const mlir::BlockArgument &blockArg);
 
+    class ArgValueMap {
+    public:
+        [[nodiscard]]
+        mlir::Value getCallerValueForArg(const mlir::BlockArgument &blockArg) const;
+        [[nodiscard]]
+        mlir::BlockArgument getBlockArgForCallerValue(const mlir::Value &callerVal) const;
+        void mapCallerArgToCalleeArgValue(const mlir::Value &callerVal, const mlir::BlockArgument &blockArg);
+    private:
+        mlir::DenseMap<mlir::Value, mlir::BlockArgument> callerArgsToCalleeArgMap;
+        mlir::DenseMap<mlir::BlockArgument, mlir::Value> calleeArgsToCallerArgMap;
+    };
+
     /**
-     * Computes a map linking the indexes of the arguments and the MLIR values *inside* the
-     * routine body.
-     * @param routine The routine operation to analyze
-     * @return A map between the argument indexes and the respective MLIR values
+     * Computes a map linking the argument values from a call operation with the BlockArgument values
+     * that are used *inside* the called function.
+     * @param routine The routine operation to analyze.
+     * @param callOperands An OperandRange object that contains the argument values passed by the caller.
+     * @return A map object that relates caller argument values and the BlockArgument values inside the called function.
      */
-    std::map<uint32_t, mlir::Value> getRoutineArgValues(mlir::Operation *routine);
+    ArgValueMap getRoutineArgValues(mlir::Operation *routine, const mlir::OperandRange &callOperands);
 
     /**
      * Returns a vector with all the instructions of the given opCode.

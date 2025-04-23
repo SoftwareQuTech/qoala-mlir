@@ -207,6 +207,13 @@ namespace qoala::translate {
         return nullptr;
     }
 
+    BlockArgument ModuleTranslation::getValueForMCInstruction(const iQoalaMCInstruction *mcInst) const {
+        if (this->mcArgsValsMap.contains(mcInst)) {
+            return this->mcArgsValsMap.at(mcInst);
+        }
+        return nullptr;
+    }
+
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
         assert(this->qoalaHostBlocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
         return this->qoalaHostBlocksMap.at(mlirBlock);
@@ -214,7 +221,7 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(LocalQuantumRoutine *iQoalaRoutine,
+    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(const BlockArgument &blockArg, LocalQuantumRoutine *iQoalaRoutine,
         Operation *localRoutineOp, const uint32_t argIndex) {
         auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
@@ -225,26 +232,25 @@ namespace qoala::translate {
             return failure();
         }
         iQoalaRoutine->addInstruction(loadInstr);
+        this->mcArgsValsMap.try_emplace(loadInstr, blockArg);
         return success();
     }
 
-    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(QuantumRoutine *iQoalaRoutine, Operation *localRoutineOp) {
-        auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(const BlockArgument &blockArg, QuantumRoutine *iQoalaRoutine,
+        Operation *localRoutineOp) {
+        auto *setInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             this, localRoutineOp, NetQASMMCInstr::OP_SET,
             {}, {Q}, {iQoalaMCOperand::createPlaceholderOperand()},
             /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
-        if (!loadInstr) {
+        if (!setInstr) {
             return failure();
         }
-        iQoalaRoutine->addInstruction(loadInstr);
-
-        // Register the qubit for the "uses" and "keeps"
-        //iQoalaRoutine->registerQubit(localRoutineArgVal, phyQubitID);
+        iQoalaRoutine->addInstruction(setInstr);
+        this->mcArgsValsMap.try_emplace(setInstr, blockArg);
         return success();
     }
 
-
-    LogicalResult ModuleTranslation::convertFunctionSignatures() {
+    LogicalResult ModuleTranslation::convertLocalRoutines() {
         for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
             if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
@@ -256,16 +262,14 @@ namespace qoala::translate {
                 for (auto arg : localRoutine.getArguments()) {
                     // We need to load arguments
                     const uint32_t argNum = arg.getArgNumber();
-                    if (!netqasm::blockArgIsQubit(arg)) {
-                        // Follow the classical call convention for other args
-                        routine->addArgument(helpers::formatString(paramNameFormat, argNum));
-
-                        LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                        if (failed(this->loadClassicalArgWithCallConv(routine, localRoutine.getOperation(), argNum))) {
+                    if (netqasm::blockArgIsQubit(arg)) {
+                        if (failed(this->loadQuantumArgWithCalConv(arg, routine, localRoutine.getOperation()))) {
                             return failure();
                         }
                     } else {
-                        if (failed(this->loadQuantumArgWithCalConv(routine, localRoutine.getOperation()))) {
+                        // Follow the classical call convention for other args
+                        routine->addArgument(helpers::formatString(paramNameFormat, argNum));
+                        if (failed(this->loadClassicalArgWithCallConv(arg, routine, localRoutine.getOperation(), argNum))) {
                             return failure();
                         }
                     }
@@ -273,6 +277,10 @@ namespace qoala::translate {
                 this->iQoalaModule->addRoutine(routine);
             }
         }
+        return success();
+    }
+
+    LogicalResult ModuleTranslation::convertRequestRoutines() const {
         for (auto requestRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
             // We make sure that the request routine returns something, either an i32 (an entangled qubit)
             // or an i1 (a measurement of an entangled qubit)
@@ -307,7 +315,6 @@ namespace qoala::translate {
 
             // We process the arguments of the request routine.
             for (auto argument : requestRoutine.getArguments()) {
-                // The arguments *must* be qubit references
                 if(!argument.getUses().empty()) {
                     // Request routines do not support using the arguments
                     // We check that, if there are arguments, at least they are not used
@@ -327,6 +334,12 @@ namespace qoala::translate {
         return success();
     }
 
+    LogicalResult ModuleTranslation::convertFunctionSignatures() {
+        if (failed(this->convertLocalRoutines()) || failed(this->convertRequestRoutines())) {
+            return failure();
+        }
+        return success();
+    }
 
     std::unique_ptr<iQoalaModule> translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, StringRef name) {
