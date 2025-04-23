@@ -96,13 +96,18 @@ namespace qoala::analysis::netqasm {
     }
 
     void ArgValueMap::mapCallerArgToCalleeArgValue(const Value &callerVal, const BlockArgument &blockArg) {
-        this->callerArgsToCalleeArgMap.try_emplace(callerVal, blockArg);
-        this->calleeArgsToCallerArgMap.try_emplace(blockArg, callerVal);
+        const auto result = this->callerArgsToCalleeArgMap.try_emplace(callerVal, blockArg);
+        (void) result;
+        assert(result.second && "Attempting to map a caller value that is already mapped");
+        const auto resultB = this->calleeArgsToCallerArgMap.try_emplace(blockArg, callerVal);
+        (void) resultB;
+        assert(resultB.second && "Attempting to map a block argument that is already mapped");
     }
 
     template<typename RoutineType>
     static ArgValueMap getRoutineArgVals(RoutineType routine, const OperandRange &callOperands) {
         ArgValueMap result;
+        assert(routine.getNumArguments() == callOperands.size() && "Caller operand count doesn't match the callee arguments count");
         for (auto blockArg : routine.front().getArguments()) {
             result.mapCallerArgToCalleeArgValue(callOperands[blockArg.getArgNumber()], blockArg);
         }
