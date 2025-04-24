@@ -86,9 +86,9 @@ Please don't forget that this target will now depend on the `MLIRMyPassIncGen` t
 need to generate the pass code form tablegen before compiling the implementation.
 
 
-### Convertion passes
+### Conversion passes
 
-Converting one dialect into another (lowering) is implemented using MLIR passes. Being ths said,
+Converting one dialect into another (lowering) is implemented using MLIR passes. This being said,
 you can follow the same section above to implement your conversion pass.
 
 
