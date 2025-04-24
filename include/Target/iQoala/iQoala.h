@@ -211,6 +211,7 @@ namespace qoala::iqoala {
         void setName(const std::string &name) { this->name = name; }
         [[nodiscard]]
         std::string getName() const { return this->name; }
+        bool isEmpty() const { return this->instructions.empty(); };
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
@@ -271,6 +272,7 @@ namespace qoala::iqoala {
         }
 
         Block *createNewBlock();
+        void deleteEmptyBlocks();
 
         void print(mlir::raw_ostream &os) const override;
     private:

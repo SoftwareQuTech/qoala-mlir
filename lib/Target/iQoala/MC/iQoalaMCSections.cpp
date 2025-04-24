@@ -99,4 +99,16 @@ namespace qoala::iqoala {
         this->hostBlocks.push_back(block);
         return block;
     }
+
+    void HostSection::deleteEmptyBlocks() {
+        std::vector<Block *> blocksCpy;
+        for (uint32_t i = 0; i < this->hostBlocks.size(); i++) {
+            if (Block *block = this->hostBlocks[i]; !block->isEmpty()) {
+                blocksCpy.push_back(block);
+            } else {
+                delete block;
+            }
+        }
+        this->hostBlocks = blocksCpy;
+    }
 }

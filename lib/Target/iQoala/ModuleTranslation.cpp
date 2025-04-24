@@ -386,6 +386,10 @@ namespace qoala::translate {
         }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 
+        moduleTranslation.iQoalaModule->deleteEmptyHostBlocks();
+
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after deleting empty blocks:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
+
         // Third, everything else... that has not been visited yet
         for (Operation &op : getModuleBody(originalModule).getOperations()) {
             // If a local/request routine gets translated here, it means that it is not called
