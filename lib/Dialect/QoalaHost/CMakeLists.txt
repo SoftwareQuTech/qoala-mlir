@@ -4,6 +4,7 @@ add_mlir_dialect_library(MLIRQoalaHost
 
     DEPENDS
     MLIRQoalaHostIncGen
+    QoalaDialectHelpers
     QoalaAnalysisHelpers
 
     LINK_LIBS PUBLIC
@@ -12,6 +13,7 @@ add_mlir_dialect_library(MLIRQoalaHost
 
     LINK_LIBS PRIVATE
     QoalaAnalysisHelpers
+    QoalaDialectHelpers
     MLIRAnalysis
     MLIRIR
     MLIRParser

@@ -60,7 +60,7 @@ namespace qoala::translate {
             void pushNewStackFrame(mlir::Operation *op);
             [[nodiscard]]
             ModuleStackFrame *peekFrame();
-            ModuleStackFrame *popFrame();
+            void popFrame();
 
             /* Methods for mapping values */
             void mapValueInCurrentStackFrame(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
