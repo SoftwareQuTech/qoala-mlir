@@ -15,23 +15,17 @@ namespace qoala::iqoala::helpers {
     InstrType *buildInstruction(translate::ModuleTranslation *moduleTranslation,
                         mlir::Operation *mlirOperation,
                         typename InstrType::OpCode opCode,
-                        const std::optional<mlir::Value> result,
-                        const std::optional<assembly::iQoalaRegType> resultRegType,
-                        mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands,
-                        const bool useOpOperands = true, const bool appendInstruction = true){
-        std::optional<assembly::iQoalaRegReference *>resRegRef;
-        if (resultRegType.has_value()) {
-            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType.value());
-            resRegRef = assembly::iQoalaRegReference::createRegReference(resultRegType.value(), regNumber);
-        } else {
-            resRegRef = std::nullopt;
-        }
-
+                        const std::vector<mlir::Value> &results,
+                        const std::vector<assembly::iQoalaRegType> &resultRegTypes,
+                        mlir::SmallVector<assembly::iQoalaMCOperand *>extraOperands = {},
+                        const bool useOpOperands = true, const bool appendInstruction = true,
+                        const bool mapResults = true){
         return InstrType::build(
             moduleTranslation, mlirOperation,
-            result, resRegRef,
+            results, resultRegTypes,
             opCode, extraOperands,
-            useOpOperands, appendInstruction);
+            useOpOperands, appendInstruction,
+            mapResults);
     }
 }
 

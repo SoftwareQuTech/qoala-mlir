@@ -12,12 +12,6 @@
 using namespace mlir;
 
 namespace qoala::analysis::functionize {
-    [[nodiscard]]
-    static bool operationIsCmpOrBranch(const Operation &op) {
-        // This function will detect arith and cf operations that can be moved into the
-        // netqasm body of a local routine.
-        return llvm::isa<arith::ConstantOp, arith::CmpIOp, cf::CondBranchOp, cf::BranchOp>(op);
-    }
     static bool operationBelongsToQMemDialect(const Operation &op) {
         return llvm::isa<
 #define GET_OP_LIST

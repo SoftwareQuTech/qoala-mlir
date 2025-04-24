@@ -1,6 +1,6 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META START
-// CHECK-NEXT: name: test_local_routine_ret_one_val
+// CHECK-NEXT: name: test_host_ret_one_val
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
@@ -8,7 +8,10 @@
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK: b[[BLOCK1:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
+// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper0
+// CHECK: b[[BLOCK2:.*]] { type = CL }
+// CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG1]], %[[HOST_REG0]])
+// CHECK-NEXT: return_value(%[[HOST_REG2]])
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
@@ -27,12 +30,13 @@ module {
     %cst = arith.constant 1 : i32
     netqasm.return %cst : i32
   }
-  qoalahost.main_func @test_local_routine_ret_one_val() {
+  qoalahost.main_func @test_host_ret_one_val() -> i32 {
     %cst = arith.constant 3 : i32
     qoalahost.nop_term
   ^bb1:
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
-    qoalahost.return
+    %1 = arith.addi %0, %cst : i32
+    qoalahost.return %1 : i32
   }
 }

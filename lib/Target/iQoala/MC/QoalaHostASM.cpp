@@ -6,20 +6,35 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     QoalaHostMCInstr *QoalaHostMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction) {
-        SmallVector<iQoalaMCOperand *> mcOperands;
+        const bool appendInstruction, const bool mapResults) {
+        std::vector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaRegReference *>resRegRefs;
 
-        if (resRegRef.has_value()) {
-            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+        for (const iQoalaRegType resultRegType : resultRegTypes) {
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType);
+            resRegRefs.push_back(iQoalaRegReference::createRegReference(resultRegType, regNumber));
+        }
+
+        for (iQoalaRegReference *resRegRef : resRegRefs) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
 
             mcOperands.push_back(resultRegOperand);
         }
 
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        if (mapResults) {
+            for (uint32_t i = 0; i < resVals.size(); ++i) {
+                assert(mcOperands[i]->getRegRef()->isLocal() && "QoalaHost Instruction Builder: trying to create an instruction"
+                                                                "yielding a result on a non-local register.");
+                moduleTranslation->mapValueToRegRef(resVals[i], mcOperands[i]->getRegRef());
+            }
+        }
+
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandVal);
                 assert(regRef && "QoalaHost Instruction Builder: operand not mapped");
                 assert(regRef->isLocal() && "QoalaHost Instruction Builder: mapped register is not local");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
@@ -32,6 +47,9 @@ namespace qoala::assembly {
         }
 
         InstrType type = UNKNOWN;
+        uint32_t i = 0;
+        uint32_t numResults = 1;
+        iQoalaMCOperand *callee = nullptr;
 
         switch (opCode) {
             case OP_ASSIGN_CVAL:
@@ -73,15 +91,35 @@ namespace qoala::assembly {
                 type = CL;
                 break;
             case OP_RUN_SUBROUTINE:
-                // TODO - assert the operands
-                type = CL;
-                break;
             case OP_RUN_REQUEST:
-                // TODO - assert the operands
+                // The total number of operands should be equals to the number of register references +
+                // the number of extra operands.
+                // We don't consider the number of the MLIR operation operands, since for call operations, we expect
+                // them to be included manually as "extraOperands". This is due to the fact that arguments used as
+                // qubits must not be included as function arguments.
+                assert(mcOperands.size() == resRegRefs.size() + extraOperands.size() && "Qoalahost instruction builder: call operation has invalid number of operands");
+                // Assert the yielded results
+                for (; i < resRegRefs.size(); i++) {
+                    assert(mcOperands[i]->isLocalRegister() && "Qoalahost instruction builder: call operation result is not a local register operand");
+                }
+                // Assert the arguments of the function
+                for (; (i - resRegRefs.size()) < (extraOperands.size() - 1); i++) {
+                    assert(mcOperands[i]->isLocalRegister() && "Qoalahost instruction builder: call operation argument is not a local register operand");
+                }
+                // Last operand must be the callee
+                assert(mcOperands[i]->isExpression() && "Qoalahost instruction builder: call operation callee operand is not an expression");
+                assert(mcOperands[i]->getExpression()->isSymbolRef() && "Qoalahost instruction builder: call operation callee operand is not a symbol reference");
+                // We will reposition the callee operand at the beginning, so it is more convenient when printing
+                callee = mcOperands[i];
+                mcOperands.pop_back();
+                mcOperands.insert(mcOperands.begin(), callee);
+                // Set other data of the MC instruction
+                numResults = resRegRefs.size();
                 type = CL;
                 break;
             case OP_RETURN_RESULT:
-                // TODO - assert the operands
+                assert(mcOperands.size() == 1 && "QoalaHost instruction builder: return_result operation returns more than 1 value");
+                assert(mcOperands[0]->isLocalRegister() && "QoalaHost instruction builder: return_result operation returns a value that is not a register");
                 type = CL;
                 break;
             case OP_SEND_MSG:
@@ -93,7 +131,7 @@ namespace qoala::assembly {
                 type = CC;
                 break;
             case OP_BI_COND_MULTIPLY:
-                // TODO - assert the operands
+                // TODO - assert the operands - bi_cond_mul instruction is not supported yet
                 type = CL;
                 break;
             default:
@@ -101,16 +139,11 @@ namespace qoala::assembly {
                 return nullptr;
         }
         assert (type != UNKNOWN && "QoalaHost instruction builder: Unknown instruction type");
-        // Generic way to create a generic QoalaHostMCInstruction with the given opCode and operands
-        const auto instruction = new QoalaHostMCInstr(op, opCode);
+        // Generic way to create a generic QoalaHostMCInstruction with the given opCode, operands and # of results
+        const auto instruction = new QoalaHostMCInstr(op, opCode, numResults);
         instruction->setInstructionType(type);
         for (iQoalaMCOperand *mcOperand : mcOperands) {
             instruction->addOperand(mcOperand);
-        }
-
-        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
         }
 
         if (appendInstruction) {
@@ -133,7 +166,7 @@ namespace qoala::assembly {
             os << *this->operands[0] << " = ";
         }
 
-        os << mnemonic << " (";
+        os << mnemonic << "(";
 
         for (; i < last; i++) {
             os << *this->operands[i] << (i + 1 < last ? ", " : "");
@@ -144,6 +177,40 @@ namespace qoala::assembly {
             // Print the immediate at last is needed
             os << " : " << *this->operands[this->operands.size() - 1];
         }
+    }
+
+    void QoalaHostMCInstr::printCallInstr(const std::string &mnemonic, raw_ostream &os) const {
+        uint32_t i = 1;
+        uint32_t last = 0;
+        if (this->numResults > 0) {
+            if (this->numResults == 1) {
+                os << *this->operands[1] << " = ";
+                i++;
+            } else {
+                // The call returns multiple results, print a tuple of results.
+                os << "tuple<";
+                for (; i <= this->numResults; i++) {
+                    os << *this->operands[i]<< (i < this->numResults ? "; " : "");
+                }
+                os << "> = ";
+            }
+        }
+
+        os << mnemonic << "(";
+        last = this->operands.size();
+
+        // Arguments for the run_request/run_subroutine are tuples, so we use them like that
+        if (i < last) {
+            os << "tuple<";
+            for (; i < last; i++) {
+                os << *this->operands[i] << (i + 1 < last ? "; " : "");
+            }
+            os << ">";
+        }
+        os << ")";
+
+        // Print the name of the called function
+        os << " : " << *this->operands[0];
     }
 
     void QoalaHostMCInstr::print(raw_ostream &os) const {
@@ -244,22 +311,29 @@ namespace qoala::assembly {
                 printInstrGeneric("recv_cmsg", os, true);
                 break;
             case OP_RUN_SUBROUTINE:
-                // For running routines, we assume the firs operand is the local register to assign , the result
-                // The second is the name of the routine, and all the rest of the operands are the args.
-                // We make this assumption, so we avoid dealing with "variadic args"
-                assert(this->operands.size() >= 2);
-                assert(this->operands[0]->isLocalRegister());
-                assert(this->operands[1]->isExpression());
-                printInstrGeneric("run_subroutine", os, true, true);
+                // For running routines, we assume the first operand is the name of the routine to call
+                assert(this->operands[0]->isExpression());
+                assert(this->operands[0]->getExpression()->isSymbolRef());
+                // ALl the other operands are the yielded results, and arguments of the call
+                // all of them must be local registers
+                for (uint32_t i = 1; i < this->numResults; i++) {
+                    assert(this->operands[i]->isLocalRegister());
+                }
+                printCallInstr("run_subroutine", os);
                 break;
             case OP_RUN_REQUEST:
-                // For running routines, we assume the firs operand is the local register to assign , the result
-                // The second is the name of the routine, and all the rest of the operands are the args.
-                // We make this assumption, so we avoid dealing with "variadic args"
-                assert(this->operands.size() >= 2);
-                assert(this->operands[0]->isLocalRegister());
-                assert(this->operands[1]->isExpression());
-                printInstrGeneric("run_request", os, true, true);
+                // For running routines, we assume the first operand is the name of the routine to call
+                assert(this->operands[0]->isExpression());
+                assert(this->operands[0]->getExpression()->isSymbolRef());
+                // ALl the other operands are the yielded results, and arguments of the call
+                // all of them must be local registers
+                for (uint32_t i = 1; i < this->numResults; i++) {
+                    assert(this->operands[i]->isLocalRegister());
+                }
+                printCallInstr("run_request", os);
+                break;
+            case OP_RETURN_RESULT:
+                printInstrGeneric("return_value", os);
                 break;
             case OP_SUBMIT_ROUTINES:
                 assert(false && "Submit routines is not supported yet!");

@@ -32,7 +32,6 @@ declare_mlir_dialect_python_bindings(
 # before using the module. These "manually declared" types are included in a new python extension
 # To check how the types need to be declared, see:
 # https://github.com/llvm/circt/blob/218617cf1f6b1a5058bee178076ee9197429132e/lib/Bindings/Python/HWModule.cpp
-# TODO - Implement the QNet extension to register the quantum types
 declare_mlir_python_extension(QNetPythonSources.Extension
         MODULE_NAME _qnetTypes
         ADD_TO_PARENT QNetPythonSources

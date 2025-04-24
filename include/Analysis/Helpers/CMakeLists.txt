@@ -1,1 +1,2 @@
 add_mlir_interface(QMemInterfaces)
+add_mlir_interface(NetQASMInterfaces)

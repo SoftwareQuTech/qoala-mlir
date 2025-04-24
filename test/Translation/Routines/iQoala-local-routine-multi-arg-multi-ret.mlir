@@ -6,18 +6,20 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
+// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
+// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 7
+// CHECK: b1 { type = CL }
+// CHECK-NEXT: tuple<%[[HOST_REG2:.*]]; %[[HOST_REG3:.*]]; %[[HOST_REG4:.*]]> = run_subroutine(tuple<%[[HOST_REG0]]; %[[HOST_REG1]]>) : __qoala_wrapper0
+// CHECK: b2 { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: p0, p1
 // CHECK-NEXT: returns: m0, m1, m2
-// CHECK-NEXT: uses:
-// CHECK-NEXT: keeps:
-// CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: set C[[C_REG0:.*]] 0
-// CHECK-NEXT: load R[[R_REG0:.*]] @input[C[[C_REG0]]]
-// CHECK-NEXT: set C[[C_REG1:.*]] 1
-// CHECK-NEXT: load R[[R_REG1:.*]] @input[C[[C_REG1]]]
+// CHECK-NEXT: uses: {{[[:space:]]}}
+// CHECK-SAME: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
+// CHECK-NEXT: load R[[R_REG0:.*]] @input[0]
+// CHECK-NEXT: load R[[R_REG1:.*]] @input[1]
 // CHECK-NEXT: set C[[C_REG2:.*]] 11
 // CHECK-NEXT: add C[[C_REG3:.*]] R[[R_REG0]] C[[C_REG2]]
 // CHECK-NEXT: sub C[[C_REG4:.*]] R[[R_REG1]] C[[C_REG2]]

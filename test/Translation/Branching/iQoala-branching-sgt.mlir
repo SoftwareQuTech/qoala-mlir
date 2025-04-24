@@ -12,17 +12,18 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK-NEXT: b0 { type = CL }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval () : 3
-// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval () : 2
-// CHECK-NEXT: bgt (%[[HOST_REG0]], %[[HOST_REG1]]) : b1
-// CHECK-NEXT: jump () : b2
+// CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
+// CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
+// CHECK-NEXT: bgt(%[[HOST_REG0]], %[[HOST_REG1]]) : b1
+// CHECK-NEXT: jump() : b2
 // CHECK: b1 { type = CL }
-// CHECK-NEXT: jump () : b3
+// CHECK-NEXT: jump() : b3
 // CHECK: b2 { type = CL }
-// CHECK-NEXT: jump () : b3
+// CHECK-NEXT: jump() : b3
 // CHECK: b3 { type = CL }
+// CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
 // CHECK: b4 { type = CL }
-// CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c (%[[HOST_REG0:.*]], %[[HOST_REG1:.*]])
+// CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG1]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: p0
@@ -30,8 +31,7 @@
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
 // CHECK-NEXT: NETQASM_START
-// CHECK-NEXT: set C[[C_REG0:.*]] 0
-// CHECK-NEXT: load R[[ARG0_REG:.*]] @input[C[[C_REG0]]]
+// CHECK-NEXT: load R[[ARG0_REG:.*]] @input[0]
 // CHECK-NEXT: set C[[C_REG1:.*]] 10
 // CHECK-NEXT: bge C[[C_REG1]] R[[ARG0_REG]] 2
 // CHECK-NEXT: jmp 3
@@ -74,7 +74,7 @@ module {
   ^bb3:
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
   ^bb4:
-    %1 = arith.addi %cstA, %cstB : i32
+    %1 = arith.addi %0, %cstB : i32
     qoalahost.return
   }
 }

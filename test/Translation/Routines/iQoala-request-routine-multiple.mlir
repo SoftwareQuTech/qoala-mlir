@@ -6,13 +6,26 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
+// This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
+// to create the entangled pair
+// CHECK-NEXT: run_request() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
+// This call does not yield a result, because __qoala_wrapper1 request uses qubitID 1
+// to create the entangled pair
+// CHECK-NEXT: run_request() : __qoala_wrapper1
+// CHECK: b[[BLOCK2:.*]] { type = CL }
+// This call does not yield a result, because __qoala_wrapper2 request uses qubitID 2
+// to create the entangled pair
+// This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
+// to create the entangled pair
+// CHECK-NEXT: run_request() : __qoala_wrapper2
+// CHECK: b[[BLOCK3:.*]] { type = CL }
 
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars: m0
-// CHECK-NEXT: remote_id: {Bob_id}
+// CHECK-NEXT: callback: {{[[:space:]]}}
+// CHECK-SAME: return_vars: {{[[:space:]]}}
+// CHECK-SAME: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1
 // CHECK-NEXT: virt_ids: all 0
@@ -23,9 +36,9 @@
 
 //CHECK: REQUEST __qoala_wrapper1
 // CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars: m0
-// CHECK-NEXT: remote_id: {Bob_id}
+// CHECK-NEXT: callback: {{[[:space:]]}}
+// CHECK-SAME: return_vars: {{[[:space:]]}}
+// CHECK-SAME: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1
 // CHECK-NEXT: virt_ids: all 1
@@ -36,9 +49,9 @@
 
 //CHECK: REQUEST __qoala_wrapper2
 // CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars: m0
-// CHECK-NEXT: remote_id: {Bob_id}
+// CHECK-NEXT: callback: {{[[:space:]]}}
+// CHECK-SAME: return_vars: {{[[:space:]]}}
+// CHECK-SAME: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1
 // CHECK-NEXT: virt_ids: all 2

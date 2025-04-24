@@ -1,8 +1,17 @@
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/Diagnostics.h"
+
+#define DEBUG_TYPE "iQoalaMC"
 
 namespace qoala::assembly {
+    iQoalaRegType iQoalaRegReference::getType() const { return this->type; }
+    uint32_t iQoalaRegReference::getNum() const { return this->num; }
+    uint32_t iQoalaRegReference::getQubitID() const { return this->qubitID; }
+    void iQoalaRegReference::setQubitID(const uint32_t qubitID) { this->qubitID = qubitID; }
+    bool iQoalaRegReference::representsAQubit() const { return this->qubitID != 0xFF; }
+    bool iQoalaRegReference::isLocal() const { return this->type == LOCAL; }
+    bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/return this->type >= 1; }
+
     /* Builders */
     iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
         const auto regReference = new iQoalaRegReference();
@@ -23,6 +32,13 @@ namespace qoala::assembly {
 
     iQoalaMCExpr *iQoalaMCExpr::createInstructionRef(mlir::Operation *mlirOp) {
         return new iQoalaMCExpr(mlirOp);
+    }
+
+    iQoalaMCOperand *iQoalaMCOperand::createPlaceholderOperand() {
+        // This creates a placeholder operand. Needs to be replaced later
+        const auto operand = new iQoalaMCOperand();
+        operand->kind = PLACEHOLDER;
+        return operand;
     }
 
     iQoalaMCOperand *iQoalaMCOperand::createImmediateOperand(const uint32_t val) {
@@ -100,6 +116,7 @@ namespace qoala::assembly {
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
     bool iQoalaMCOperand::isValid() const { return kind != INVALID; }
+    bool iQoalaMCOperand::isPlaceHolder() const { return kind == PLACEHOLDER; }
     bool iQoalaMCOperand::isImmediate() const { return kind == IMMEDIATE_I32 || kind == IMMEDIATE_F32; }
     bool iQoalaMCOperand::isRegister() const { return kind == REGISTER; }
     bool iQoalaMCOperand::isLocalRegister() const { return kind == LOCAL_REGISTER; }
@@ -109,9 +126,23 @@ namespace qoala::assembly {
     unsigned int iQoalaMCInstruction::getOpcode() const { return opCode; }
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
-    iQoalaMCOperand *iQoalaMCInstruction::getOperand(unsigned i) const { return operands[i]; }
+    iQoalaMCOperand *iQoalaMCInstruction::getOperand(const unsigned i) const { return operands[i]; }
     std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return operands; };
     unsigned int iQoalaMCInstruction::getNumOperands() const { return operands.size(); }
+
+
+    bool iQoalaMCInstruction::hasPlaceholderOperand() const {
+        for (const iQoalaMCOperand *operand : this->operands) {
+            if (operand->isPlaceHolder()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void iQoalaMCInstruction::replaceOperand(unsigned i, iQoalaMCOperand *newOperand) {
+        this->operands[i] = newOperand;
+    }
 
     void iQoalaMCInstruction::addOperand(iQoalaMCOperand *op) {
         op->setInst(this);
@@ -159,6 +190,9 @@ namespace qoala::assembly {
         switch(this->kind) {
             case INVALID:
                 assert(false && "Op code for operand is unknown.\n");
+            case PLACEHOLDER:
+                os << "PLACEHOLDER_OPERAND";
+                break;
             case IMMEDIATE_I32:
                 os << this->integerVal;
                 break;
@@ -176,19 +210,45 @@ namespace qoala::assembly {
         }
     }
 
+    void iQoalaRegReference::print(mlir::raw_ostream &os) const {
+        os << "Register: '";
+        switch (this->type) {
+            case LOCAL:
+                os << "LOCAL";
+                break;
+            case R:
+                os << "R";
+                break;
+            case C:
+                os << "C";
+                break;
+            case M:
+                os << "M";
+                break;
+            case Q:
+                os << "Q";
+                break;
+        }
+        os << "', number: '" << this->num << ", qubitID: '" << this->qubitID << "'\n";
+    }
+
     // Implementations of the "<<" operator
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCInstruction &instr) {
         instr.print(os);
         return os;
     }
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &oper) {
-        oper.print(os);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &operand) {
+        operand.print(os);
         return os;
 
     }
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr) {
         expr.print(os);
         return os;
+    }
 
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaRegReference &regRef) {
+        regRef.print(os);
+        return os;
     }
 }

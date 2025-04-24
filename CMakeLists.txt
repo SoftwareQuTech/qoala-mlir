@@ -13,6 +13,9 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
 set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
+# We set LLVM_BUILD_TOOLS to ON so "tool" executables
+# are added to the "all" target
+set(LLVM_BUILD_TOOLS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")

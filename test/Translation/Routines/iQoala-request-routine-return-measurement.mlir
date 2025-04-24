@@ -6,12 +6,13 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback:
-// CHECK-NEXT: return_vars:
+// CHECK-NEXT: callback: {{[[:space:]]}}
+// CHECK-SAME: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1

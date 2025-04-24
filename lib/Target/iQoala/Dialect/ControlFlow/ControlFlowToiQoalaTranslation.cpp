@@ -64,7 +64,7 @@ static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslatio
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
         moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-        std::nullopt, std::nullopt, {targetBlockOperand},
+        {}, {}, {targetBlockOperand},
         /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
@@ -108,8 +108,10 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         iQoalaMCOperand *falseTargetBlockOperand = iQoalaMCOperand::createExprOperand(falseBlockSymExpr);
 
         // Process the operands of the arith.cmpi
-        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
-        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForValue(cmpIOp.getLhs());
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForValue(cmpIOp.getRhs());
+        assert(cmpOpLeft && "Conditional Branch: left operand not mapped to an MLIR Value!");
+        assert(cmpOpRight && "Conditional Branch: right operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         iQoalaMCOperand *cmpRight1Operand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
 
@@ -123,7 +125,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op.getOperation(), opcode,
-            std::nullopt, std::nullopt, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
+            {}, {}, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
@@ -131,7 +133,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-            std::nullopt, std::nullopt, {falseTargetBlockOperand},
+            {}, {}, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();
@@ -153,7 +155,7 @@ static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation,
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-        std::nullopt, std::nullopt, {destOperand},
+        {}, {}, {destOperand},
         /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
@@ -174,19 +176,21 @@ static bool valueCanBeTracedToZeroConstant(const Value &value) {
     return false;
 }
 
-static SmallVector<iQoalaMCOperand *> createCmpOperands(const ModuleTranslation *moduleTranslation, arith::CmpIOp cmpIOp, bool *oneOperandIsZero) {
+static SmallVector<iQoalaMCOperand *> createCmpOperands(ModuleTranslation *moduleTranslation, arith::CmpIOp cmpIOp, bool *oneOperandIsZero) {
     // Check if one of the values used by the comparison can be traced back to zero
     SmallVector<iQoalaMCOperand *> operands;
     const bool leftIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getLhs());
     const bool rightIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getRhs());
     if (!leftIsZero) {
-        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegReference(cmpIOp.getLhs());
+        iQoalaRegReference *cmpOpLeft = moduleTranslation->getMappedRegRefForValue(cmpIOp.getLhs());
+        assert(cmpOpLeft && "Conditional Branch: left operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpLeftOperand = iQoalaMCOperand::createRegisterOperand(cmpOpLeft);
         operands.push_back(cmpLeftOperand);
     }
 
     if (!rightIsZero) {
-        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegReference(cmpIOp.getRhs());
+        iQoalaRegReference *cmpOpRight = moduleTranslation->getMappedRegRefForValue(cmpIOp.getRhs());
+        assert(cmpOpRight && "Conditional Branch: right operand not mapped to an MLIR Value!");
         iQoalaMCOperand *cmpRightOperand = iQoalaMCOperand::createRegisterOperand(cmpOpRight);
         operands.push_back(cmpRightOperand);
     }
@@ -195,7 +199,7 @@ static SmallVector<iQoalaMCOperand *> createCmpOperands(const ModuleTranslation 
 }
 
 static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslation, cf::CondBranchOp &op) {
-    const Value condition = op.getCondition();
+    const Value &condition = op.getCondition();
     Operation *cmpOp = moduleTranslation->getMappedCmpOperation(condition);
     if (auto cmpIOp = dyn_cast<arith::CmpIOp>(cmpOp)) {
         // Process the destinations of the MLIR conditional jump: we assume it's the first operation of the block
@@ -222,7 +226,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), opcode,
-            std::nullopt, std::nullopt, cmpOperands,
+            {}, {}, cmpOperands,
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
@@ -230,7 +234,7 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-            std::nullopt, std::nullopt, {falseTargetBlockOperand},
+            {}, {}, {falseTargetBlockOperand},
             /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();

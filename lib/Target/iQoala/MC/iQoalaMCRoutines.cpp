@@ -8,6 +8,28 @@
 using namespace mlir;
 
 namespace qoala::iqoala {
+    void QuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
+        const auto result = this->qubitMap.try_emplace(value, phyQubitNum);
+        (void) result;
+        assert(result.second && "Attempting to map a qubit value that has already been mapped");
+    }
+
+    uint8_t QuantumRoutine::releaseQubit(const Value &value) {
+        uint8_t phyQubitNum = 0xFF;
+        if (this->qubitMap.contains(value)) {
+            phyQubitNum = this->qubitMap.at(value);
+            this->qubitMap.erase(value);
+        }
+        return phyQubitNum;
+    }
+
+    uint8_t QuantumRoutine::getQubitNum(const Value &value) const {
+        if (this->qubitMap.contains(value)) {
+            return this->qubitMap.at(value);
+        }
+        return 0xFF;
+    }
+
     LocalQuantumRoutine *LocalQuantumRoutine::createLocalRoutine(const StringRef name) {
         return new LocalQuantumRoutine(name);
     }
@@ -25,23 +47,23 @@ namespace qoala::iqoala {
     }
 
     void LocalQuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
-        const auto result = this->qubitMap.try_emplace(value, phyQubitNum);
-        (void) result;
-        assert(result.second && "Attempting to map a qubit value that has already been mapped");
+        this->QuantumRoutine::registerQubit(value, phyQubitNum);
 
         this->usesQubits.emplace(phyQubitNum);
+        // We eagerly mark the qubit as "keeps"... only if we qfree or measure it we delete it from the "keeps".
         this->keepsQubits.emplace(phyQubitNum);
     }
 
-    void LocalQuantumRoutine::releaseQubit(const Value &value) {
-        uint8_t phyQubitNum = 0xFF;
-        if (this->qubitMap.contains(value)) {
-            phyQubitNum = this->qubitMap.at(value);
-            this->qubitMap.erase(value);
-        }
+    uint8_t LocalQuantumRoutine::releaseQubit(const Value &value) {
+        const uint8_t phyQubitNum = this->QuantumRoutine::releaseQubit(value);
         if (this->keepsQubits.contains(phyQubitNum)) {
             this->keepsQubits.erase(phyQubitNum);
         }
+        return phyQubitNum;
+    }
+
+    uint8_t LocalQuantumRoutine::getQubitNum(const Value &value) const {
+        return QuantumRoutine::getQubitNum(value);
     }
 
     void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
@@ -95,6 +117,10 @@ namespace qoala::iqoala {
         }
     }
 
+    void LocalQuantumRoutine::finalizeRoutine() {
+        // Nothing to do here
+    }
+
     void VirtualIDs::addArg(uint32_t arg) {
         this->args.push_back(arg);
     }
@@ -103,16 +129,27 @@ namespace qoala::iqoala {
         this->type = type;
     }
 
-    void RequestQuantumRoutine::addEntangledPair() {
-        this->numPairs++;
+    void VirtualIDs::resolve() {
+        if (this->args.size() == 1) {
+            this->type = ALL;
+            return;
+        }
+
+        for (uint32_t i = 1; i < this->args.size(); i++) {
+            if (this->args[i-1] + 1 != this->args[i]) {
+                this->type = CUSTOM;
+            }
+        }
+        this->type = INCREMENT;
+    }
+
+
+    void RequestQuantumRoutine::addEntangledQubitID(const uint32_t phyQubitID) {
+        this->entangledQubitsIDs.push_back(phyQubitID);
     }
 
     void RequestQuantumRoutine::addReturnValue(const std::string &valName) {
         this->returns.push_back(valName);
-    }
-
-    unsigned int RequestQuantumRoutine::getNumPairs() const {
-        return numPairs;
     }
 
     void RequestQuantumRoutine::reportRemote(const std::string &remoteID, const uint8_t eprSocketID) {
@@ -132,6 +169,32 @@ namespace qoala::iqoala {
         this->virtualIDs.addArg(virtualID);
     }
 
+    void RequestQuantumRoutine::addArgument(const std::string &argName) {
+        // TODO
+    }
+
+    void RequestQuantumRoutine::addInstruction(assembly::NetQASMMCInstr *instruction) {
+        // Since request routines do not have attached instructions,
+        // there is literally nothing to do here.
+    }
+
+    void RequestQuantumRoutine::registerQubit(const Value &value, uint8_t phyQubitNum) {
+        this->QuantumRoutine::registerQubit(value, phyQubitNum);
+    }
+
+    uint8_t RequestQuantumRoutine::releaseQubit(const Value &value) {
+        return this->QuantumRoutine::releaseQubit(value);
+    }
+
+    [[nodiscard]]
+    uint8_t RequestQuantumRoutine::getQubitNum(const Value &value) const {
+        return QuantumRoutine::getQubitNum(value);
+    }
+
+    void RequestQuantumRoutine::finalizeRoutine() {
+        // We resolve the virtual IDs method depending on how thw qubit IDs were assigned
+        this->virtualIDs.resolve();
+    }
 
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
@@ -151,7 +214,7 @@ namespace qoala::iqoala {
                 os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::INCREMENT:
-                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::max_element(virtualIDs.args.begin(), virtualIDs.args.end()));
+                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
                 os << "custom " << helpers::formatVector(virtualIDs.args);
@@ -196,7 +259,7 @@ namespace qoala::iqoala {
         os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
 
         os << "NETQASM_START\n";
-        for (const assembly::NetQASMMCInstr *instruction : this->instructions) {
+        for (const assembly::iQoalaMCInstruction *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }
         os << "NETQASM_END\n";
@@ -209,7 +272,7 @@ namespace qoala::iqoala {
         os << "return_vars: " << helpers::formatVector(this->returns) << "\n";
         os << "remote_id: " << "{" << this->remoteID << "}" << "\n";
         os << "epr_socket_id: " << this->eprSocketID << "\n";
-        os << "num_pairs: " << this->numPairs << "\n";
+        os << "num_pairs: " << this->entangledQubitsIDs.size() << "\n";
         os << "virt_ids: " << this->virtualIDs << "\n";
         os << "timeout: " << 1000 << "\n"; // This field is not described in the paper
         os << "fidelity: " << this->fidelity << "\n";

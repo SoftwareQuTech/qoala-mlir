@@ -30,23 +30,44 @@ namespace qoala::iqoala {
             QRK_QUANTUM
         };
         QuantumRoutine() : kind(QRK_LOCAL) { }
-        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind) { }
+        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind), qubitMap({}) { }
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
-        kind(kind), name(std::move(name)) {}
+        kind(kind), qubitMap({}), name(std::move(name)) {}
+        explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name,
+            const std::vector<assembly::iQoalaMCInstruction *> &instructions) :
+        kind(kind), qubitMap({}), name(std::move(name)), instructions(instructions) {}
         QuantumRoutine(const QuantumRoutine &r) = default;
         ~QuantumRoutine() override = default;
 
+        virtual void addInstruction(assembly::NetQASMMCInstr *instruction) = 0;
         [[nodiscard]]
-        std::string getName() const { return name; }
+        std::string getName() const { return this->name; }
+        [[nodiscard]]
+        uint32_t getNumInstructions() const { return this->instructions.size(); }
+        [[nodiscard]]
+        std::vector<assembly::iQoalaMCInstruction *> getInstructions() const { return this->instructions; }
+        [[nodiscard]]
+        assembly::iQoalaMCInstruction *getInstruction(const uint32_t i) const { return this->instructions[i]; }
+        virtual void addArgument(const std::string &argName) = 0;
+        [[nodiscard]]
+        virtual uint8_t getQubitNum(const mlir::Value &value) const;
+        virtual void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
+        virtual uint8_t releaseQubit(const mlir::Value &value);
+        virtual void finalizeRoutine() = 0;
 
         // LLVM RTTI
         [[nodiscard]]
-        QuantumRoutineKind getKind() const { return kind; }
+        QuantumRoutineKind getKind() const { return this->kind; }
     private:
         // LLVM RTTI kind
         const QuantumRoutineKind kind;
     protected:
+        // Map to keep track of the *local* mlir value (within the local/request routine) with its physical qubit num
+        mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
         std::string name;
+        // The list of NetQASM MC instructions for this quantum routine. In the particular case of a request routine
+        // this list SHOULD be unused! (i.e. always empty)
+        std::vector<assembly::iQoalaMCInstruction *> instructions;
     };
 
     /* A class representing a local quantum routine. These routines only host a list of
@@ -57,8 +78,8 @@ namespace qoala::iqoala {
         explicit LocalQuantumRoutine(const mlir::StringRef newName) :
             QuantumRoutine(QRK_LOCAL, newName.str()) {}
             LocalQuantumRoutine(const LocalQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName()), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
-            params(r.params), returns(r.returns), instructions(r.instructions) { }
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
+            params(r.params), returns(r.returns) { }
         ~LocalQuantumRoutine() override {
             for (const auto instruction : this->instructions) {
                 delete instruction;
@@ -67,12 +88,15 @@ namespace qoala::iqoala {
 
         static LocalQuantumRoutine *createLocalRoutine(llvm::StringRef name);
 
-        void addInstruction(assembly::NetQASMMCInstr *instruction);
-        void addArgument(const std::string &argName);
+        void addInstruction(assembly::NetQASMMCInstr *instruction) override;
+        void addArgument(const std::string &argName) override;
         void addReturnValue(const std::string &valName);
         void resolveInternalInstrRefs() const;
-        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum);
-        void releaseQubit(const mlir::Value &value);
+        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
+        uint8_t releaseQubit(const mlir::Value &value) override;
+        [[nodiscard]]
+        uint8_t getQubitNum(const mlir::Value &value) const override;
+        void finalizeRoutine() override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -81,17 +105,13 @@ namespace qoala::iqoala {
         }
     private:
         // The list of physical qubits this routine uses
-        std::set<unsigned int> usesQubits;
+        std::set<uint32_t> usesQubits;
         // The list of physical qubits this routine keeps (and does not free automatically)
-        std::set<unsigned int> keepsQubits;
+        std::set<uint32_t> keepsQubits;
         // The names of the registries where to find the params
         std::vector<std::string> params;
         // The names of the registries that are used to return values
         std::vector<std::string> returns;
-        // The list of NetQASM MC instructions for this local quantum routine
-        std::vector<assembly::NetQASMMCInstr *> instructions;
-        // Map to keep track of the *local* mlir value (within the local_routine) with its physical qubit num
-        mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
     };
 
     class VirtualIDs {
@@ -104,10 +124,11 @@ namespace qoala::iqoala {
 
         void addArg(uint32_t arg);
         void setType(VirtualIDType type);
+        void resolve();
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
-        std::vector<unsigned int> args;
+        std::vector<uint32_t> args;
     };
 
     /* A class representing a single request quantum routine */
@@ -121,10 +142,9 @@ namespace qoala::iqoala {
             QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
             callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName()), returns(r.returns), requestCallback(r.requestCallback),
-            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), numPairs(r.numPairs),
-            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole),
-            instructions(r.instructions) { }
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), returns(r.returns), requestCallback(r.requestCallback),
+            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), entangledQubitsIDs(r.entangledQubitsIDs),
+            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole) { }
         ~RequestQuantumRoutine() override {
            for (const auto instruction : this->instructions) {
                delete instruction;
@@ -133,14 +153,19 @@ namespace qoala::iqoala {
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
 
-        void addEntangledPair();
+        void addEntangledQubitID(uint32_t phyQubitID);
         void addReturnValue(const std::string &valName);
-        [[nodiscard]]
-        unsigned int getNumPairs() const;
         void reportRemote(const std::string &remoteID, uint8_t eprSocketID);
         void changeReqTypeToMeasure();
         void changeReqTypeToRSP();
         void addVirtualIDArg(uint32_t virtualID);
+        void addArgument(const std::string &argName) override;
+        void addInstruction(assembly::NetQASMMCInstr *instruction) override;
+        void registerQubit(const mlir::Value &value, uint8_t phyQubitNum) override;
+        uint8_t releaseQubit(const mlir::Value &value) override;
+        [[nodiscard]]
+        uint8_t getQubitNum(const mlir::Value &value) const override;
+        void finalizeRoutine() override;
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
@@ -157,9 +182,9 @@ namespace qoala::iqoala {
         // The name of the remote to entangle with
         std::string remoteID;
         // The id of the EPR socket to use
-        unsigned int eprSocketID = 0;
-        // The number of the pairs provided by this request routine
-        unsigned int numPairs = 0;
+        uint32_t eprSocketID = 0;
+        // The local physical IDs of the entangled qubits pairs provided by this request routine
+        std::vector<uint32_t> entangledQubitsIDs;
         // The method to handle virtual IDs for the entangled qubits
         VirtualIDs virtualIDs;
         // The minimum fidelity value for the communication
@@ -169,9 +194,6 @@ namespace qoala::iqoala {
         // The Request role for this client
         // TODO - Figure out how we can tell when the request role is "receive"
         RequestRole requestRole;
-        // The set of NetQASM instructions for this request routine
-        // This list SHOULD be unused! (i.e. always empty)
-        std::vector<assembly::NetQASMMCInstr *> instructions;
     };
 
 
@@ -232,8 +254,8 @@ namespace qoala::iqoala {
         // Can be i32 or f32, but for some reason, these are just "strings" in the examples from qoala-sim
         std::vector<std::string> globalParams;
         // Maps for classical ane epr sockets Remote_name (str) -> socket_id (int)
-        std::map<std::string, unsigned int> classicalSocketsMap;
-        std::map<std::string, unsigned int> eprsSocketsMap;
+        std::map<std::string, uint32_t> classicalSocketsMap;
+        std::map<std::string, uint32_t> eprsSocketsMap;
         // Map between remote names and its globalParam name
         std::map<std::string, std::string> remoteParamNames;
     };

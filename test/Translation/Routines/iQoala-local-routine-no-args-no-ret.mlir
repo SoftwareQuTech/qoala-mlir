@@ -6,6 +6,7 @@
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0

@@ -13,6 +13,9 @@ using namespace qoala::helpers;
 #define GET_OP_CLASSES
 #include "Dialect/NetQASM/NetQASM.cpp.inc"
 
+// include generated "dispatcher" of the operation interface
+#include "Analysis/Helpers/NetQASMInterfaces.cpp.inc"
+
 /* Parse and print functions "ported" from func.func: parse, print and build */
 ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType =
@@ -66,6 +69,18 @@ void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
     function_interface_impl::printFunctionOp(
             p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
             getArgAttrsAttrName(), getResAttrsAttrName());
+}
+
+Operation *netqasm::LocalRoutineOp::getReturnOperation() {
+    const auto returnOps = this->getOps<ReturnOp>();
+    assert(!returnOps.empty() && "Local routine must have at least one return operation");
+    return *returnOps.begin();
+}
+
+Operation *netqasm::RequestRoutineOp::getReturnOperation() {
+    const auto returnOps = this->getOps<ReturnOp>();
+    assert(!returnOps.empty() && "Local routine must have at least one return operation");
+    return *returnOps.begin();
 }
 
 /* Helper functions from the NetQASMDialect class */

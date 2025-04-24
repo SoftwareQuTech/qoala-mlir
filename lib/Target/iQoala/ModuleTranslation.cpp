@@ -1,7 +1,9 @@
 #include "mlir/IR/BuiltinOps.h"
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/NetQASM/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Target/iQoala/Module.h"
 #include "Target/iQoala/iQoala.h"
@@ -17,7 +19,10 @@ using namespace mlir;
 using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
+using namespace qoala::analysis;
 using namespace qoala::dialects::netqasm;
+using namespace qoala::dialects::qoalahost;
+using namespace qoala::dialects::qremote;
 
 namespace qoala::translate {
 #if  __cplusplus >= 202002L
@@ -29,12 +34,12 @@ namespace qoala::translate {
 #endif
     // A helper function to obtain the body of given module
     static mlir::Block &getModuleBody(Operation *module) {
-        assert(llvm::isa<ModuleOp>(module));
+        assert(isa<ModuleOp>(module));
         return module->getRegion(0).front();
     }
 
-    ModuleOp *ModuleTranslation::getMLIRModule() const { return mlirModule; }
-    iQoalaModule *ModuleTranslation::getQoalaModule() const { return iQoalaModule.get(); }
+    ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
+    iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
     ModuleTranslation::ModuleTranslation (ModuleOp *module,
                                           std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule)
@@ -54,6 +59,95 @@ namespace qoala::translate {
         return opIface->convertOperation(&op, this);
     }
 
+
+    void ModuleTranslation::ModuleStackFrame::mapValueInScope(const Value &value, iQoalaRegReference *regRef) {
+        const auto result = this->valuesInScope.try_emplace(value, regRef);
+        (void) result;
+        assert(result.second && "Attempting to map a value that is already mapped");
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isValueInScope(const Value &value) const {
+        return this->valuesInScope.contains(value);
+    }
+
+    iQoalaRegReference *ModuleTranslation::ModuleStackFrame::getRegReferenceForValue(const Value &value) const {
+        if (this->valuesInScope.contains(value)) {
+            return this->valuesInScope.at(value);
+        }
+        return nullptr;
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isModule() const {
+        return isa<ModuleOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isQoalaHost() const {
+        return isa<MainFuncOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isLocalRoutine() const {
+        return isa<LocalRoutineOp>(this->operation);
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::isRequestRoutine() const {
+        return isa<RequestRoutineOp>(this->operation);
+    }
+
+    ModuleTranslation::ModuleStack::~ModuleStack() {
+        while (!this->frames.empty()) {
+            const ModuleStackFrame *frame = this->frames.top();
+            this->frames.pop();
+            delete frame;
+        }
+    }
+
+    void ModuleTranslation::ModuleStack::pushNewStackFrame(Operation *op) {
+        auto *newFrame = new ModuleStackFrame(op);
+        this->frames.push(newFrame);
+    }
+
+    ModuleTranslation::ModuleStackFrame *ModuleTranslation::ModuleStack::peekFrame() {
+        return this->frames.top();
+    }
+
+    ModuleTranslation::ModuleStackFrame *ModuleTranslation::ModuleStack::popFrame() {
+        ModuleStackFrame *topFrame = this->frames.top();
+        this->frames.pop();
+        return topFrame;
+    }
+
+    void ModuleTranslation::ModuleStack::mapValueInCurrentStackFrame(const Value &value, iQoalaRegReference *regRef) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->mapValueInScope(value, regRef);
+    }
+
+    bool ModuleTranslation::ModuleStack::valueIsMapped(const Value &value) {
+        return this->getRegRefForValue(value) != nullptr;
+    }
+
+    iQoalaRegReference *ModuleTranslation::ModuleStack::getRegRefForValue(const Value &value) {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getRegReferenceForValue(value);
+    }
+
+    void ModuleTranslation::pushNewFrame(Operation *op) {
+        assert((isa<MainFuncOp>(op) || isa<LocalRoutineOp>(op) || isa<RequestRoutineOp>(op)) &&
+            "ModuleTranslation: trying to push an operation of an invalid type on the stack");
+        this->translationStack.pushNewStackFrame(op);
+    }
+
+    Operation *ModuleTranslation::peekFrame() {
+        return this->translationStack.peekFrame()->getOperation();
+    }
+
+    Operation *ModuleTranslation::popFrame() {
+        // Retrieve the top frame and release its memory
+        const ModuleStackFrame *topFrame = this->translationStack.popFrame();
+        Operation *topFrameOp = topFrame->getOperation();
+        delete topFrame;
+        return topFrameOp;
+    }
+
     void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
         this->iQoalaModule->addRemoteDeclaration(remoteName);
     }
@@ -69,43 +163,35 @@ namespace qoala::translate {
         assert(result.second && "Attempting to map a block that is already mapped");
     }
 
-    void ModuleTranslation::mapValue(const Value &mlirVal, iQoalaRegReference *regRef) {
+    void ModuleTranslation::mapValueToRegRef(const Value &mlirVal, iQoalaRegReference *regRef) {
+        const ModuleStackFrame *currentFrame = this->translationStack.peekFrame();
         if (regRef->isLocal()) {
-            const auto result = this->localRegsMap.try_emplace(mlirVal, regRef);
-            (void) result;
-            assert(result.second && "Attempting to map a local value that is already mapped");
+            assert(currentFrame->isQoalaHost() && "Attempting to map a local registry on a non-QoalaHost frame");
         }
         if (regRef->isQuantum()) {
-            const auto result = this->quantumRegsMap.try_emplace(mlirVal, regRef);
-            (void) result;
-            LLVM_DEBUG(llvm::dbgs() << "***** mapping a quantum value " << mlirVal << "\n");
-            assert(result.second && "Attempting to map a quantum value that is already mapped");
+            assert((currentFrame->isLocalRoutine() || currentFrame->isRequestRoutine()) && "Attempting to map a local registry on a non local/request routine frame");
         }
+        LLVM_DEBUG(llvm::dbgs() << "*** Mapping ptr: " << regRef << ", value '" << mlirVal << "' to reference: " << *regRef);
+        this->translationStack.mapValueInCurrentStackFrame(mlirVal, regRef);
     }
 
-    iQoalaRegReference *ModuleTranslation::getMappedRegReference(const Value &mlirVal) const {
+    bool ModuleTranslation::valueIsMappedInCurrentFrame(const Value &value) {
+        return this->translationStack.getRegRefForValue(value);
+    }
+
+    bool ModuleTranslation::valueIsMappedToQubitInCurrentFrame(const Value &value) {
+        if (const iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(value)) {
+            return regRef->representsAQubit();
+        }
+        return false;
+    }
+
+    iQoalaRegReference *ModuleTranslation::getMappedRegRefForValue(const Value &mlirVal, const bool copy) {
         // To ease the de-allocation process, we return copies of the references
-        if (const auto localReg = this->getMappedLocalRegReference(mlirVal)) {
-            return new iQoalaRegReference(*localReg);
-        }
-        if (const auto quantumReg = this->getMappedQuantumRegReference(mlirVal)) {
-            return new iQoalaRegReference(*quantumReg);
-        }
-        return nullptr;
-    }
-
-    iQoalaRegReference *ModuleTranslation::getMappedLocalRegReference(const Value &mlirVal) const {
-        if (this->localRegsMap.contains(mlirVal)) {
-            return this->localRegsMap.at(mlirVal);
-        }
-        return nullptr;
-    }
-
-    iQoalaRegReference *ModuleTranslation::getMappedQuantumRegReference(const Value &mlirVal) const {
-        if (this->quantumRegsMap.contains(mlirVal)) {
-            return this->quantumRegsMap.at(mlirVal);
-        }
-        return nullptr;
+        iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(mlirVal);
+        LLVM_DEBUG(llvm::dbgs() << "**!!** Value: '" << mlirVal << "' mapped: '" << (regRef ? "true" : "false") <<"'\n");
+        assert(regRef && "Value is not mapped");
+        return copy ? new iQoalaRegReference(*regRef) : regRef;
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
@@ -121,6 +207,13 @@ namespace qoala::translate {
         return nullptr;
     }
 
+    BlockArgument ModuleTranslation::getValueForMCInstruction(const iQoalaMCInstruction *mcInst) const {
+        if (this->mcArgsValsMap.contains(mcInst)) {
+            return this->mcArgsValsMap.at(mcInst);
+        }
+        return nullptr;
+    }
+
     iqoala::Block *ModuleTranslation::getMappediQoalaBlock(const mlir::Block *mlirBlock) const {
         assert(this->qoalaHostBlocksMap.contains(mlirBlock) && "original mlirBlock is not mapped");
         return this->qoalaHostBlocksMap.at(mlirBlock);
@@ -128,45 +221,36 @@ namespace qoala::translate {
 
     // This function inserts NetQASM instructions to comply with the "call conversion" of
     // NetQASM local routines.
-    static LogicalResult loadArgument(ModuleTranslation *moduleTranslation, LocalQuantumRoutine *routine, LocalRoutineOp &op,
-        Value &mlirArgValue, const uint8_t paramNum) {
-        // Immediate with the number of the argument
-        iQoalaMCOperand *immediateVal = iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(paramNum));
-        // Assign that immediate value to a registry
-        SmallVector<iQoalaMCOperand *> immediateOperands;
-        immediateOperands.push_back(immediateVal);
-        // Despite this instruction yields a value, we don't need to map it to any
-        // mlir value, so we pass "std::nullopt" as the "result" argument when building
-        auto *assignInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET,
-            std::nullopt, C, immediateOperands,
-            /*useOpOperands=*/false, /*appendInstruction=*/false);
-        if (!assignInstr) {
-            return failure();
-        }
-        routine->addInstruction(assignInstr);
-
-        // Use the "load" instruction to actually load the value
-        // Here, the yielded registry needs to be mapped to the mlir value of the function
-        // argument so we pass it to the builder for mapping
-        // First, get the register reference yielded from the last instruction
-        const auto *setResultOperand = assignInstr->getOperand(0);
-        assert(setResultOperand->isRegister() && "NetQASM local routine param: result of set is not a register");
-        // Create an operand with it
-        iQoalaRegReference *setRegRef = iQoalaRegReference::createRegReference(setResultOperand->getRegRef());
-        // Pass that extra operand to create the respective load instruction
+    LogicalResult ModuleTranslation::loadClassicalArgWithCallConv(const BlockArgument &blockArg, LocalQuantumRoutine *iQoalaRoutine,
+        Operation *localRoutineOp, const uint32_t argIndex) {
+        auto op = dyn_cast<LocalRoutineOp>(localRoutineOp);
         auto *loadInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_LOAD,
-            mlirArgValue, R, {iQoalaMCOperand::createRegisterOperand(setRegRef)},
-            /*useOpOperands=*/false, /*appendInstruction=*/false);
+            this, op.getOperation(), NetQASMMCInstr::OP_LOAD,
+            {}, {R}, {iQoalaMCOperand::createImmediateOperand(argIndex)},
+            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
         if (!loadInstr) {
             return failure();
         }
-        routine->addInstruction(loadInstr);
+        iQoalaRoutine->addInstruction(loadInstr);
+        this->mcArgsValsMap.try_emplace(loadInstr, blockArg);
         return success();
     }
 
-    LogicalResult ModuleTranslation::convertFunctionSignatures() {
+    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(const BlockArgument &blockArg, QuantumRoutine *iQoalaRoutine,
+        Operation *localRoutineOp) {
+        auto *setInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            this, localRoutineOp, NetQASMMCInstr::OP_SET,
+            {}, {Q}, {iQoalaMCOperand::createPlaceholderOperand()},
+            /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
+        if (!setInstr) {
+            return failure();
+        }
+        iQoalaRoutine->addInstruction(setInstr);
+        this->mcArgsValsMap.try_emplace(setInstr, blockArg);
+        return success();
+    }
+
+    LogicalResult ModuleTranslation::convertLocalRoutines() {
         for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
             if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
@@ -175,18 +259,29 @@ namespace qoala::translate {
             } else {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
+                std::string routineName = localRoutine.getName().str();
                 for (auto arg : localRoutine.getArguments()) {
-                    const uint8_t argNum = arg.getArgNumber();
-                    routine->addArgument(helpers::formatString(paramNameFormat, argNum));
-
-                    LLVM_DEBUG(llvm::dbgs() << "Arg " << arg << "\n");
-                    if (failed(loadArgument(this, routine, localRoutine, arg, argNum))) {
-                        return failure();
+                    // We need to load arguments
+                    const uint32_t argNum = arg.getArgNumber();
+                    if (netqasm::blockArgIsQubit(arg)) {
+                        if (failed(this->loadQuantumArgWithCalConv(arg, routine, localRoutine.getOperation()))) {
+                            return failure();
+                        }
+                    } else {
+                        // Follow the classical call convention for other args
+                        routine->addArgument(helpers::formatString(paramNameFormat, argNum));
+                        if (failed(this->loadClassicalArgWithCallConv(arg, routine, localRoutine.getOperation(), argNum))) {
+                            return failure();
+                        }
                     }
                 }
                 this->iQoalaModule->addRoutine(routine);
             }
         }
+        return success();
+    }
+
+    LogicalResult ModuleTranslation::convertRequestRoutines() const {
         for (auto requestRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
             // We make sure that the request routine returns something, either an i32 (an entangled qubit)
             // or an i1 (a measurement of an entangled qubit)
@@ -217,8 +312,9 @@ namespace qoala::translate {
                 }
             }
 
-            // We simply create the routine. Since request routines do not accept arguments,
-            // we don't need to process them
+            auto *reqRoutine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
+
+            // We process the arguments of the request routine.
             for (auto argument : requestRoutine.getArguments()) {
                 if(!argument.getUses().empty()) {
                     // Request routines do not support using the arguments
@@ -234,14 +330,17 @@ namespace qoala::translate {
                     return failure();
                 }
             }
-            auto *routine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
-            const uint8_t phyQubitNum = this->iQoalaModule->getiQoalaContext()->allocateQubit();
-            routine->addVirtualIDArg(phyQubitNum);
-            this->iQoalaModule->addRoutine(routine);
+            this->iQoalaModule->addRoutine(reqRoutine);
         }
         return success();
     }
 
+    LogicalResult ModuleTranslation::convertFunctionSignatures() {
+        if (failed(this->convertLocalRoutines()) || failed(this->convertRequestRoutines())) {
+            return failure();
+        }
+        return success();
+    }
 
     std::unique_ptr<iQoalaModule> translateModuleToiQoala(
         Operation *originalModule, iQoalaContext &iQoalaContext, StringRef name) {
@@ -261,18 +360,43 @@ namespace qoala::translate {
             return nullptr;
         }
 
-        // TODO - We might need to explore other module-level operations separately
+        // We need to explore other module-level operations separately
+        // We use getOps here instead of walk for 2 reasons:
+        // * We want to explore operations within the region of the module, *not* nested further
+        // * We want to proceed using a strict order to translate operations:
 
-        // Then we explore all the operations in the body
-        for (Operation &op : getModuleBody(originalModule).getOperations()) {
-            if (failed(moduleTranslation.convertOperation(op))) {
+        // First, the remote declarations
+        for (auto mainFunc : mlirModule.getOps<RemoteOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
                 return nullptr;
             }
         }
-        // Finally, we need to resolve all the instruction references within the local routines
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after remote translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
+
+        // Second, the main function and recursively, all the called routines
+        for (auto mainFunc : mlirModule.getOps<MainFuncOp>()) {
+            if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
+                return nullptr;
+            }
+        }
+        // After translating the main function and the called routines, we need to resolve
+        // all the instruction references within the local routines
         for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
             quantumRoutine->resolveInternalInstrRefs();
         }
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
+
+        // Third, everything else... that has not been visited yet
+        for (Operation &op : getModuleBody(originalModule).getOperations()) {
+            // If a local/request routine gets translated here, it means that it is not called
+            // from the qoalahost section. Should we consider it as dead code and delete them?
+            // Note: We filter out RemoteOps, since they were already translated before
+            if (!isa<RemoteOp>(&op) && !iQoalaContext.isOperationVisited(&op) &&
+                failed(moduleTranslation.convertOperation(op))) {
+                return nullptr;
+            }
+        }
+        LLVM_DEBUG(llvm::dbgs() << "iQoala after other translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
         return std::move(moduleTranslation.iQoalaModule);
     }
 }

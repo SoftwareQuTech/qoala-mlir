@@ -51,6 +51,12 @@ namespace qoala::iqoala {
             return;
         }
     }
+    QuantumRoutine *iQoalaModule::getRoutineByName(const StringRef name) const {
+        if (const auto localRoutine = this->getLocalRoutineByName(name)) {
+            return localRoutine;
+        }
+        return this->getRequestRoutineByName(name);
+    }
 
     LocalQuantumRoutine *iQoalaModule::getLocalRoutineByName(const StringRef name) const {
         for (auto *localRoutine : this->iQoalaProgram.netQASMSection.getRoutines()) {
@@ -85,7 +91,6 @@ namespace qoala::iqoala {
     std::string iQoalaModule::getParamNameForRemote(const std::string &remoteName) const {
         return this->iQoalaProgram.metaSection.getParamNameForRemote(remoteName);
     }
-
 
     Block *iQoalaModule::addHostBlock() {
         return this->iQoalaProgram.hostSection.createNewBlock();

@@ -1,3 +1,6 @@
+#include <Dialect/NetQASM/NetQASM.cpp.inc>
+
+#include "Analysis/NetQASM/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/ModuleTranslation.h"
@@ -9,25 +12,39 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::optional<Value> resVal, const std::optional<iQoalaRegReference *> resRegRef,
+        const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
         const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction) {
-        SmallVector<iQoalaMCOperand *> mcOperands;
+        const bool appendInstruction, const bool mapResults
+        ) {
+        std::vector<iQoalaMCOperand *> mcOperands;
+        std::vector<iQoalaRegReference *>resRegRefs;
+        const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
+        const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
 
-        if (resRegRef.has_value()) {
-            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef.value());
+        for (const iQoalaRegType resultRegType : resultRegTypes) {
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType, localRoutine);
+            resRegRefs.push_back(iQoalaRegReference::createRegReference(resultRegType, regNumber));
+        }
+
+        for (iQoalaRegReference *resRegRef : resRegRefs) {
+            iQoalaMCOperand *resultRegOperand = iQoalaMCOperand::createRegisterOperand(resRegRef);
 
             mcOperands.push_back(resultRegOperand);
         }
 
         // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
-        if (resVal.has_value()) {
-            moduleTranslation->mapValue(resVal.value(), mcOperands[0]->getRegRef());
+        if (mapResults) {
+            for (uint32_t i = 0; i < resVals.size(); ++i) {
+                assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
+                                                                  "yielding a result on a non-quantum register.");
+                moduleTranslation->mapValueToRegRef(resVals[i], mcOperands[i]->getRegRef());
+            }
         }
 
         if (useOpOperands) {
             for (const Value operandVal : op->getOperands()) {
-                iQoalaRegReference *regRef = moduleTranslation->getMappedRegReference(operandVal);
+                LLVM_DEBUG(llvm::dbgs() << "Analyzing operand: " << operandVal << "\n");
+                iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(operandVal);
                 assert(regRef && "NetQASM Instruction Builder: operand not mapped");
                 assert(regRef->isQuantum() && "NetQASM Instruction Builder: mapped register is not quantum");
                 mcOperands.push_back(iQoalaMCOperand::createRegisterOperand(regRef));
@@ -68,7 +85,7 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isRegister() && "NetQASM 2-reg instruction: operand 1 must be a register");
+                assert(mcOperands[1]->isRegister() || mcOperands[1]->isImmediate() && "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
                 break;
             case OP_MEAS:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -83,7 +100,7 @@ namespace qoala::assembly {
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 is not a register.");
-                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate.");
+                assert(mcOperands[1]->isImmediate() || mcOperands[1]->isPlaceHolder() && "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate or placeholder.");
                 break;
             case OP_BEZ:
             case OP_BNZ:
@@ -109,14 +126,12 @@ namespace qoala::assembly {
                 return nullptr;
         }
         // Generic way to create a generic NetQASMInstruction with the given opCode and operands
-        const auto instruction = new NetQASMMCInstr(op, opCode);
+        const auto instruction = new NetQASMMCInstr(op, opCode, /*numResults=*/1);
         for (iQoalaMCOperand *mcOperand : mcOperands) {
             instruction->addOperand(mcOperand);
         }
 
         if (appendInstruction) {
-            const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
-            const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
             localRoutine->addInstruction(instruction);
         }
         return instruction;
@@ -142,7 +157,7 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
-                assert(this->operands[1]->isRegister());
+                assert(this->operands[1]->isRegister() || this->operands[1]->isImmediate());
                 printStoreOrLoad(os);
                 break;
             case OP_STORE:
@@ -154,7 +169,6 @@ namespace qoala::assembly {
             case OP_LEA:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isRegister());
-                // TODO - Check if the second argument of a lea (address) is an expr or immediate
                 assert(this->operands[1]->isExpression());
                 this->printInstrInGenericForm("lea", os);
                 break;
@@ -311,7 +325,7 @@ namespace qoala::assembly {
     void NetQASMMCInstr::printOneRegOneImmInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 2);
         assert(this->operands[0]->isRegister());
-        assert(this->operands[1]->isImmediate());
+        assert(this->operands[1]->isImmediate() || this->operands[1]->isPlaceHolder());
         this->printInstrInGenericForm(mnemonic, os);
     }
 
