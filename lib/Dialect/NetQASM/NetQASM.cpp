@@ -83,12 +83,12 @@ Operation *netqasm::RequestRoutineOp::getReturnOperation() {
     return *returnOps.begin();
 }
 
-ArrayAttr netqasm::RequestRoutineOp::getArgsList() {
-    return this->getArgAttrsAttr();
+MutableArrayRef<BlockArgument> netqasm::RequestRoutineOp::getArgsTypesList() {
+    return this->getArguments();
 }
 
-ArrayAttr netqasm::LocalRoutineOp::getArgsList() {
-    return this->getArgAttrsAttr();
+MutableArrayRef<BlockArgument> netqasm::LocalRoutineOp::getArgsTypesList() {
+    return this->getArguments();
 }
 
 /* Helper functions from the NetQASMDialect class */

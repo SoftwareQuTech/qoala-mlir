@@ -78,23 +78,25 @@ LogicalResult qoalahost::CallOp::verifySymbolUses(SymbolTableCollection &symbolT
     if (symbolTable.lookupNearestSymbolFrom<netqasm::RequestRoutineOp>(this->getOperation(), this->getCalleeAttr())) {
         return success();
     }
-    return this->emitOpError() << "'" << this->getCalleeAttr() << "' "
+    return this->emitOpError() << "'" << this->getCalleeAttr().getAttr().str() << "' "
                                << "does not reference a valid defined by either netqasm.local_routine or "
                                << "netqasm.request_routine.";
 }
 
+/* Additional verifier for the Call operation to check number of arguments used. */
 LogicalResult qoalahost::CallOp::verify() {
     auto module = this->getOperation()->getParentOfType<ModuleOp>();
-    assert(module);
+    // Even if we write MLIR without declaring a module, MLIR will insert a top-level module operation, so
+    // it is safe to assert the existence of the module.
+    assert(module && "Unexpected - Operation not inside an MLIR module operation");
     if (const Operation *callee = helpers::getRoutineWithName(&module, this->getCallee()); !callee) {
         this->emitOpError() << "Called function '" << this->getCallee() << "' was not found in the module.";
     } else {
         auto netQASMRoutine = dyn_cast<NetQASMRoutineInterface>(callee);
-        if (this->getArgOperands().size() != netQASMRoutine.getArgsList().size()) {
+        if (this->getArgOperands().size() != netQASMRoutine.getArgsTypesList().size()) {
             this->emitError() << "Call operation does not match the number of arguments of the callee.";
         }
     }
-
     return success();
 }
 
