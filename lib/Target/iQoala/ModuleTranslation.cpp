@@ -102,6 +102,7 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::ModuleStack::pushNewStackFrame(Operation *op) {
+        // ReSharper disable once CppDFAMemoryLeak - Memory is freed in "ModuleTranslation::ModuleStack::popFrame()" method
         auto *newFrame = new ModuleStackFrame(op);
         this->frames.push(newFrame);
     }
@@ -110,10 +111,10 @@ namespace qoala::translate {
         return this->frames.top();
     }
 
-    ModuleTranslation::ModuleStackFrame *ModuleTranslation::ModuleStack::popFrame() {
-        ModuleStackFrame *topFrame = this->frames.top();
+    void ModuleTranslation::ModuleStack::popFrame() {
+        const ModuleStackFrame *topFrame = this->frames.top();
         this->frames.pop();
-        return topFrame;
+        delete topFrame;
     }
 
     void ModuleTranslation::ModuleStack::mapValueInCurrentStackFrame(const Value &value, iQoalaRegReference *regRef) {
@@ -142,9 +143,8 @@ namespace qoala::translate {
 
     Operation *ModuleTranslation::popFrame() {
         // Retrieve the top frame and release its memory
-        const ModuleStackFrame *topFrame = this->translationStack.popFrame();
-        Operation *topFrameOp = topFrame->getOperation();
-        delete topFrame;
+        Operation *topFrameOp = this->peekFrame();
+        this->translationStack.popFrame();
         return topFrameOp;
     }
 
