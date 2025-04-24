@@ -91,10 +91,20 @@ LogicalResult qoalahost::CallOp::verify() {
     assert(module && "Unexpected - Operation not inside an MLIR module operation");
     if (const Operation *callee = helpers::getRoutineWithName(&module, this->getCallee()); !callee) {
         this->emitOpError() << "Called function '" << this->getCallee() << "' was not found in the module.";
+        return failure();
     } else {
         auto netQASMRoutine = dyn_cast<NetQASMRoutineInterface>(callee);
-        if (this->getArgOperands().size() != netQASMRoutine.getArgsTypesList().size()) {
+        const MutableArrayRef<BlockArgument> routineArgs = netQASMRoutine.getArgsTypesList();
+        if (this->getArgOperands().size() != routineArgs.size()) {
             this->emitError() << "Call operation does not match the number of arguments of the callee.";
+        return failure();
+        }
+        for (uint32_t i = 0; i < this->getNumOperands(); i++) {
+            const Type callOperandType = this->getOperand(i).getType();
+            if (callOperandType != routineArgs[i].getType()) {
+                this->emitOpError() << "Operand #" << i << " does not match the type of the callee.";
+                return failure();
+            }
         }
     }
     return success();

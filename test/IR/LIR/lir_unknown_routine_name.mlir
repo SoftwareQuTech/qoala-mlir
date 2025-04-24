@@ -8,8 +8,7 @@ module {
     }
 
     qoalahost.main_func @no_module() {
-        // expected-error@+2 {{Called function 'local_routine_unknown' was not found in the module.}}
-        // expected-error@+1 {{'local_routine_unknown' does not reference a valid defined by either netqasm.local_routine or netqasm.request_routine.}}
+        // expected-error@+1 {{Called function 'local_routine_unknown' was not found in the module.}}
         %0 = qoalahost.call @local_routine_unknown() : () -> i32
       ^bb1:
         qoalahost.return
