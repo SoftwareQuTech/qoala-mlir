@@ -92,10 +92,11 @@ namespace qoala::assembly {
                 break;
             case OP_RUN_SUBROUTINE:
             case OP_RUN_REQUEST:
-                // The total number of operands should be:
-                // We don't consider the size of mcOperands, since for these types of operations, we expect them
-                // to be included manually as "extraOperands", since arguments used as qubits must not be included
-                // as function arguments.
+                // The total number of operands should be equals to the number of register references +
+                // the number of extra operands.
+                // We don't consider the number of the MLIR operation operands, since for call operations, we expect
+                // them to be included manually as "extraOperands". This is due to the fact that arguments used as
+                // qubits must not be included as function arguments.
                 assert(mcOperands.size() == resRegRefs.size() + extraOperands.size() && "Qoalahost instruction builder: call operation has invalid number of operands");
                 // Assert the yielded results
                 for (; i < resRegRefs.size(); i++) {
