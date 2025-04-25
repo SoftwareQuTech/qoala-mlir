@@ -121,7 +121,7 @@ namespace qoala::iqoala {
         // Nothing to do here
     }
 
-    void VirtualIDs::addArg(uint32_t arg) {
+    void VirtualIDs::addArg(const uint32_t arg) {
         this->args.push_back(arg);
     }
 

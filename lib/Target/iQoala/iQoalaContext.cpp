@@ -11,7 +11,7 @@ namespace qoala::iqoala {
     uint8_t LocalRoutineRegisters::allocateCRegistry() {
         const uint8_t lastAvailable = this->cRegisters.size();
         assert(lastAvailable < 16 && "No C register available");
-        LLVM_DEBUG(llvm::dbgs() << "Allocate C Register '" << static_cast<unsigned int>(lastAvailable) << "'\n");
+        LLVM_DEBUG(llvm::dbgs() << "Allocate C Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
         this->cRegisters.push_back(lastAvailable);
         return lastAvailable;
     }
@@ -19,7 +19,7 @@ namespace qoala::iqoala {
     uint8_t LocalRoutineRegisters::allocateRRegistry() {
         const uint8_t lastAvailable = this->rRegisters.size();
         assert(lastAvailable < 16 && "No R register available");
-        LLVM_DEBUG(llvm::dbgs() << "Allocate R Register '" << static_cast<unsigned int>(lastAvailable) << "'\n");
+        LLVM_DEBUG(llvm::dbgs() << "Allocate R Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
         this->rRegisters.push_back(lastAvailable);
         return lastAvailable;
     }
@@ -27,7 +27,7 @@ namespace qoala::iqoala {
     uint8_t LocalRoutineRegisters::allocateQRegistry() {
         const uint8_t lastAvailable = this->qRegisters.size();
         assert(lastAvailable < 16 && "No Q register available");
-        LLVM_DEBUG(llvm::dbgs() << "Allocate Q Register '" << static_cast<unsigned int>(lastAvailable) << "'\n");
+        LLVM_DEBUG(llvm::dbgs() << "Allocate Q Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
         this->qRegisters.push_back(lastAvailable);
         return lastAvailable;
     }
@@ -35,7 +35,7 @@ namespace qoala::iqoala {
     uint8_t LocalRoutineRegisters::allocateMRegistry() {
         const uint8_t lastAvailable = this->mRegisters.size();
         assert(lastAvailable < 16 && "No M register available");
-        LLVM_DEBUG(llvm::dbgs() << "Allocate M Register '" << static_cast<unsigned int>(lastAvailable) << "'\n");
+        LLVM_DEBUG(llvm::dbgs() << "Allocate M Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
         this->mRegisters.push_back(lastAvailable);
         return lastAvailable;
     }
@@ -69,7 +69,7 @@ namespace qoala::iqoala {
                 lastAvailable = this->hostRegisters.size();
                 assert(!localQuantumRoutine.has_value() && "Trying to allocate a local registry for a Local quanutm routine.");
                 assert(lastAvailable < 64 && "No Host register available");
-                LLVM_DEBUG(llvm::dbgs() << "Allocate Host Register '" << static_cast<unsigned int>(lastAvailable) << "'\n");
+                LLVM_DEBUG(llvm::dbgs() << "Allocate Host Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
                 this->hostRegisters.push_back(lastAvailable);
                 break;
             case assembly::C:
@@ -105,7 +105,7 @@ namespace qoala::iqoala {
         if (this->classicalSocketIDs.contains(remoteID)) {
             return this->classicalSocketIDs.at(remoteID);
         }
-        const unsigned int newSocketID = this->classicalSocketIDs.size();
+        const uint32_t newSocketID = this->classicalSocketIDs.size();
         const auto result = this->classicalSocketIDs.try_emplace(remoteID, newSocketID);
         (void) result;
         assert(result.second && "Attempting to map a remote name that is already mapped");
@@ -117,7 +117,7 @@ namespace qoala::iqoala {
         if (this->eprsSocketIDs.contains(remoteID)) {
             return this->eprsSocketIDs.at(remoteID);
         }
-        const unsigned int newSocketID = this->eprsSocketIDs.size();
+        const uint32_t newSocketID = this->eprsSocketIDs.size();
         const auto result = this->eprsSocketIDs.try_emplace(remoteID, newSocketID);
         (void) result;
         assert(result.second && "Attempting to map a remote name that is already mapped");

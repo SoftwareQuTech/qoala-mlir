@@ -159,8 +159,8 @@ namespace qoala::assembly {
 
     void QoalaHostMCInstr::printInstrGeneric(const std::string &mnemonic, raw_ostream &os,
                                              const bool firstIsSSAReg, const bool lastIsImmediate) const {
-        unsigned long i = firstIsSSAReg ? 1 : 0;
-        const unsigned long last = this->operands.size() - (lastIsImmediate ? 1 : 0);
+        uint32_t i = firstIsSSAReg ? 1 : 0;
+        const uint32_t last = this->operands.size() - (lastIsImmediate ? 1 : 0);
 
         if (firstIsSSAReg) {
             os << *this->operands[0] << " = ";

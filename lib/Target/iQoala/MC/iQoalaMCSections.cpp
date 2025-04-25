@@ -88,7 +88,6 @@ namespace qoala::iqoala {
         return this->remoteParamNames.at(remoteName);
     }
 
-
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;
     }
@@ -102,8 +101,8 @@ namespace qoala::iqoala {
 
     void HostSection::deleteEmptyBlocks() {
         std::vector<Block *> blocksCpy;
-        for (uint32_t i = 0; i < this->hostBlocks.size(); i++) {
-            if (Block *block = this->hostBlocks[i]; !block->isEmpty()) {
+        for (Block *block : this->hostBlocks) {
+            if (!block->isEmpty()) {
                 blocksCpy.push_back(block);
             } else {
                 delete block;

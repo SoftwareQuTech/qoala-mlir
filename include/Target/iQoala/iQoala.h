@@ -324,7 +324,7 @@ namespace qoala::iqoala {
     // Extra declarations for "<<" operator
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestType virtualIDs);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestType requestType);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, Block::BlockType block);
 } // namespace qoala::iqoala
 

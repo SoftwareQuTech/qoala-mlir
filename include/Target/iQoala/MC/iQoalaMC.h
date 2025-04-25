@@ -180,26 +180,26 @@ namespace qoala::assembly {
             }
         }
 
-        void setOpcode(unsigned int newOpCode);
+        void setOpcode(uint32_t newOpCode);
         [[nodiscard]]
-        unsigned int getOpcode() const;
+        uint32_t getOpcode() const;
 
         [[nodiscard]]
-        iQoalaMCOperand *getOperand(unsigned i) const;
+        iQoalaMCOperand *getOperand(uint32_t i) const;
         [[nodiscard]]
         std::vector<iQoalaMCOperand *> getOperands() const;
         [[nodiscard]]
-        unsigned int getNumOperands() const;
+        uint32_t getNumOperands() const;
         [[nodiscard]]
         bool hasPlaceholderOperand() const;
-        void replaceOperand(unsigned i, iQoalaMCOperand *newOperand);
+        void replaceOperand(uint32_t i, iQoalaMCOperand *newOperand);
 
         void addOperand(iQoalaMCOperand *op);
         [[nodiscard]]
         mlir::Operation *getOriginalOp() const;
     protected:
         mlir::Operation *originalOp;
-        unsigned int opCode;
+        uint32_t opCode;
         std::vector<iQoalaMCOperand *> operands;
         // The number of results that this instruction yields. It will be
         // placed as the first operands.
