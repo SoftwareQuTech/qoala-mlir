@@ -59,21 +59,19 @@ namespace qoala::analysis {
     };
 
     void LowerF32RotationsPass::runOnOperation() {
-        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
-        assert(module); // We expect the cast to succeed
+        ModuleOp module = this->getOperation();
         MLIRContext &context = this->getContext();
         LLVM_DEBUG(llvm::dbgs() << "Lowering f32 rotation operations\n");
 
         ConversionTarget f32LoweringTarget(context);
-        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
+        configureF32LoweringTarget(f32LoweringTarget);
 
         RewritePatternSet f32Patterns(&context);
         NullTypeConverter typeConverter(&context);
         populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
-        LogicalResult f32ConversionResult =
-                mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (mlir::failed(f32ConversionResult)) {
+        LogicalResult f32ConversionResult = applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
+        if (failed(f32ConversionResult)) {
             signalPassFailure();
         }
     }

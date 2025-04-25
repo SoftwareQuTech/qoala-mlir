@@ -28,8 +28,7 @@ namespace qoala::conversion {
 
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
-        assert(module);
+        ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
@@ -143,7 +142,7 @@ namespace qoala::conversion {
                 helpers::moveOperationToTop(module, funcDecl);
             }
         });
-        module.walk([&](qmem::RemoteOp remote) {
+        module.walk([&](const qmem::RemoteOp remote) {
             helpers::moveOperationToTop(module, remote);
         });
 

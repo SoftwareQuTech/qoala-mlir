@@ -94,8 +94,7 @@ namespace qoala::conversion {
 
     void LowerQMemToQoalaHostPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
-        assert(module);
+        ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
 
         ConversionTarget target(context);
@@ -104,16 +103,15 @@ namespace qoala::conversion {
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
 
-        qoala::helpers::configureQMemToQoalaHostTarget(target, true, true);
-        qoala::helpers::populateQMemToQoalaHostPatterns(context, patterns, typeConverter);
+        configureQMemToQoalaHostTarget(target, true, true);
+        populateQMemToQoalaHostPatterns(context, patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-        LogicalResult result =
-                mlir::applyPartialConversion(module, target, std::move(patterns));
-        if (mlir::failed(result)) {
+        LogicalResult result = applyPartialConversion(module, target, std::move(patterns));
+        if (failed(result)) {
             signalPassFailure();
         }
     }

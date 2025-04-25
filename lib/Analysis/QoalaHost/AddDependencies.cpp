@@ -20,8 +20,7 @@ namespace qoala::analysis {
     };
 
     void QoalaHostAddBlockDependenciesPass::runOnOperation() {
-        ModuleOp module = dyn_cast<ModuleOp>(getOperation());
-        assert(module); // We expect the cast to succeed
+        ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "QoalaHostAddBlockDependenciesPass\n");
         if (failed(dependencies::addDependencies(module))) {
             signalPassFailure();
