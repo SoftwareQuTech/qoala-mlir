@@ -45,7 +45,7 @@ namespace qoala::analysis::functionize {
      *                        order they need to be inserted in the new body.
      */
      void createNewFunctionWithOperations(FunctionizeData &data, mlir::OpBuilder &opBuilder,
-                                          mlir::StringRef funcName, mlir::Location loc,
+                                          mlir::StringRef funcName, const mlir::Location &loc,
                                           llvm::SetVector<mlir::Operation *> &quantumOpsGroup);
 
     /**

@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include "llvm/Support/Casting.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/IR/BuiltinOps.h"
 
@@ -39,7 +40,7 @@ namespace qoala::analysis {
         template<typename FuncOpTy, typename... OpTy>
         void isolateOpsInNewBlocks(FuncOpTy &baseOp, mlir::ConversionPatternRewriter &rewriter,
                                    const std::optional<OpCheck> extraCheck = std::nullopt) {
-            auto mainFunction = dyn_cast<FuncOpTy>(&baseOp);
+            auto mainFunction = llvm::dyn_cast<FuncOpTy>(&baseOp);
             assert(mainFunction && "Trying to isolate the operations on an operation "
                                    "that is not a qoalahost.main_func");
             mlir::SmallVector<mlir::Operation *> opsToIsolate;
@@ -48,7 +49,7 @@ namespace qoala::analysis {
             // the structure of the blocks will invalidate the internal iterators
             // of the walk functions.
             mainFunction->walk([&](mlir::Operation *op) {
-                if (isa<OpTy...>(op)) {
+                if (llvm::isa<OpTy...>(op)) {
                     if (extraCheck.has_value() && !extraCheck.value()(op)) {
                         return;
                     }

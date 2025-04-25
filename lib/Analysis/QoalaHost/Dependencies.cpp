@@ -46,7 +46,7 @@ namespace qoala::analysis::dependencies {
 
         // Block -> string ID (e.g., block_0)
         llvm::DenseMap<Block *, std::string> blockIdMap;
-        int idCounter = 0;
+        uint32_t idCounter = 0;
 
         mlir::ModuleOp mod = llvm::cast<mlir::ModuleOp>(moduleOp);
         auto mainFuncs = mod.getOps<qoalahost::MainFuncOp>();

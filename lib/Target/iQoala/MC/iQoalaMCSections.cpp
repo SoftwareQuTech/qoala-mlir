@@ -63,7 +63,7 @@ namespace qoala::iqoala {
     }
 
     void MetaSection::addRemote(const std::string &remoteName) {
-        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName);
+        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName.c_str());
         this->addParameter(remoteParamName);
         this->remoteParamNames.emplace(remoteName, remoteParamName);
     }

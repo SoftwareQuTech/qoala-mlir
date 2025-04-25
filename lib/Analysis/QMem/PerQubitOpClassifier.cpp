@@ -45,18 +45,18 @@ namespace qoala::analysis::functionize {
 
     struct QubitsGroupMap {
         std::set<Operation *> qubitsHandled;
-        std::map<Operation *, unsigned int> qubitsGroupIdMap;
-        std::map<unsigned int, std::vector<QuantumOpsGroupTy>> operationGroups;
-        long currentLocalQuantumOpsGroup = -1;
+        std::map<Operation *, uint32_t> qubitsGroupIdMap;
+        std::map<uint32_t, std::vector<QuantumOpsGroupTy>> operationGroups;
+        int32_t currentLocalQuantumOpsGroup = -1;
 
         void attachNewQubitToLocalOpsGroups(Operation *localQubitOp) {
-            assert(!qubitsHandled.contains(localQubitOp));
+            assert(qubitsHandled.find(localQubitOp) == qubitsHandled.end());
             if (currentLocalQuantumOpsGroup < 0) {
                 // There is no current local quantum ops group; we will create a new one, whose ID will
                 // be the current size of the operations group
-                currentLocalQuantumOpsGroup = (long) operationGroups.size();
+                currentLocalQuantumOpsGroup = static_cast<int32_t>(operationGroups.size());
                 qubitsGroupIdMap.insert(std::pair{localQubitOp, currentLocalQuantumOpsGroup});
-                QuantumOpsGroupTy newEmptyGroup;
+                const QuantumOpsGroupTy newEmptyGroup;
                 auto entry = std::pair{currentLocalQuantumOpsGroup, std::vector<QuantumOpsGroupTy>{newEmptyGroup}};
                 operationGroups.insert(entry);
             }
@@ -68,15 +68,15 @@ namespace qoala::analysis::functionize {
 
         /// Returns the last operations group for the given qubit operation
         QuantumOpsGroupTy &operator[](Operation *qubitOp) {
-            unsigned int groupID = qubitsGroupIdMap[qubitOp];
+            const uint32_t groupID = qubitsGroupIdMap[qubitOp];
             return *operationGroups[groupID].rbegin();
         }
 
         void mapNewQubit(Operation *qubitOp) {
-            assert(!qubitsHandled.contains(qubitOp));
-            unsigned int newGroupID = operationGroups.size();
+            assert(qubitsHandled.find(qubitOp) == qubitsHandled.end());
+            uint32_t newGroupID = operationGroups.size();
             qubitsGroupIdMap.insert(std::pair{qubitOp, newGroupID});
-            QuantumOpsGroupTy newGroup{qubitOp};
+            const QuantumOpsGroupTy newGroup{qubitOp};
             auto entry = std::pair{newGroupID, std::vector<QuantumOpsGroupTy>{newGroup}};
             operationGroups.insert(entry);
         }
@@ -88,13 +88,13 @@ namespace qoala::analysis::functionize {
         }
 
         std::vector<QuantumOpsGroupTy> getAllFinalGroups() const {
-            unsigned int groupNum = 0;
+            uint32_t groupNum = 0;
             std::vector<QuantumOpsGroupTy> opsGroups;
             for (auto qubitGroupsEntry: operationGroups) {
                 for (QuantumOpsGroupTy operationsGroup: qubitGroupsEntry.second) {
                     if (!operationsGroup.empty()) {
                         LLVM_DEBUG(llvm::dbgs() << " - Discovered Group #" << groupNum++ << " :\n");
-                        for (Operation *operation: operationsGroup) {
+                        for (const Operation *operation: operationsGroup) {
                             LLVM_DEBUG(llvm::dbgs() << "   - op: " << *operation << "\n");
                         }
                         QuantumOpsGroupTy newOpGroup;
@@ -109,8 +109,8 @@ namespace qoala::analysis::functionize {
 
     static std::set<Operation *> getEprsQubitOps(dialects::qmem::FuncOp &mainFunction) {
         std::set<Operation *> eprsQubits;
-        auto eprsOps = mainFunction.getOps<dialects::qmem::EprsOp>();
-        auto eprsMeasureOps = mainFunction.getOps<dialects::qmem::EprsMeasureOp>();
+        const auto eprsOps = mainFunction.getOps<dialects::qmem::EprsOp>();
+        const auto eprsMeasureOps = mainFunction.getOps<dialects::qmem::EprsMeasureOp>();
 
         for (dialects::qmem::EprsOp eprsOp : eprsOps) {
             eprsQubits.insert(eprsOp.getQ().getDefiningOp());
@@ -150,7 +150,7 @@ namespace qoala::analysis::functionize {
 
             if (llvm::isa<dialects::qmem::QAllocOp>(op)) {
                 // The op is a qalloc
-                if (eprsQubits.contains(&op)) {
+                if (eprsQubits.find(&op) != eprsQubits.end()) {
                     // We start a new group for this qubit iff it is used for eprs
                     qubitGroupsMap.mapNewQubit(&op);
                 } else {

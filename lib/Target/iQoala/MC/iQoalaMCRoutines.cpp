@@ -56,7 +56,7 @@ namespace qoala::iqoala {
 
     uint8_t LocalQuantumRoutine::releaseQubit(const Value &value) {
         const uint8_t phyQubitNum = this->QuantumRoutine::releaseQubit(value);
-        if (this->keepsQubits.contains(phyQubitNum)) {
+        if (this->keepsQubits.find(phyQubitNum) != this->keepsQubits.end()) {
             this->keepsQubits.erase(phyQubitNum);
         }
         return phyQubitNum;
