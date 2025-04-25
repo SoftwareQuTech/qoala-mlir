@@ -31,10 +31,10 @@ namespace qoala::assembly {
             INSTRUCTION_REFERENCE
         };
     public:
-        iQoalaMCExpr() : kind(INVALID), symbolName() { }
+        iQoalaMCExpr() : kind(INVALID) { }
         explicit iQoalaMCExpr(std::string symName) : kind(SYMBOL_REFERENCE), symbolName(std::move(symName)) { }
-        explicit iQoalaMCExpr(mlir::Operation *mlirOp) : kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { };
-        ~iQoalaMCExpr() override { }
+        explicit iQoalaMCExpr(mlir::Operation *mlirOp) : kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { }
+        ~iQoalaMCExpr() override;
 
         [[nodiscard]]
         bool isValid() const;

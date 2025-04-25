@@ -100,6 +100,11 @@ namespace qoala::assembly {
     }
 
     /* General functions for the ASM classes */
+    iQoalaMCExpr::~iQoalaMCExpr() {
+        if (this->kind == SYMBOL_REFERENCE) {
+            this->symbolName.~basic_string();
+        }
+    }
     bool iQoalaMCExpr::isValid() const { return kind != INVALID; }
     bool iQoalaMCExpr::isSymbolRef() const { return kind == SYMBOL_REFERENCE; }
     bool iQoalaMCExpr::isInstructionRef() const { return kind == INSTRUCTION_REFERENCE; }
