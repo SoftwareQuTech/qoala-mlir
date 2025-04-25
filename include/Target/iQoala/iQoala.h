@@ -211,6 +211,7 @@ namespace qoala::iqoala {
         void setName(const std::string &name) { this->name = name; }
         [[nodiscard]]
         std::string getName() const { return this->name; }
+        bool isEmpty() const { return this->instructions.empty(); };
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
@@ -271,6 +272,7 @@ namespace qoala::iqoala {
         }
 
         Block *createNewBlock();
+        void deleteEmptyBlocks();
 
         void print(mlir::raw_ostream &os) const override;
     private:
@@ -322,7 +324,7 @@ namespace qoala::iqoala {
     // Extra declarations for "<<" operator
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestCallback requestCallback);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestType virtualIDs);
+    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, RequestQuantumRoutine::RequestType requestType);
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, Block::BlockType block);
 } // namespace qoala::iqoala
 

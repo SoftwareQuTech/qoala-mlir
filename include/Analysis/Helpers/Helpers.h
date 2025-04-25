@@ -1,6 +1,8 @@
 #ifndef QOALA_ANALYSIS_MLIR_HELPERS_H
 #define QOALA_ANALYSIS_MLIR_HELPERS_H
 
+#include "llvm/Support/Casting.h"
+
 #if __cplusplus >= 202002L
 #include <format>
 #endif
@@ -24,10 +26,10 @@ namespace qoala::helpers {
      * @param operation The operation to test.
      * @return `true` if the operation belongs to the templated dialect type. `false` otherwise.
      */
-    template<typename Dialect>
+    template<class Dialect>
     bool belongsToDialect(mlir::Operation &operation) {
         mlir::Dialect *operationDialect = operation.getDialect();
-        return isa<Dialect>(operationDialect);
+        return llvm::isa<Dialect>(operationDialect);
     }
 
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -39,10 +41,10 @@ namespace qoala::helpers {
      * @param operation The operation to test.
      * @return `true` if the operation belongs to one of the templated dialect types. `false` otherwise.
      */
-    template<typename DialectOne, typename DialectTwo, typename... RestDialects>
+    template<class DialectOne, class DialectTwo, class... RestDialects>
     bool belongsToDialect(mlir::Operation &operation) {
         mlir::Dialect *operationDialect = operation.getDialect();
-        return isa<DialectOne>(operationDialect) || belongsToDialect<DialectTwo, RestDialects...>(operation);
+        return llvm::isa<DialectOne>(operationDialect) || belongsToDialect<DialectTwo, RestDialects...>(operation);
     }
 
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -206,10 +208,10 @@ namespace qoala::helpers {
 #else
         /* In older versions of the standard, we need to default to the good'ol C-way
          * of formatting a string */
-        const int length = std::snprintf(nullptr, 0, fmt.data(),   args...);
+        const int length = std::snprintf(nullptr, 0, fmt.c_str(), args...);
         std::vector<char> formattedString(length + 1);
-        std::sprintf(formattedString.data(), fmt.data(), args...);
-        return {formattedString.data()};
+        std::sprintf(formattedString.data(), fmt.c_str(), args...);
+        return {formattedString.data(), formattedString.size()};
 #endif
     }
 

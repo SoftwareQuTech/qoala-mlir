@@ -4,14 +4,14 @@ using namespace mlir;
 using namespace qoala::helpers;
 
 namespace qoala::helpers::print {
-    int indent;
+    uint32_t indent;
 
     void resetIndent() { indent = 0; }
 
     IdentRAII pushIndent() { return IdentRAII(++indent); }
 
     llvm::raw_ostream &printIndent() {
-        for (int i = 0; i < indent; ++i)
+        for (uint32_t i = 0; i < indent; ++i)
             llvm::outs() << "  ";
         return llvm::outs();
     }

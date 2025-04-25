@@ -49,9 +49,9 @@ namespace qoala::iqoala {
         // Map for the physical qubits num->inUse
         llvm::DenseMap<uint8_t, bool> qubits;
         // Map for the remoteNames -> eprsSocketID
-        llvm::StringMap<unsigned int> eprsSocketIDs;
+        llvm::StringMap<uint32_t> eprsSocketIDs;
         // Map for the remoteNames -> classicalSocketID
-        llvm::StringMap<unsigned int> classicalSocketIDs;
+        llvm::StringMap<uint32_t> classicalSocketIDs;
         // Set for keeping track of the visited (translated) operations of the module
         llvm::SmallPtrSet<mlir::Operation *, 32> visitedOps;
     };

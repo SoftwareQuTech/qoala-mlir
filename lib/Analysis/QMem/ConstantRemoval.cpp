@@ -42,14 +42,13 @@ namespace qoala::helpers {
         LLVM_DEBUG(llvm::dbgs() << "Number discovered ops: " << ops.size() << "\n");
 
         // Visit the discovered ops in reverse order, so we don't break data dependencies
-        std::ranges::reverse(ops.begin(), ops.end());
-        for (Operation *op : ops) {
+        for (Operation *op : llvm::reverse(ops)) {
             LLVM_DEBUG(llvm::dbgs() << "Trying to fold op: " << *op << "\n");
             (void)folderHelper.tryToFold(op);
         }
 
         // Finally, remove all orphaned constants after folding them
-        for (auto cst : folderTracker.getExistingConstants()) {
+        for (const auto cst : folderTracker.getExistingConstants()) {
             LLVM_DEBUG(llvm::dbgs() << "Trying to delete constant " << *cst << "\n");
             if (cst->use_empty()) {
                 cst->erase();

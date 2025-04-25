@@ -338,7 +338,7 @@ namespace qoala::assembly {
     }
 
     void NetQASMMCInstr::printThreeFourRegsInstr(const std::string &mnemonic, raw_ostream &os, const bool usesFourRegs) const {
-        unsigned short numOperands;
+        uint8_t numOperands;
         if (usesFourRegs) {
             numOperands = 4;
         } else {

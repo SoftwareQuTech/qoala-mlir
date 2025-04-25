@@ -63,7 +63,7 @@ namespace qoala::iqoala {
     }
 
     void MetaSection::addRemote(const std::string &remoteName) {
-        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName);
+        const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName.c_str());
         this->addParameter(remoteParamName);
         this->remoteParamNames.emplace(remoteName, remoteParamName);
     }
@@ -88,7 +88,6 @@ namespace qoala::iqoala {
         return this->remoteParamNames.at(remoteName);
     }
 
-
     void MetaSection::setName(const std::string &programName) {
         this->name = programName;
     }
@@ -98,5 +97,17 @@ namespace qoala::iqoala {
         block->setName(helpers::formatString(blockNameFmt, this->hostBlocks.size()));
         this->hostBlocks.push_back(block);
         return block;
+    }
+
+    void HostSection::deleteEmptyBlocks() {
+        std::vector<Block *> blocksCpy;
+        for (Block *block : this->hostBlocks) {
+            if (!block->isEmpty()) {
+                blocksCpy.push_back(block);
+            } else {
+                delete block;
+            }
+        }
+        this->hostBlocks = blocksCpy;
     }
 }

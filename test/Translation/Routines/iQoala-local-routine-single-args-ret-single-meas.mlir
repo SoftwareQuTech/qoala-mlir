@@ -12,7 +12,6 @@
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
-// CHECK: b[[BLOCK2:.*]] { type = CL }
 
 // CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}

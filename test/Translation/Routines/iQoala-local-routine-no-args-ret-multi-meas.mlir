@@ -7,7 +7,6 @@
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: tuple<%[[HOST_REG0:.*]]; %[[HOST_REG1:.*]]; %[[HOST_REG2:.*]]> = run_subroutine() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}

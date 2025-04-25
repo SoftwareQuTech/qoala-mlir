@@ -56,7 +56,7 @@ namespace qoala::iqoala {
 
     uint8_t LocalQuantumRoutine::releaseQubit(const Value &value) {
         const uint8_t phyQubitNum = this->QuantumRoutine::releaseQubit(value);
-        if (this->keepsQubits.contains(phyQubitNum)) {
+        if (this->keepsQubits.find(phyQubitNum) != this->keepsQubits.end()) {
             this->keepsQubits.erase(phyQubitNum);
         }
         return phyQubitNum;
@@ -121,7 +121,7 @@ namespace qoala::iqoala {
         // Nothing to do here
     }
 
-    void VirtualIDs::addArg(uint32_t arg) {
+    void VirtualIDs::addArg(const uint32_t arg) {
         this->args.push_back(arg);
     }
 

@@ -6,6 +6,7 @@
 
 namespace qoala::helpers {
     struct OpAndValues {
+        OpAndValues(mlir::Operation *op, const mlir::ValueRange &values) : operation(op), values(values) { }
         mlir::Operation *operation{};
         mlir::ValueRange values;
     };
@@ -56,7 +57,7 @@ namespace qoala::helpers {
         mlir::LogicalResult
         matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
                         mlir::ConversionPatternRewriter &rewriter) const override {
-            std::unique_ptr<OpAndValues> newOpAndVals = createNewOpAndValues(op, adaptor, rewriter);
+            const std::unique_ptr<OpAndValues> newOpAndVals = createNewOpAndValues(op, adaptor, rewriter);
             // Expect an operation of a type of the declared destination types
             assert(llvm::isa<DestOps...>(newOpAndVals->operation));
             // We use the "replace op for values" method; This method check that the old op
@@ -77,8 +78,8 @@ namespace qoala::helpers {
     namespace print {
         /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
         struct IdentRAII {
-            int &indent;
-            IdentRAII(int &indent) : indent(indent) {}
+            uint32_t &indent;
+            explicit IdentRAII(uint32_t &indent) : indent(indent) {}
             ~IdentRAII() { --indent; }
         };
         void printOperation(mlir::Operation *op);

@@ -19,7 +19,6 @@
 // This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
 // to create the entangled pair
 // CHECK-NEXT: run_request() : __qoala_wrapper2
-// CHECK: b[[BLOCK3:.*]] { type = CL }
 
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential

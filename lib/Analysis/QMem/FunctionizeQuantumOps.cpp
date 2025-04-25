@@ -24,9 +24,8 @@ namespace qoala::analysis {
     };
 
     void QMemSimpleFunctionizePass::runOnOperation() {
-        ModuleOp module = dyn_cast<ModuleOp>(getOperation());
-        assert(module); // We expect the cast to succeed
+        ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-        functionize::functionizeModule(module, simpleOpClassifier);
+        functionizeModule(module, simpleOpClassifier);
     }
 } /* namespace qoala::analysis */

@@ -7,7 +7,6 @@
 // CHECK-NEXT: META END
 // CHECK: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = CL }
 
 //CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential

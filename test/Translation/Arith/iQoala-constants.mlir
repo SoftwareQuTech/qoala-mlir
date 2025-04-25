@@ -9,7 +9,6 @@
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK: b[[BLOCK1:.*]] { type = CL }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
-// CHECK: b[[BLOCK2:.*]] { type = CL }
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params:

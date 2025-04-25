@@ -66,8 +66,9 @@ namespace qoala::conversion {
 
     void LowerQMemToNetQASMPass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp module = dyn_cast<ModuleOp>(this->getOperation());
-        assert(module);
+        // Since the pass class operates on ModuleOp (templated parameter), this->getOperation
+        // returns an object of the templated type (ModuleOp) -> dyn_cast not needed
+        ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
 
         ConversionTarget target(context);
@@ -76,31 +77,29 @@ namespace qoala::conversion {
         // We don't need a type converter in this stage
         NullTypeConverter typeConverter(&context);
 
-        qoala::helpers::configureQMemToNetQASMTarget(target);
-        qoala::helpers::populateQMemToNetQASMPatterns(context, patterns, typeConverter);
+        configureQMemToNetQASMTarget(target);
+        populateQMemToNetQASMPatterns(context, patterns, typeConverter);
 
         // Lowering QMem to NetQASM expect to lower rotations. so we need to lower the
         // f32 rotations using the intermediate step
         ConversionTarget f32LoweringTarget(context);
         RewritePatternSet f32Patterns(&context);
-        qoala::helpers::configureF32LoweringTarget(f32LoweringTarget);
-        qoala::helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
+        configureF32LoweringTarget(f32LoweringTarget);
+        populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
         // First, lower f32 rotations
-        LogicalResult f32LoweringResult =
-                mlir::applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (mlir::failed(f32LoweringResult)) {
+        LogicalResult f32LoweringResult = applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
+        if (failed(f32LoweringResult)) {
             signalPassFailure();
         }
 
         // Then, lower the rest
-        LogicalResult result =
-                mlir::applyPartialConversion(module, target, std::move(patterns));
-        if (mlir::failed(result)) {
+        LogicalResult result = applyPartialConversion(module, target, std::move(patterns));
+        if (failed(result)) {
             signalPassFailure();
         }
     }

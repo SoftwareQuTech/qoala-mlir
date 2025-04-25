@@ -95,4 +95,8 @@ namespace qoala::iqoala {
     Block *iQoalaModule::addHostBlock() {
         return this->iQoalaProgram.hostSection.createNewBlock();
     }
+
+    void iQoalaModule::deleteEmptyHostBlocks() {
+        this->iQoalaProgram.hostSection.deleteEmptyBlocks();
+    }
 }

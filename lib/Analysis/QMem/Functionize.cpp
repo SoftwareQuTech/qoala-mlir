@@ -15,7 +15,7 @@ using namespace qoala::analysis;
 
 namespace qoala::analysis::functionize {
     // Identifier to make the names of the new function definitions unique
-    static int identifier = 0;
+    static uint32_t identifier = 0;
     // Format of the qoala_wrapper function.
 #if  __cplusplus >= 202002L
     /* When using C++20 or newer standard, the format must be "python-style" */
@@ -36,7 +36,7 @@ namespace qoala::analysis::functionize {
         std::vector<Type> resultTypes;
         llvm::SetVector<Value> argumentValues;
         llvm::SetVector<Value> resultValues;
-        llvm::DenseMap <Value, unsigned int> externalArgsIdxMap;
+        llvm::DenseMap <Value, uint32_t> externalArgsIdxMap;
 
         for (Operation *quantumOp : quantumOps) {
             OperandRange opOperands = quantumOp->getOperands();
@@ -57,7 +57,7 @@ namespace qoala::analysis::functionize {
             for (OpResult opResult : opResults) {
                 // A set to store all the indexes of the results that will be returned
                 std::set<uint32_t> returnIndexesForOp;
-                unsigned int resultIndex = opResult.getResultNumber();
+                uint32_t resultIndex = opResult.getResultNumber();
 
                 if (opResult.getUses().empty()) {
                     // If there are no uses, we still need to return the "unused" result
@@ -68,7 +68,7 @@ namespace qoala::analysis::functionize {
                     // If any of the result usages is not in the quantumOps (and that index is not on
                     // the already marked for return), then it needs to be returned
                     for (OpOperand &usage: opResult.getUses()) {
-                        if (!quantumOps.contains(usage.getOwner()) && !returnIndexesForOp.contains(resultIndex)) {
+                        if (!quantumOps.contains(usage.getOwner()) && returnIndexesForOp.find(resultIndex) == returnIndexesForOp.end()) {
                             // We discovered an external result of the group
                             resultValues.insert(opResult);
                             resultTypes.push_back(opResult.getType());
@@ -85,10 +85,9 @@ namespace qoala::analysis::functionize {
         data.externalResVals.insert(resultValues.begin(), resultValues.end());
     }
 
-    static void mapOriginalResultsInClonedOp(ResultRange originalResults, Operation *clonedOp,
-                                                    SetVector<Value> &externalResults,
-                                                    llvm::MapVector<OpResult, OpResult> &externalResultsMap,
-                                                    DenseMap<Value, Value> &internalResultMap) {
+    static void mapOriginalResultsInClonedOp(const ResultRange &originalResults, Operation *clonedOp,
+        const SetVector<Value> &externalResults, llvm::MapVector<OpResult, OpResult> &externalResultsMap,
+        DenseMap<Value, Value> &internalResultMap) {
         for (OpResult originalResult : originalResults) {
             OpResult correspondingNewResult = clonedOp->getResult(originalResult.getResultNumber());
             if (externalResults.contains(originalResult)) {
@@ -100,11 +99,9 @@ namespace qoala::analysis::functionize {
         }
     }
 
-    static void mapOriginalOperandsInClonedOp(OperandRange originalOpOperands,
-                                                     DenseMap<Value, unsigned int> &externalArgValsIdxMap,
-                                                     SetVector<Value> &externalArguments,
-                                                     std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc,
-                                                     DenseMap<Value, Value> internalResultMap) {
+    static void mapOriginalOperandsInClonedOp(const OperandRange &originalOpOperands,
+        DenseMap<Value, uint32_t> &externalArgValsIdxMap, const SetVector<Value> &externalArguments,
+        std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc, DenseMap<Value, Value> internalResultMap) {
         for (Value operandValue : originalOpOperands) {
             if (externalArguments.contains(operandValue)) {
                 /* Use of an external operand (argument): use the argument of the new function as operand */
@@ -118,7 +115,7 @@ namespace qoala::analysis::functionize {
 
     void createNewFunctionWithOperations(FunctionizeData &data,
                                          OpBuilder &opBuilder, StringRef funcName,
-                                         Location loc, SetVector<Operation *> &quantumOpsGroup) {
+                                         const Location &loc, SetVector<Operation *> &quantumOpsGroup) {
         std::vector<Operation *> clonedOperations;
         llvm::MapVector<OpResult, OpResult> externalResultsMap;
         DenseMap<Value, Value> internalResultMap;
@@ -176,7 +173,7 @@ namespace qoala::analysis::functionize {
             if (functionHasEPRSOp) {
                 // We "mark" the function declaration, so when lowering the func operation the pass can
                 // know that this particular function needs to be lowered to netqasm.request_routine
-                Attribute entangle = opBuilder.getStringAttr("true");
+                const Attribute entangle = opBuilder.getStringAttr("true");
                 newFunc->setAttr("entangle", entangle);
             }
             LLVM_DEBUG(llvm::dbgs() << "------------------------\n");
@@ -205,7 +202,7 @@ namespace qoala::analysis::functionize {
     }
 
     void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations) {
-        unsigned int groupNum = 0;
+        uint32_t groupNum = 0;
 
         auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
         // We expect at least one qmem::FuncOp operation in the module
