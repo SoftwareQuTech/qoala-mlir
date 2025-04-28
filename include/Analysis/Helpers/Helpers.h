@@ -211,7 +211,7 @@ namespace qoala::helpers {
         const int length = std::snprintf(nullptr, 0, fmt.c_str(), args...);
         std::vector<char> formattedString(length + 1);
         std::sprintf(formattedString.data(), fmt.c_str(), args...);
-        return {formattedString.data(), formattedString.size()};
+        return {formattedString.data()};
 #endif
     }
 
