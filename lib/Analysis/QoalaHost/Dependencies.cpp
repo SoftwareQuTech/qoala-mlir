@@ -140,9 +140,24 @@ namespace qoala::analysis::dependencies {
 
             auto predListAttr = builder.getStrArrayAttr(predIds);
 
+            // We assume that a BlkMeta oepration should always be the first one in a block
+            // Check if the first operation is a BlkMeta
+            if (!block.empty()) {
+                Operation &firstOp = block.front();
+                if (auto blkMeta = dyn_cast<qoalahost::BlkMeta>(&firstOp)) {
+                    blkMeta->setAttr("block_id", blockIdAttr);
+                    blkMeta->setAttr("predecessors", predListAttr);
+
+                    LLVM_DEBUG(llvm::dbgs() << "Updated existing BlkMeta in " << blockId << " with dependencies "
+                                            << predListAttr << "\n");
+                    continue;
+                }
+            }
+
+            // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted BlkMeta in " << blockId << " with dependencies " << predListAttr
+            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockId << " with dependencies " << predListAttr
                                     << "\n");
         }
 
