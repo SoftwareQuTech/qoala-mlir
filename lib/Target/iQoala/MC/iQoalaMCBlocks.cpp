@@ -60,7 +60,7 @@ namespace qoala::iqoala {
         for (auto pred: this->predecessors) {
             predNames.push_back(pred->name);
         }
-        os << this->name << " { type = " << this->type << ", predecessors = [" << helpers::formatVector(predNames)
+        os << "^" << this->name << " { type = " << this->type << ", predecessors = [" << helpers::formatVector(predNames)
            << "] }:\n";
         for (const assembly::QoalaHostMCInstr *instruction: this->instructions) {
             os << tabStr << *instruction << "\n";
