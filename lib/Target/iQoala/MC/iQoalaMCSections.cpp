@@ -4,10 +4,10 @@
 using namespace mlir;
 
 #if __cplusplus >= 202002L
-static std::string blockNameFmt = "b{}";
+static std::string blockNameFmt = "^b{}";
 static std::string remoteIDFmt = "{}_id";
 #else
-static std::string blockNameFmt = "b%d";
+static std::string blockNameFmt = "^b%d";
 static std::string remoteIDFmt = "%s_id";
 #endif
 
