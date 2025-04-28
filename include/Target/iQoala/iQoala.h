@@ -227,7 +227,9 @@ namespace qoala::iqoala {
             return this->instructions.empty();
         }
         [[nodiscard]]
-        uint32_t getNumInstructions() const { return this->instructions.size(); }
+        uint32_t getNumInstructions() const {
+            return this->instructions.size();
+        }
         [[nodiscard]]
         bool blockContainsRunRequest() const;
         [[nodiscard]]
@@ -239,6 +241,7 @@ namespace qoala::iqoala {
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
 
         void addPredecessor(Block *pred) { this->predecessors.push_back(pred); }
+        std::vector<Block *> getPredecessors() { return this->predecessors; }
 
     private:
         // type of the Block (CL, CC, QL, QC)
