@@ -34,7 +34,9 @@ namespace qoala::translate {
             assembly::iQoalaRegReference *getRegReferenceForValue(const mlir::Value &value) const;
 
             [[nodiscard]]
-            mlir::Operation *getOperation() const { return this->operation; }
+            mlir::Operation *getOperation() const {
+                return this->operation;
+            }
             [[nodiscard]]
             bool isModule() const;
             [[nodiscard]]
@@ -43,9 +45,10 @@ namespace qoala::translate {
             bool isLocalRoutine() const;
             [[nodiscard]]
             bool isRequestRoutine() const;
+
         private:
             mlir::Operation *operation;
-            mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *>valuesInScope;
+            mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> valuesInScope;
         };
         /**
          * This class represents the "stack" when translating the module
@@ -71,15 +74,15 @@ namespace qoala::translate {
         private:
             std::stack<ModuleStackFrame *> frames;
         };
-    public:
-        friend std::unique_ptr<iqoala::iQoalaModule>
-        translateModuleToiQoala(mlir::Operation *originalModule, iqoala::iQoalaContext &iQoalaContext,
-                                llvm::StringRef name);
-        ModuleTranslation(mlir::ModuleOp *module,
-                          std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
 
-	    mlir::LogicalResult convertOperation(mlir::Operation &op);
-	    mlir::LogicalResult convertFunctionSignatures();
+    public:
+        friend std::unique_ptr<iqoala::iQoalaModule> translateModuleToiQoala(mlir::Operation *originalModule,
+                                                                             iqoala::iQoalaContext &iQoalaContext,
+                                                                             llvm::StringRef name);
+        ModuleTranslation(mlir::ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule);
+
+        mlir::LogicalResult convertOperation(mlir::Operation &op);
+        mlir::LogicalResult convertFunctionSignatures();
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
 
@@ -110,22 +113,24 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
-        std::map<std::string, iqoala::Block*>::iterator findIdDependency(const std::string& key) {
+        std::map<std::string, iqoala::Block *>::iterator findIdDependency(const std::string &key) {
             return dependenciesIdsToIQoalaBlocks.find(key);
         }
-        std::map<std::string, iqoala::Block*>::iterator endIdDependency() {
+        std::map<std::string, iqoala::Block *>::iterator endIdDependency() {
             return dependenciesIdsToIQoalaBlocks.end();
         }
-        void addIdDependency(const std::string& key, iqoala::Block* block) {
+        void addIdDependency(const std::string &key, iqoala::Block *block) {
             dependenciesIdsToIQoalaBlocks[key] = block;
         }
 
     protected:
         /* Functions for following "call convention" for arguments in the local quantum routines */
-        mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg, iqoala::LocalQuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp, uint32_t argIndex);
-        mlir::LogicalResult loadQuantumArgWithCalConv(const mlir::BlockArgument &blockArg, iqoala::QuantumRoutine *iQoalaRoutine,
-            mlir::Operation *localRoutineOp);
+        mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg,
+                                                         iqoala::LocalQuantumRoutine *iQoalaRoutine,
+                                                         mlir::Operation *localRoutineOp, uint32_t argIndex);
+        mlir::LogicalResult loadQuantumArgWithCalConv(const mlir::BlockArgument &blockArg,
+                                                      iqoala::QuantumRoutine *iQoalaRoutine,
+                                                      mlir::Operation *localRoutineOp);
         mlir::LogicalResult convertLocalRoutines();
         mlir::LogicalResult convertRequestRoutines() const;
 
@@ -145,10 +150,10 @@ namespace qoala::translate {
         // Map for tracking MLIR values of function arguments to the MC instruction
         // that are used to retrieve those values in the MC model
         mlir::DenseMap<assembly::iQoalaMCInstruction *, mlir::BlockArgument> mcArgsValsMap;
-        
-        // Map for tracking the dependencie ID (added by the AddBlockDependencies pass) and its Block
-        std::map<std::string, iqoala::Block*> dependenciesIdsToIQoalaBlocks;
-    };
-}
 
-#endif //MODULETRANSLATION_H
+        // Map for tracking the dependencie ID (added by the AddBlockDependencies pass) and its Block
+        std::map<std::string, iqoala::Block *> dependenciesIdsToIQoalaBlocks;
+    };
+} // namespace qoala::translate
+
+#endif // MODULETRANSLATION_H
