@@ -7,7 +7,7 @@
 // CHECK-NEXT: META END
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
-// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK: b[[BLOCK1:.*]] { type = QL }
 // CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper0
 // CHECK: b[[BLOCK2:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG1]], %[[HOST_REG0]])

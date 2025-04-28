@@ -5,7 +5,7 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK: b[[BLOCK0:.*]] { type = QL }
 // CHECK-NEXT: tuple<%[[HOST_REG0:.*]]; %[[HOST_REG1:.*]]; %[[HOST_REG2:.*]]> = run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
