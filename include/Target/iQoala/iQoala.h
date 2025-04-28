@@ -215,6 +215,8 @@ namespace qoala::iqoala {
         [[nodiscard]]
         bool isEmpty() const { return this->instructions.empty(); }
         [[nodiscard]]
+        uint32_t getNumInstructions() const { return this->instructions.size(); }
+        [[nodiscard]]
         bool blockContainsRunRequest() const;
         [[nodiscard]]
         bool blockContainsRunSubRoutine() const;
@@ -281,7 +283,7 @@ namespace qoala::iqoala {
 
         Block *createNewBlock();
         void deleteEmptyBlocks();
-        void setBlockTypes() const;
+        mlir::LogicalResult setBlockTypes() const;
 
         void print(mlir::raw_ostream &os) const override;
     private:

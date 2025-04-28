@@ -19,7 +19,7 @@ namespace qoala::iqoala {
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();
         void deleteEmptyHostBlocks();
-        void setQoalaHostBlockTypes() const;
+        mlir::LogicalResult setQoalaHostBlockTypes() const;
         [[nodiscard]]
         QuantumRoutine *getRoutineByName(mlir::StringRef name) const;
         [[nodiscard]]

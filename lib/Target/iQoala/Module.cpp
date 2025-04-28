@@ -100,8 +100,8 @@ namespace qoala::iqoala {
         this->iQoalaProgram.hostSection.deleteEmptyBlocks();
     }
 
-    void iQoalaModule::setQoalaHostBlockTypes() const {
-        this->iQoalaProgram.hostSection.setBlockTypes();
+    LogicalResult iQoalaModule::setQoalaHostBlockTypes() const {
+        return this->iQoalaProgram.hostSection.setBlockTypes();
     }
 
 }
