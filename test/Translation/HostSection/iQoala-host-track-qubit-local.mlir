@@ -7,10 +7,10 @@
 // CHECK-NEXT: META END
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 0
-// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK: b[[BLOCK1:.*]] { type = QL }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
-// CHECK: b[[BLOCK2:.*]] { type = CL }
+// CHECK: b[[BLOCK2:.*]] { type = QL }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper1
 // CHECK: b[[BLOCK3:.*]] { type = CL }

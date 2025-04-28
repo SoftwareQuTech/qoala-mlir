@@ -387,6 +387,7 @@ namespace qoala::translate {
         LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 
         moduleTranslation.iQoalaModule->deleteEmptyHostBlocks();
+        moduleTranslation.iQoalaModule->setQoalaHostBlockTypes();
 
         LLVM_DEBUG(llvm::dbgs() << "iQoala after deleting empty blocks:\n" << *moduleTranslation.iQoalaModule << "\n********\n");
 

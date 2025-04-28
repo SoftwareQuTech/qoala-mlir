@@ -17,7 +17,7 @@
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot(%[[HOST_REG0]], %[[HOST_REG1]])
 // %[[HOST_REG4:.*]] = rem(%[[HOST_REG0]], %[[HOST_REG1]])
-// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK: b[[BLOCK1:.*]] { type = QL }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0

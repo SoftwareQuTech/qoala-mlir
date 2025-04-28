@@ -6,10 +6,10 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK: b[[BLOCK0:.*]] { type = QL }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = CL }
+// CHECK: b[[BLOCK1:.*]] { type = QL }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
 

@@ -8,7 +8,7 @@
 // CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 7
-// CHECK: b1 { type = CL }
+// CHECK: b1 { type = QL }
 // CHECK-NEXT: tuple<%[[HOST_REG2:.*]]; %[[HOST_REG3:.*]]; %[[HOST_REG4:.*]]> = run_subroutine(tuple<%[[HOST_REG0]]; %[[HOST_REG1]]>) : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0

@@ -208,11 +208,18 @@ namespace qoala::iqoala {
                 delete instruction;
             }
         }
+        void setType(const BlockType type) { this->type = type; }
         void setName(const std::string &name) { this->name = name; }
         [[nodiscard]]
         std::string getName() const { return this->name; }
         [[nodiscard]]
         bool isEmpty() const { return this->instructions.empty(); }
+        [[nodiscard]]
+        bool blockContainsRunRequest() const;
+        [[nodiscard]]
+        bool blockContainsRunSubRoutine() const;
+        [[nodiscard]]
+        bool blockContainsRecvMsg() const;
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
@@ -274,6 +281,7 @@ namespace qoala::iqoala {
 
         Block *createNewBlock();
         void deleteEmptyBlocks();
+        void setBlockTypes() const;
 
         void print(mlir::raw_ostream &os) const override;
     private:

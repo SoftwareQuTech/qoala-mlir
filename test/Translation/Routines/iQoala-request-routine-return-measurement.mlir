@@ -5,7 +5,7 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = CL }
+// CHECK: b[[BLOCK0:.*]] { type = QC }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
 
 //CHECK: REQUEST __qoala_wrapper0
