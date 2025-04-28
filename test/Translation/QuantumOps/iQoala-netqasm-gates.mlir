@@ -5,7 +5,7 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QL }
+// CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: tuple<%[[RES_0:.*]]; %[[RES_1:.*]]> = run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
@@ -43,8 +43,10 @@ module {
     netqasm.return %2, %3 : i1, i1
   }
   qoalahost.main_func @test_local_routine_gates() {
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0, %1 = qoalahost.call @__qoala_wrapper0() : () -> (i1, i1)
   ^bb1:
+    qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
     qoalahost.return
   }
 }

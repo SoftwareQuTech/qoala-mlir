@@ -5,7 +5,7 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: b[[BLOCK0:.*]] { type = CL, predecessors = [] }
+// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL, predecessors = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG1]])
@@ -17,7 +17,7 @@
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot(%[[HOST_REG0]], %[[HOST_REG1]])
 // %[[HOST_REG4:.*]] = rem(%[[HOST_REG0]], %[[HOST_REG1]])
-// CHECK: b[[BLOCK1:.*]] { type = QL, predecessors = [] }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0

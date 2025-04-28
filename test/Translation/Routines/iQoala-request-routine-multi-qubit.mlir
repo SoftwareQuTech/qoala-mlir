@@ -5,11 +5,11 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QC }
+// CHECK: ^b[[BLOCK0:.*]] { type = QC, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
 // to create the entangled pair
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0] }
 // This call does not yield a result, because __qoala_wrapper1 request uses qubitID 1
 // to create the entangled pair
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]> = run_subroutine() : __qoala_wrapper1
@@ -66,10 +66,13 @@ module {
     // Note: there is an implicit "^bb0" not-rendered block declaration here
     // so this "call" operation is the one and only operation of the
     // first block of the main function
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0, %1, %2 = qoalahost.call @__qoala_wrapper0() : () -> (i32, i32, i32)
     ^bb1:
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = ["block_0"]}
       %m0, %m1, %m2 = qoalahost.call @__qoala_wrapper1(%0, %1, %2) : (i32, i32, i32) -> (i1, i1, i1)
     ^bb2:
+      qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
       qoalahost.return
   }
 }

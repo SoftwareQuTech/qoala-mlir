@@ -6,10 +6,10 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QL }
+// CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0] }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
 
@@ -68,10 +68,13 @@ module {
     // Note: there is an implicit "^bb0" not-rendered block declaration here
     // so this "call" operation is the one and only operation of the
     // first block of the main function
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
     ^bb1:
-        %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = ["block_0"]}
+      %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
     ^bb2:
-        qoalahost.return
+      qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
+      qoalahost.return
   }
 }

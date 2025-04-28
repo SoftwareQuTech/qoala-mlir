@@ -12,9 +12,11 @@ module {
     netqasm.return %0 : i32
   }
   qoalahost.main_func @test_call_local_routine() {
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %cst = arith.constant 0 : i32
     %0 = qoalahost.call @__qoala_wrapper0(%cst) : (i32) -> i32
     ^bb1:
-        qoalahost.return
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
+      qoalahost.return
   }
 }

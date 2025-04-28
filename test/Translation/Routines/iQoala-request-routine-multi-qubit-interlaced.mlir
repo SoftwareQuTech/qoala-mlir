@@ -5,15 +5,15 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QC }
+// CHECK: ^b[[BLOCK0:.*]] { type = QC, predecessors = [] }
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper1
-// CHECK: b[[BLOCK1:.*]] { type = QC }
+// CHECK: ^b[[BLOCK1:.*]] { type = QC, predecessors = [b0] }
 // CHECK-NEXT: run_request() : __qoala_wrapper2
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0, b1, b2] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper3
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0, b1, b2] }
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]; [[MEAS_3:.*]]; [[MEAS_4:.*]]> = run_subroutine() : __qoala_wrapper4
 
 //CHECK: SUBROUTINE __qoala_wrapper1
