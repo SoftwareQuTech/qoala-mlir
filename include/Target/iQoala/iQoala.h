@@ -225,6 +225,10 @@ namespace qoala::iqoala {
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
+
+        void addPredecessor(Block* pred) {
+            this->predecessors.push_back(pred);
+        }
     private:
         // type of the Block (CL, CC, QL, QC)
         BlockType type;

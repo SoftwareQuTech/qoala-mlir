@@ -262,8 +262,27 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // There is nothing to do here
                 return success();
             })
-            .Case([](BlkMeta op) -> LogicalResult {
-                // There is nothing to do here
+            .Case([&](BlkMeta op) -> LogicalResult {
+                auto predecessorsAttr = op->getAttrOfType<ArrayAttr>("predecessors");
+                auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+                // We check if the IDs were already seen. If so, we can add them to the predecessors of the block.
+                // Otherwise, we can assume that something is wrong (a block can be defined before its predecessors),
+                // and we fail.
+                for (auto pred : predecessorsAttr) {
+                    std::string predStr = pred.cast<mlir::StringAttr>().str();
+                    auto it = moduleTranslation->findIdDependency(predStr);
+                    if (it != moduleTranslation->endIdDependency()) {
+                        auto *predBlock = it->second;
+                        block->addPredecessor(predBlock);
+                    } else {
+                        return failure();
+                    }
+                }
+                
+                // We can safely add the new mapping between the dependency ID and the Block.
+                auto blockIdAttr = op->getAttrOfType<StringAttr>("block_id");
+                std::string blockIdAttrStr = blockIdAttr.cast<mlir::StringAttr>().str();
+                moduleTranslation->addIdDependency(blockIdAttrStr, block);
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {

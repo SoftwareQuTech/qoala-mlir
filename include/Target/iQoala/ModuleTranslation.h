@@ -2,6 +2,7 @@
 #define MODULETRANSLATION_H
 
 #include <stack>
+#include <map>
 
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -109,6 +110,16 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
+        std::map<std::string, iqoala::Block*>::iterator findIdDependency(const std::string& key) {
+            return dependenciesIdsToIQoalaBlocks.find(key);
+        }
+        std::map<std::string, iqoala::Block*>::iterator endIdDependency() {
+            return dependenciesIdsToIQoalaBlocks.end();
+        }
+        void addIdDependency(const std::string& key, iqoala::Block* block) {
+            dependenciesIdsToIQoalaBlocks[key] = block;
+        }
+
     protected:
         /* Functions for following "call convention" for arguments in the local quantum routines */
         mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg, iqoala::LocalQuantumRoutine *iQoalaRoutine,
@@ -134,6 +145,9 @@ namespace qoala::translate {
         // Map for tracking MLIR values of function arguments to the MC instruction
         // that are used to retrieve those values in the MC model
         mlir::DenseMap<assembly::iQoalaMCInstruction *, mlir::BlockArgument> mcArgsValsMap;
+        
+        // Map for tracking the dependencie ID (added by the AddBlockDependencies pass) and its Block
+        std::map<std::string, iqoala::Block*> dependenciesIdsToIQoalaBlocks;
     };
 }
 
