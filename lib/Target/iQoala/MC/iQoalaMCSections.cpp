@@ -111,23 +111,33 @@ namespace qoala::iqoala {
         this->hostBlocks = blocksCpy;
     }
 
-    void HostSection::setBlockTypes() const {
+    LogicalResult HostSection::setBlockTypes() const {
         // This logic is based on the criteria explained on ticket #73
         for (Block *block : this->hostBlocks) {
             if (block->blockContainsRunRequest()) {
+                if (block->getNumInstructions() != 1) {
+                    return failure();
+                }
                 block->setType(Block::QC);
                 continue;
             }
             if (block->blockContainsRunSubRoutine()) {
+                if (block->getNumInstructions() != 1) {
+                    return failure();
+                }
                 block->setType(Block::QL);
                 continue;
             }
             if (block->blockContainsRecvMsg()) {
+                if (block->getNumInstructions() != 1) {
+                    return failure();
+                }
                 block->setType(Block::CC);
             }
             // By default, block are CL type, so if none of the cases
             // above matched, we leave the block as is.
         }
+        return success();
     }
 
 }
