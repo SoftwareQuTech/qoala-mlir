@@ -264,26 +264,20 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             .Case([&](BlkMeta op) -> LogicalResult {
-                auto predecessorsAttr = op->getAttrOfType<ArrayAttr>("predecessors");
-                auto *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+                qoala::iqoala::Block *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
                 // We check if the IDs were already seen. If so, we can add them to the predecessors of the block.
                 // Otherwise, we can assume that something is wrong (a block can be defined before its predecessors),
                 // and we fail.
-                for (auto pred: predecessorsAttr) {
-                    std::string predStr = pred.cast<mlir::StringAttr>().str();
-                    auto it = moduleTranslation->findIdDependency(predStr);
-                    if (it != moduleTranslation->endIdDependency()) {
-                        auto *predBlock = it->second;
-                        block->addPredecessor(predBlock);
+                for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
+                    if (auto dependency = moduleTranslation->findIdDependency(pred.str())) {
+                        block->addPredecessor(dependency.value());
                     } else {
                         return failure();
                     }
                 }
 
                 // We can safely add the new mapping between the dependency ID and the Block.
-                auto blockIdAttr = op->getAttrOfType<StringAttr>("block_id");
-                std::string blockIdAttrStr = blockIdAttr.cast<mlir::StringAttr>().str();
-                moduleTranslation->addIdDependency(blockIdAttrStr, block);
+                moduleTranslation->addIdDependency(op.getBlockId().str(), block);
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {

@@ -113,12 +113,7 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
-        std::map<std::string, iqoala::Block *>::iterator findIdDependency(const std::string &key) {
-            return dependenciesIdsToIQoalaBlocks.find(key);
-        }
-        std::map<std::string, iqoala::Block *>::iterator endIdDependency() {
-            return dependenciesIdsToIQoalaBlocks.end();
-        }
+        std::optional<iqoala::Block *> findIdDependency(const std::string &key);
         void addIdDependency(const std::string &key, iqoala::Block *block) {
             dependenciesIdsToIQoalaBlocks[key] = block;
         }
