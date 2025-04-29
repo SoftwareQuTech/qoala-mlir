@@ -9,32 +9,32 @@ namespace qoala::iqoala {
 
     bool Block::blockContainsRunRequest() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
-        [](const assembly::QoalaHostMCInstr *instruction) {
-            if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RUN_REQUEST) {
-                return true;
-            }
-            return false;
-        });
+                           [](const assembly::QoalaHostMCInstr *instruction) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RUN_REQUEST) {
+                                   return true;
+                               }
+                               return false;
+                           });
     }
 
     bool Block::blockContainsRunSubRoutine() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
-        [](const assembly::QoalaHostMCInstr *instruction) {
-            if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RUN_SUBROUTINE) {
-                return true;
-            }
-            return false;
-        });
+                           [](const assembly::QoalaHostMCInstr *instruction) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RUN_SUBROUTINE) {
+                                   return true;
+                               }
+                               return false;
+                           });
     }
 
     bool Block::blockContainsRecvMsg() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
-        [](const assembly::QoalaHostMCInstr *instruction) {
-            if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_MSG) {
-                return true;
-            }
-            return false;
-        });
+                           [](const assembly::QoalaHostMCInstr *instruction) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_MSG) {
+                                   return true;
+                               }
+                               return false;
+                           });
     }
 
     raw_ostream &operator<<(raw_ostream &os, const Block::BlockType block) {
@@ -56,9 +56,14 @@ namespace qoala::iqoala {
     }
 
     void Block::print(raw_ostream &os) const {
-        os << this->name << " { type = " << this->type << " }:\n";
-        for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
+        std::vector<std::string> predNames;
+        for (auto pred: this->predecessors) {
+            predNames.push_back(pred->name);
+        }
+        os << "^" << this->name << " { type = " << this->type << ", predecessors = [" << helpers::formatVector(predNames)
+           << "] }:\n";
+        for (const assembly::QoalaHostMCInstr *instruction: this->instructions) {
             os << tabStr << *instruction << "\n";
         }
     }
-}
+} // namespace qoala::iqoala

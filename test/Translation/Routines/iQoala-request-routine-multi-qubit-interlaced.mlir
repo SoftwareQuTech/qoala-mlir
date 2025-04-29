@@ -5,15 +5,15 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QC }
+// CHECK: ^b[[BLOCK0:.*]] { type = QC, predecessors = [] }
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper1
-// CHECK: b[[BLOCK1:.*]] { type = QC }
+// CHECK: ^b[[BLOCK1:.*]] { type = QC, predecessors = [b0] }
 // CHECK-NEXT: run_request() : __qoala_wrapper2
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0, b1, b2] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper3
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0, b1, b2] }
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]; [[MEAS_3:.*]]; [[MEAS_4:.*]]> = run_subroutine() : __qoala_wrapper4
 
 //CHECK: SUBROUTINE __qoala_wrapper1
@@ -134,16 +134,22 @@ module {
     // Note: there is an implicit "^bb0" not-rendered block declaration here
     // so this "call" operation is the one and only operation of the
     // first block of the main function
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0, %1, %2 = qoalahost.call @__qoala_wrapper0() : () -> (i32, i32, i32)
     ^bb1:
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
       %3 = qoalahost.call @__qoala_wrapper1() : () -> i32
     ^bb2:
+      qoalahost.blk_meta  {block_id = "block_2", predecessors = ["block_0"]}
       %4 = qoalahost.call @__qoala_wrapper2() : () -> i32
     ^bb3:
+      qoalahost.blk_meta  {block_id = "block_3", predecessors = ["block_0", "block_1", "block_2"]}
       qoalahost.call @__qoala_wrapper3(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> ()
     ^bb4:
+      qoalahost.blk_meta  {block_id = "block_4", predecessors = ["block_0", "block_1", "block_2"]}
       %m0, %m1, %m2, %m3, %m4 = qoalahost.call @__qoala_wrapper4(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> (i1, i1, i1, i1, i1)
     ^bb5:
+      qoalahost.blk_meta  {block_id = "block_5", predecessors = []}
       qoalahost.return
   }
 }

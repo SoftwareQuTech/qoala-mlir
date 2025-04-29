@@ -16,6 +16,15 @@ using namespace qoala::analysis;
 
 namespace qoala::analysis::dependencies {
     LogicalResult addDependencies(ModuleOp &moduleOp) {
+        // This pass keeps track of dependencies betwwen the blocks, i.e. for a given block
+        // which other block should be exected beforehand. At the moment, the track the
+        // following dependencies:
+        // - Data dependencies thourgh the dataflow graph
+        // - Classical communication dependencies (to keep the ordering of the communication operations)
+        // - Entanglement generation dependencies (same)
+        // At the moment, it does not keep track of the predecessors at the control flow level.
+        // Wether it should do it or not is still an open question, see ticket 78
+
         // NOTE: We make the following assumptions regarding the `return` operation:
         //
         // 1. If the `return` op returns a value, it will be captured in the data
@@ -140,9 +149,25 @@ namespace qoala::analysis::dependencies {
 
             auto predListAttr = builder.getStrArrayAttr(predIds);
 
+            // We assume that a BlkMeta oepration should always be the first one in a block
+            // Check if the first operation is a BlkMeta
+            // This check will be improved and moved to verifiers with issue 77
+            if (!block.empty()) {
+                Operation &firstOp = block.front();
+                if (auto blkMeta = dyn_cast<qoalahost::BlkMeta>(&firstOp)) {
+                    blkMeta->setAttr("block_id", blockIdAttr);
+                    blkMeta->setAttr("predecessors", predListAttr);
+
+                    LLVM_DEBUG(llvm::dbgs() << "Updated existing BlkMeta in " << blockId << " with dependencies "
+                                            << predListAttr << "\n");
+                    continue;
+                }
+            }
+
+            // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted BlkMeta in " << blockId << " with dependencies " << predListAttr
+            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockId << " with dependencies " << predListAttr
                                     << "\n");
         }
 

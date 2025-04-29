@@ -21,7 +21,7 @@ using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::qoalahost;
 
 static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
-    for (Operation &op : block.getOperations()) {
+    for (Operation &op: block.getOperations()) {
         if (failed(moduleTranslation->convertOperation(op))) {
             return op.emitOpError("cannot convert operation '") << op << "'\n";
         }
@@ -32,22 +32,23 @@ static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *modul
 static LogicalResult translateMainFunction(MainFuncOp &mainFuncOP, ModuleTranslation *moduleTranslation) {
     moduleTranslation->setModuleName(mainFuncOP.getName());
     // First, we put placeholder (empty) blocks for each one of the basic blocks of the
-    for (mlir::Block &block : mainFuncOP.getBlocks()) {
+    for (mlir::Block &block: mainFuncOP.getBlocks()) {
         moduleTranslation->emplaceNewBlockInHostSection(&block);
     }
 
     // Then, we translate the block and the operations within it
-    for (mlir::Block &block : mainFuncOP.getBlocks()) {
+    for (mlir::Block &block: mainFuncOP.getBlocks()) {
         if (failed(translateBlock(block, moduleTranslation))) {
             return mainFuncOP->emitOpError("cannot convert a block inside function '")
-                    << mainFuncOP.getSymName() << "'\n";
+                   << mainFuncOP.getSymName() << "'\n";
         }
     }
     return success();
 }
 
 static void replacePlaceholderMCOperands(const ModuleTranslation *moduleTranslation, const QuantumRoutine *routine,
-    const netqasm::ArgValueMap &argValsMap, const DenseMap<Value, uint32_t> &valueToQubitMap) {
+                                         const netqasm::ArgValueMap &argValsMap,
+                                         const DenseMap<Value, uint32_t> &valueToQubitMap) {
     iQoalaContext *context = moduleTranslation->getQoalaModule()->getiQoalaContext();
     std::string routineName = routine->getName();
 
@@ -94,7 +95,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     // BEFORE pushing a new frame on the stack, we have to discover the arguments that are mapped to
     // a qubit in the current stack frame:
     DenseMap<Value, uint32_t> valueToQubitMap;
-    for (Value arg : op.getOperands()) {
+    for (Value arg: op.getOperands()) {
         valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg, /*copy=*/false)->getQubitID());
     }
 
@@ -116,7 +117,8 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         if (valueToQubitMap[valueAtCaller] != 0xFF) {
             // In this case, the argument is mapped to a qubit reference; search the corresponding set instruction
             // that "loads" the qubit reference
-            for (const iQoalaMCInstruction *setInstr : netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
+            for (const iQoalaMCInstruction *setInstr:
+                 netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
                 if (setInstr->getOperand(1)->getIntegerVal() == valueAtCallee.getArgNumber()) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, setInstr->getOperand(0)->getRegRef());
                     // Register the qubit for the "uses" and "keeps"
@@ -125,7 +127,8 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
             }
         } else {
             // In this case, we can safely assume that the value is mapped to a classical value.
-            for (const iQoalaMCInstruction *loadInstr : netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD)) {
+            for (const iQoalaMCInstruction *loadInstr:
+                 netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD)) {
                 if (loadInstr->getOperand(1)->getIntegerVal() == argNum) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
                 }
@@ -185,7 +188,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Prepare vectors with the results and their local register types
                 std::vector<Value> yieldedResults;
                 std::vector<iQoalaRegType> localRegTypes;
-                for (Value result : op.getResults()) {
+                for (Value result: op.getResults()) {
                     if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(result)) {
                         yieldedResults.push_back(result);
                         localRegTypes.push_back(LOCAL);
@@ -195,7 +198,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // We also need to check the operands; if the value used as operand is
                 // mapped to a qubit, then we don't need to pass it as a routine argument.
                 SmallVector<iQoalaMCOperand *> callMCOperands;
-                for (const Value callArg : op.getOperands()) {
+                for (const Value callArg: op.getOperands()) {
                     if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(callArg)) {
                         // If the value is mapped to a qubit, then we don't need to use it
                         // as an operand of the MC instruction
@@ -214,34 +217,32 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // Create qoalahost MC instruction
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                    moduleTranslation, op.getOperation(), opCode,
-                    yieldedResults, localRegTypes , callMCOperands,
-                    /*useOpOperands=*/false
-                );
+                        moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
+                        /*useOpOperands=*/false);
 
                 // Then, we need to identify the yielded values that represent a qubit and map them
                 // in the qoalahost section to the physical qubitID
                 const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
 
-                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
+                for (auto &[retIndex, qubitId]: netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
                     Value valueAtCaller = op.getResult(retIndex);
                     // We get the register reference for the value, but NOT a copy of the object, since we need
                     // to mutate the original one
-                    iQoalaRegReference *regRefCaller = moduleTranslation->getMappedRegRefForValue(valueAtCaller, /*copy=*/false);
+                    iQoalaRegReference *regRefCaller =
+                            moduleTranslation->getMappedRegRefForValue(valueAtCaller, /*copy=*/false);
                     regRefCaller->setQubitID(qubitId);
                 }
                 return instruction ? success() : failure();
             })
             .Case([&](ReturnOp op) -> LogicalResult {
-                for (const auto returnedValue :op.getOperands()) {
+                for (const auto returnedValue: op.getOperands()) {
                     iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForValue(returnedValue);
                     assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
                     iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RETURN_RESULT,
-                        {}, {} , {retValueOperand},
-                        /*useOpOperands=*/false
-                    );
+                            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RETURN_RESULT, {}, {},
+                            {retValueOperand},
+                            /*useOpOperands=*/false);
                     if (!instruction) {
                         op.emitOpError("Return op: could not create return_value instruction");
                         return failure();
@@ -262,8 +263,21 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // There is nothing to do here
                 return success();
             })
-            .Case([](BlkMeta op) -> LogicalResult {
-                // There is nothing to do here
+            .Case([&](BlkMeta op) -> LogicalResult {
+                qoala::iqoala::Block *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
+                // We check if the IDs were already seen. If so, we can add them to the predecessors of the block.
+                // Otherwise, we can assume that something is wrong (a block can be defined before its predecessors),
+                // and we fail.
+                for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
+                    if (auto dependency = moduleTranslation->findIdDependency(pred.str())) {
+                        block->addPredecessor(dependency.value());
+                    } else {
+                        return failure();
+                    }
+                }
+
+                // We can safely add the new mapping between the dependency ID and the Block.
+                moduleTranslation->addIdDependency(op.getBlockId().str(), block);
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {
@@ -280,7 +294,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 }
 
 namespace qoala::translate {
-    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
+    LogicalResult QoalaHostToiQoalaTranslation::convertOperation(Operation *op,
+                                                                 ModuleTranslation *moduleTranslation) const {
         return translateQoalaHostOperation(op, moduleTranslation);
     }
-}
+} // namespace qoala::translate

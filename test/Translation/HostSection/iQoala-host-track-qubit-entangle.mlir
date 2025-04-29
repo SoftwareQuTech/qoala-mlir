@@ -5,15 +5,15 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: b[[BLOCK0:.*]] { type = CL }
+// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL, predecessors = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 0
-// CHECK: b[[BLOCK1:.*]] { type = QC }
+// CHECK: ^b[[BLOCK1:.*]] { type = QC, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK2:.*]] { type = QL }
+// CHECK: ^b[[BLOCK2:.*]] { type = QL, predecessors = [b1] }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper1
-// CHECK: b[[BLOCK3:.*]] { type = CL }
+// CHECK: ^b[[BLOCK3:.*]] { type = CL, predecessors = [b0, b2] }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG2]])
 
 // CHECK: SUBROUTINE __qoala_wrapper1
@@ -56,13 +56,17 @@ module {
     netqasm.return %0 : i1
   }
   qoalahost.main_func @test_qubit_tracking() {
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %cst = arith.constant 0 : i1
     qoalahost.nop_term
   ^bb1:
+    qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
+    qoalahost.blk_meta  {block_id = "block_2", predecessors = ["block_1"]}
     %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
   ^bb3:
+    qoalahost.blk_meta  {block_id = "block_3", predecessors = ["block_0", "block_2"]}
     %2 = arith.addi %cst, %1 : i1
     qoalahost.return
   }

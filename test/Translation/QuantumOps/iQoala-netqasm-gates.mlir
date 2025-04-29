@@ -5,8 +5,10 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b[[BLOCK0:.*]] { type = QL }
+// CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: tuple<%[[RES_0:.*]]; %[[RES_1:.*]]> = run_subroutine() : __qoala_wrapper0
+// There is only one block because ^bb1 only has a `qoalahost.return` which does not return anything.
+// Thus, the block gets deleted
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
@@ -43,8 +45,10 @@ module {
     netqasm.return %2, %3 : i1, i1
   }
   qoalahost.main_func @test_local_routine_gates() {
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0, %1 = qoalahost.call @__qoala_wrapper0() : () -> (i1, i1)
   ^bb1:
+    qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
     qoalahost.return
   }
 }

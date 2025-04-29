@@ -7,17 +7,17 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: b[[BLOCK0:.*]] { type = QL }
+// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
-// CHECK: b[[BLOCK1:.*]] { type = QL }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [b0] }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG1:.*]] = run_request() : __qoala_wrapper1
-// CHECK: b[[BLOCK2:.*]] { type = QC }
+// CHECK: ^b[[BLOCK2:.*]] { type = QC, predecessors = [b0] }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper2
-// CHECK: b[[BLOCK3:.*]] { type = QC }
+// CHECK: ^b[[BLOCK3:.*]] { type = QC, predecessors [b0, b1] }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = run_subroutine() : __qoala_wrapper2
-// CHECK: b[[BLOCK4:.*]] { type = CL }
+// CHECK: ^b[[BLOCK4:.*]] { type = CL, predecessors = [b2, b3] }
 // CHECK-NEXT: %[[HOST_REG4:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG3]])
 // CHECK-NEXT: return_value(%[[HOST_REG4]])
 

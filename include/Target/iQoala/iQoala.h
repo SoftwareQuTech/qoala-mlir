@@ -25,29 +25,34 @@ namespace qoala::iqoala {
         // Enum used as discriminant for subtypes.
         // This is required to use LLVM's RTTI library (dyn_cast, isa) instead oc C++'s
         // These additions are documented in https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html
-        enum QuantumRoutineKind {
-            QRK_LOCAL,
-            QRK_QUANTUM
-        };
-        QuantumRoutine() : kind(QRK_LOCAL) { }
-        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind), qubitMap({}) { }
+        enum QuantumRoutineKind { QRK_LOCAL, QRK_QUANTUM };
+        QuantumRoutine() : kind(QRK_LOCAL) {}
+        explicit QuantumRoutine(const QuantumRoutineKind kind) : kind(kind), qubitMap({}) {}
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name) :
-        kind(kind), qubitMap({}), name(std::move(name)) {}
+            kind(kind), qubitMap({}), name(std::move(name)) {}
         explicit QuantumRoutine(const QuantumRoutineKind kind, std::string name,
-            const std::vector<assembly::iQoalaMCInstruction *> &instructions) :
-        kind(kind), qubitMap({}), name(std::move(name)), instructions(instructions) {}
+                                const std::vector<assembly::iQoalaMCInstruction *> &instructions) :
+            kind(kind), qubitMap({}), name(std::move(name)), instructions(instructions) {}
         QuantumRoutine(const QuantumRoutine &r) = default;
         ~QuantumRoutine() override = default;
 
         virtual void addInstruction(assembly::NetQASMMCInstr *instruction) = 0;
         [[nodiscard]]
-        std::string getName() const { return this->name; }
+        std::string getName() const {
+            return this->name;
+        }
         [[nodiscard]]
-        uint32_t getNumInstructions() const { return this->instructions.size(); }
+        uint32_t getNumInstructions() const {
+            return this->instructions.size();
+        }
         [[nodiscard]]
-        std::vector<assembly::iQoalaMCInstruction *> getInstructions() const { return this->instructions; }
+        std::vector<assembly::iQoalaMCInstruction *> getInstructions() const {
+            return this->instructions;
+        }
         [[nodiscard]]
-        assembly::iQoalaMCInstruction *getInstruction(const uint32_t i) const { return this->instructions[i]; }
+        assembly::iQoalaMCInstruction *getInstruction(const uint32_t i) const {
+            return this->instructions[i];
+        }
         virtual void addArgument(const std::string &argName) = 0;
         [[nodiscard]]
         virtual uint8_t getQubitNum(const mlir::Value &value) const;
@@ -57,10 +62,14 @@ namespace qoala::iqoala {
 
         // LLVM RTTI
         [[nodiscard]]
-        QuantumRoutineKind getKind() const { return this->kind; }
+        QuantumRoutineKind getKind() const {
+            return this->kind;
+        }
+
     private:
         // LLVM RTTI kind
         const QuantumRoutineKind kind;
+
     protected:
         // Map to keep track of the *local* mlir value (within the local/request routine) with its physical qubit num
         mlir::DenseMap<mlir::Value, uint8_t> qubitMap;
@@ -75,13 +84,12 @@ namespace qoala::iqoala {
     class LocalQuantumRoutine : public QuantumRoutine {
     public:
         LocalQuantumRoutine() : QuantumRoutine(QRK_LOCAL) {}
-        explicit LocalQuantumRoutine(const mlir::StringRef newName) :
-            QuantumRoutine(QRK_LOCAL, newName.str()) {}
-            LocalQuantumRoutine(const LocalQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName(), r.instructions), usesQubits(r.usesQubits), keepsQubits(r.keepsQubits),
-            params(r.params), returns(r.returns) { }
+        explicit LocalQuantumRoutine(const mlir::StringRef newName) : QuantumRoutine(QRK_LOCAL, newName.str()) {}
+        LocalQuantumRoutine(const LocalQuantumRoutine &r) :
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), usesQubits(r.usesQubits),
+            keepsQubits(r.keepsQubits), params(r.params), returns(r.returns) {}
         ~LocalQuantumRoutine() override {
-            for (const auto instruction : this->instructions) {
+            for (const auto instruction: this->instructions) {
                 delete instruction;
             }
         }
@@ -100,9 +108,8 @@ namespace qoala::iqoala {
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
-        static bool classof(const QuantumRoutine *rt) {
-            return rt->getKind() == QRK_LOCAL;
-        }
+        static bool classof(const QuantumRoutine *rt) { return rt->getKind() == QRK_LOCAL; }
+
     private:
         // The list of physical qubits this routine uses
         std::set<uint32_t> usesQubits;
@@ -117,14 +124,15 @@ namespace qoala::iqoala {
     class VirtualIDs {
     public:
         enum VirtualIDType { ALL, INCREMENT, CUSTOM };
-        VirtualIDs() : type(ALL) { }
+        VirtualIDs() : type(ALL) {}
         VirtualIDs(const VirtualIDs &vids) = default;
-        explicit VirtualIDs(const VirtualIDType type) : type(type) { }
+        explicit VirtualIDs(const VirtualIDType type) : type(type) {}
         ~VirtualIDs() = default;
 
         void addArg(uint32_t arg);
         void setType(VirtualIDType type);
         void resolve();
+
     private:
         friend mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const VirtualIDs &virtualIDs);
         VirtualIDType type;
@@ -139,16 +147,17 @@ namespace qoala::iqoala {
         enum RequestRole { CREATE, RECEIVE };
 
         explicit RequestQuantumRoutine(const llvm::StringRef name) :
-            QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL),
-            callback(nullptr), type(CREATE_KEEP), requestRole(CREATE) { }
+            QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL), callback(nullptr), type(CREATE_KEEP),
+            requestRole(CREATE) {}
         RequestQuantumRoutine(const RequestQuantumRoutine &r) :
-            QuantumRoutine(r.getKind(), r.getName(), r.instructions), returns(r.returns), requestCallback(r.requestCallback),
-            callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID), entangledQubitsIDs(r.entangledQubitsIDs),
-            virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type), requestRole(r.requestRole) { }
+            QuantumRoutine(r.getKind(), r.getName(), r.instructions), returns(r.returns),
+            requestCallback(r.requestCallback), callback(r.callback), remoteID(r.remoteID), eprSocketID(r.eprSocketID),
+            entangledQubitsIDs(r.entangledQubitsIDs), virtualIDs(r.virtualIDs), fidelity(r.fidelity), type(r.type),
+            requestRole(r.requestRole) {}
         ~RequestQuantumRoutine() override {
-           for (const auto instruction : this->instructions) {
-               delete instruction;
-           }
+            for (const auto instruction: this->instructions) {
+                delete instruction;
+            }
         }
 
         static RequestQuantumRoutine *createRequestRoutine(llvm::StringRef name);
@@ -169,9 +178,8 @@ namespace qoala::iqoala {
 
         void print(mlir::raw_ostream &os) const override;
         // LLVM RTTI's dynamic type check
-        static bool classof(const QuantumRoutine *rt) {
-            return rt->getKind() == QRK_QUANTUM;
-        }
+        static bool classof(const QuantumRoutine *rt) { return rt->getKind() == QRK_QUANTUM; }
+
     private:
         // The list of returns
         std::vector<std::string> returns;
@@ -201,21 +209,27 @@ namespace qoala::iqoala {
     class Block : public assembly::iQoalaMC {
     public:
         enum BlockType { CL, CC, QL, QC };
-        Block() : type(CL) { }
+        Block() : type(CL) {}
         Block(const Block &b) = default;
         ~Block() override {
-            for (const auto instruction : this->instructions) {
+            for (const auto instruction: this->instructions) {
                 delete instruction;
             }
         }
         void setType(const BlockType type) { this->type = type; }
         void setName(const std::string &name) { this->name = name; }
         [[nodiscard]]
-        std::string getName() const { return this->name; }
+        std::string getName() const {
+            return this->name;
+        }
         [[nodiscard]]
-        bool isEmpty() const { return this->instructions.empty(); }
+        bool isEmpty() const {
+            return this->instructions.empty();
+        }
         [[nodiscard]]
-        uint32_t getNumInstructions() const { return this->instructions.size(); }
+        uint32_t getNumInstructions() const {
+            return this->instructions.size();
+        }
         [[nodiscard]]
         bool blockContainsRunRequest() const;
         [[nodiscard]]
@@ -225,6 +239,10 @@ namespace qoala::iqoala {
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
+
+        void addPredecessor(Block *pred) { this->predecessors.push_back(pred); }
+        std::vector<Block *> getPredecessors() { return this->predecessors; }
+
     private:
         // type of the Block (CL, CC, QL, QC)
         BlockType type;
@@ -258,6 +276,7 @@ namespace qoala::iqoala {
         [[nodiscard]]
         std::string getParamNameForRemote(const std::string &remoteName) const;
         void setName(const std::string &programName);
+
     private:
         // Name of the iQoala program
         std::string name;
@@ -276,7 +295,7 @@ namespace qoala::iqoala {
         HostSection() = default;
         HostSection(const HostSection &section) = default;
         ~HostSection() override {
-            for (const auto block : this->hostBlocks) {
+            for (const auto block: this->hostBlocks) {
                 delete block;
             }
         }
@@ -286,6 +305,7 @@ namespace qoala::iqoala {
         mlir::LogicalResult setBlockTypes() const;
 
         void print(mlir::raw_ostream &os) const override;
+
     private:
         // The host section only contains a list of "Blocks".
         // Each block contains the QoalaHost instructions to execute.
@@ -298,7 +318,7 @@ namespace qoala::iqoala {
         NetQASMSection() = default;
         NetQASMSection(const NetQASMSection &section) = default;
         ~NetQASMSection() override {
-            for (const auto routine : this->routines) {
+            for (const auto routine: this->routines) {
                 delete routine;
             }
         }
@@ -308,6 +328,7 @@ namespace qoala::iqoala {
 
         [[nodiscard]]
         std::vector<LocalQuantumRoutine *> getRoutines() const;
+
     private:
         // The NetQASM section simply contains a list of LocalQuantumRoutines
         std::vector<LocalQuantumRoutine *> routines;
@@ -319,7 +340,7 @@ namespace qoala::iqoala {
         RequestSection() = default;
         RequestSection(const RequestSection &section) = default;
         ~RequestSection() override {
-            for (const auto routine : this->routines) {
+            for (const auto routine: this->routines) {
                 delete routine;
             }
         }
@@ -328,6 +349,7 @@ namespace qoala::iqoala {
         std::vector<RequestQuantumRoutine *> getRoutines() const;
 
         void print(mlir::raw_ostream &os) const override;
+
     private:
         // The request section simply contains a list of RequestQuantumRoutines
         std::vector<RequestQuantumRoutine *> routines;
@@ -339,4 +361,4 @@ namespace qoala::iqoala {
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, Block::BlockType block);
 } // namespace qoala::iqoala
 
-#endif //QOALA_MLIR_IQOALA_H
+#endif // QOALA_MLIR_IQOALA_H
