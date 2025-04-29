@@ -23,31 +23,38 @@ module {
     }
 
     qoalahost.main_func @main() {
+      qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
       %zero = arith.constant 0 : index
       qoalahost.nop_term
 
     ^bb1:
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
       %vqubit = qoalahost.call @subrt1() : () -> i32
 
     ^bb2:
+      qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
       %floats1 = qoalahost.recv_floats {remote = @Bob, length = 1 : i32} : tensor<1xf32>
 
     ^bb3:
+      qoalahost.blk_meta  {block_id = "block_3", predecessors = ["block_0", "block_1", "block_2"]}
       %t1 = tensor.extract %floats1[%zero] : tensor<1xf32>
       // TODO: implement standard conversion code for float angle to int-tuple
       // %num1, %denom1 = qoalahost.call @conver_float_to_num_and_denom(%t1) : (f32) -> (i32, i32)
       qoalahost.call @subrt2(%vqubit) : (i32) -> ()
 
     ^bb4:
+      qoalahost.blk_meta  {block_id = "block_4", predecessors = ["block_2"]}
       %floats2 = qoalahost.recv_floats {remote = @Bob, length = 1 : i32} : tensor<1xf32>
 
     ^bb5:
+      qoalahost.blk_meta  {block_id = "block_5", predecessors = ["block_0", "block_1", "block_2"]}
       %t2 = tensor.extract %floats1[%zero] : tensor<1xf32>
       // %num2, %denom2 = qoalahost.call @conver_float_to_num_and_denom(%t1) : (f32) -> (i32, i32)
 
       %m = qoalahost.call @subrt3(%vqubit) : (i32) -> i1
 
     ^bb6:
+      qoalahost.blk_meta  {block_id = "block_6", predecessors = []}
       qoalahost.return
     }
 }
