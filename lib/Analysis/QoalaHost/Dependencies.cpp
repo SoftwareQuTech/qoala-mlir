@@ -16,6 +16,15 @@ using namespace qoala::analysis;
 
 namespace qoala::analysis::dependencies {
     LogicalResult addDependencies(ModuleOp &moduleOp) {
+        // This pass keeps track of dependencies betwwen the blocks, i.e. for a given block
+        // which other block should be exected beforehand. At the moment, the track the
+        // following dependencies:
+        // - Data dependencies thourgh the dataflow graph
+        // - Classical communication dependencies (to keep the ordering of the communication operations)
+        // - Entanglement generation dependencies (same)
+        // At the moment, it does not keep track of the predecessors at the control flow level.
+        // Wether it should do it or not is still an open question, see ticket 78
+
         // NOTE: We make the following assumptions regarding the `return` operation:
         //
         // 1. If the `return` op returns a value, it will be captured in the data
