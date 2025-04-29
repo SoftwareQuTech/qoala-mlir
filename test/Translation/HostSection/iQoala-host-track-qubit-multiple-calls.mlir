@@ -17,7 +17,7 @@
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper2
 // CHECK: ^b[[BLOCK3:.*]] { type = QC, predecessors [b0, b1] }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = run_subroutine() : __qoala_wrapper2
-// CHECK: ^b[[BLOCK4:.*]] { type = CL, predecessors = [b2. b3] }
+// CHECK: ^b[[BLOCK4:.*]] { type = CL, predecessors = [b2, b3] }
 // CHECK-NEXT: %[[HOST_REG4:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG3]])
 // CHECK-NEXT: return_value(%[[HOST_REG4]])
 
