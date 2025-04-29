@@ -7,6 +7,8 @@
 // CHECK-NEXT: META END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: tuple<%[[RES_0:.*]]; %[[RES_1:.*]]> = run_subroutine() : __qoala_wrapper0
+// There is only one block because ^bb1 only has a `qoalahost.return` which does not return anything.
+// Thus, the block gets deleted
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
