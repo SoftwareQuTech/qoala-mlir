@@ -149,7 +149,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
             assert(quantumRoutine && "NetQASM qfree: unknown local routine!");
 
-            quantumRoutine->releaseQubit(op.getQ());
+            const uint8_t qubitNum = quantumRoutine->releaseQubit(op.getQ());
+            context->releaseQubit(qubitNum);
             return success();
         })
         .Case([&](QInitOp op) -> LogicalResult {
@@ -237,7 +238,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
             assert(quantumRoutine && "NetQASM measure: unknown local routine!");
 
-            quantumRoutine->releaseQubit(op.getQ());
+            const uint8_t qubitNum = quantumRoutine->releaseQubit(op.getQ());
+            context->releaseQubit(qubitNum);
             const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS,
                 {op.getResult()}, {M}
