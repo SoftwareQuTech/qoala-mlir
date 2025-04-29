@@ -6,13 +6,13 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: b0 { type = QC }:
+// CHECK: b0 { type = QC, predecessors = [] }:
 // CHECK-NEXT: %0 = run_request() : __qoala_wrapper0
-// CHECK: b1 { type = QL }:
+// CHECK: b1 { type = QL, predecessors = [] }:
 // CHECK-NEXT: %1 = run_subroutine() : __qoala_wrapper1
-// CHECK: b2 { type = QL }:
+// CHECK: b2 { type = QL, predecessors = [b0, b1] }:
 // CHECK-NEXT: tuple<%2; %3> = run_subroutine() : __qoala_wrapper2
-// CHECK: b3 { type = QC }:
+// CHECK: b3 { type = QL, predecessors = [b0] }:
 // CHECK-NEXT: %4 = run_request() : __qoala_wrapper3
 
 // CHECK: SUBROUTINE __qoala_wrapper1
@@ -41,6 +41,16 @@
 // CHECK-NEXT: store [[MREG_1]] @output[1]
 // CHECK-NEXT: NETQASM_END
 
+// CHECK: SUBROUTINE __qoala_wrapper3
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT_0]]
+// CHECK-NEXT: keeps: [[QUBIT_0]]
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set Q0 [[QUBIT_0]]
+// CHECK-NEXT: init Q0
+// CHECK-NEXT: NETQASM_END
+
 // CHECK: REQUEST __qoala_wrapper0
 // CHECK-NEXT: callback_type: sequential
 // CHECK-NEXT: callback: {{[[:space:]]}}
@@ -48,20 +58,6 @@
 // CHECK-SAME: remote_id: {Bob_id}
 // CHECK-NEXT: epr_socket_id: 0
 // CHECK-NEXT: num_pairs: 1
-// CHECK-NEXT: virt_ids: all [[QUBIT_0]]
-// CHECK-NEXT: timeout: 1000
-// CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
-// CHECK-NEXT: role: create
-
-// CHECK: REQUEST __qoala_wrapper3
-// CHECK-NEXT: callback_type: sequential
-// CHECK-NEXT: callback: {{[[:space:]]}}
-// CHECK-SAME: return_vars: {{[[:space:]]}}
-// CHECK-SAME: remote_id: {Bob_id}
-// CHECK-NEXT: epr_socket_id: 0
-// CHECK-NEXT: num_pairs: 1
-// *IMPORTANT*: This request routine is expected to reuse qubit 0
 // CHECK-NEXT: virt_ids: all [[QUBIT_0]]
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
@@ -87,7 +83,7 @@ module {
     %1 = netqasm.measure %qubit1  : i1
     netqasm.return %0, %1 : i1, i1
   }
-  netqasm.request_routine @__qoala_wrapper3() -> (i32) {
+  netqasm.local_routine @__qoala_wrapper3() -> (i32) {
     %0 = netqasm.qalloc : i32
     netqasm.eprs %0  {remote = @Bob}
     netqasm.return %0 : i32
