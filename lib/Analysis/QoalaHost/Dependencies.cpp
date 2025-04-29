@@ -142,6 +142,7 @@ namespace qoala::analysis::dependencies {
 
             // We assume that a BlkMeta oepration should always be the first one in a block
             // Check if the first operation is a BlkMeta
+            // This check will be improved and moved to verifiers with issue 77
             if (!block.empty()) {
                 Operation &firstOp = block.front();
                 if (auto blkMeta = dyn_cast<qoalahost::BlkMeta>(&firstOp)) {
