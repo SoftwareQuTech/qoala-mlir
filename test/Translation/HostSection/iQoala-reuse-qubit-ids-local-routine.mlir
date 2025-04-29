@@ -13,7 +13,7 @@
 // CHECK: b2 { type = QL, predecessors = [b0, b1] }:
 // CHECK-NEXT: tuple<%2; %3> = run_subroutine() : __qoala_wrapper2
 // CHECK: b3 { type = QL, predecessors = [b0] }:
-// CHECK-NEXT: %4 = run_request() : __qoala_wrapper3
+// CHECK-NEXT: %4 = run_subroutine() : __qoala_wrapper3
 
 // CHECK: SUBROUTINE __qoala_wrapper1
 // CHECK-NEXT: params: {{[[:space:]]}}
@@ -85,7 +85,7 @@ module {
   }
   netqasm.local_routine @__qoala_wrapper3() -> (i32) {
     %0 = netqasm.qalloc : i32
-    netqasm.eprs %0  {remote = @Bob}
+    netqasm.init %0
     netqasm.return %0 : i32
   }
   qoalahost.main_func @test_call_request_routines() {
