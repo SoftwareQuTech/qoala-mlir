@@ -1,3 +1,5 @@
+#include <set>
+
 #include "Analysis/Helpers/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -60,6 +62,10 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         }
     }
 
+    // Verification of qoalahost.blk_meta sanity.
+    // 1. There must exactly one qoalahost.blk_meta operation per block
+    // 2. The qoalahost.blk_meta operation is always the first one of its block
+    std::set<std::string> blkIds;
     for (Block &block: getBody()) {
         auto blkMetas = block.getOps<qoalahost::BlkMeta>();
 
@@ -79,6 +85,17 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         if (&block.front() != *it) {
             return this->emitOpError() << "'qoalahost.blk_meta' must be the first operation in each block.";
         }
+
+        // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
+        // iif it is declared first.
+        qoalahost::BlkMeta op = dyn_cast<qoalahost::BlkMeta>(*it);
+        for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
+            if (blkIds.find(pred.str()) == blkIds.end()) {
+                return this->emitOpError() << "'qoalahost.blk_meta' contains a predecessor before its decalration.";
+            }
+        }
+
+        blkIds.insert(op.getBlockId().str());
     }
 
     return success();
