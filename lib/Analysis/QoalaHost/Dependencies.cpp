@@ -2,13 +2,20 @@
 #include <unordered_set>
 
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "qoalahost-add-deps-pass-internal"
+
+
+#if  __cplusplus >= 202002L
+    std::string blockIDFmt = "block_{}";
+#else
+    std::string blockIDFmt = "block_%d";
+#endif
 
 using namespace mlir;
 using namespace qoala::dialects;
@@ -57,16 +64,14 @@ namespace qoala::analysis::dependencies {
         llvm::DenseMap<Block *, std::string> blockIdMap;
         uint32_t idCounter = 0;
 
-        mlir::ModuleOp mod = llvm::cast<mlir::ModuleOp>(moduleOp);
-        auto mainFuncs = mod.getOps<qoalahost::MainFuncOp>();
+        const auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
         // We get the first main func op; since it's unique in the module, it's safe to "ignore" the rest of the
         // iterator
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
         for (Block &block: mainFunc.getBody().getBlocks()) {
-            std::string id = "block_" + std::to_string(idCounter++);
-            blockIdMap[&block] = id;
+            blockIdMap.try_emplace(&block, helpers::formatString(blockIDFmt, idCounter++));
         }
 
         LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies ===\n");
@@ -91,9 +96,8 @@ namespace qoala::analysis::dependencies {
             // if the set grows large. For now, this direct resolution is acceptable, and the logic may
             // be refactored and put in a helper function later if needed.
             if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
-                auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>();
-                if (symRef) {
-                    Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+                if (const auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>()) {
+                    const Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
                     if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
                         requestCallOps.push_back(op);
                     }
@@ -137,13 +141,12 @@ namespace qoala::analysis::dependencies {
         for (Block &block: mainFunc.getBody().getBlocks()) {
             OpBuilder builder = OpBuilder::atBlockBegin(&block);
 
-            std::string blockId = blockIdMap[&block];
-            auto blockIdAttr = builder.getStringAttr(blockId);
+            auto blockIdAttr = builder.getStringAttr(blockIdMap[&block]);
 
             // Collect and sort (for determinism) predecessor block IDs
-            std::vector<mlir::StringRef> predIds;
+            std::vector<StringRef> predIds;
             for (Block *pred: blockDeps[&block]) {
-                predIds.push_back(blockIdMap[pred]);
+                predIds.emplace_back(blockIdMap[pred]);
             }
             std::sort(predIds.begin(), predIds.end());
 
@@ -152,7 +155,7 @@ namespace qoala::analysis::dependencies {
             // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockId << " with dependencies " << predListAttr
+            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with dependencies " << predListAttr
                                     << "\n");
         }
 

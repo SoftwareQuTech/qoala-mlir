@@ -88,7 +88,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
 
         // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
         // iif it is declared first.
-        qoalahost::BlkMeta op = dyn_cast<qoalahost::BlkMeta>(*it);
+        BlkMeta op = *it;
         for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
                 return this->emitOpError() << "'qoalahost.blk_meta' contains a predecessor before its decalration.";

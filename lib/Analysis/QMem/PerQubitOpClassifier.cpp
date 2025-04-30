@@ -82,16 +82,17 @@ namespace qoala::analysis::functionize {
         }
 
         void commitAllCurrentGroups() {
-            for (auto &operationGroupsEntry : operationGroups) {
-                operationGroupsEntry.second.emplace_back();
+            for (auto [qubitID, qubitGroups]: operationGroups) {
+                qubitGroups.emplace_back();
             }
         }
 
+        [[nodiscard]]
         std::vector<QuantumOpsGroupTy> getAllFinalGroups() const {
             uint32_t groupNum = 0;
             std::vector<QuantumOpsGroupTy> opsGroups;
-            for (auto qubitGroupsEntry: operationGroups) {
-                for (QuantumOpsGroupTy operationsGroup: qubitGroupsEntry.second) {
+            for (auto [qubitID, qubitGroups]: operationGroups) {
+                for (QuantumOpsGroupTy operationsGroup: qubitGroups) {
                     if (!operationsGroup.empty()) {
                         LLVM_DEBUG(llvm::dbgs() << " - Discovered Group #" << groupNum++ << " :\n");
                         for (const Operation *operation: operationsGroup) {
@@ -101,7 +102,7 @@ namespace qoala::analysis::functionize {
                         opsGroups.emplace_back(operationsGroup.begin(), operationsGroup.end());
                     }
                 }
-                qubitGroupsEntry.second.clear();
+                qubitGroups.clear();
             }
             return opsGroups;
         }
@@ -109,13 +110,10 @@ namespace qoala::analysis::functionize {
 
     static std::set<Operation *> getEprsQubitOps(dialects::qmem::FuncOp &mainFunction) {
         std::set<Operation *> eprsQubits;
-        const auto eprsOps = mainFunction.getOps<dialects::qmem::EprsOp>();
-        const auto eprsMeasureOps = mainFunction.getOps<dialects::qmem::EprsMeasureOp>();
-
-        for (dialects::qmem::EprsOp eprsOp : eprsOps) {
+        for (dialects::qmem::EprsOp eprsOp : mainFunction.getOps<dialects::qmem::EprsOp>()) {
             eprsQubits.insert(eprsOp.getQ().getDefiningOp());
         }
-        for (dialects::qmem::EprsMeasureOp eprsMeasureOp : eprsMeasureOps) {
+        for (dialects::qmem::EprsMeasureOp eprsMeasureOp : mainFunction.getOps<dialects::qmem::EprsMeasureOp>()) {
             eprsQubits.insert(eprsMeasureOp.getQ().getDefiningOp());
         }
         return eprsQubits;
@@ -164,6 +162,7 @@ namespace qoala::analysis::functionize {
                 // Similar as before, we need to *get a reference* of the group to insert the operation
                 // If we don't declare the group as a reference, then *it gets copied* into the local variable
                 // so the operation will not be inserted in the respective group
+                LLVM_DEBUG(llvm::dbgs() << " that op : " << *baseQubitOperation << "\n");
                 QuantumOpsGroupTy &currentOpsGroup = qubitGroupsMap[baseQubitOperation];
                 // We insert the operation in the group
                 currentOpsGroup.push_back(&op);
