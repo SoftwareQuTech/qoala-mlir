@@ -1,3 +1,5 @@
+#include <set>
+
 #include "Analysis/Helpers/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -19,23 +21,19 @@ using namespace qoala::helpers;
 
 /* Parse and print functions "ported" from func.func: parse and print */
 ParseResult qoalahost::MainFuncOp::parse(OpAsmParser &parser, OperationState &result) {
-    auto buildFuncType =
-            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
-               function_interface_impl::VariadicFlag,
-               std::string &) { return builder.getFunctionType(argTypes, results); };
+    auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+                            function_interface_impl::VariadicFlag,
+                            std::string &) { return builder.getFunctionType(argTypes, results); };
 
-    return function_interface_impl::parseFunctionOp(
-            parser, result, /*allowVariadic=*/false,
-            getFunctionTypeAttrName(result.name), buildFuncType,
-            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+    return function_interface_impl::parseFunctionOp(parser, result, /*allowVariadic=*/false,
+                                                    getFunctionTypeAttrName(result.name), buildFuncType,
+                                                    getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
 
-void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
-                                  FunctionType type, ArrayRef<NamedAttribute> attrs,
-                                  ArrayRef<DictionaryAttr> argAttrs) {
-    state.addAttribute(mlir::SymbolTable::getSymbolAttrName(),
-                       builder.getStringAttr(name));
+void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name, FunctionType type,
+                                  ArrayRef<NamedAttribute> attrs, ArrayRef<DictionaryAttr> argAttrs) {
+    state.addAttribute(mlir::SymbolTable::getSymbolAttrName(), builder.getStringAttr(name));
     state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
     state.attributes.append(attrs.begin(), attrs.end());
     state.addRegion();
@@ -43,28 +41,63 @@ void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, Str
     if (argAttrs.empty())
         return;
     assert(type.getNumInputs() == argAttrs.size());
-    function_interface_impl::addArgAndResultAttrs(
-            builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
-            getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
+    function_interface_impl::addArgAndResultAttrs(builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
+                                                  getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
 }
 
 void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
-    function_interface_impl::printFunctionOp(
-            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
-            getArgAttrsAttrName(), getResAttrsAttrName());
+    function_interface_impl::printFunctionOp(p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+                                             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
 /* Region verifiers for MainFuncOp */
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
-    for (Operation &operation : this->getBody().getOps()) {
+    for (Operation &operation: this->getBody().getOps()) {
         auto name = operation.getName().getStringRef().str();
         if (QoalaHostDialect::opIsNotFromAllowedDialects(operation)) {
             return this->emitOpError() << "'" << getOperationName() << "' "
-                                          << "op contains an operation that is not from  the allowed list of dialects: ["
-                                          << QoalaHostDialect::getAllowedDialectNames()
-                                          << "]. Operation: '" << operation << "'";
+                                       << "op contains an operation that is not from  the allowed list of dialects: ["
+                                       << QoalaHostDialect::getAllowedDialectNames() << "]. Operation: '" << operation
+                                       << "'";
         }
     }
+
+    // Verification of qoalahost.blk_meta sanity.
+    // 1. There must exactly one qoalahost.blk_meta operation per block
+    // 2. The qoalahost.blk_meta operation is always the first one of its block
+    std::set<std::string> blkIds;
+    for (Block &block: getBody()) {
+        auto blkMetas = block.getOps<qoalahost::BlkMeta>();
+
+        auto it = blkMetas.begin();
+        auto end = blkMetas.end();
+
+        if (it == end) {
+            return this->emitOpError()
+                   << "each block must contain exactly one 'qoalahost.blk_meta' operation, but found none.";
+        }
+
+        if (std::next(it) != end) {
+            return this->emitOpError()
+                   << "each block must contain exactly one 'qoalahost.blk_meta' operation, but found multiple.";
+        }
+
+        if (&block.front() != *it) {
+            return this->emitOpError() << "'qoalahost.blk_meta' must be the first operation in each block.";
+        }
+
+        // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
+        // iif it is declared first.
+        qoalahost::BlkMeta op = dyn_cast<qoalahost::BlkMeta>(*it);
+        for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
+            if (blkIds.find(pred.str()) == blkIds.end()) {
+                return this->emitOpError() << "'qoalahost.blk_meta' contains a predecessor before its decalration.";
+            }
+        }
+
+        blkIds.insert(op.getBlockId().str());
+    }
+
     return success();
 }
 
@@ -97,7 +130,7 @@ LogicalResult qoalahost::CallOp::verify() {
         const MutableArrayRef<BlockArgument> routineArgs = netQASMRoutine.getArgsTypesList();
         if (this->getArgOperands().size() != routineArgs.size()) {
             this->emitError() << "Call operation does not match the number of arguments of the callee.";
-        return failure();
+            return failure();
         }
         for (uint32_t i = 0; i < this->getNumOperands(); i++) {
             const Type callOperandType = this->getOperand(i).getType();
@@ -115,12 +148,12 @@ bool qoalahost::QoalaHostDialect::opIsNotFromAllowedDialects(Operation &operatio
     return !belongsToDialect<
 #define GET_ALLOWED_DIALECTS
 #include "Dialect/QoalaHost/QoalaHost.h"
-    >(operation);
+            >(operation);
 }
 
 std::string qoalahost::QoalaHostDialect::getAllowedDialectNames() {
     return getDialectNamesList<
 #define GET_ALLOWED_DIALECTS
 #include "Dialect/QoalaHost/QoalaHost.h"
-    >();
+            >();
 }
