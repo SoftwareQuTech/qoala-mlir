@@ -1,4 +1,5 @@
 #include "Analysis/QMem/Conversion.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Analysis/Helpers/QMemInterfaces.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
@@ -23,14 +24,14 @@ namespace qoala::analysis::functionize {
         return llvm::isa<
                 dialects::qmem::RecvFloatsOp,
                 dialects::qmem::RecvIntsOp
-        >(op);
+                >(op);
     }
 
     static bool qMemOpIsEprs(const Operation &op) {
         return llvm::isa<
                 dialects::qmem::EprsOp,
                 dialects::qmem::EprsMeasureOp
-        >(op);
+                >(op);
     }
 
     static bool qMemOpShouldRemainInBody(const Operation &op) {
@@ -40,7 +41,99 @@ namespace qoala::analysis::functionize {
                 dialects::qmem::FuncOp,
                 dialects::qmem::ReturnOp,
                 dialects::qmem::RemoteOp
-        >(op);
+                >(op);
+    }
+
+    class PerQubitGroups {
+    public:
+        PerQubitGroups() = default;
+        ~PerQubitGroups();
+        [[nodiscard]]
+        uint32_t assignQubitIDForQAllocOp(Operation *qallocOp);
+        [[nodiscard]]
+        std::string addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits);
+        [[nodiscard]]
+        QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
+        [[nodiscard]]
+        std::vector<QuantumOpsGroupTy> getAllFinalGroups();
+        void commitAllCurrentGroups();
+    private:
+        [[nodiscard]]
+        uint32_t getQubitIDForOperation(Operation *qallocOp) const;
+        static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
+    private:
+        std::map<Operation *, uint32_t> qubitIds;
+        std::vector<QuantumOpsGroupTy *> commitedGroups;
+        std::map<std::string, QuantumOpsGroupTy *> activeGroups;
+    };
+
+    PerQubitGroups::~PerQubitGroups() {
+        for (const QuantumOpsGroupTy * group: commitedGroups) {
+            delete group;
+        }
+    }
+
+    std::string PerQubitGroups::getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs) {
+        // TODO - Figure out a way to cleverly assign an id to the qubitIDs
+        return helpers::formatVector(qubitIDs);
+    }
+
+    uint32_t PerQubitGroups::assignQubitIDForQAllocOp(Operation *qallocOp) {
+        assert(this->qubitIds.find(qallocOp) == this->qubitIds.end());
+        const uint32_t nextAvailableID = this->qubitIds.size();
+        this->qubitIds[qallocOp] = nextAvailableID;
+        return nextAvailableID;
+    }
+
+    std::string PerQubitGroups::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
+        const std::string groupName = getGroupNameForIDs(qubits);
+        auto *newGroup = new QuantumOpsGroupTy;
+        this->activeGroups.try_emplace(groupName, newGroup);
+        newGroup->push_back(qalloc);
+        return groupName;
+    }
+
+    uint32_t PerQubitGroups::getQubitIDForOperation(Operation *qallocOp) const {
+        assert(this->qubitIds.find(qallocOp) != this->qubitIds.end());
+        return this->qubitIds.at(qallocOp);
+    }
+
+    QuantumOpsGroupTy *PerQubitGroups::getGroupForQubits(const std::vector<Operation *> &operations) {
+        std::vector<uint32_t> qubitIDs;
+        for (Operation *qallocOp : operations) {
+            qubitIDs.push_back(this->getQubitIDForOperation(qallocOp));
+        }
+        const std::string &groupName = getGroupNameForIDs(qubitIDs);
+        // Two cases
+        if (this->activeGroups.find(groupName) != this->activeGroups.end()) {
+            // There is an active group for the group ID
+            return this->activeGroups.at(groupName);
+        }
+        // There is not an active qubit; since this operation
+        // For how this function is used, we assume that the operation involving the given
+        // qubits *is not* a qalloc
+        // We need to commit all active current groups, and create a new one
+        this->commitAllCurrentGroups();
+        auto *newGroup = new QuantumOpsGroupTy;
+        this->activeGroups.try_emplace(groupName, newGroup);
+        return newGroup;
+    }
+
+    void PerQubitGroups::commitAllCurrentGroups() {
+        for (const auto &[qubitID, group]: this->activeGroups) {
+            this->commitedGroups.push_back(group);
+        }
+        this->activeGroups.clear();
+    }
+
+    std::vector<QuantumOpsGroupTy> PerQubitGroups::getAllFinalGroups() {
+        this->commitAllCurrentGroups();
+        std::vector<QuantumOpsGroupTy> result;
+        result.reserve(this->commitedGroups.size());
+        for (QuantumOpsGroupTy *group: this->commitedGroups) {
+            result.push_back(std::move(*group));
+        }
+        return result;
     }
 
     struct QubitsGroupMap {
@@ -120,7 +213,8 @@ namespace qoala::analysis::functionize {
     }
 
     std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction) {
-        QubitsGroupMap qubitGroupsMap;
+        PerQubitGroups qubitGroupsMap;
+        //QubitsGroupMap qubitGroupsMap;
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
@@ -148,24 +242,16 @@ namespace qoala::analysis::functionize {
 
             if (llvm::isa<dialects::qmem::QAllocOp>(op)) {
                 // The op is a qalloc
-                if (eprsQubits.find(&op) != eprsQubits.end()) {
-                    // We start a new group for this qubit iff it is used for eprs
-                    qubitGroupsMap.mapNewQubit(&op);
-                } else {
-                    // Otherwise, we attach this "local" qubit to the current group of local ops
-                    qubitGroupsMap.attachNewQubitToLocalOpsGroups(&op);
-                }
+                uint32_t qubitIDForEprsQubits = qubitGroupsMap.assignQubitIDForQAllocOp(&op);
+                (void) qubitGroupsMap.addNewGroupForQalloc(&op, {qubitIDForEprsQubits});
             } else {
-                // We choose one of the involved qubits to attach this op to its group. In particular
-                // the first qubit that appears lexicographically
-                Operation *baseQubitOperation = involvedQubits[0];
                 // Similar as before, we need to *get a reference* of the group to insert the operation
                 // If we don't declare the group as a reference, then *it gets copied* into the local variable
                 // so the operation will not be inserted in the respective group
-                LLVM_DEBUG(llvm::dbgs() << " that op : " << *baseQubitOperation << "\n");
-                QuantumOpsGroupTy &currentOpsGroup = qubitGroupsMap[baseQubitOperation];
+                //LLVM_DEBUG(llvm::dbgs() << " that op : " << *baseQubitOperation << "\n");
+                QuantumOpsGroupTy *currentOpsGroup = qubitGroupsMap.getGroupForQubits(involvedQubits);
                 // We insert the operation in the group
-                currentOpsGroup.push_back(&op);
+                currentOpsGroup->push_back(&op);
                 // If the operation is EPRS, it also acts as a barrier
                 if (qMemOpIsEprs(op)) {
                     qubitGroupsMap.commitAllCurrentGroups();
