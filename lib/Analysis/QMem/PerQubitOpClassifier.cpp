@@ -65,7 +65,7 @@ namespace qoala::analysis::functionize {
      */
     class PerQubitGrouper {
     public:
-        PerQubitGrouper() = default;
+        PerQubitGrouper() : activeGroup(std::nullopt) {}
         ~PerQubitGrouper();
         [[nodiscard]]
         uint32_t assignQubitIDForQAllocOp(Operation *qallocOp);
@@ -75,20 +75,28 @@ namespace qoala::analysis::functionize {
         QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
         [[nodiscard]]
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
-        void commitAllCurrentGroups();
+        void commitCurrentGroup();
     private:
         [[nodiscard]]
         uint32_t getQubitIDForOperation(Operation *qallocOp) const;
         static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
     private:
+        // The currently handled qubits
         std::map<Operation *, uint32_t> qubitIds;
+        // The already-commited groups
         std::vector<QuantumOpsGroupTy *> commitedGroups;
-        std::map<std::string, QuantumOpsGroupTy *> activeGroups;
+        // To preserve the order of the quantum ops as they appear lexicographically
+        // this class maintains references to the *single* current active group and its ID
+        std::string activeGroupId;
+        std::optional<QuantumOpsGroupTy *>activeGroup;
     };
 
     PerQubitGrouper::~PerQubitGrouper() {
         for (const QuantumOpsGroupTy * group: commitedGroups) {
             delete group;
+        }
+        if (this->activeGroup.has_value()) {
+            delete this->activeGroup.value();
         }
     }
 
@@ -105,9 +113,11 @@ namespace qoala::analysis::functionize {
 
     std::string PerQubitGrouper::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
         const std::string groupName = getGroupNameForIDs(qubits);
-        auto *newGroup = new QuantumOpsGroupTy;
-        this->activeGroups.try_emplace(groupName, newGroup);
-        newGroup->push_back(qalloc);
+        assert(this->activeGroupId != groupName);
+        this->commitCurrentGroup();
+        this->activeGroupId = groupName;
+        this->activeGroup.emplace(new QuantumOpsGroupTy);
+        this->activeGroup.value()->push_back(qalloc);
         return groupName;
     }
 
@@ -124,32 +134,34 @@ namespace qoala::analysis::functionize {
         }
         const std::string &groupName = getGroupNameForIDs(qubitIDs);
         // Two cases
-        if (this->activeGroups.find(groupName) != this->activeGroups.end()) {
-            // There is an active group for the group ID
-            return this->activeGroups.at(groupName);
+        if (this->activeGroupId == groupName) {
+            // The group is currently active; return it
+            return this->activeGroup.value();
         }
-        // There is not an active qubit; since this operation
+        // There is not an active group for the given qubits.
         // For how this function is used, we assume that the operation involving the given
         // qubits *is not* a qalloc
-        // We need to commit all active current groups, and create a new one. If we don't
-        // commit active groups, a subsequent operation on a qubit that has an active group
-        // would end up in that group. That behavior is equivalent to move that operation *before*
-        // the current operation.
-        this->commitAllCurrentGroups();
-        auto *newGroup = new QuantumOpsGroupTy;
-        this->activeGroups.try_emplace(groupName, newGroup);
-        return newGroup;
+        // We need to commit the active current group, and create a new one.
+        this->commitCurrentGroup();
+        this->activeGroupId = groupName;
+        this->activeGroup.emplace(new QuantumOpsGroupTy);
+        return this->activeGroup.value();
     }
 
-    void PerQubitGrouper::commitAllCurrentGroups() {
-        for (const auto &[qubitID, group]: this->activeGroups) {
-            this->commitedGroups.push_back(group);
+    void PerQubitGrouper::commitCurrentGroup() {
+        if (this->activeGroup.has_value()) {
+            if (this->activeGroup.value()->empty()) {
+                delete this->activeGroup.value();
+            } else {
+                this->commitedGroups.push_back(this->activeGroup.value());
+            }
+            this->activeGroupId = "";
+            this->activeGroup = std::nullopt;
         }
-        this->activeGroups.clear();
     }
 
     std::vector<QuantumOpsGroupTy> PerQubitGrouper::getAllFinalGroups() {
-        this->commitAllCurrentGroups();
+        this->commitCurrentGroup();
         std::vector<QuantumOpsGroupTy> result;
         result.reserve(this->commitedGroups.size());
         for (QuantumOpsGroupTy *group: this->commitedGroups) {
@@ -188,7 +200,7 @@ namespace qoala::analysis::functionize {
                 // The current operation acts as a "barrier", so we start a new, empty group
                 // for each of the involved qubits
                 // Additionally, it should stay in the main body...
-                qubitGroupsMap.commitAllCurrentGroups();
+                qubitGroupsMap.commitCurrentGroup();
                 continue;
             }
             // We get the involved qubits of the operation
@@ -209,7 +221,7 @@ namespace qoala::analysis::functionize {
                 currentOpsGroup->push_back(&op);
                 // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
                 if (qMemOpIsEprs(op)) {
-                    qubitGroupsMap.commitAllCurrentGroups();
+                    qubitGroupsMap.commitCurrentGroup();
                 }
             }
         }
