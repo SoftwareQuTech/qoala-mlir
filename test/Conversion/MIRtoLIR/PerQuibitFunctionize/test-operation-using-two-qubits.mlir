@@ -16,14 +16,17 @@ module {
     // CHECK-NEXT: netqasm.init %[[QUBIT1]]
     // CHECK-NEXT: netqasm.return %[[QUBIT1]] : i32
 
-    // CHECK: netqasm.local_routine @[[WRAPPER2:.*]](%[[QARG0:.*]]:i32, %[[QARG1:.*]]:i32) -> ()
+    // CHECK: netqasm.local_routine @[[WRAPPER2:.*]](%[[QARG0:.*]]: i32, %[[QARG1:.*]]: i32)
     // CHECK-NEXT: netqasm.cnot %[[QARG0]], %[[QARG1]]
     // CHECK-NEXT: netqasm.return
 
-    // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[QARGA:.*]]:i32, %[[QARGB:.*]]:i32) -> (i1, i1)
+    // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[QARGA:.*]]: i32) -> i1
     // CHECK-NEXT: %[[VAL0:.*]] = netqasm.measure %[[QARGA]] : i1
+    // CHECK-NEXT: netqasm.return %[[VAL0]] : i1
+
+    // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[QARGB:.*]]: i32) -> i1
     // CHECK-NEXT: %[[VAL1:.*]] = netqasm.measure %[[QARGB]] : i1
-    // CHECK-NEXT: netqasm.return %[[VAL0]], %[[VAL1]] : (i1, i1)
+    // CHECK-NEXT: netqasm.return %[[VAL1]] : i1
 
     // CHECK: qoalahost.main_func @test_functionize_op_using_two_qubits()
     qmem.func @test_functionize_op_using_two_qubits() {
@@ -33,7 +36,7 @@ module {
         qmem.eprs %q0 {remote = @Bob}
 
         // CHECK: ^[[BLOCK_1:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = ["block_0"]}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
         // CHECK-NEXT: %[[MAIN_QUBIT_1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
         %q1 = qmem.qalloc : i32
         qmem.init %q1
@@ -44,13 +47,17 @@ module {
         qmem.cnot %q0, %q1
 
         // CHECK: ^[[BLOCK_3:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = ["block_0", "block_1"]}
-        // CHECK-NEXT: %[[UNUSED_A:.*]], %[[UNUSED_B:.*]] = qoalahost.call @[[WRAPPER3]](%[[MAIN_QUBIT_0]], %[[MAIN_QUBIT_1]]) : (i32, i32) -> (i1, i1)
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = ["block_0"]}
+        // CHECK-NEXT: %[[UNUSED_A:.*]] = qoalahost.call @[[WRAPPER3]](%[[MAIN_QUBIT_0]]) : (i32) -> i1
         %m0 = qmem.measure %q0 : i1
-        %m1 = qmem.measure %q1 : i1
 
         // CHECK: ^[[BLOCK_4:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = []}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = ["block_1"]}
+        // CHECK-NEXT: %[[UNUSED_B:.*]] = qoalahost.call @[[WRAPPER4]](%[[MAIN_QUBIT_1]]) : (i32) -> i1
+        %m1 = qmem.measure %q1 : i1
+
+        // CHECK: ^[[BLOCK_5:.*]]:
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = []}
         // CHECK-NEXT: qoalahost.return
         qmem.return
     }
