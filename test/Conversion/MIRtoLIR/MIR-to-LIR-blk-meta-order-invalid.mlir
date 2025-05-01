@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir --verify-diagnostics
+// RUN: qoala-opt %s --verify-diagnostics
 // This test check that the conversion fails, due to a block not being in a sane order
 // We need to add the "--verify-diagnostics" option to check for the error
 
@@ -24,14 +24,14 @@ module {
   qoalahost.main_func @test_add_block_deps() {
     qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
-  ^bb1:  // no predecessors
+  ^bb1:
     // expected-error@+1 {{'qoalahost.blk_meta' op contains a predecessor before its declaration.}}
     qoalahost.blk_meta  {block_id = "block_1", predecessors = ["block_0", "block_2"]}
     %1 = qoalahost.call @__qoala_wrapper1(%0, %2#0) : (i32, i32) -> i1
-  ^bb2:  // no predecessors
+  ^bb2:
     qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
     %2:2 = qoalahost.call @__qoala_wrapper2() : () -> (i32, i1)
-  ^bb3:  // no predecessors
+  ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", predecessors = []}
     qoalahost.return
   }
