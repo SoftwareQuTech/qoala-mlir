@@ -84,14 +84,14 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
 
         BlkMeta op = *it;
         if (&block.front() != op.getOperation()) {
-            return op.emitOpError() << "'qoalahost.blk_meta' must be the first operation in each block.";
+            return op.emitOpError() << "must be the first operation in each block.";
         }
 
         // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
         // iif it is declared first.
         for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return op.emitOpError() << " contains a predecessor before its declaration.";
+                return op.emitOpError() << "contains a predecessor before its declaration.";
             }
         }
 
