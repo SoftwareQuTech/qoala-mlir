@@ -250,6 +250,10 @@ namespace qoala::analysis::functionize {
                 if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
                     qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
                 }
+                // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
+                if (qMemOpIsEprs(op)) {
+                    qubitGroupsMap.commitCurrentGroup();
+                }
             })
             .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
                 if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
@@ -262,10 +266,6 @@ namespace qoala::analysis::functionize {
                 QuantumOpsGroupTy *currentOpsGroup = qubitGroupsMap.getGroupForQubits(involvedQubits);
                 // We insert the operation in the group
                 currentOpsGroup->push_back(otherOp);
-                // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
-                if (qMemOpIsEprs(*otherOp)) {
-                    qubitGroupsMap.commitCurrentGroup();
-                }
             });
         }
 
