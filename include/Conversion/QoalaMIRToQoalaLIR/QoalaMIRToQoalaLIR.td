@@ -22,12 +22,15 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
      * of the "opt" tool, i.e. "--use-simple-functionize". However, THIS WILL NOT WORK.
      * To correctly use this option, it needs to be invoked _as an argument of the pass option_:
      * i.e. "--lower-qoala-mir-to-lir=use-simple-functionize"
+     * For integer values, we can simply use --lower-qoala-mir-to-lir=max-ops-per-group=5
      */
     let options = [
         Option<"useSimpleFunctionize", "use-simple-functionize", "bool", /*default=*/"false",
                "WARNING: Use simple functionize; use a single quantum operation in a function wrapper.">,
         Option<"useSCCP", "use-sccp", "bool", /*default=*/"false",
-               "Use an SCCP pass to propagate constants inside nested blocks in the main function.">
+               "Use an SCCP pass to propagate constants inside nested blocks in the main function.">,
+        Option<"maxOpsPerGroup", "max-ops-per-group", "uint32_t", /*default=*/"0",
+               "Set the max number of operations to place per group. This option only affects the per-qubit grouping functionization">
     ];
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR

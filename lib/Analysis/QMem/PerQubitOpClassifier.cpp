@@ -216,13 +216,14 @@ namespace qoala::analysis::functionize {
         return eprsQubits;
     }
 
-    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction) {
+    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction, const uint32_t maxOpsPerGroup) {
         PerQubitGrouper qubitGroupsMap;
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
         LLVM_DEBUG(llvm::dbgs() << "%      CLASSIFIER      %\n");
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
+        LLVM_DEBUG(llvm::dbgs() << "% using maxOps = " << maxOpsPerGroup << "\n");
         // Iterate over all the operations of the main function
         for (Operation &op : mainFunction.getOps()) {
             LLVM_DEBUG(llvm::dbgs() << " Classifying op = " << op << "\n");

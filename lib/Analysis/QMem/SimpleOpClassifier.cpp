@@ -43,7 +43,7 @@ namespace qoala::analysis::functionize {
         >(op);
     }
 
-    std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction) {
+    std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction, uint32_t maxOpsPerGroup) {
         // Some operations need to be grouped as a pair.
         // * qallloc operations are considered to only "declare" a qubit
         // * We are not "defining" the qubit until we find a respective "init" or "eprs" operation

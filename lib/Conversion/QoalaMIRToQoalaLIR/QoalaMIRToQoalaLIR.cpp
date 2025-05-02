@@ -130,9 +130,9 @@ namespace qoala::conversion {
 
         if (this->useSimpleFunctionize) {
             LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
-            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier);
+            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier, this->maxOpsPerGroup);
         } else {
-            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier);
+            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier, this->maxOpsPerGroup);
         }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
