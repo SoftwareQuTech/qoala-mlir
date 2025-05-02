@@ -23,20 +23,24 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[REG0_4]] {remote = @[[REMOTEBOB]]}
   // CHECK-NEXT: netqasm.return %[[REG0_4]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG0_6:.*]]: i32, %[[ARG1_6:.*]]: i32, %[[ARG2_6:.*]]: i32) {
-  // CHECK-NEXT: netqasm.rot_x %[[ARG0_6]] (0: ui32, 0: ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG0_6:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_x %[[ARG0_6]] (0 : ui32, 0 : ui32)
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_7:.*]]: i32, %[[ARG1_7:.*]]: i32, %[[ARG2_7:.*]]: i32) {
-  // CHECK-NEXT: netqasm.rot_y %[[ARG0_7]], %[[ARG1_7]], %[[ARG2_7]]
+  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_7:.*]]: i32)
+  // CHECK-NEXT: netqasm.rot_y %[[ARG0_7]] (0 : ui32, 0 : ui32)
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_8:.*]]: i32) -> i1 {
-  // CHECK-NEXT: %[[REG0_8:.*]] = netqasm.measure %[[ARG0_8]] : i1
+  // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_7:.*]]: i32, %[[ARG1_8:.*]]: i32)
+  // CHECK-NEXT: netqasm.cnot %[[ARG0_7]], %[[ARG1_8]]
+  // CHECK-NEXT: netqasm.return
+
+  // CHECK: netqasm.local_routine @[[WRAPPER6:.*]](%[[ARG0_9:.*]]: i32) -> i1
+  // CHECK-NEXT: %[[REG0_8:.*]] = netqasm.measure %[[ARG0_9]] : i1
   // CHECK-NEXT: netqasm.return %[[REG0_8]] : i1
 
   // The same argument applies to the qalloc+eprs operations -> they need to be together
-  // CHECK: netqasm.request_routine @[[WRAPPER6:.*]]() -> i1
+  // CHECK: netqasm.request_routine @[[WRAPPER7:.*]]() -> i1
   // CHECK-NEXT: %[[REG0_9:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: %[[REG0_10:.*]] = netqasm.eprs_measure %[[REG0_9]] {remote = @[[REMOTEBOB]]} : i1
   // CHECK-NEXT: netqasm.return %[[REG0_10]] : i1
@@ -49,13 +53,15 @@ module {
     qmem.eprs %0 {remote = @Bob}
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
+    // Why does this block depend on "block_0"?
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = ["block_0"]}
     // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
     %1 = qmem.qalloc : i32
     qmem.eprs %1 {remote = @Bob}
 
     // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
+    // Why does this block depend on "block_1"?
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", predecessors = ["block_1"]}
     // CHECK-NEXT: %[[REG_MAIN2:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     %2 = qmem.qalloc : i32
     qmem.eprs %2 {remote = @Bob}
@@ -63,30 +69,37 @@ module {
     %c0 = arith.constant 0.0 : f32
 
     // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = ["block_2", ]}
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN2]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = ["block_0"]}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %c0
 
     %c1 = arith.constant 0.0 : f32
 
     // CHECK: ^[[BLOCK_4:.*]]:
+    // Why does this block depend on "block_2"?
     // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = ["block_2"]}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN2]]) : (i32) -> ()
     qmem.rot_y %2, %c1
 
+    // CHECK: ^[[BLOCK_5:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = ["block_0", "block_1"]}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN1]], %[[REG_MAIN0]]) : (i32, i32) -> ()
     qmem.cnot %1, %0
 
-    // CHECK: ^[[BLOCK_5:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = ["block_2"]}
-    // CHECK: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER5]](%[[REG_MAIN2]]) : (i32) -> i1
+    // CHECK: ^[[BLOCK_6:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", predecessors = ["block_2"]}
+    // CHECK: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER6]](%[[REG_MAIN2]]) : (i32) -> i1
     %3 = qmem.measure %2 : i1
 
-    // CHECK: ^[[BLOCK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", predecessors = []}
-    // CHECK: %[[REG_MAIN8:.*]] = qoalahost.call @[[WRAPPER6]]() : () -> i32
+    // CHECK: ^[[BLOCK_7:.*]]:
+    // Why does this block depend on "block_2"?
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_7", predecessors = ["block_2"]}
+    // CHECK: %[[REG_MAIN8:.*]] = qoalahost.call @[[WRAPPER7]]() : () -> i1
     %4 = qmem.qalloc : i32
     %5 = qmem.eprs_measure %4 {remote = @Bob} : i1
 
+    // CHECK: ^[[BLOCK_8:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_8", predecessors = []}
     // CHECK: qoalahost.return
     qmem.return
   }
