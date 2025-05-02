@@ -13,16 +13,6 @@ namespace mlir::OpTrait {
         // In the meantime, we don't have any specific behavior for operation
         // with the "Entangle" trait
     };
-    /**
-     * Declaration and definition of the "DefineQubit" op trait used in the QMem ops that
-     * "define" a quibti value.
-     * WARNING: This class _must_ be defined in the mlir::OpTrait namespace.
-     */
-    template<typename ConcreteType>
-    class DefineQubit : public mlir::OpTrait::TraitBase<ConcreteType, DefineQubit> {
-        // In the meantime, we don't have any specific behavior for operation
-        // with the "DefineQubit" trait
-    };
 }
 
 #endif //QOALA_MLIR_QMEM_TRAITS_H
