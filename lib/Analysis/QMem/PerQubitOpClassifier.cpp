@@ -79,6 +79,7 @@ namespace qoala::analysis::functionize {
         QuantumOpsGroupTy *addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits);
         [[nodiscard]]
         dialects::qmem::QAllocOp getQallocForQubit(const Value &qubitVal);
+        void deregisterQallocOp(dialects::qmem::QAllocOp &qallocOp);
         [[nodiscard]]
         uint32_t assignQubitIDForQAllocOp(Operation *qallocOp);
         [[nodiscard]]
@@ -116,6 +117,11 @@ namespace qoala::analysis::functionize {
         return this->declaredQubits[qubitVal];
     }
 
+    void PerQubitGrouper::deregisterQallocOp(dialects::qmem::QAllocOp &qallocOp) {
+        assert(this->declaredQubits.contains(qallocOp.getQ()) && "Per qubit grouper: trying to deregister the qalloc operation of an unknown qubit");
+        this->declaredQubits.erase(qallocOp.getQ());
+    }
+
     uint32_t PerQubitGrouper::assignQubitIDForQAllocOp(Operation *qallocOp) {
         assert(this->qubitIds.find(qallocOp) == this->qubitIds.end());
         const uint32_t nextAvailableID = this->qubitIds.size();
@@ -135,6 +141,7 @@ namespace qoala::analysis::functionize {
         uint32_t qubitIDForOp = this->assignQubitIDForQAllocOp(qallocOp);
         QuantumOpsGroupTy *qallocGroup = this->addNewGroupForQalloc(qallocOp.getOperation(), {qubitIDForOp});
         qallocGroup->push_back(defOp.getOperation());
+        this->deregisterQallocOp(qallocOp);
         defOp.getOperation();
     }
 
