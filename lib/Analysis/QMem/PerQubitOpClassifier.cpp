@@ -89,6 +89,9 @@ namespace qoala::analysis::functionize {
         // this class maintains references to the *single* current active group and its ID
         std::string activeGroupId;
         std::optional<QuantumOpsGroupTy *>activeGroup;
+        // Similar as simple functionize, we need to keep track of "declarations" of qubits
+        // to group them with their definitions later.
+        DenseMap<Value, dialects::qmem::QAllocOp> declaredQubits;
     };
 
     PerQubitGrouper::~PerQubitGrouper() {
@@ -208,22 +211,35 @@ namespace qoala::analysis::functionize {
             std::vector<Operation *> involvedQubits = qubitOp.getOpsAllocatingUsedQubits();
             assert(!involvedQubits.empty());
 
-            if (llvm::isa<dialects::qmem::QAllocOp>(op)) {
-                // The op is a qalloc; we assign a new qubit ID fir this operation
-                uint32_t qubitIDForEprsQubits = qubitGroupsMap.assignQubitIDForQAllocOp(&op);
+            llvm::TypeSwitch<Operation *>(&op)
+            .Case([&](dialects::qmem::QAllocOp qallocOp) {
+                // The op is a qalloc; we assign a new qubit ID for this operation
+                uint32_t qubitIDForEprsQubits = qubitGroupsMap.assignQubitIDForQAllocOp(qallocOp.getOperation());
                 // We also assign a new bin for the qubit allocated. This also add the qalloc op in the new bin
-                (void) qubitGroupsMap.addNewGroupForQalloc(&op, {qubitIDForEprsQubits});
-            } else {
+                (void) qubitGroupsMap.addNewGroupForQalloc(qallocOp.getOperation(), {qubitIDForEprsQubits});
+            })
+            /*
+            .Case([&](dialects::qmem::InitOp &initOp) {
+
+            })
+            .Case([&](dialects::qmem::EprsOp &eprsOp) {
+
+            })
+            .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
+
+            })
+            */
+            .Default([&](Operation *otherOp ) {
                 // In the case of a non-qalloc, we need to get the corresponding group for the
                 // qubits involved in the operation.
                 QuantumOpsGroupTy *currentOpsGroup = qubitGroupsMap.getGroupForQubits(involvedQubits);
                 // We insert the operation in the group
-                currentOpsGroup->push_back(&op);
+                currentOpsGroup->push_back(otherOp);
                 // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
-                if (qMemOpIsEprs(op)) {
+                if (qMemOpIsEprs(*otherOp)) {
                     qubitGroupsMap.commitCurrentGroup();
                 }
-            }
+            });
         }
 
         // After iterating all the instructions, commit all the discovered groups
