@@ -65,16 +65,18 @@ namespace qoala::analysis::functionize {
      */
     class PerQubitGrouper {
     public:
-        PerQubitGrouper() : activeGroup(std::nullopt) {}
+        PerQubitGrouper() = delete;
+        explicit PerQubitGrouper(const uint32_t maxOpsPerGroup) : maxOpsPerGroup(maxOpsPerGroup), activeGroup(std::nullopt) {}
         ~PerQubitGrouper();
         void registerQallocOp(dialects::qmem::QAllocOp &qallocOp);
         void groupDefinitionWithQAlloc(helpers::DefineQubitsInterface &defOp);
-        [[nodiscard]]
-        QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
+        void addOperationToGroup(Operation *op, const std::vector<Operation *> &involvedQubitOps);
         [[nodiscard]]
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
     private:
+        [[nodiscard]]
+        QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
         [[nodiscard]]
         QuantumOpsGroupTy *addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits);
         [[nodiscard]]
@@ -86,6 +88,7 @@ namespace qoala::analysis::functionize {
         uint32_t getQubitIDForOperation(Operation *qallocOp) const;
         static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
     private:
+        uint32_t maxOpsPerGroup;
         // The currently handled qubits
         std::map<Operation *, uint32_t> qubitIds;
         // The already-commited groups
@@ -145,6 +148,19 @@ namespace qoala::analysis::functionize {
         defOp.getOperation();
     }
 
+    void PerQubitGrouper::addOperationToGroup(Operation *op, const std::vector<Operation *> &involvedQubitOps) {
+        // Get the corresponding group
+        QuantumOpsGroupTy *currentOpsGroup = this->getGroupForQubits(involvedQubitOps);
+        if (this->maxOpsPerGroup > 0 && currentOpsGroup->size() >= this->maxOpsPerGroup) {
+            // We the current group is full, we need to commit the current group
+            this->commitCurrentGroup();
+            // And get a new group for the operation
+            currentOpsGroup = this->getGroupForQubits(involvedQubitOps);
+        }
+        // We insert the operation in the group
+        currentOpsGroup->push_back(op);
+
+    }
 
     QuantumOpsGroupTy *PerQubitGrouper::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
         const std::string groupName = getGroupNameForIDs(qubits);
@@ -217,7 +233,7 @@ namespace qoala::analysis::functionize {
     }
 
     std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction, const uint32_t maxOpsPerGroup) {
-        PerQubitGrouper qubitGroupsMap;
+        PerQubitGrouper qubitGroupsMap(maxOpsPerGroup);
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
@@ -269,11 +285,10 @@ namespace qoala::analysis::functionize {
                 }
             })
             .Default([&](Operation *otherOp ) {
-                // In the case of a non-qalloc, we need to get the corresponding group for the
-                // qubits involved in the operation.
-                QuantumOpsGroupTy *currentOpsGroup = qubitGroupsMap.getGroupForQubits(involvedQubits);
-                // We insert the operation in the group
-                currentOpsGroup->push_back(otherOp);
+                // In the case of a non-qalloc, we need to attach the operation to the
+                // corresponding group. This call will make sure that the size of the current
+                // group does not exceed the configured threshold.
+                qubitGroupsMap.addOperationToGroup(otherOp, {involvedQubits});
             });
         }
 
