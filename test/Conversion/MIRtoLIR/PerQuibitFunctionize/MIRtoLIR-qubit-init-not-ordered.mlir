@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir=use-simple-functionize | FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
 
 // CHECK: module
 module {
@@ -19,7 +19,7 @@ module {
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT1]] : i32
 
   // CHECK: netqasm.local_routine @[[WRAPPER2:.*]](%[[LOC_QUBITA:.*]]: i32, %[[LOC_QUBITB:.*]]: i32) {
-  // CHECK-NEXT: netqasm.cnot %[[LOC_QUBITA]], %%[[LOC_QUBITB]]
+  // CHECK-NEXT: netqasm.cnot %[[LOC_QUBITA]], %[[LOC_QUBITB]]
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[LOC_QUBITC:.*]]: i32) -> i1 {
