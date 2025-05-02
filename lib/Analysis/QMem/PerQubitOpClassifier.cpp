@@ -67,16 +67,20 @@ namespace qoala::analysis::functionize {
     public:
         PerQubitGrouper() : activeGroup(std::nullopt) {}
         ~PerQubitGrouper();
-        [[nodiscard]]
-        uint32_t assignQubitIDForQAllocOp(Operation *qallocOp);
-        [[nodiscard]]
-        std::string addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits);
+        void registerQallocOp(dialects::qmem::QAllocOp &qallocOp);
+        void groupDefinitionWithQAlloc(helpers::DefineQubitsInterface &defOp);
         [[nodiscard]]
         QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
         [[nodiscard]]
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
     private:
+        [[nodiscard]]
+        QuantumOpsGroupTy *addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits);
+        [[nodiscard]]
+        dialects::qmem::QAllocOp getQallocForQubit(const Value &qubitVal);
+        [[nodiscard]]
+        uint32_t assignQubitIDForQAllocOp(Operation *qallocOp);
         [[nodiscard]]
         uint32_t getQubitIDForOperation(Operation *qallocOp) const;
         static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
@@ -107,6 +111,11 @@ namespace qoala::analysis::functionize {
         return helpers::formatVector(qubitIDs);
     }
 
+    dialects::qmem::QAllocOp PerQubitGrouper::getQallocForQubit(const Value &qubitVal) {
+        assert(this->declaredQubits.contains(qubitVal) && "Per qubit grouper: trying to get the qalloc operation of an unknown qubit");
+        return this->declaredQubits[qubitVal];
+    }
+
     uint32_t PerQubitGrouper::assignQubitIDForQAllocOp(Operation *qallocOp) {
         assert(this->qubitIds.find(qallocOp) == this->qubitIds.end());
         const uint32_t nextAvailableID = this->qubitIds.size();
@@ -114,14 +123,30 @@ namespace qoala::analysis::functionize {
         return nextAvailableID;
     }
 
-    std::string PerQubitGrouper::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
+    void PerQubitGrouper::registerQallocOp(dialects::qmem::QAllocOp &qallocOp) {
+        const auto result = this->declaredQubits.try_emplace(qallocOp.getQ(), qallocOp);
+        (void) result;
+        assert(result.second && "Per qubit grouper: trying to map a qalloc operation that was already mapped");
+    }
+
+    void PerQubitGrouper::groupDefinitionWithQAlloc(helpers::DefineQubitsInterface &defOp) {
+        // This is an init op, group this operation together with its qubit declaration
+        dialects::qmem::QAllocOp qallocOp = this->getQallocForQubit(defOp.getDefiningQubit());
+        uint32_t qubitIDForOp = this->assignQubitIDForQAllocOp(qallocOp);
+        QuantumOpsGroupTy *qallocGroup = this->addNewGroupForQalloc(qallocOp.getOperation(), {qubitIDForOp});
+        qallocGroup->push_back(defOp.getOperation());
+        defOp.getOperation();
+    }
+
+
+    QuantumOpsGroupTy *PerQubitGrouper::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
         const std::string groupName = getGroupNameForIDs(qubits);
         assert(this->activeGroupId != groupName);
         this->commitCurrentGroup();
         this->activeGroupId = groupName;
         this->activeGroup.emplace(new QuantumOpsGroupTy);
         this->activeGroup.value()->push_back(qalloc);
-        return groupName;
+        return this->activeGroup.value();
     }
 
     uint32_t PerQubitGrouper::getQubitIDForOperation(Operation *qallocOp) const {
@@ -213,22 +238,24 @@ namespace qoala::analysis::functionize {
 
             llvm::TypeSwitch<Operation *>(&op)
             .Case([&](dialects::qmem::QAllocOp qallocOp) {
-                // The op is a qalloc; we assign a new qubit ID for this operation
-                uint32_t qubitIDForEprsQubits = qubitGroupsMap.assignQubitIDForQAllocOp(qallocOp.getOperation());
-                // We also assign a new bin for the qubit allocated. This also add the qalloc op in the new bin
-                (void) qubitGroupsMap.addNewGroupForQalloc(qallocOp.getOperation(), {qubitIDForEprsQubits});
+                // The op is a qalloc; we register the qalloc op to be grouped later
+                qubitGroupsMap.registerQallocOp(qallocOp);
             })
-            /*
             .Case([&](dialects::qmem::InitOp &initOp) {
-
+                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(initOp.getOperation())) {
+                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                }
             })
             .Case([&](dialects::qmem::EprsOp &eprsOp) {
-
+                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                }
             })
             .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
-
+                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                }
             })
-            */
             .Default([&](Operation *otherOp ) {
                 // In the case of a non-qalloc, we need to get the corresponding group for the
                 // qubits involved in the operation.

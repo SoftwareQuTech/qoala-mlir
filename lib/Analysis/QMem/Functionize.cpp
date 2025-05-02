@@ -1,7 +1,7 @@
 #include "llvm/ADT/SmallSet.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
-#include "Dialect/QMem/EntangleTrait.h"
+#include "Dialect/QMem/Traits.h"
 
 #include "llvm/Support/Debug.h"
 

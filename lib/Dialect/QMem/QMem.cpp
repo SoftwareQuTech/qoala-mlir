@@ -239,3 +239,15 @@ Operation *RotateZIntOp::simpleClone(OpBuilder &builder, Location loc) {
 std::vector<Operation *> RotateZIntOp::getOpsAllocatingUsedQubits() {
     return {this->getQ().getDefiningOp()};
 }
+
+Value InitOp::getDefiningQubit() {
+    return this->getQ();
+}
+
+Value EprsOp::getDefiningQubit() {
+    return this->getQ();
+}
+
+Value EprsMeasureOp::getDefiningQubit() {
+    return this->getQ();
+}

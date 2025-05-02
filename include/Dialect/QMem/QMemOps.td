@@ -118,14 +118,14 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
 }
 
 /* The "eprs" operation will carry the "Entangle" trait */
-def EprsOp: UsingRemote_Op<"eprs", [Entangle]> {
+def EprsOp: UsingRemote_Op<"eprs", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict
     }];
 }
 
-def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle]> {
+def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
@@ -170,7 +170,7 @@ def QAllocOp: QMem_Op<"qalloc"> {
     }];
 }
 
-def InitOp : QMem_Op<"init"> {
+def InitOp : QMem_Op<"init", [DeclareOpInterfaceMethods<DefineQubitsInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
     let assemblyFormat = [{
         operands attr-dict
