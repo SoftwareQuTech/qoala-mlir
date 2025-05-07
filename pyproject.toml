@@ -24,12 +24,6 @@ dependencies = [
     "dataclasses>=0.6, <=0.8"
 ]
 
-[project.optional-dependencies]
-dev = [
-    "build",
-    "twine"
-]
-
 [build-system]
 requires = ["py-build-cmake~=0.4.3"]
 build-backend = "py_build_cmake.build"

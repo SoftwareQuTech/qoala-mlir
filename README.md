@@ -197,8 +197,55 @@ Please note that you need to add the definition _every time_ you want ot run a p
 Additionally, you need to add this extra setting _once you have activated your python virtual environment_.
 
 
-### Using the python wheel to install the python bindings
+### Building a python wheel containing the QNet python bindings and `qoala-opt` and `qoala-translate` tools
 
-TODO - Pywheel is not generated yet. Generate the wheel to depend on _all_ the dependencies specified by MLIR in the
-file `mlir/python/requirements.txt`
+To ease the installation process, this repository also contains a `pyproject.toml` file that eases the process
+of creating a wheel file to distribute the python bindings and the `qoala-opt` and `qoala-translate` tools.
 
+To create a wheel file, we need to create a python virtual environment using the python version of the same
+intended target. For example, if we intend to distribute packages for python 3.11, we need to create a virtual
+environment based on python 3.11:
+
+```shell
+$ python3.11 -m venv venv-311
+$ source venv-311/bin/activate
+(venv-311) $
+```
+
+Once created (and activated), we need to install the MLIR python requirements in the same virtual environment:
+```shell
+(venv-311) $ cd <this_repository>
+(venv-311) $ pip install -r llvm/mlir/python/requirements.txt
+```
+
+We also need to install the building requirements in this virtual environment:
+
+```shell
+(venv-311) $ pip install -r build-requirements.txt
+```
+
+Then, *we need to adapt the `pyproject.toml` file* so the compilation of this repository uses the just-created
+python environment. Open the `pyproject.toml` file and modify the value of the `DPython3_EXECUTABLE`
+argument located inside the `args` list, which can be found under the `[tool.py-build-cmake.cmake]`
+section:
+
+```toml
+args = [
+    "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
+    "-DPython3_EXECUTABLE=/abs/path/to/venv-311/bin/python",
+    "-DCMAKE_C_COMPILER=clang-20",
+    "-DCMAKE_CXX_COMPILER=clang++-20",
+    "-DCMAKE_LINKER=clang-20"
+]
+```
+Also note that this arguments make use of the fact that the MLIR headers were installed with the prefix
+`/opt/mlir`. In the same way, you can also specify another compiler by modifying the `DCMAKE_C_COMPILER`,
+`DCMAKE_CXX_COMPILER` and `DCMAKE_LNKER` variables.
+
+Once all this is configured, we can trigger the building by invoking the following command:
+
+```shell
+(venv-311) $ python -m build -w
+```
+
+After some time, the wheel will be created inside the `dist` folder.
