@@ -2,7 +2,10 @@
 name = "qoala-mlir"
 readme = "README.md"
 version = "0.0.1"
-requires-python = ">=3.11"
+# Python 3.13 is not supported, since numpy (dependency from MLIR, required <=1.26)
+# supports python <3.13. Numpy 2.2+ is the first version that supports python 3.13,
+# which might break the build (untested though).
+requires-python = ">=3.10, <3.13"
 license = { "file" = "LICENSE" }
 authors = [
     { "name" = "Bart van der Vecht", "email" = "b.vandervecht@tudelft.nl" },
@@ -47,7 +50,7 @@ source_path = "."
 # and CMAKE_LINKER commands to match your platform.
 args = [
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
-    "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv-12/bin/python",
+    "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv/bin/python",
     "-DCMAKE_C_COMPILER=clang-20",
     "-DCMAKE_CXX_COMPILER=clang++-20",
     "-DCMAKE_LINKER=clang-20"

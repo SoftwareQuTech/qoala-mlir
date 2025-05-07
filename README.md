@@ -13,6 +13,8 @@ Before going into the compilation, we need to install a few build tools. In Debi
 ```shell
 sudo apt-get install build-essential cmake ninja-build python3-full python3-dev
 ```
+To correctly build this repository, we need to use python 3.10, 3.11 or 3.12. Python 3.13 or
+newer *is not supported*, since it might break MLIR's numpy dependency.
 
 ## Recommended packages
 By default, you can use `gcc` as the compiler for LLVM and this repo, but `clang` works much faster
@@ -211,6 +213,9 @@ $ python3.11 -m venv venv-311
 $ source venv-311/bin/activate
 (venv-311) $
 ```
+
+Please remember that this repo must be build using python 3.10, 3.11 or 3.12. **Python 3.13 is explicitly
+not supported**, since a transitive dependency from MLIR (numpy <=1.26) does not support python 3.13.
 
 Once created (and activated), we need to install the MLIR python requirements in the same virtual environment:
 ```shell
