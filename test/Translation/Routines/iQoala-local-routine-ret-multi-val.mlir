@@ -7,7 +7,7 @@
 // CHECK-NEXT: META END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL, predecessors = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
-// CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
 // CHECK-NEXT: tuple<%[[HOST_REG0:.*]]; %[[HOST_REG1:.*]]; %[[HOST_REG2:.*]]> = run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0

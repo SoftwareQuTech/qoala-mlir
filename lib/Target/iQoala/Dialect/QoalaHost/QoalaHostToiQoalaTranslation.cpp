@@ -113,13 +113,12 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         const Value valueAtCaller = op.getOperand(argNum);
         const BlockArgument &valueAtCallee = valuesArgMap.getBlockArgForCallerValue(valueAtCaller);
 
-        // TODO - Double check the correctness of this
         if (valueToQubitMap[valueAtCaller] != 0xFF) {
             // In this case, the argument is mapped to a qubit reference; search the corresponding set instruction
             // that "loads" the qubit reference
             for (const iQoalaMCInstruction *setInstr:
                  netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
-                if (setInstr->getOperand(1)->getIntegerVal() == valueAtCallee.getArgNumber()) {
+                if (setInstr->getOperand(1)->getIntegerVal() == valueToQubitMap[valueAtCaller]) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, setInstr->getOperand(0)->getRegRef());
                     // Register the qubit for the "uses" and "keeps"
                     routine->registerQubit(valueAtCallee, setInstr->getOperand(1)->getIntegerVal());

@@ -15,12 +15,13 @@ namespace qoala::iqoala {
     }
 
     uint8_t QuantumRoutine::releaseQubit(const Value &value) {
-        uint8_t phyQubitNum = 0xFF;
         if (this->qubitMap.contains(value)) {
-            phyQubitNum = this->qubitMap.at(value);
+            const uint8_t phyQubitNum = this->qubitMap.at(value);
             this->qubitMap.erase(value);
+            return phyQubitNum;
         }
-        return phyQubitNum;
+        LLVM_DEBUG(llvm::dbgs() << "non-mapped qubit: " << value << "\n");
+        assert(false && "Trying to release a qubit that was not mapped");
     }
 
     uint8_t QuantumRoutine::getQubitNum(const Value &value) const {
