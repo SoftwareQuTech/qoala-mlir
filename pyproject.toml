@@ -48,6 +48,13 @@ source_path = "."
 # In general we need to use ths same list fo arguments we use to configure the build of the C++ project
 # IMPORTANT: Before building update the MLIR_DIR, Python3_EXECUTABLE, CMAKE_C_COMPILER, CMAKE_CXX_COMPILER
 # and CMAKE_LINKER commands to match your platform.
+# SUPER IMPORTANT! Make sure that the Python3_EXECUTABLE *matches* the python version of the
+# virtual environment used to create the wheel, otherwise you might end up in a situaiton tha the package
+# is marked for 1 verison of python (e.g. 3.12), but the packed python bindings are compiled for
+# another version of python (e.g. 3.11). This leads to python to *not* find the python bindings
+# resulting in import errors.
+# A good way to make sure that the versions match is to use the *exact same* virtual environment as
+# declared in Python3_EXECUTABLE to create the wheel.
 args = [
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
     "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv/bin/python",
