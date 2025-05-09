@@ -50,7 +50,6 @@ namespace qoala::conversion::hir {
         // function in llvm/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -58,7 +57,6 @@ namespace qoala::conversion::hir {
                                            ConversionPatternRewriter &rewriter) const {
         auto newReturn = rewriter.create<qmem::ReturnOp>(op.getLoc(), adaptor.getOperands());
         return std::make_unique<OpAndValues>(newReturn.getOperation(), newReturn->getResults());
-
     }
 
     /* Implementation of the operations that entangle qubits */
@@ -74,7 +72,6 @@ namespace qoala::conversion::hir {
         // We replace all the uses of the old qubit with the new value (what was passed as "q" operand to eprs)
         rewriter.replaceAllUsesWith(op.getQout(), newEprsOp.getQ());
         return std::make_unique<OpAndValues>(newEprsOp.getOperation(), newAllocOp.getResult());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -90,7 +87,6 @@ namespace qoala::conversion::hir {
                 newAllocOp.getQ(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newEprs.getOperation(), newEprs->getResults());
-
     }
 
     /* Implementation of the lowering for the creation of new qubits */
@@ -108,7 +104,6 @@ namespace qoala::conversion::hir {
         auto newInitOp = rewriter.create<qmem::InitOp>(loc, newAllocOp.getResult());
         auto qalloc = dyn_cast<qmem::QAllocOp>(newInitOp.getQ().getDefiningOp());
         return std::make_unique<OpAndValues>(qalloc.getOperation(), qalloc->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -121,7 +116,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -134,7 +128,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -147,7 +140,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -160,7 +152,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -172,7 +163,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newMeasure.getOperation(), adaptor.getQin());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -189,7 +179,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getOperands());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -205,7 +194,6 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getOperands());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -224,7 +212,6 @@ namespace qoala::conversion::hir {
         auto opOperands = newCRotX->getOpOperands();
         OperandRange firstTwoOperands(opOperands.data(), 2);
         return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
-
     }
 
     /* Implementation of the specific conversion between similar ops
@@ -236,7 +223,6 @@ namespace qoala::conversion::hir {
                 op.getLoc(), adaptor.getSymName(),
                 adaptor.getSymVisibilityAttr());
         return std::make_unique<OpAndValues>(newRemote.getOperation(), newRemote->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -246,7 +232,6 @@ namespace qoala::conversion::hir {
                 op.getLoc(), adaptor.getCin(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -258,7 +243,6 @@ namespace qoala::conversion::hir {
                 op.getLoc(), outType,
                 adaptor.getRemoteAttr(), adaptor.getLengthAttr());
         return std::make_unique<OpAndValues>(newRec.getOperation(), newRec->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -268,7 +252,6 @@ namespace qoala::conversion::hir {
                 op.getLoc(), adaptor.getCin(),
                 adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
-
     }
 
     std::unique_ptr<OpAndValues>
@@ -280,6 +263,5 @@ namespace qoala::conversion::hir {
                 op.getLoc(), outType,
                 adaptor.getRemoteAttr(), adaptor.getLengthAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
-
     }
 } // namespace qoala::conversion::hir
