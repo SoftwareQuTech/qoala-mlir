@@ -152,7 +152,7 @@ namespace qoala::analysis::functionize {
         // Get the corresponding group
         QuantumOpsGroupTy *currentOpsGroup = this->getGroupForQubits(involvedQubitOps);
         if (this->maxOpsPerGroup > 0 && currentOpsGroup->size() >= this->maxOpsPerGroup) {
-            // We the current group is full, we need to commit the current group
+            // When the current group is full, we need to commit the current group
             this->commitCurrentGroup();
             // And get a new group for the operation
             currentOpsGroup = this->getGroupForQubits(involvedQubitOps);
