@@ -11,9 +11,9 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[REG0_0]] {remote = @[[REMOTEBOB]]}
   // CHECK-NEXT: netqasm.return %[[REG0_0]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]](%[[WRAP1_ARG0:.*]]: i32) -> i1
-  // CHECK-NEXT: netqasm.rot_x %[[WRAP1_ARG0]] (3 : ui32, 2 : ui32)
-  // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.measure %[[WRAP1_ARG0]] : i1
+  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]](%[[QUBIT_ARG:.*]]: i32) -> i1
+  // CHECK-NEXT: netqasm.rot_x %[[QUBIT_ARG]] (3 : ui32, 2 : ui32)
+  // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.measure %[[QUBIT_ARG]] : i1
   // CHECK-NEXT: netqasm.return %[[REG0_1]] : i1
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
@@ -34,7 +34,8 @@ module {
     qmem.rot_x %0, %cst_0
     %1 = qmem.measure %0 : i1
 
-    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", predecessors = []}
     // CHECK: qoalahost.return
     qmem.return
   }

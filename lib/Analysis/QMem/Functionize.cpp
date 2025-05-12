@@ -1,7 +1,7 @@
 #include "llvm/ADT/SmallSet.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
-#include "Dialect/QMem/EntangleTrait.h"
+#include "Dialect/QMem/Traits.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -201,7 +201,7 @@ namespace qoala::analysis::functionize {
         data.newFunction = newFunc;
     }
 
-    void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations) {
+    void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations, uint32_t maxOpsPerGroup) {
         uint32_t groupNum = 0;
 
         auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
@@ -209,7 +209,7 @@ namespace qoala::analysis::functionize {
         assert(!mainFunctions.empty());
         // We assume that the main function to analyze is just the first one (lexicographically) in the module
         dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
-        std::vector<QuantumOpsGroupTy> functionGroups = classifyOperations(mainFunction);
+        std::vector<QuantumOpsGroupTy> functionGroups = classifyOperations(mainFunction, maxOpsPerGroup);
 
         // We start building our new functions at the start of the body of the module
         OpBuilder opBuilder(module.getBodyRegion());

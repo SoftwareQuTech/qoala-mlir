@@ -26,6 +26,6 @@ namespace qoala::analysis {
     void QMemSimpleFunctionizePass::runOnOperation() {
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-        functionizeModule(module, simpleOpClassifier);
+        functionizeModule(module, simpleOpClassifier, 0);
     }
 } /* namespace qoala::analysis */

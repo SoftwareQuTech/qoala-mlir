@@ -67,7 +67,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // 2. The qoalahost.blk_meta operation is always the first one of its block
     std::set<std::string> blkIds;
     for (Block &block: getBody()) {
-        auto blkMetas = block.getOps<qoalahost::BlkMeta>();
+        auto blkMetas = block.getOps<BlkMeta>();
 
         auto it = blkMetas.begin();
         auto end = blkMetas.end();
@@ -82,16 +82,16 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
                    << "each block must contain exactly one 'qoalahost.blk_meta' operation, but found multiple.";
         }
 
-        if (&block.front() != *it) {
-            return this->emitOpError() << "'qoalahost.blk_meta' must be the first operation in each block.";
+        BlkMeta op = *it;
+        if (&block.front() != op.getOperation()) {
+            return op.emitOpError() << "must be the first operation in each block.";
         }
 
         // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
         // iif it is declared first.
-        qoalahost::BlkMeta op = dyn_cast<qoalahost::BlkMeta>(*it);
         for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return this->emitOpError() << "'qoalahost.blk_meta' contains a predecessor before its decalration.";
+                return op.emitOpError() << "contains a predecessor before its declaration.";
             }
         }
 

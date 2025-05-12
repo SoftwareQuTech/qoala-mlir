@@ -24,7 +24,7 @@ namespace qoala::analysis::functionize {
     };
 
     using QuantumOpsGroupTy = std::vector<mlir::Operation *>;
-    using ClassifierFnTy = std::vector<QuantumOpsGroupTy> (*)(dialects::qmem::FuncOp &);
+    using ClassifierFnTy = std::vector<QuantumOpsGroupTy> (*)(dialects::qmem::FuncOp &, uint32_t);
 
     /**
      * Creates a "wrapper" function around the given list of operations.
@@ -71,24 +71,27 @@ namespace qoala::analysis::functionize {
      *                             This function should iterate over all the operations of the given FuncOp and
      *                             classify them into a collection of QuantumOpsGroupTy. Each one of the operation
      *                             groups will be converted into a single function.
+     * @param maxOpsPerGroup Maximum number of operations to leave inside a group.
      */
-    void functionizeModule(mlir::ModuleOp &module, ClassifierFnTy operationsClassifier);
+    void functionizeModule(mlir::ModuleOp &module, ClassifierFnTy operationsClassifier, uint32_t maxOpsPerGroup);
 
     /**
      * Classifier to create *simple* groups, i.e., each group will contain _a single quantum operation_.
      * This classifier is used with the simple functionization
      * @param mainFunction The function on which run the grouping
+     * @param maxOpsPerGroup Maximum number of operations to leave inside a group. This argument is ignored.
      * @return A collection of quantum groups.
      */
-    std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction);
+    std::vector<QuantumOpsGroupTy> simpleOpClassifier(dialects::qmem::FuncOp &mainFunction, uint32_t maxOpsPerGroup);
 
     /**
      * Operation classifier that follows the rules of the compiler specifications. This method creates
      * operation groups based on the criteria specified in https://gitlab.tudelft.nl/qoala/qoala-compiler-spec/-/blob/master/design/translations/MIR_to_LIR.md
      * @param mainFunction The function on which run the grouping
+     * @param maxOpsPerGroup Maximum number of operations to leave inside a group.
      * @return A collection of quantum groups.
      */
-    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction);
+    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction, uint32_t maxOpsPerGroup);
 }
 
 #endif //QOALA_MLIR_CONVERSION_H

@@ -69,9 +69,9 @@ namespace qoala::analysis {
          * Track data, communication and NetQASM request dependencies between blocks.
          * Make the dependencies information available by inserting a "nop_meta"
          * operation At the beginning of each block.
-         * @param module module to walk for tracking and adding dependencies.
+         * @param moduleOp module to walk for tracking and adding dependencies.
          */
-        mlir::LogicalResult addDependencies(mlir::ModuleOp &module);
+        mlir::LogicalResult addDependencies(mlir::ModuleOp &moduleOp);
     } // namespace dependencies
 } // namespace qoala::analysis
 

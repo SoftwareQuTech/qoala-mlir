@@ -1,5 +1,5 @@
-#ifndef QOALA_MLIR_ENTANGLETRAIT_H
-#define QOALA_MLIR_ENTANGLETRAIT_H
+#ifndef QOALA_MLIR_QMEM_TRAITS_H
+#define QOALA_MLIR_QMEM_TRAITS_H
 #include "mlir/IR/OpDefinition.h"
 
 namespace mlir::OpTrait {
@@ -15,4 +15,4 @@ namespace mlir::OpTrait {
     };
 }
 
-#endif //QOALA_MLIR_ENTANGLETRAIT_H
+#endif //QOALA_MLIR_QMEM_TRAITS_H

@@ -19,7 +19,7 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 
 #include "Analysis/Helpers/QMemInterfaces.h"
-#include "Dialect/QMem/EntangleTrait.h"
+#include "Dialect/QMem/Traits.h"
 
 #define GET_OP_CLASSES
 #include "Dialect/QMem/QMem.h.inc"
