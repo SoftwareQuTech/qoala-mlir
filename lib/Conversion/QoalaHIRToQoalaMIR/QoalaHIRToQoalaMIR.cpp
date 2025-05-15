@@ -1,7 +1,8 @@
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "QoalaHIRToQoalaMIR"
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
@@ -71,6 +72,7 @@ namespace qoala::conversion {
         LogicalResult result =
             mlir::applyPartialConversion(operation, target, std::move(patterns));
         if (mlir::failed(result)) {
+            LLVM_DEBUG(llvm::dbgs() << *operation << "\n");
             signalPassFailure();
         }
     }

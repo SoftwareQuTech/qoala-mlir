@@ -49,7 +49,7 @@ declare_mlir_python_extension(QNetPythonSources.Extension
 # linking of the final python plugin.
 add_mlir_python_common_capi_library(QNetPythonCAPI
         INSTALL_COMPONENT QNetPythonModules
-        INSTALL_DESTINATION python_packages/qnet_bindings/qnet/_mlir_libs
+        INSTALL_DESTINATION qnet/_mlir_libs
         OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/_mlir_libs"
         RELATIVE_INSTALL_ROOT "../../../.."
         DECLARED_SOURCES
@@ -65,7 +65,7 @@ add_mlir_python_common_capi_library(QNetPythonCAPI
 # Instantiation of the python extensions
 add_mlir_python_modules(QNetPythonModules
         ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet"
-        INSTALL_PREFIX "python_packages/qnet_bindings/qnet"
+        INSTALL_PREFIX "qnet"
         DECLARED_SOURCES
             # We no longer bring "everything" (all the dialects) in the linkage.
             # This means that compilation is faster and the generated library is lighter

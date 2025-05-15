@@ -1,0 +1,142 @@
+// RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
+// CHECK: META START
+// CHECK-NEXT: name: quantum_alias_gates_program
+// CHECK-NEXT: parameters: {{[[:space:]]}}
+// CHECK-SAME: csockets: {{[[:space:]]}}
+// CHECK-SAME: epr_sockets: {{[[:space:]]}}
+// CHECK-SAME: META END
+// CHECK: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
+// CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
+// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
+// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
+// CHECK: ^b[[BLOCK2:.*]] { type = QL, predecessors = [b0] }
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper2
+// CHECK: ^b[[BLOCK3:.*]] { type = QL, predecessors = [b0, b1] }
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper3
+// CHECK: ^b[[BLOCK4:.*]] { type = QL, predecessors = [b0] }
+// CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper4
+// CHECK: ^b[[BLOCK5:.*]] { type = QL, predecessors = [b1] }
+// CHECK-NEXT: %[[HOST_REG3:.*]] = run_subroutine() : __qoala_wrapper5
+
+// CHECK: SUBROUTINE __qoala_wrapper0
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT_0:.*]]
+// CHECK-NEXT: keeps: [[QUBIT_0]]
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QREG0_0:.*]] [[QUBIT_0]]
+// CHECK-NEXT: init [[QREG0_0]]
+// CHECK-NEXT: NETQASM_END
+
+// CHECK: SUBROUTINE __qoala_wrapper1
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT_1:.*]]
+// CHECK-NEXT: keeps: [[QUBIT_1]]
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QREG0_1:.*]] [[QUBIT_1]]
+// CHECK-NEXT: init [[QREG0_1]]
+// CHECK-NEXT: NETQASM_END
+
+// CHECK: SUBROUTINE __qoala_wrapper2
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT_0]]
+// CHECK-NEXT: keeps: [[QUBIT_0]]
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QREG0_2:.*]] [[QUBIT_0]]
+// CHECK-NEXT: rot_x [[QREG0_2]] 2 1
+// CHECK-NEXT: rot_y [[QREG0_2]] 2 1
+// CHECK-NEXT: rot_z [[QREG0_2]] 2 1
+// CHECK-NEXT: rot_z [[QREG0_2]] 1 1
+// CHECK-NEXT: rot_z [[QREG0_2]] 1 2
+// CHECK-NEXT: NETQASM_END
+
+// CHECK: SUBROUTINE __qoala_wrapper3
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-SAME: uses: [[QUBIT_0]], [[QUBIT_1]]
+// CHECK-NEXT: keeps: [[QUBIT_0]], [[QUBIT_1]]
+// CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set [[QREG0_3:.*]] [[QUBIT_0]]
+// CHECK-NEXT: set [[QREG1_3:.*]] [[QUBIT_1]]
+// CHECK-NEXT: cphase [[QREG0_3]] [[QREG1_3]]
+// CHECK-NEXT: NETQASM_END
+
+// CHECK: SUBROUTINE __qoala_wrapper4
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
+// CHECK-NEXT: uses: [[QUBIT_0]]
+// CHECK-NEXT: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
+// CHECK-NEXT: set [[QREG0_4:.*]] [[QUBIT_0]]
+// CHECK-NEXT: meas [[QREG0_4]] [[MREG0_4:.*]]
+// CHECK-NEXT: store [[MREG0_4]] @output[0]
+// CHECK-NEXT: NETQASM_END
+
+// CHECK: SUBROUTINE __qoala_wrapper5
+// CHECK-NEXT: params: {{[[:space:]]}}
+// CHECK-SAME: returns: m0
+// CHECK-NEXT: uses: [[QUBIT_1]]
+// CHECK-NEXT: keeps: {{[[:space:]]}}
+// CHECK-SAME: NETQASM_START
+// CHECK-NEXT: set [[QREG0_5:.*]] [[QUBIT_1]]
+// CHECK-NEXT: meas [[QREG0_5]] [[MREG0_5:.*]]
+// CHECK-NEXT: store [[MREG0_5]] @output[0]
+// CHECK-NEXT: NETQASM_END
+
+module {
+  netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
+  netqasm.local_routine @__qoala_wrapper0() -> i32 {
+    %0 = netqasm.qalloc  : i32
+    netqasm.init %0
+    netqasm.return %0 : i32
+  }
+  netqasm.local_routine @__qoala_wrapper1() -> i32 {
+    %0 = netqasm.qalloc  : i32
+    netqasm.init %0
+    netqasm.return %0 : i32
+  }
+  netqasm.local_routine @__qoala_wrapper2(%arg0: i32) {
+    netqasm.rot_x %arg0 (2 : ui32, 1 : ui32)
+    netqasm.rot_y %arg0 (2 : ui32, 1 : ui32)
+    netqasm.rot_z %arg0 (2 : ui32, 1 : ui32)
+    netqasm.rot_z %arg0 (1 : ui32, 1 : ui32)
+    netqasm.rot_z %arg0 (1 : ui32, 2 : ui32)
+    netqasm.return
+  }
+  netqasm.local_routine @__qoala_wrapper3(%arg0: i32, %arg1: i32) {
+    netqasm.cz %arg0, %arg1
+    netqasm.return
+  }
+  netqasm.local_routine @__qoala_wrapper4(%arg0: i32) -> i1 {
+    %0 = netqasm.measure %arg0 : i1
+    netqasm.return %0 : i1
+  }
+  netqasm.local_routine @__qoala_wrapper5(%arg0: i32) -> i1 {
+    %0 = netqasm.measure %arg0 : i1
+    netqasm.return %0 : i1
+  }
+  qoalahost.main_func @quantum_alias_gates_program() {
+    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
+    %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
+  ^bb1:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
+    %1 = qoalahost.call @__qoala_wrapper1() : () -> i32
+  ^bb2:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_2", predecessors = ["block_0"]}
+    qoalahost.call @__qoala_wrapper2(%0) : (i32) -> ()
+  ^bb3:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_3", predecessors = ["block_0", "block_1"]}
+    qoalahost.call @__qoala_wrapper3(%0, %1) : (i32, i32) -> ()
+  ^bb4:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_4", predecessors = ["block_0"]}
+    %2 = qoalahost.call @__qoala_wrapper4(%0) : (i32) -> i1
+  ^bb5:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_5", predecessors = ["block_1"]}
+    %3 = qoalahost.call @__qoala_wrapper5(%1) : (i32) -> i1
+  ^bb6:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_6", predecessors = []}
+    qoalahost.return
+  }
+}
