@@ -15,7 +15,6 @@ add_mlir_conversion_library(MLIRMIRToLIRPass
         QoalaConversionHelpers
         MLIRQoalaHostAnalysis
         MLIRQMemAnalysisLibs
-        MLIRMIRtoLIRHelperPasses
 
         DEPENDS
         QoalaConversionHelpers
@@ -23,7 +22,4 @@ add_mlir_conversion_library(MLIRMIRToLIRPass
         MLIRQoalaHostIncGen
         MLIRNetQASMIncGen
         MLIRQoalaMIRToQoalaLIRPassIncGen
-        MLIRMIRtoLIRHelperPasses
 )
-
-add_subdirectory(Helpers)

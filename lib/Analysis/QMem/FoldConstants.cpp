@@ -4,14 +4,14 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
-#define DEBUG_TYPE "mir-to-lir"
+#define DEBUG_TYPE "fold-constants"
 
 using namespace mlir;
 using namespace qoala::dialects;
 
-namespace qoala::conversion {
+namespace qoala::analysis {
 #define GEN_PASS_DEF_FOLDCONSTANTS
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h.inc"
+#include "Dialect/Helpers/HelperPasses.h.inc"
 
     class FoldConstantsPass : public impl::FoldConstantsBase<FoldConstantsPass> {
     public:

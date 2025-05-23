@@ -79,13 +79,4 @@ def LowerQMemToQRemote : Pass<"lower-qmem-to-qremote", "mlir::ModuleOp"> {
     let dependentDialects = ["::qoala::dialects::qremote::QRemoteDialect"];
 }
 
-//===----------------------------------------------------------------------===//
-// Helper pass to fold constants
-//===----------------------------------------------------------------------===//
-
-def FoldConstants : Pass<"fold-constants", "func::FuncOp"> {
-    let summary = "Folds constants in the functions";
-    let dependentDialects = ["::mlir::func::FuncDialect"];
-}
-
 #endif /* QMEM_TO_QOALAHOST_PASS */

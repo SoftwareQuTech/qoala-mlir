@@ -1,6 +1,8 @@
 add_mlir_dialect_library(MLIRQMemAnalysisLibs
         Functionize.cpp
         FunctionizeQuantumOps.cpp
+        SimpleFunctionizeQuantumOps.cpp
+        FoldConstants.cpp
         LowerF32Rotations.cpp
         SimpleOpClassifier.cpp
         PerQubitOpClassifier.cpp
@@ -11,5 +13,5 @@ add_mlir_dialect_library(MLIRQMemAnalysisLibs
 
         DEPENDS
         MLIRQMemInterfacesIncGen
-        MLIRQMemPassIncGen
+        MLIRMIRToLIRHelperPassesIncGen
 )

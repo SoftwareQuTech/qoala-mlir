@@ -1,29 +1,29 @@
-#include "mlir/IR/BuiltinOps.h"
 #include "Analysis/QMem/Conversion.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
 using namespace mlir;
 using namespace qoala::dialects;
 
-#define DEBUG_TYPE "functionize"
+#define DEBUG_TYPE "simple-functionize"
 
 namespace qoala::analysis {
-#define GEN_PASS_DEF_FUNCTIONIZEQUANTUMOPS
+#define GEN_PASS_DEF_SIMPLEFUNCTIONIZE
 #include "Dialect/Helpers/HelperPasses.h.inc"
 
-    class FunctionizeQuantumOpsPass : public impl::FunctionizeQuantumOpsBase<FunctionizeQuantumOpsPass> {
+    class QMemSimpleFunctionizePass : public impl::SimpleFunctionizeBase<QMemSimpleFunctionizePass> {
     public:
-        using FunctionizeQuantumOpsBase::FunctionizeQuantumOpsBase;
+        using SimpleFunctionizeBase::SimpleFunctionizeBase;
         void runOnOperation() override;
     };
 
-    void FunctionizeQuantumOpsPass::runOnOperation() {
+    void QMemSimpleFunctionizePass::runOnOperation() {
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-        functionize::functionizeModule(module, functionize::functionizeOpClassifier, 0);
+        functionize::functionizeModule(module, functionize::simpleOpClassifier, 0);
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
             if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {

@@ -1,12 +1,9 @@
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
-#include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "Dialect/QMem/Passes.h"
+#include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMem.h"
 
-#include "Analysis/QMem/Conversion.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
@@ -49,12 +46,12 @@ namespace qoala::helpers {
 }
 
 namespace qoala::analysis {
-#define GEN_PASS_DEF_QMEMCONVERTINTEGERTOFLOATROTATIONS
-#include "Dialect/QMem/Passes.h.inc"
+#define GEN_PASS_DEF_CONVERTINTEGERTOFLOATROTATIONS
+#include "Dialect/Helpers/HelperPasses.h.inc"
 
-    class LowerF32RotationsPass : public impl::QMemConvertIntegerToFloatRotationsBase<LowerF32RotationsPass> {
+    class LowerF32RotationsPass : public impl::ConvertIntegerToFloatRotationsBase<LowerF32RotationsPass> {
     public:
-        using QMemConvertIntegerToFloatRotationsBase::QMemConvertIntegerToFloatRotationsBase;
+        using ConvertIntegerToFloatRotationsBase::ConvertIntegerToFloatRotationsBase;
         void runOnOperation() override;
     };
 

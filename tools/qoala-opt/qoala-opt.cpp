@@ -8,7 +8,7 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
 
-#include "Dialect/QMem/Passes.h"
+#include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMemDialect.h"
 
 #include "Dialect/QoalaHost/Passes.h"
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     mlir::registerAllPasses();
     // And also the passes from QMem, QNet and QoalaHost
     qoala::analysis::registerQNetPasses();
-    qoala::analysis::registerQMemPasses();
+    qoala::analysis::registerMIRToLIRHelpersPasses();
     qoala::analysis::registerQoalaHostPasses();
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
     qoala::conversion::registerQoalaHIRToQoalaMIRPasses();
