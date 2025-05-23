@@ -5,6 +5,9 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 
 // Needed for [FunctionOpInterface] in the .td file.
 #include "mlir/Bytecode/BytecodeOpInterface.h"

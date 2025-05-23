@@ -1,5 +1,4 @@
 #include "mlir/IR/BuiltinOps.h"
-#include "llvm/ADT/TinyPtrVector.h"
 #include "mlir/Transforms/FoldUtils.h"
 #include "Dialect/QMem/QMem.h"
 
@@ -32,19 +31,20 @@ namespace qoala::helpers {
         }
     };
 
-    LogicalResult foldConstants(ModuleOp &module) {
+    template <typename OpTy>
+    LogicalResult foldConstants(OpTy &op) {
         std::vector<Operation *> ops;
         FolderTracker folderTracker;
-        OperationFolder folderHelper(module.getContext(), /*listener=*/&folderTracker);
+        OperationFolder folderHelper(op.getContext(), /*listener=*/&folderTracker);
 
         // We just walk over all the instructions, discovering them for potential folding
-        module->walk<WalkOrder::PreOrder>([&](Operation *op) { ops.push_back(op); });
+        op->template walk<WalkOrder::PreOrder>([&](Operation *operation) { ops.push_back(operation); });
         LLVM_DEBUG(llvm::dbgs() << "Number discovered ops: " << ops.size() << "\n");
 
         // Visit the discovered ops in reverse order, so we don't break data dependencies
-        for (Operation *op : llvm::reverse(ops)) {
-            LLVM_DEBUG(llvm::dbgs() << "Trying to fold op: " << *op << "\n");
-            (void)folderHelper.tryToFold(op);
+        for (Operation *operation : llvm::reverse(ops)) {
+            LLVM_DEBUG(llvm::dbgs() << "Trying to fold op: " << *operation << "\n");
+            (void)folderHelper.tryToFold(operation);
         }
 
         // Finally, remove all orphaned constants after folding them
@@ -55,5 +55,13 @@ namespace qoala::helpers {
             }
         }
         return success();
+    }
+
+    LogicalResult foldConstants(ModuleOp &module) {
+        return foldConstants<ModuleOp>(module);
+    }
+
+    LogicalResult foldConstants(func::FuncOp &funcOp) {
+        return foldConstants<func::FuncOp>(funcOp);
     }
 } /* namespace qoala::analysis */

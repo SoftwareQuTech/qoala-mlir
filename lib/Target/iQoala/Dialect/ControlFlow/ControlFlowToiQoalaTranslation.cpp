@@ -1,6 +1,7 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"

@@ -9,14 +9,13 @@
 
 #include "mlir/IR/Operation.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <set>
 #include <vector>
+#include <mlir/Dialect/Func/Transforms/Passes.h.inc>
 
 namespace qoala::helpers {
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -77,7 +76,7 @@ namespace qoala::helpers {
     }
 
     /* Helper functions to expose the conversion patterns from QMemToQoalaHost
-     * and QMemtoNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
+     * and QMemToNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
      * WARNING: The definitions of these functions are in the respective CPP files,
      * so they can be used both in the general MIR to LIR wrapper but also in the
      * passes they belong to.
@@ -289,6 +288,8 @@ namespace qoala::helpers {
      * @return Weather the analysis succeeded or failed
      */
     mlir::LogicalResult foldConstants(mlir::ModuleOp &module);
+
+    mlir::LogicalResult foldConstants(mlir::func::FuncOp &funcOp);
 }
 
 namespace qoala::translate {

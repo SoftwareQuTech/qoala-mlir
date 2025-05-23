@@ -33,6 +33,8 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
+        PassManager passManager = PassManager::on<ModuleOp>(&context);
+
         helpers::NullTypeConverter typeConverter(&context);
 
         // Configuration of the conversion targets and patterns for each stage
