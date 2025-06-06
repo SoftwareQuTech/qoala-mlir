@@ -101,11 +101,11 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
             }
         }
         std::string prevComm = op.getPrevCommAttr().getValue().str();
-        if (!prevComm.empty() && blkIds.count(prevComm)) {
+        if (!prevComm.empty() && !blkIds.count(prevComm)) {
             return op.emitOpError() << "contains a previous comm precedence before its decalration.";
         }
         std::string prevEnt = op.getPrevEntAttr().getValue().str();
-        if (!prevEnt.empty() && blkIds.count(prevEnt)) {
+        if (!prevEnt.empty() && !blkIds.count(prevEnt)) {
             return op.emitOpError() << "contains a previous ent precedence before its decalration.";
         }
 
