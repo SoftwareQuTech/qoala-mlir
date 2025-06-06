@@ -4,12 +4,12 @@
 module {
   // expected-error@+1 {{'qoalahost.main_func' op each block must contain exactly one 'qoalahost.blk_meta' operation, but found multiple.}}
   qoalahost.main_func @test_block_without_blk_meta_op() {
-    qoalahost.blk_meta {block_id = "block_0", predecessors = []}
-    qoalahost.blk_meta {block_id = "block_0", predecessors = []}
+    qoalahost.blk_meta {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %cst = arith.constant 0 : i32
     qoalahost.nop_term
     ^bb1:
-        qoalahost.blk_meta {block_id = "block_1", predecessors = []}
+        qoalahost.blk_meta {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         qoalahost.return
   }
 }

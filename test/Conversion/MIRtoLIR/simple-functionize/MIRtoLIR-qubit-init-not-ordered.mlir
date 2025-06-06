@@ -57,7 +57,7 @@ module {
   // CHECK: qoalahost.main_func @test_entangle_quantum_program()
   qmem.func @test_entangle_quantum_program() {
     // Some programmers like to "declare" all variables at the beginning...
-    // CHECK: qoalahost.blk_meta {block_id = "block_0", predecessors = []}
+    // CHECK: qoalahost.blk_meta {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %q0 = qmem.qalloc : i32
     %q1 = qmem.qalloc : i32
     %q2 = qmem.qalloc : i32
@@ -68,59 +68,59 @@ module {
     // CHECK-NEXT: %[[QUBIT0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     qmem.init %q0
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = ["block_0"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER1]](%[[QUBIT0]]) : (i32) -> ()
     qmem.rot_x %q0, %c0
 
     // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", predecessors = []}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[QUBIT1:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     qmem.init %q1
     // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = ["block_2"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[QUBIT1]]) : (i32) -> ()
     qmem.rot_y %q1, %c0
 
     // CHECK: ^[[BLOCK_4:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = ["block_0", "block_2"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[QUBIT1]], %[[QUBIT0]]) : (i32, i32) -> ()
     qmem.cnot %q1, %q0
 
     // CHECK: ^[[BLOCK_5:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = ["block_0"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[UNUSED_0:.*]] = qoalahost.call @[[WRAPPER5]](%[[QUBIT0]]) : (i32) -> i1
     %unused0 = qmem.measure %q0 : i1
 
     // CHECK: ^[[BLOCK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", predecessors = ["block_2"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[UNUSED_1:.*]] = qoalahost.call @[[WRAPPER6]](%[[QUBIT1]]) : (i32) -> i1
     %unused1 = qmem.measure %q1 : i1
 
     // Late "init" of an eprs qubit
     // CHECK: ^[[BLOCK_7:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_7", predecessors = []}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_7", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[QUBIT2:.*]] = qoalahost.call @[[WRAPPER7]]() : () -> i32
     qmem.eprs %q2 {remote = @Bob}
 
     // CHECK: ^[[BLOCK_8:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_8", predecessors = ["block_7"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_8", dependencies = ["block_7"], predecessors = [], prev_comm = "", prev_ent = ""}
     // Eprs operation is a barrier, so rot_z cannot be grouped together with eprs
     // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[QUBIT2]]) : (i32) -> ()
     qmem.rot_z %q2, %c0
 
     // CHECK: ^[[BLOCK_9:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_9", predecessors = ["block_7"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_9", dependencies = ["block_7"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[UNUSED_3:.*]] = qoalahost.call @[[WRAPPER9]](%[[QUBIT2]]) : (i32) -> i1
     %unused2 = qmem.measure %q2 : i1
 
     // CHECK: ^[[BLOCK_10:.*]]:
     // Why does this block depend on "block_7"???
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_10", predecessors = ["block_7"]}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_10", dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_7"}
     // CHECK-NEXT: %[[UNUSED_4:.*]] = qoalahost.call @[[WRAPPER10]]() : () -> i1
     %unused3 = qmem.eprs_measure %q3 {remote = @Bob} : i1
 
     // CHECK: ^[[BLOCK_11:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_11", predecessors = []}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_11", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.return
     qmem.return
   }
