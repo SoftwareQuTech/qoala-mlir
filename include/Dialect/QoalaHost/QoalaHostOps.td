@@ -260,13 +260,16 @@ def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
 def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
   let arguments = (ins
     StrAttr:$block_id,
-    StrArrayAttr:$predecessors
+    StrArrayAttr:$predecessors,
+    StrArrayAttr: $dependencies,
+    StrAttr: $prev_comm,
+    StrAttr: $prev_ent
   );
 
   let summary = [{
     A "no-op" operation that semantically does nothing, but is used to store
     metadata about the block in which it appears. Specifically, it records the
-    block's unique identifier as a string and a list of its predecessor block
+    block's unique identifier as a string and a list of its precedences block
     identifiers. This information can be used for analysis or transformations
     without affecting program semantics.
   }];

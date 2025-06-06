@@ -11,10 +11,10 @@
 #define DEBUG_TYPE "qoalahost-add-precedences-pass-internal"
 
 
-#if  __cplusplus >= 202002L
-    std::string blockIDFmt = "block_{}";
+#if __cplusplus >= 202002L
+std::string blockIDFmt = "block_{}";
 #else
-    std::string blockIDFmt = "block_%d";
+std::string blockIDFmt = "block_%d";
 #endif
 
 using namespace mlir;
@@ -23,14 +23,13 @@ using namespace qoala::analysis;
 
 namespace qoala::analysis::precedences {
     LogicalResult addPrecedences(ModuleOp &moduleOp) {
-        // This pass keeps track of dependencies betwwen the blocks, i.e. for a given block
+        // This pass keeps track of precedences betwwen the blocks, i.e. for a given block
         // which other block should be exected beforehand. At the moment, the track the
-        // following dependencies:
+        // following precedences:
+        // - Control flow predecessors
         // - Data dependencies thourgh the dataflow graph
-        // - Classical communication dependencies (to keep the ordering of the communication operations)
-        // - Entanglement generation dependencies (same)
-        // At the moment, it does not keep track of the predecessors at the control flow level.
-        // Wether it should do it or not is still an open question, see ticket 78
+        // - Previous communication operation (if applicable)
+        // - previous request call operation (if applicable)
 
         // NOTE: We make the following assumptions regarding the `return` operation:
         //
@@ -116,49 +115,60 @@ namespace qoala::analysis::precedences {
             }
         });
 
-        // Classical communication ordering dependencies
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication precedences ===\n");
-        for (size_t i = 1; i < commOps.size(); ++i) {
-            Block *prevBlock = commOps[i - 1]->getBlock();
-            Block *currBlock = commOps[i]->getBlock();
-
-            if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
-            }
-        }
-
-        // Request routine call ordering dependencies
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines precedences ===\n");
-        for (size_t i = 1; i < requestCallOps.size(); ++i) {
-            Block *prevBlock = requestCallOps[i - 1]->getBlock();
-            Block *currBlock = requestCallOps[i]->getBlock();
-
-            if (prevBlock != currBlock && blockDeps[currBlock].insert(prevBlock).second) {
-                LLVM_DEBUG(llvm::dbgs() << blockIdMap[currBlock] << " depends on " << blockIdMap[prevBlock] << "\n");
-            }
-        }
-
         for (Block &block: mainFunc.getBody().getBlocks()) {
             OpBuilder builder = OpBuilder::atBlockBegin(&block);
 
             auto blockIdAttr = builder.getStringAttr(blockIdMap[&block]);
 
-            // Collect and sort (for determinism) predecessor block IDs
-            std::vector<StringRef> predIds;
+            // Collect and sort (for determinism) data dependencies
+            std::vector<StringRef> dataDepsId;
             for (Block *pred: blockDeps[&block]) {
-                predIds.emplace_back(blockIdMap[pred]);
+                dataDepsId.emplace_back(blockIdMap[pred]);
             }
-            std::sort(predIds.begin(), predIds.end());
+            std::sort(dataDepsId.begin(), dataDepsId.end());
+            auto dataDepsAttr = builder.getStrArrayAttr(dataDepsId);
 
-            auto predListAttr = builder.getStrArrayAttr(predIds);
+            // Control flow predecessors
+            std::vector<StringRef> predsIds;
+            for (Block *pred: block.getPredecessors()) {
+                predsIds.emplace_back(blockIdMap[pred]);
+            }
+            std::sort(predsIds.begin(), predsIds.end());
+            auto predsAttr = builder.getStrArrayAttr(predsIds);
+
+            // Previous communication
+            StringAttr prevCommAttr = builder.getStringAttr("");
+            for (size_t i = 1; i < commOps.size(); i++) {
+                if (commOps[i]->getBlock() == &block) {
+                    Block *prevBlock = commOps[i - 1]->getBlock();
+                    if (prevBlock != &block) {
+                        prevCommAttr = builder.getStringAttr(blockIdMap[prevBlock]);
+                    }
+                    break; // only first match
+                }
+            }
+
+            // PRevious request call
+            StringAttr prevReqAttr = builder.getStringAttr("");
+            for (size_t i = 1; i < requestCallOps.size(); ++i) {
+                if (requestCallOps[i]->getBlock() == &block) {
+                    Block *prevBlock = requestCallOps[i - 1]->getBlock();
+                    if (prevBlock != &block) {
+                        prevReqAttr = builder.getStringAttr(blockIdMap[prevBlock]);
+                    }
+                    break;
+                }
+            }
 
             // No existing BlkMeta, create a new one
-            builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
+            builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predsAttr, dataDepsAttr,
+                                               prevCommAttr, prevReqAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with precedences " << predListAttr
-                                    << "\n");
+            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with predecessors "
+                                    << predsAttr << " with dependencies " << dataDepsAttr << " with previous comm "
+                                    << prevCommAttr << " with previous ent " << prevReqAttr << "\n");
         }
 
         return success();
     }
-} // namespace qoala::analysis::dependencies
+} // namespace qoala::analysis::precedences
