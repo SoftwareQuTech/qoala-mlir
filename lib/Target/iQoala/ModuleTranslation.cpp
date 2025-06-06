@@ -41,9 +41,9 @@ namespace qoala::translate {
     ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
-    std::optional<iqoala::Block *> ModuleTranslation::findIdDependency(const std::string &key) {
-        return dependenciesIdsToIQoalaBlocks.find(key) != dependenciesIdsToIQoalaBlocks.end()
-                       ? std::optional(dependenciesIdsToIQoalaBlocks[key])
+    std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const std::string &key) {
+        return precedencesIdsToIQoalaBlocks.find(key) != precedencesIdsToIQoalaBlocks.end()
+                       ? std::optional(precedencesIdsToIQoalaBlocks[key])
                        : std::nullopt;
     }
 
