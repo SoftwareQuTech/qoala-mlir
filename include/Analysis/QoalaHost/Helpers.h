@@ -64,15 +64,15 @@ namespace qoala::analysis {
         }
     } // namespace isolate
 
-    namespace dependencies {
+    namespace precedences {
         /**
-         * Track data, communication and NetQASM request dependencies between blocks.
-         * Make the dependencies information available by inserting a "nop_meta"
+         * Track precedences (data dependencies, predecessors, communication/entanglement ordering).
+         * Make the precedences information available by inserting a "blk_meta"
          * operation At the beginning of each block.
-         * @param moduleOp module to walk for tracking and adding dependencies.
+         * @param moduleOp module to walk for tracking and adding precedences.
          */
-        mlir::LogicalResult addDependencies(mlir::ModuleOp &moduleOp);
-    } // namespace dependencies
+        mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp);
+    } // namespace precedences
 } // namespace qoala::analysis
 
 #endif // HELPERS_H

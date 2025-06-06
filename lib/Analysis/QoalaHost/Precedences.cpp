@@ -8,7 +8,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
 
-#define DEBUG_TYPE "qoalahost-add-deps-pass-internal"
+#define DEBUG_TYPE "qoalahost-add-precedences-pass-internal"
 
 
 #if  __cplusplus >= 202002L
@@ -21,8 +21,8 @@ using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
 
-namespace qoala::analysis::dependencies {
-    LogicalResult addDependencies(ModuleOp &moduleOp) {
+namespace qoala::analysis::precedences {
+    LogicalResult addPrecedences(ModuleOp &moduleOp) {
         // This pass keeps track of dependencies betwwen the blocks, i.e. for a given block
         // which other block should be exected beforehand. At the moment, the track the
         // following dependencies:
@@ -52,7 +52,7 @@ namespace qoala::analysis::dependencies {
         //    block ordering to preserve this property.
 
 
-        LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostDependencies: "
+        LLVM_DEBUG(llvm::dbgs() << "\n=== QoalaHostPrecedences: "
                                    "Building Block Dependency Graph ===\n");
 
         // Block-level dependency graph: block -> set of blocks it depends on.
@@ -74,7 +74,7 @@ namespace qoala::analysis::dependencies {
             blockIdMap.try_emplace(&block, helpers::formatString(blockIDFmt, idCounter++));
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all dependencies ===\n");
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking all precedences ===\n");
 
         std::vector<Operation *> commOps;
         std::vector<Operation *> requestCallOps;
@@ -117,7 +117,7 @@ namespace qoala::analysis::dependencies {
         });
 
         // Classical communication ordering dependencies
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication dependencies ===\n");
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking communication precedences ===\n");
         for (size_t i = 1; i < commOps.size(); ++i) {
             Block *prevBlock = commOps[i - 1]->getBlock();
             Block *currBlock = commOps[i]->getBlock();
@@ -128,7 +128,7 @@ namespace qoala::analysis::dependencies {
         }
 
         // Request routine call ordering dependencies
-        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines dependencies ===\n");
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Tracking request routines precedences ===\n");
         for (size_t i = 1; i < requestCallOps.size(); ++i) {
             Block *prevBlock = requestCallOps[i - 1]->getBlock();
             Block *currBlock = requestCallOps[i]->getBlock();
@@ -155,7 +155,7 @@ namespace qoala::analysis::dependencies {
             // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predListAttr);
 
-            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with dependencies " << predListAttr
+            LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with precedences " << predListAttr
                                     << "\n");
         }
 

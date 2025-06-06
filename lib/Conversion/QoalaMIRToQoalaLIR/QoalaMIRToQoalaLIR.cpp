@@ -169,11 +169,11 @@ namespace qoala::conversion {
         if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
             signalPassFailure();
         }
-        // Stage 9: Add Block Dependencies
+        // Stage 9: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Dependencies *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
-        if (failed(analysis::dependencies::addDependencies(module))) {
+        if (failed(analysis::precedences::addPrecedences(module))) {
             signalPassFailure();
         }
     }
