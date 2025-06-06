@@ -60,8 +60,27 @@ namespace qoala::iqoala {
         for (auto pred: this->predecessors) {
             predNames.push_back(pred->name);
         }
-        os << "^" << this->name << " { type = " << this->type << ", predecessors = [" << helpers::formatVector(predNames)
-           << "] }:\n";
+
+        std::vector<std::string> depNames;
+        for (auto dep: this->dependencies) {
+            depNames.push_back(dep->name);
+        }
+
+        Block *prevCommBlk = this->prevComm;
+        std::string prevComm;
+        if (prevCommBlk != nullptr) {
+            prevComm = prevCommBlk->name;
+        }
+
+        Block *prevEntBlk = this->prevEnt;
+        std::string prevEnt;
+        if (prevEntBlk != nullptr) {
+            prevEnt = prevEntBlk->name;
+        }
+
+        os << "^" << this->name << " { type = " << this->type << "; predecessors = ["
+           << helpers::formatVector(predNames) << "]; dependencies = [" << helpers::formatVector(depNames)
+           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "}:\n";
         for (const assembly::QoalaHostMCInstr *instruction: this->instructions) {
             os << tabStr << *instruction << "\n";
         }
