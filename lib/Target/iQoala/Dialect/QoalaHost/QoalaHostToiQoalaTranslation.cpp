@@ -288,6 +288,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     } else {
                         return failure();
                     }
+                } else {
+                    block->setPrevComm(nullptr);
                 }
                 std::string prevEnt = op.getPrevEntAttr().getValue().str();
                 if (!prevEnt.empty()) {
@@ -296,6 +298,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     } else {
                         return failure();
                     }
+                } else {
+                    block->setPrevComm(nullptr);
                 }
 
                 // We can safely add the new mapping between the dependency ID and the Block.
