@@ -11,12 +11,12 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: ^b0 { type = CL, predecessors = [] }
+// CHECK-NEXT: ^b0 { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
-// CHECK: ^b1 { type = QL, predecessors = [b0] }
+// CHECK: ^b1 { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
-// CHECK: ^b2 { type = CL, predecessors = [b0, b1] }
+// CHECK: ^b2 { type = CL; predecessors = []; dependencies = [b0, b1]; prev_comm = ; prev_ent = }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG1]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -56,16 +56,16 @@ module {
     netqasm.return %3 : i32
   }
   qoalahost.main_func @test_branching_zero() {
-    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
+    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
     qoalahost.nop_term
     // Branching on zero (bez instruction) is only supported on NetQASM
   ^bb1:
-    qoalahost.blk_meta  {block_id = "block_1", predecessors = ["block_0"]}
+    qoalahost.blk_meta  {block_id = "block_1", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", predecessors = ["block_0", "block_1"]}
+    qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = arith.addi %0, %cstB : i32
     qoalahost.return
   }

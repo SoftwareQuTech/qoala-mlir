@@ -5,7 +5,7 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL, predecessors = [] }
+// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG1]])
@@ -17,7 +17,7 @@
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot(%[[HOST_REG0]], %[[HOST_REG1]])
 // %[[HOST_REG4:.*]] = rem(%[[HOST_REG0]], %[[HOST_REG1]])
-// CHECK: ^b[[BLOCK1:.*]] { type = QL, predecessors = [] }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
@@ -49,7 +49,7 @@ module {
     netqasm.return
   }
   qoalahost.main_func @test_arith_operations() {
-    qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
+    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %cstA = arith.constant 3 : i32
     %cstB = arith.constant 2 : i32
     %resA = arith.addi %cstA, %cstB : i32
@@ -57,10 +57,10 @@ module {
     %resC = arith.muli %cstA, %cstB : i32
     qoalahost.nop_term
   ^bb1:
-    qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
+    qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @__qoala_wrapper0() : () -> ()
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
+    qoalahost.blk_meta  {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.return
   }
 }
