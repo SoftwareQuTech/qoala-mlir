@@ -293,7 +293,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
                 std::string prevEnt = op.getPrevEntAttr().getValue().str();
                 if (!prevEnt.empty()) {
-                    if (auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
+                    if (auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
                         block->setPrevEnt(blk.value());
                     } else {
                         return failure();
