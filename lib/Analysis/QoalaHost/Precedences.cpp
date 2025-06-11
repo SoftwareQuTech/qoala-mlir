@@ -162,7 +162,9 @@ namespace qoala::analysis::precedences {
                                                                 << (resolvedVal ? resolvedVal : Value{}) << "\n");
 
                                         if (resolvedVal) {
-                                            allEffects.emplace_back(kind, resolvedVal, eff.getResource());
+                                            allEffects.emplace_back(
+                                                    const_cast<MemoryEffects::Effect *>(eff.getEffect()), resolvedVal,
+                                                    eff.getResource());
                                         }
                                     }
                                 } else {
