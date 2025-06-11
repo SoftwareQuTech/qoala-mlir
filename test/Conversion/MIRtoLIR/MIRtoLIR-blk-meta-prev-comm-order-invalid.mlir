@@ -15,6 +15,7 @@ module {
   ^bb1:
     qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.recv_floats  {length = 2 : i32, remote = @Bob} : tensor<2xf32>
+  ^bb2:
     qoalahost.return
   }
 }

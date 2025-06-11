@@ -48,14 +48,14 @@ module {
     qmem.rot_z %0, %cst
 
     // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER2]](%[[QUBIT_0]]) : (i32) -> ()
     qmem.hadamard %0
     qmem.rot_x %0, %cst_0
     qmem.rot_y %0, %cst_1
 
     // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[UNUSED_REG_0:.*]] = qoalahost.call @[[WRAPPER3]](%[[QUBIT_0]]) : (i32) -> i1
     %2 = qmem.measure %0 : i1
 

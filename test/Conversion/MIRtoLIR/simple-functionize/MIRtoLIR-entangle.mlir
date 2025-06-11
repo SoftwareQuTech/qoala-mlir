@@ -82,12 +82,12 @@ module {
     qmem.rot_y %2, %c1
 
     // CHECK: ^[[BLOCK_5:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", dependencies = ["block_1", "block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN1]], %[[REG_MAIN0]]) : (i32, i32) -> ()
     qmem.cnot %1, %0
 
     // CHECK: ^[[BLOCK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER6]](%[[REG_MAIN2]]) : (i32) -> i1
     %3 = qmem.measure %2 : i1
 

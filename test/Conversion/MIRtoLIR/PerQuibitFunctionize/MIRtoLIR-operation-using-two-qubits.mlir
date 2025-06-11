@@ -47,12 +47,12 @@ module {
         qmem.cnot %q0, %q1
 
         // CHECK: ^[[BLOCK_3:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[UNUSED_A:.*]] = qoalahost.call @[[WRAPPER3]](%[[MAIN_QUBIT_0]]) : (i32) -> i1
         %m0 = qmem.measure %q0 : i1
 
         // CHECK: ^[[BLOCK_4:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[UNUSED_B:.*]] = qoalahost.call @[[WRAPPER4]](%[[MAIN_QUBIT_1]]) : (i32) -> i1
         %m1 = qmem.measure %q1 : i1
 

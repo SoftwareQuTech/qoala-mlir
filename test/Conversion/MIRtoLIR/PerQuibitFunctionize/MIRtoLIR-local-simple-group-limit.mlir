@@ -43,7 +43,7 @@ module {
     qmem.hadamard %0
 
     // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[UNUSED_REG_0:.*]] = qoalahost.call @[[WRAPPER2]](%[[QUBIT_0]]) : (i32) -> i1
     qmem.rot_x %0, %cst_0
     qmem.rot_y %0, %cst_1
