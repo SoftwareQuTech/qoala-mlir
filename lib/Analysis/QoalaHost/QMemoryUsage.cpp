@@ -3,6 +3,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/ADT/Statistic.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "qoalahost-qmemory-usage"
@@ -11,16 +12,21 @@ using namespace mlir;
 using namespace qoala::dialects;
 
 namespace qoala::analysis {
+
 #define GEN_PASS_DEF_QOALAHOSTQMEMORYUSAGE
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostQMemoryUsagePass
+    // Global statistics
+    // Declare global statistic counters outside the class to avoid issues with
+    // deleted copy constructors in llvm::Statistic (due to std::atomic members).
+    // This also sidesteps the need to explicitly clone statistic fields in the pass.
+    STATISTIC(logicalQubit, "Number of logical qubits declared in the program.");
+    STATISTIC(physicalQubit, "Number of physical qubits used by the program.");
+
+    class QoalaHostQMemoryUsagePass 
         : public impl::QoalaHostQMemoryUsageBase<QoalaHostQMemoryUsagePass> {
         using QoalaHostQMemoryUsageBase::QoalaHostQMemoryUsageBase;
         
-        mlir::Pass::Statistic logicalQubit{this, "logic-qubit", "Number of logical qubits declared in the program."};
-        mlir::Pass::Statistic physicalQubit{this, "phys-qubit", "Number of physical qubit that are going to be used to execute the program."};
-
         void runOnOperation() override;
     };
 
@@ -32,14 +38,13 @@ namespace qoala::analysis {
             for (Block &block: reg.getBlocks()) {
                 for (Operation &func: block.getOperations()) {
                     if (auto mainFunc = dyn_cast<qoalahost::MainFuncOp>(&func)) {
-                        // LLVM_DEBUG(llvm::dbgs() << mainFunc.getSymName() << "\n");
+                        // Logic to count qubits would go here
                         ++logicalQubit;
                         ++physicalQubit;
-                        llvm::outs() << mainFunc.getSymName() << "\n";
+                        llvm::outs() << "Found main func: " << mainFunc.getSymName() << "\n";
                     }
                 }
             }
         }
-        // Do the same thing with a walk operation
     }
 } // namespace qoala::analysis
