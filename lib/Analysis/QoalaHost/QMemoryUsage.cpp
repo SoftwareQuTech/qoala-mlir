@@ -33,18 +33,10 @@ namespace qoala::analysis {
     void QoalaHostQMemoryUsagePass::runOnOperation() {
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQMemoryUsagePass\n");
 
-        Operation *operation = getOperation();
-        for (Region &reg: operation->getRegions()) {
-            for (Block &block: reg.getBlocks()) {
-                for (Operation &func: block.getOperations()) {
-                    if (auto mainFunc = dyn_cast<qoalahost::MainFuncOp>(&func)) {
-                        // Logic to count qubits would go here
-                        ++logicalQubit;
-                        ++physicalQubit;
-                        llvm::outs() << "Found main func: " << mainFunc.getSymName() << "\n";
-                    }
-                }
-            }
-        }
+        Operation *op = getOperation();
+        QoalaHostQMemoryEfficiency analysis(op);
+
+        logicalQubit += analysis.getLogicalQubitCount();
+        physicalQubit += analysis.getPhysicalQubitCount();
     }
 } // namespace qoala::analysis

@@ -71,8 +71,22 @@ namespace qoala::analysis {
          * operation At the beginning of each block.
          * @param moduleOp module to walk for tracking and adding precedences.
          */
+
         mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp);
     } // namespace precedences
+
+    class QoalaHostQMemoryEfficiency {
+    public:
+        QoalaHostQMemoryEfficiency(mlir::Operation *op);
+
+        int getLogicalQubitCount() const { return logicalQubits; }
+        int getPhysicalQubitCount() const { return physicalQubits; }
+        float getEfficiency() const;
+
+    private:
+        int logicalQubits = 0;
+        int physicalQubits = 0;
+    };
 } // namespace qoala::analysis
 
 #endif // HELPERS_H

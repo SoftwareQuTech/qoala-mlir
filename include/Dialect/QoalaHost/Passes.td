@@ -13,4 +13,9 @@ def QoalaHostQMemoryUsage : Pass<"qoalahost-qmem-use", "mlir::ModuleOp"> {
     let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
 
+def QoalaHostShowAnalysis: Pass<"qoalahost-show-analysis", "mlir::ModuleOp"> {
+    let summary = "Show the different analysis computed in LIR.";
+    let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
+}
+
 #endif // QOALAHOST_PASSES
