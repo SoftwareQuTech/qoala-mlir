@@ -3,6 +3,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
+#include "llvm/Support/CommandLine.h"
 
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
@@ -19,6 +20,37 @@
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
+
+#include "Tools/QoalaOpt.h"
+
+bool qoalaOptUnoptimize = false;
+static opt<bool, /*ExternalStorage=*/true> qoalaOptUnoptimizeOption(
+        "qoala-opt-unoptimize",
+        desc("Wether to run the passes to unoptimize the program. Useful to compare worst vs best "
+             "case implementations of programs."),
+        ReallyHidden, location(qoalaOptUnoptimize));
+
+uint32_t qoalaOptSingleGateDuration = 10;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptSingleGateDurationOption("qoala-opt-single-gate-duration",
+                                         desc("Time taken by a single gate operation."), NotHidden,
+                                         location(qoalaOptSingleGateDuration));
+
+uint32_t qoalaOptTwoGateDuration = 50;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptTwoGateDurationOption("qoala-opt-two-gate-duration", desc("Time taken by a double gate operation."),
+                                      NotHidden, location(qoalaOptTwoGateDuration));
+
+uint32_t qoalaOptLatency = 100;
+static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
+                                                                     desc("Calssical communication latency."),
+                                                                     NotHidden, location(qoalaOptLatency));
+
+uint32_t qoalaOptLinkDuration = 1000;
+static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLinkDurationOption("qoala-opt-link-duration",
+                                                                          desc("Time taken to generate entanglement."),
+                                                                          NotHidden, location(qoalaOptLinkDuration));
+
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;
@@ -48,6 +80,5 @@ int main(int argc, char **argv) {
 
     mlir::PassManager pm(&context);
 
-    return mlir::asMainReturnCode(
-        mlir::MlirOptMain(argc, argv, "Qoala IR optimizer\n", registry));
+    return mlir::asMainReturnCode(mlir::MlirOptMain(argc, argv, "Qoala IR optimizer\n", registry));
 }
