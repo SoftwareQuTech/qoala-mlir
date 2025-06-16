@@ -73,6 +73,59 @@ namespace qoala::analysis {
          */
         mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp);
     } // namespace precedences
+
+    /**
+     * Build MILP-compatible block representations from the main function.
+     * Used to analyze control/data dependencies and enable block reordering.
+     */
+    namespace reordering {
+        /**
+         * Classification of block types for MILP modeling.
+         * - CL: Classical local logic (reserved, not used yet)
+         * - CC: Classical communication (e.g., send/recv)
+         * - QL: Quantum local routines
+         * - QC: Quantum communication routines
+         */
+        enum class BlockType { CL, CC, QL, QC };
+
+        class MILPOperation {
+        public:
+            std::string id; // Unique identifier for tracking
+            mlir::Operation *op; // Pointer to the actual MLIR operation
+
+            MILPOperation(std::string id, mlir::Operation *op) : id(std::move(id)), op(op) {}
+        };
+
+        /**
+         * Represents a block of code with associated metadata for MILP-based scheduling.
+         * Captures type, dependencies, and relevant operations within the block.
+         */
+        class MILPBlock {
+        public:
+            std::string id;
+            BlockType type;
+            std::vector<std::string> predecessors;
+            std::vector<std::string> dependencies;
+            std::string prevComm;
+            std::string prevEnt;
+            std::vector<MILPOperation> operations;
+            mlir::Block *block;
+
+            MILPBlock(std::string id, BlockType type, mlir::Block *block) :
+                id(std::move(id)), type(type), block(block) {}
+
+            void addOperation(std::string opId, mlir::Operation *op) { operations.emplace_back(std::move(opId), op); }
+        };
+
+        /**
+         * Construct MILPBlocks for all blocks inside the qoalahost::MainFuncOp.
+         * Verifies block structure and extracts operation types.
+         * @param moduleOp Module containing the MainFuncOp.
+         * @return Pair of logical result and vector of MILPBlocks.
+         */
+        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPBlock>>>
+        buildMILPBlocks(mlir::ModuleOp moduleOp);
+    } // namespace reordering
 } // namespace qoala::analysis
 
 #endif // HELPERS_H
