@@ -25,14 +25,21 @@ namespace qoala::analysis {
                                 << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration << "ns\n");
 
         ModuleOp moduleOp = this->getOperation();
-        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<reordering::MILPBlock>>> result =
-                reordering::buildMILPBlocks(moduleOp);
-        mlir::LogicalResult status = result.first;
-        std::vector<std::unique_ptr<reordering::MILPBlock>> &milpBlocks = result.second;
 
-        if (failed(status)) {
+        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<reordering::MILPBlock>>> resultBlocks =
+                reordering::buildMILPBlocks(moduleOp);
+        mlir::LogicalResult statusBlocks = resultBlocks.first;
+        std::vector<std::unique_ptr<reordering::MILPBlock>> &milpBlocks = resultBlocks.second;
+        if (failed(statusBlocks)) {
             signalPassFailure();
-            return;
+        }
+
+        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<reordering::MILPTask>>> resultTasks =
+                reordering::buildMILPTasks(milpBlocks);
+        mlir::LogicalResult statusTasks = resultTasks.first;
+        std::vector<std::unique_ptr<reordering::MILPTask>> &milpTasks = resultTasks.second;
+        if (failed(statusTasks)) {
+            signalPassFailure();
         }
     }
 } // namespace qoala::analysis

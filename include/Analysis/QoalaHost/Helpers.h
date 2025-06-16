@@ -117,6 +117,17 @@ namespace qoala::analysis {
             void addOperation(std::string opId, mlir::Operation *op) { operations.emplace_back(std::move(opId), op); }
         };
 
+        class MILPTask {
+        public:
+            std::string id;
+            MILPBlock *parentBlock;
+            std::vector<MILPOperation> operations;
+
+            MILPTask(std::string id, MILPBlock *block) : id(std::move(id)), parentBlock(block) {}
+
+            void addOperation(const MILPOperation &op) { operations.push_back(op); }
+        };
+
         /**
          * Construct MILPBlocks for all blocks inside the qoalahost::MainFuncOp.
          * Verifies block structure and extracts operation types.
@@ -125,6 +136,15 @@ namespace qoala::analysis {
          */
         std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPBlock>>>
         buildMILPBlocks(mlir::ModuleOp moduleOp);
+
+        /**
+         * Constructs MILPTasks from previously extracted MILPBlocks.\
+         * @param blocks A list of constructed MILPBlocks.
+         * @return A pair (LogicalResult, List of MILPTasks).
+         *         The LogicalResult is `failure()` if malformed QL/QC/CC blocks are encountered.
+         */
+        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPTask>>>
+        buildMILPTasks(const std::vector<std::unique_ptr<MILPBlock>> &blocks);
     } // namespace reordering
 } // namespace qoala::analysis
 

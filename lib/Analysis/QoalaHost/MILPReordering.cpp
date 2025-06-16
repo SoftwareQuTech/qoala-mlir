@@ -228,4 +228,99 @@ namespace qoala::analysis::reordering {
         return {mlir::success(), std::move(milpBlocks)};
     }
 
+
+    std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPTask>>>
+    buildMILPTasks(const std::vector<std::unique_ptr<MILPBlock>> &blocks) {
+        // Constructs MILPTasks from previously extracted MILPBlocks.
+        //
+        // MILPTasks are smaller scheduling units derived from MILPBlocks. Each task
+        // belongs to a MILPBlock and encapsulates a coherent group of operations
+        // that will be considered individually during scheduling.
+        //
+        // Construction rules:
+        //
+        //  - For blocks of type CL (Classical Local) or CC (Classical Communication):
+        //      → A single MILPTask is created containing all the operations.
+        //      → For CC blocks, we also check that there is exactly one operation in the block.
+        //
+        //  - For blocks of type QL (Quantum Local) or QC (Quantum Communication):
+        //      → Three MILPTasks are created to match the scheduling semantics:
+        //          1. The first task contains only the **first** operation
+        //          2. The second task contains all **middle** operations (if any)
+        //          3. The third task contains only the **last** operation
+        //      → This breakdown reflects the fact that in quantum routines,
+        //        pre-processing, main logic, and cleanup/post-processing are often
+        //        decoupled stages that must be scheduled individually.
+        //
+        // Preconditions:
+        //  - All blocks must contain at least one operation.
+        //  - QL/QC blocks must contain **at least three operations**; otherwise, the
+        //    pass fails early with a meaningful error.
+        std::vector<std::unique_ptr<MILPTask>> tasks;
+
+        for (const std::unique_ptr<MILPBlock> &blockPtr: blocks) {
+            MILPBlock *block = blockPtr.get();
+            const std::vector<MILPOperation> &ops = block->operations;
+
+            if (ops.empty()) {
+                LLVM_DEBUG(llvm::dbgs() << "[MILP] Skipping block " << block->id << " with no operations\n");
+                continue;
+            }
+
+            // --- Case: CL or CC block → one task with all operations ---
+            if (block->type == BlockType::CL || block->type == BlockType::CC) {
+                if (block->type == BlockType::CC && ops.size() != 1) {
+                    mlir::emitError(block->block->front().getLoc())
+                            << "MILPBlock of type CC should contain exactly one operation, but got " << ops.size();
+                    return std::make_pair(mlir::failure(), std::vector<std::unique_ptr<MILPTask>>());
+                }
+
+                std::string taskId = block->id + "_t0";
+                std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>(taskId, block);
+                for (const MILPOperation &op: ops) {
+                    task->addOperation(op);
+                }
+                tasks.push_back(std::move(task));
+            }
+
+            // --- Case: QL or QC block → split into 3 tasks ---
+            else if (block->type == BlockType::QL || block->type == BlockType::QC) {
+                if (ops.size() < 3) {
+                    mlir::emitError(block->block->front().getLoc(),
+                                    "QL/QC block must contain at least 3 operations to form 3 tasks");
+                    return std::make_pair(mlir::failure(), std::vector<std::unique_ptr<MILPTask>>());
+                }
+
+                // Task 0: first op
+                std::unique_ptr<MILPTask> task0 = std::make_unique<MILPTask>(block->id + "_t0", block);
+                task0->addOperation(ops.front());
+                tasks.push_back(std::move(task0));
+
+                // Task 1: middle ops
+                std::unique_ptr<MILPTask> task1 = std::make_unique<MILPTask>(block->id + "_t1", block);
+                for (size_t i = 1; i < ops.size() - 1; ++i) {
+                    task1->addOperation(ops[i]);
+                }
+                tasks.push_back(std::move(task1));
+
+                // Task 2: last op
+                std::unique_ptr<MILPTask> task2 = std::make_unique<MILPTask>(block->id + "_t2", block);
+                task2->addOperation(ops.back());
+                tasks.push_back(std::move(task2));
+            }
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[MILP] Constructed tasks:\n";
+            for (const std::unique_ptr<MILPTask> &task: tasks) {
+                llvm::dbgs() << " - Task " << task->id << " (Block=" << task->parentBlock->id << ")\n";
+                for (const MILPOperation &op: task->operations) {
+                    llvm::dbgs() << "     * Op " << op.id << " (" << op.op->getName().getStringRef() << ")\n";
+                }
+            }
+        });
+
+        return std::make_pair(mlir::success(), std::move(tasks));
+    }
+
 } // namespace qoala::analysis::reordering
