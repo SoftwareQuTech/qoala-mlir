@@ -13,7 +13,7 @@
 // CHECK-NEXT: run_request() : __qoala_wrapper2
 // CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0, b1, b2]; prev_comm = ; prev_ent = }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper3
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0, b1, b2]; prev_comm = ; prev_ent = }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b3]; prev_comm = ; prev_ent = }
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]; [[MEAS_3:.*]]; [[MEAS_4:.*]]> = run_subroutine() : __qoala_wrapper4
 
 //CHECK: SUBROUTINE __qoala_wrapper1
@@ -146,7 +146,7 @@ module {
       qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_0", "block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
       qoalahost.call @__qoala_wrapper3(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> ()
     ^bb4:
-      qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_0", "block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
       %m0, %m1, %m2, %m3, %m4 = qoalahost.call @__qoala_wrapper4(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> (i1, i1, i1, i1, i1)
     ^bb5:
       qoalahost.blk_meta  {block_id = "block_5", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}

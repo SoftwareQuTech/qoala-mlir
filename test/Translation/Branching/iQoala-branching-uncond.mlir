@@ -21,7 +21,7 @@
 // CHECK-NEXT: jump() : b3
 // CHECK: ^b3 { type = QL; predecessors = [b2]; dependencies = [b0]; prev_comm = ; prev_ent = }:
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
-// CHECK: b4 { type = CL; predecessors = []; dependencies = [b0, b3]; prev_comm = ; prev_ent = }:
+// CHECK: b4 { type = CL; predecessors = []; dependencies = [b3]; prev_comm = ; prev_ent = }:
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG1]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0
@@ -72,7 +72,7 @@ module {
     qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_0"], predecessors = ["block_2"], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0(%cstA) : (i32) -> i32
   ^bb4:
-     qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_0", "block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+     qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = arith.addi %0, %cstB : i32
     qoalahost.return
   }
