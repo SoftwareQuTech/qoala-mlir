@@ -3,6 +3,9 @@
 #include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/Operation.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "qoalahost-qmemory-efficiency"
 
 using namespace mlir;
 using namespace qoala::dialects;
@@ -10,7 +13,7 @@ using namespace qoala::dialects;
 namespace qoala::analysis {
 
     QoalaHostQMemoryEfficiency::QoalaHostQMemoryEfficiency(Operation *op) {
-        
+        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQMemoryEfficiencyPass\n");
         ModuleOp module = dyn_cast<ModuleOp>(*op);
         auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
         assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
@@ -24,7 +27,7 @@ namespace qoala::analysis {
                 if (auto routine = dyn_cast<FunctionOpInterface>(callee)) {
                     routine.walk([&](mlir::Operation *calleeOp) {
                         if (calleeOp && isa<netqasm::QAllocOp>(calleeOp)) {
-                            llvm::outs() << "Found QAllocOp: " << *calleeOp << "\n";
+                            LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << *calleeOp << "\n");
                             ++logicalQubits;
                             if (measured == 0) {
                                 ++physicalQubits;
@@ -32,7 +35,7 @@ namespace qoala::analysis {
                                 --measured;
                             }
                         } else if (calleeOp && isa<netqasm::MeasureOp>(calleeOp)) {
-                            llvm::outs() << "Found MeasureOp: " << *calleeOp << "\n";
+                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << *calleeOp << "\n");
                             ++measured;
                         }
                     });
