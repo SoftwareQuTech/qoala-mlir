@@ -21,8 +21,11 @@ namespace qoala::analysis {
 
     void QoalaHostReorderBlocksPass::runOnOperation() {
         LLVM_DEBUG(llvm::dbgs() << "QoalaHostReorderBlocksPass: single_gate_duration=" << qoalaOptSingleGateDuration
-                                << "ns, two_gate_duration=" << qoalaOptTwoGateDuration << "ns, latency="
-                                << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration << "ns\n");
+                                << "ns, two_gate_duration=" << qoalaOptTwoGateDuration
+                                << "ns, latency=" << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration
+                                << "ns, host_instr_time=" << qoalaOptHostInstrTime
+                                << "ns, host_peer_latency=" << qoalaOptHostPeerLatency
+                                << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime << "ns\n");
 
         ModuleOp moduleOp = this->getOperation();
 
@@ -31,31 +34,31 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        reordering::MILPModelBuilder model;
-        if (!model.initialize()) {
-            moduleOp.emitError("Failed to initialize SCIP.");
-            signalPassFailure();
-            return;
-        }
+        // reordering::MILPModelBuilder model;
+        // if (!model.initialize()) {
+        //     moduleOp.emitError("Failed to initialize SCIP.");
+        //     signalPassFailure();
+        //     return;
+        // }
 
-        model.setProblemData(blocks, qubits);
-        model.createVariables();
-        model.addConstraints();
-        model.setObjective();
+        // model.setProblemData(blocks, qubits);
+        // model.createVariables();
+        // model.addConstraints();
+        // model.setObjective();
 
-        if (!model.optimize()) {
-            moduleOp.emitError("MILP solve failed.");
-            signalPassFailure();
-            return;
-        }
+        // if (!model.optimize()) {
+        //     moduleOp.emitError("MILP solve failed.");
+        //     signalPassFailure();
+        //     return;
+        // }
 
-        for (const auto &block: blocks) {
-            for (const auto *op: block->getOperations()) {
-                double start = model.getOperationStartTime(op->getId());
-                LLVM_DEBUG(llvm::dbgs() << "Start[" << op->getId() << "] = " << start << "\n");
-            }
-        }
+        // for (const auto &block: blocks) {
+        //     for (const auto *op: block->getOperations()) {
+        //         double start = model.getOperationStartTime(op->getId());
+        //         LLVM_DEBUG(llvm::dbgs() << "Start[" << op->getId() << "] = " << start << "\n");
+        //     }
+        // }
 
-        model.cleanup();
+        // model.cleanup();
     }
 } // namespace qoala::analysis

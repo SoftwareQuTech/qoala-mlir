@@ -12,5 +12,8 @@ extern uint32_t qoalaOptSingleGateDuration;
 extern uint32_t qoalaOptTwoGateDuration;
 extern uint32_t qoalaOptLatency;
 extern uint32_t qoalaOptLinkDuration;
+extern uint32_t qoalaOptHostInstrTime;
+extern uint32_t qoalaOptHostPeerLatency;
+extern uint32_t qoalaOptQNosInstrTime;
 
 #endif //QOALAOPT_H

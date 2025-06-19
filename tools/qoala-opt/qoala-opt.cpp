@@ -50,6 +50,20 @@ uint32_t qoalaOptLinkDuration = 1000;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLinkDurationOption("qoala-opt-link-duration",
                                                                           desc("Time taken to generate entanglement."),
                                                                           NotHidden, location(qoalaOptLinkDuration));
+uint32_t qoalaOptHostInstrTime = 1;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptHostInstrTimeOption("qoala-opt-host-instr-time", desc("Time taken by a CL operation on the QNPU."),
+                                    NotHidden, location(qoalaOptHostInstrTime));
+uint32_t qoalaOptHostPeerLatency = 1;
+static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptHostPeerLatencyOption(
+        "qoala-opt-host-peer-latency",
+        desc("Latency of treating a classical communication operation upon receiving a message3."), NotHidden,
+        location(qoalaOptHostPeerLatency));
+uint32_t qoalaOptQNosInstrTime = 1;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptQNosInstrTimeOption("qoala-opt-qnos-instr-time",
+                                    desc("Time taken by a classical instruction executed on the QNPU."), NotHidden,
+                                    location(qoalaOptQNosInstrTime));
 
 
 int main(int argc, char **argv) {
