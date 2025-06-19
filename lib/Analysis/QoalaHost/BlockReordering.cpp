@@ -26,20 +26,36 @@ namespace qoala::analysis {
 
         ModuleOp moduleOp = this->getOperation();
 
-        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<reordering::MILPBlock>>> resultBlocks =
-                reordering::buildMILPBlocks(moduleOp);
-        mlir::LogicalResult statusBlocks = resultBlocks.first;
-        std::vector<std::unique_ptr<reordering::MILPBlock>> &milpBlocks = resultBlocks.second;
-        if (failed(statusBlocks)) {
+        auto [blocks, qubits, result] = reordering::buildMILPFromMLIR(moduleOp);
+        if (failed(result)) {
             signalPassFailure();
         }
 
-        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<reordering::MILPTask>>> resultTasks =
-                reordering::buildMILPTasks(milpBlocks);
-        mlir::LogicalResult statusTasks = resultTasks.first;
-        std::vector<std::unique_ptr<reordering::MILPTask>> &milpTasks = resultTasks.second;
-        if (failed(statusTasks)) {
+        reordering::MILPModelBuilder model;
+        if (!model.initialize()) {
+            moduleOp.emitError("Failed to initialize SCIP.");
             signalPassFailure();
+            return;
         }
+
+        model.setProblemData(blocks, qubits);
+        model.createVariables();
+        model.addConstraints();
+        model.setObjective();
+
+        if (!model.optimize()) {
+            moduleOp.emitError("MILP solve failed.");
+            signalPassFailure();
+            return;
+        }
+
+        for (const auto &block: blocks) {
+            for (const auto *op: block->getOperations()) {
+                double start = model.getOperationStartTime(op->getId());
+                LLVM_DEBUG(llvm::dbgs() << "Start[" << op->getId() << "] = " << start << "\n");
+            }
+        }
+
+        model.cleanup();
     }
 } // namespace qoala::analysis

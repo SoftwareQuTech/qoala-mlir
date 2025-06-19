@@ -4,6 +4,8 @@
 #include "llvm/Support/Casting.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <scip/scip.h>
+#include <scip/scipdefplugins.h>
 
 namespace qoala::analysis {
     namespace isolate {
@@ -79,72 +81,148 @@ namespace qoala::analysis {
      * Used to analyze control/data dependencies and enable block reordering.
      */
     namespace reordering {
-        /**
-         * Classification of block types for MILP modeling.
-         * - CL: Classical local logic (reserved, not used yet)
-         * - CC: Classical communication (e.g., send/recv)
-         * - QL: Quantum local routines
-         * - QC: Quantum communication routines
-         */
-        enum class BlockType { CL, CC, QL, QC };
+        // Forward declarations
+        class MILPOperation;
+        class MILPBlock;
 
+        enum class OpType { CL, CC, QL, QC, UNKNOWN };
+
+        // Represents a single operation
         class MILPOperation {
         public:
-            std::string id; // Unique identifier for tracking
-            mlir::Operation *op; // Pointer to the actual MLIR operation
+            MILPOperation(const std::string &id, OpType type, double duration);
 
-            MILPOperation(std::string id, mlir::Operation *op) : id(std::move(id)), op(op) {}
+            const std::string &getId() const;
+            OpType getType() const;
+            double getDuration() const;
+
+            void setStartTime(double startTime);
+            double getStartTime() const;
+
+        private:
+            std::string id_;
+            OpType type_;
+            double duration_;
+            double start_time_; // decision variable: start(o)
         };
 
-        /**
-         * Represents a block of code with associated metadata for MILP-based scheduling.
-         * Captures type, dependencies, and relevant operations within the block.
-         */
-        class MILPBlock {
-        public:
-            std::string id;
-            BlockType type;
-            std::vector<std::string> predecessors;
-            std::vector<std::string> dependencies;
-            std::string prevComm;
-            std::string prevEnt;
-            std::vector<MILPOperation> operations;
-            mlir::Block *block;
-
-            MILPBlock(std::string id, BlockType type, mlir::Block *block) :
-                id(std::move(id)), type(type), block(block) {}
-
-            void addOperation(std::string opId, mlir::Operation *op) { operations.emplace_back(std::move(opId), op); }
-        };
-
+        // Represents a group of operations in a block with same type (CL or Q)
         class MILPTask {
         public:
-            std::string id;
-            MILPBlock *parentBlock;
-            std::vector<MILPOperation> operations;
+            MILPTask(int id, MILPBlock *parent, const std::string &group); // group: "C" or "Q"
 
-            MILPTask(std::string id, MILPBlock *block) : id(std::move(id)), parentBlock(block) {}
+            int getId() const;
+            const std::string &getGroup() const;
 
-            void addOperation(const MILPOperation &op) { operations.push_back(op); }
+            void addOperation(MILPOperation *op);
+            const std::vector<MILPOperation *> &getOperations() const;
+
+            MILPOperation *getFirstOperation() const;
+            double getDuration() const;
+
+            MILPBlock *getParentBlock() const;
+
+        private:
+            int id_;
+            std::string group_;
+            std::vector<MILPOperation *> operations_;
+            MILPBlock *parent_block_;
         };
 
-        /**
-         * Construct MILPBlocks for all blocks inside the qoalahost::MainFuncOp.
-         * Verifies block structure and extracts operation types.
-         * @param moduleOp Module containing the MainFuncOp.
-         * @return Pair of logical result and vector of MILPBlocks.
-         */
-        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPBlock>>>
-        buildMILPBlocks(mlir::ModuleOp moduleOp);
+        // Represents a block, an ordered sequence of operations
+        class MILPBlock {
+        public:
+            MILPBlock(const std::string &id, OpType type);
 
-        /**
-         * Constructs MILPTasks from previously extracted MILPBlocks.\
-         * @param blocks A list of constructed MILPBlocks.
-         * @return A pair (LogicalResult, List of MILPTasks).
-         *         The LogicalResult is `failure()` if malformed QL/QC/CC blocks are encountered.
-         */
-        std::pair<mlir::LogicalResult, std::vector<std::unique_ptr<MILPTask>>>
-        buildMILPTasks(const std::vector<std::unique_ptr<MILPBlock>> &blocks);
+            const std::string &getId() const;
+            OpType getType() const;
+
+            void addOperation(MILPOperation *op);
+            const std::vector<MILPOperation *> &getOperations() const;
+
+            void addTask(MILPTask *task);
+            const std::vector<MILPTask *> &getTasks() const;
+
+        private:
+            std::string id_;
+            OpType type_;
+            std::vector<MILPOperation *> operations_;
+            std::vector<MILPTask *> tasks_;
+        };
+
+        // Represents a logical qubit with allocation and measurement operations
+        class MILPQubit {
+        public:
+            MILPQubit(const std::string &id);
+
+            const std::string &getId() const;
+
+            void setAllocation(MILPOperation *allocOp);
+            void setMeasurement(MILPOperation *measOp);
+
+            MILPOperation *getAllocation() const;
+            MILPOperation *getMeasurement() const;
+
+            double computeLifetime() const; // start(meas) + dur(meas) - (start(alloc) + dur(alloc))
+
+        private:
+            std::string id_;
+            MILPOperation *alloc_op_; // from O_Q
+            MILPOperation *meas_op_; // from O_QL
+        };
+
+        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
+                   mlir::LogicalResult>
+        buildMILPFromMLIR(mlir::ModuleOp module);
+
+        // Encapsulates the SCIP MILP modeling process
+        class MILPModelBuilder {
+        public:
+            MILPModelBuilder();
+            ~MILPModelBuilder();
+
+            // Initialize SCIP and setup base model
+            bool initialize();
+
+            // Inject blocks and qubits to be used in modeling
+            void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
+                                const std::vector<std::shared_ptr<MILPQubit>> &qubits);
+
+            // Create SCIP variables for each operation
+            void createVariables();
+
+            // Add all constraints to the model
+            void addConstraints();
+
+            // Add a single group of constraints (optional modular form)
+            void addIntraTaskOrderingConstraints();
+            void addBlockPrecedenceConstraints();
+            void addFCFSTaskConstraints();
+            void addIntraBlockSequencingConstraints();
+
+            // Define the objective function (e.g., minimize total qubit lifetime)
+            void setObjective();
+
+            // Run the solver
+            bool optimize();
+
+            // Retrieve start time for a specific operation (by ID)
+            double getOperationStartTime(const std::string &opId) const;
+
+            // Cleanup and destroy SCIP
+            void cleanup();
+
+        private:
+            SCIP *scip_; // main SCIP context
+            std::vector<std::shared_ptr<MILPBlock>> blocks_;
+            std::vector<std::shared_ptr<MILPQubit>> qubits_;
+
+            // Map from operation ID to SCIP variable
+            std::unordered_map<std::string, SCIP_VAR *> startVars_;
+
+            // Utility to create SCIP variable
+            SCIP_VAR *createContinuousVariable(const std::string &name, double lb, double ub);
+        };
     } // namespace reordering
 } // namespace qoala::analysis
 

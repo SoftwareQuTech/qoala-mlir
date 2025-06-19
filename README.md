@@ -96,7 +96,7 @@ virtual environment created for LLVM.
 To build everything, run (see below to use `clang/LLVM` as the compiler toolchain)
 ```shell
 (llvm-venv)$ mkdir build && cd build
-(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
+(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/lib/cmake/mlir -DSCIP_DIR=$SCIP_DIR -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
 
@@ -109,6 +109,7 @@ To compile with `clang`, execute these commands (Please change the suffix `-17` 
                                 -DCMAKE_CXX_COMPILER=clang++-17 \
                                 -DCMAKE_LINKER=ld.ldd-17 \
                                 -DMLIR_DIR=/opt/mlir/lib/cmake/mlir \
+                                -DSCIP_DIR=$SCIP_DIR \
                                 -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```

@@ -7,6 +7,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(MLIR REQUIRED CONFIG)
+set(SCIP_DIR "$ENV{SCIP_DIR}")
+find_package(SCIP REQUIRED CONFIG
+             PATHS "${SCIP_DIR}"
+             NO_DEFAULT_PATH)
+
+# Manually extract SCIP include dir (if not already exposed by SCIP package)
+get_target_property(SCIP_INCLUDE_DIR libscip INTERFACE_INCLUDE_DIRECTORIES)
+message(STATUS "SCIP include dir: ${SCIP_INCLUDE_DIR}")
 
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -27,6 +35,7 @@ include(HandleLLVMOptions)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
+include_directories(${SCIP_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})

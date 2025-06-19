@@ -12,5 +12,9 @@ add_mlir_tool(qoala-opt
     ${LIBS}
 )
 llvm_update_compile_flags(qoala-opt)
-target_link_libraries(qoala-opt PRIVATE ${LIBS})
+target_link_libraries(qoala-opt
+  PRIVATE
+    ${LIBS}
+    libscip
+)
 mlir_check_all_link_libraries(qoala-opt)

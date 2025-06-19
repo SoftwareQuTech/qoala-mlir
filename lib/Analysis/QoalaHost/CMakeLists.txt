@@ -4,10 +4,16 @@ add_mlir_dialect_library(MLIRQoalaHostAnalysis
     AddPrecedences.cpp
     BlockReordering.cpp
     MILPReordering.cpp
+    MILPTypes.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QoalaHost
 
     DEPENDS
     MLIRQoalaHostPassIncGen
+)
+
+target_include_directories(MLIRQoalaHostAnalysis
+  PRIVATE
+    ${SCIP_INCLUDE_DIR}
 )
