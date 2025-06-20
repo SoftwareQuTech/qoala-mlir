@@ -4,6 +4,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/SymbolTable.h"
 #include "Dialect/QoalaHost/Passes.h"
+#include "llvm/Support/FormatVariadic.h"
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
@@ -313,6 +314,111 @@ namespace qoala::analysis::reordering {
                 }
             }
         });
+
+        LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
+
+        mlir::DenseMap<mlir::Value, reordering::MILPOperation *> valueToAllocOp;
+        mlir::DenseMap<mlir::Value, reordering::MILPOperation *> valueToMeasOp;
+
+        for (const auto &blockPtr: blocks) {
+            for (reordering::MILPOperation *milpOp: blockPtr->getOperations()) {
+                mlir::Operation *op = milpOp->getOperation();
+                if (!op)
+                    continue;
+
+                // We want to look through call ops to see what they reference
+                if (auto call = llvm::dyn_cast<mlir::CallOpInterface>(op)) {
+                    mlir::SymbolRefAttr calleeAttr = call.getCallableForCallee().dyn_cast<mlir::SymbolRefAttr>();
+                    if (!calleeAttr)
+                        continue;
+
+                    mlir::func::FuncOp func = moduleOp.lookupSymbol<mlir::func::FuncOp>(calleeAttr.getRootReference());
+                    if (!func || func.getBody().empty())
+                        continue;
+
+                    for (mlir::Operation &innerOp: func.getBody().front()) {
+                        // Allocating ops: QInitOp and EprsOp
+                        if (llvm::isa<netqasm::QInitOp>(innerOp) || llvm::isa<netqasm::EprsOp>(innerOp)) {
+                            LLVM_DEBUG(llvm::dbgs() << "heeeere\n");
+                            if (call->getNumResults() > 0) {
+                                LLVM_DEBUG(llvm::dbgs() << "not heeeere\n");
+                                mlir::Value result = call->getResult(0);
+                                valueToAllocOp[result] = milpOp;
+
+                                LLVM_DEBUG({
+                                    llvm::dbgs() << "  [Alloc from call] " << call->getName() << " returns " << result
+                                                 << "\n";
+                                });
+                            }
+                        }
+
+                        // Measurement ops
+                        if (auto measOp = llvm::dyn_cast<netqasm::MeasureOp>(&innerOp)) {
+                            mlir::Value measuredQubit = measOp.getOperation()->getOperand(0); 
+                            valueToMeasOp[measuredQubit] = milpOp;
+
+                            LLVM_DEBUG({
+                                llvm::dbgs() << "  [Meas from call] " << call->getName() << " measures "
+                                             << measuredQubit << "\n";
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "  >> Total alloc ops: " << valueToAllocOp.size() << "\n";
+            llvm::dbgs() << "  >> Total meas ops : " << valueToMeasOp.size() << "\n";
+        });
+
+        for (const auto &pair: valueToMeasOp) {
+            mlir::Value measuredVal = pair.first;
+            reordering::MILPOperation *measOp = pair.second;
+
+            auto allocIt = valueToAllocOp.find(measuredVal);
+            if (allocIt == valueToAllocOp.end()) {
+                LLVM_DEBUG({
+                    llvm::dbgs() << "    -> No matching alloc found for measured value " << measuredVal << "\n";
+                });
+                continue;
+            }
+
+            reordering::MILPOperation *allocOp = allocIt->second;
+            std::string qubitId =
+                    llvm::formatv("{0}", static_cast<const void *>(measuredVal.getAsOpaquePointer())).str();
+
+            auto qubit = std::make_shared<reordering::MILPQubit>(qubitId);
+            qubit->setAllocation(allocOp);
+            qubit->setMeasurement(measOp);
+            qubits.push_back(qubit);
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[MILP] Tracked Qubits:\n";
+            for (const auto &qubitPtr: qubits) {
+                const auto &q = *qubitPtr;
+                llvm::dbgs() << " - Qubit ID: " << q.getId() << "\n";
+
+                auto *alloc = q.getAllocation();
+                auto *meas = q.getMeasurement();
+
+                if (alloc)
+                    llvm::dbgs() << "     Alloc: " << alloc->getId() << " ("
+                                 << alloc->getOperation()->getName().getStringRef() << ")\n";
+                else
+                    llvm::dbgs() << "     Alloc: <none>\n";
+
+                if (meas)
+                    llvm::dbgs() << "     Meas : " << meas->getId() << " ("
+                                 << meas->getOperation()->getName().getStringRef() << ")\n";
+                else
+                    llvm::dbgs() << "     Meas : <none>\n";
+
+                llvm::dbgs() << "     Lifetime: " << q.computeLifetime() << "\n";
+            }
+        });
+
 
         return {blocks, qubits, precedences, mlir::success()};
     }
