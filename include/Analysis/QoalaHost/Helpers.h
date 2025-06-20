@@ -81,98 +81,123 @@ namespace qoala::analysis {
      * Used to analyze control/data dependencies and enable block reordering.
      */
     namespace reordering {
-        // Forward declarations
-        class MILPOperation;
-        class MILPBlock;
-
         enum class OpType { CL, CC, QL, QC, UNKNOWN };
 
-        // Represents a single operation
+        // === MILPOperation ===
         class MILPOperation {
         public:
-            MILPOperation(const std::string &id, OpType type, double duration);
+            MILPOperation(const std::string &id, OpType type, double duration) :
+                id_(id), type_(type), duration_(duration), start_time_(0.0), op_(nullptr) {}
 
-            const std::string &getId() const;
-            OpType getType() const;
-            double getDuration() const;
+            const std::string &getId() const { return id_; }
+            OpType getType() const { return type_; }
+            double getDuration() const { return duration_; }
 
-            void setStartTime(double startTime);
-            double getStartTime() const;
+            void setStartTime(double startTime) { start_time_ = startTime; }
+            double getStartTime() const { return start_time_; }
+
+            void setOperation(mlir::Operation *op) { op_ = op; }
+            mlir::Operation *getOperation() const { return op_; }
 
         private:
             std::string id_;
             OpType type_;
             double duration_;
-            double start_time_; // decision variable: start(o)
+            double start_time_;
+            mlir::Operation *op_;
         };
 
-        // Represents a group of operations in a block with same type (CL or Q)
+        // === MILPTask ===
+        class MILPBlock; // forward declaration
+
         class MILPTask {
         public:
-            MILPTask(int id, MILPBlock *parent, const std::string &group); // group: "C" or "Q"
+            MILPTask(std::string id, MILPBlock *parent, const std::string &group) :
+                id_(id), parent_block_(parent), group_(group) {}
 
-            int getId() const;
-            const std::string &getGroup() const;
+            const std::string &getId() const { return id_; }
+            const std::string &getGroup() const { return group_; }
 
-            void addOperation(MILPOperation *op);
-            const std::vector<MILPOperation *> &getOperations() const;
+            void addOperation(MILPOperation *op) { operations_.push_back(op); }
+            const std::vector<MILPOperation *> &getOperations() const { return operations_; }
 
-            MILPOperation *getFirstOperation() const;
-            double getDuration() const;
+            MILPOperation *getFirstOperation() const { return operations_.empty() ? nullptr : operations_.front(); }
 
-            MILPBlock *getParentBlock() const;
+            double getDuration() const {
+                double dur = 0.0;
+                for (auto *op: operations_)
+                    dur += op->getDuration();
+                return dur;
+            }
+
+            MILPBlock *getParentBlock() const { return parent_block_; }
 
         private:
-            int id_;
+            std::string id_;
             std::string group_;
             std::vector<MILPOperation *> operations_;
             MILPBlock *parent_block_;
         };
 
-        // Represents a block, an ordered sequence of operations
+        // === MILPBlock ===
         class MILPBlock {
         public:
-            MILPBlock(const std::string &id, OpType type);
+            MILPBlock(const std::string &id, OpType type) : id_(id), type_(type), blk_(nullptr) {}
 
-            const std::string &getId() const;
-            OpType getType() const;
+            const std::string &getId() const { return id_; }
+            OpType getType() const { return type_; }
 
-            void addOperation(MILPOperation *op);
-            const std::vector<MILPOperation *> &getOperations() const;
+            void addOperation(MILPOperation *op) { operations_.push_back(op); }
+            const std::vector<MILPOperation *> &getOperations() const { return operations_; }
 
-            void addTask(MILPTask *task);
-            const std::vector<MILPTask *> &getTasks() const;
+            void addTask(std::unique_ptr<MILPTask> task) {
+                tasks_.push_back(std::move(task));
+            }
+            const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
+
+            void setBlock(mlir::Block *block) { blk_ = block; }
+            mlir::Block *getBlock() const { return blk_; }
 
         private:
             std::string id_;
             OpType type_;
             std::vector<MILPOperation *> operations_;
-            std::vector<MILPTask *> tasks_;
+            std::vector<std::unique_ptr<MILPTask>> tasks_;
+            mlir::Block *blk_;
         };
 
-        // Represents a logical qubit with allocation and measurement operations
+        // === MILPQubit ===
         class MILPQubit {
         public:
-            MILPQubit(const std::string &id);
+            MILPQubit(const std::string &id) : id_(id), alloc_op_(nullptr), meas_op_(nullptr) {}
 
-            const std::string &getId() const;
+            const std::string &getId() const { return id_; }
 
-            void setAllocation(MILPOperation *allocOp);
-            void setMeasurement(MILPOperation *measOp);
+            void setAllocation(MILPOperation *allocOp) { alloc_op_ = allocOp; }
+            void setMeasurement(MILPOperation *measOp) { meas_op_ = measOp; }
 
-            MILPOperation *getAllocation() const;
-            MILPOperation *getMeasurement() const;
+            MILPOperation *getAllocation() const { return alloc_op_; }
+            MILPOperation *getMeasurement() const { return meas_op_; }
 
-            double computeLifetime() const; // start(meas) + dur(meas) - (start(alloc) + dur(alloc))
+            double computeLifetime() const {
+                if (!alloc_op_ || !meas_op_)
+                    return 0.0;
+                return (meas_op_->getStartTime() + meas_op_->getDuration()) -
+                       (alloc_op_->getStartTime() + alloc_op_->getDuration());
+            }
 
         private:
             std::string id_;
-            MILPOperation *alloc_op_; // from O_Q
-            MILPOperation *meas_op_; // from O_QL
+            MILPOperation *alloc_op_;
+            MILPOperation *meas_op_;
         };
 
+        // each pair (A, B) means "A must finish before B starts"
+        using BlockPrecedence = std::pair<MILPBlock *, MILPBlock *>;
+        using BlockPrecedenceList = std::vector<BlockPrecedence>;
+
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
-                   mlir::LogicalResult>
+                   BlockPrecedenceList, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
 
         // Encapsulates the SCIP MILP modeling process

@@ -29,7 +29,7 @@ namespace qoala::analysis {
 
         ModuleOp moduleOp = this->getOperation();
 
-        auto [blocks, qubits, result] = reordering::buildMILPFromMLIR(moduleOp);
+        auto [blocks, qubits, precedences, result] = reordering::buildMILPFromMLIR(moduleOp);
         if (failed(result)) {
             signalPassFailure();
         }
