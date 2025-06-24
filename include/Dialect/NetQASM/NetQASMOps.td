@@ -35,7 +35,7 @@ def QAllocOp: NetQASM_Op<"qalloc"> {
 }
 
 def QInitOp: NetQASM_Op<"init"> {
-    let arguments = (ins I32:$q);
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
     let assemblyFormat = [{
         operands attr-dict
     }];
