@@ -53,7 +53,7 @@ namespace qoala::analysis {
                                 // Remember to decrease the measure buffer.
                                 --measured;
                             }
-                        } else if (calleeOp && isa<netqasm::MeasureOp>(calleeOp)) {
+                        } else if (calleeOp && (isa<netqasm::MeasureOp>(calleeOp) || isa<netqasm::EprsMeasureOp>(calleeOp))) {
                             LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << *calleeOp << "\n");
                             // Each measure op will increase the measured buffer.
                             ++measured;
