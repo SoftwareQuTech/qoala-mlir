@@ -23,6 +23,8 @@ namespace qoala::analysis::reordering {
         std::vector<std::shared_ptr<MILPQubit>> qubits;
         std::vector<reordering::BlockPrecedence> precedences;
 
+        std::unordered_map<mlir::Operation *, MILPOperation *> opToMilpOp;
+
         const auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             mlir::emitError(moduleOp.getLoc(), "No main function found in module");
@@ -90,6 +92,7 @@ namespace qoala::analysis::reordering {
                 std::string opId = blockId + "::" + std::to_string(opIndex++);
                 auto *milpOp = new MILPOperation(opId, blockType, 1.0);
                 milpOp->setOperation(op);
+                opToMilpOp[op] = milpOp;
                 blockPtr->addOperation(milpOp);
 
                 // Add all ops from the callee body
@@ -100,6 +103,7 @@ namespace qoala::analysis::reordering {
                         std::string subOpId = blockId + "::" + std::to_string(opIndex++);
                         auto *milpSubOp = new MILPOperation(subOpId, blockType, 1.0);
                         milpSubOp->setOperation(&calleeOp);
+                        opToMilpOp[&calleeOp] = milpSubOp;
                         blockPtr->addOperation(milpSubOp);
 
                         if (llvm::isa<netqasm::ReturnOp>(calleeOp)) {
@@ -130,6 +134,7 @@ namespace qoala::analysis::reordering {
                 std::string opId = blockId + "::" + std::to_string(opIndex++);
                 auto *milpOp = new MILPOperation(opId, blockType, 1.0);
                 milpOp->setOperation(op);
+                opToMilpOp[op] = milpOp;
                 blockPtr->addOperation(milpOp);
 
                 blocks.push_back(blockPtr);
@@ -145,6 +150,7 @@ namespace qoala::analysis::reordering {
                 std::string opId = blockId + "::" + std::to_string(opIndex++);
                 auto *milpOp = new MILPOperation(opId, OpType::CL, 1.0);
                 milpOp->setOperation(innerOp);
+                opToMilpOp[innerOp] = milpOp;
                 blockPtr->addOperation(milpOp);
             }
 
@@ -316,7 +322,6 @@ namespace qoala::analysis::reordering {
         });
 
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
-        LLVM_DEBUG(llvm::dbgs() << "=== Aggregating Qubit Operations ===\n");
 
         llvm::DenseMap<mlir::Value, llvm::SmallVector<mlir::Operation *, 4>> qubitToOps;
         llvm::DenseMap<mlir::Value, mlir::Value> resolvedQubitAlias;
@@ -372,8 +377,8 @@ namespace qoala::analysis::reordering {
                                 // Do not resolve yet — we merge later
                                 mlir::Value canonical = resolve(resolved);
                                 qubitToOps[canonical].push_back(&innerOp);
-                                LLVM_DEBUG(llvm::dbgs() << "    [Track] " << innerOp.getName() << " → " << canonical << "\n");
-
+                                LLVM_DEBUG(llvm::dbgs()
+                                           << "    [Track] " << innerOp.getName() << " → " << canonical << "\n");
                             }
                         }
                     }
@@ -381,8 +386,8 @@ namespace qoala::analysis::reordering {
                     // Track result → returned value alias
                     if (callOp->getNumResults() > 0) {
 
-                        for (auto &block : callee->getRegion(0)) {
-                            for (auto &innerOp : block) {
+                        for (auto &block: callee->getRegion(0)) {
+                            for (auto &innerOp: block) {
                                 if (innerOp.getName().getStringRef() == "netqasm.return") {
 
                                     auto retVals = innerOp.getOperands();
@@ -396,9 +401,11 @@ namespace qoala::analysis::reordering {
                                         auto *defOp = final.getDefiningOp();
                                         if (defOp && isa<netqasm::QAllocOp>(defOp)) {
                                             resolvedQubitAlias[res] = final;
-                                            LLVM_DEBUG(llvm::dbgs() << "  [Alias→QAlloc] " << res << " ↦ " << final << " (qalloc)\n");
+                                            LLVM_DEBUG(llvm::dbgs() << "  [Alias→QAlloc] " << res << " ↦ " << final
+                                                                    << " (qalloc)\n");
                                         } else {
-                                            LLVM_DEBUG(llvm::dbgs() << "  [Skip Alias] " << res << " ↦ " << final << " (not qalloc)\n");
+                                            LLVM_DEBUG(llvm::dbgs() << "  [Skip Alias] " << res << " ↦ " << final
+                                                                    << " (not qalloc)\n");
                                         }
                                     }
 
@@ -407,18 +414,61 @@ namespace qoala::analysis::reordering {
                             }
                         }
                     }
-
                 }
             }
         }
 
         LLVM_DEBUG({
             llvm::dbgs() << "[Qubit→Ops]\n";
-            for (auto &entry : qubitToOps) {
+            for (auto &entry: qubitToOps) {
                 llvm::dbgs() << " - Raw Qubit: " << entry.first << "\n";
-                for (auto *op : entry.second) {
+                for (auto *op: entry.second) {
                     llvm::dbgs() << "     * " << op->getName() << "\n";
                 }
+            }
+        });
+
+        int qubitIndex = 0;
+
+        for (auto &entry: qubitToOps) {
+            mlir::Value qubit = entry.first;
+            const auto &ops = entry.second;
+
+            std::string id = "q" + std::to_string(qubitIndex++);
+            auto qubitPtr = std::make_shared<MILPQubit>(id);
+
+            MILPOperation *allocOp = nullptr;
+            MILPOperation *measOp = nullptr;
+
+            for (mlir::Operation *op: ops) {
+                llvm::StringRef name = op->getName().getStringRef();
+
+                if (name == "netqasm.init" || name == "netqasm.eprs") {
+                    allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
+                }
+
+                if (name == "netqasm.measure") {
+                    measOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
+                }
+            }
+
+            if (allocOp)
+                qubitPtr->setAllocation(allocOp);
+            if (measOp)
+                qubitPtr->setMeasurement(measOp);
+
+            LLVM_DEBUG(llvm::dbgs() << "  [Qubit] " << id << ": alloc=" << (allocOp ? allocOp->getId() : "null")
+                                    << ", meas=" << (measOp ? measOp->getId() : "null") << "\n");
+
+            qubits.push_back(std::move(qubitPtr));
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[MILP] Constructed MILPQubits:\n";
+            for (const auto &q: qubits) {
+                llvm::dbgs() << " - " << q->getId() << ": alloc=";
+                llvm::dbgs() << (q->getAllocation() ? q->getAllocation()->getId() : "null") << ", meas=";
+                llvm::dbgs() << (q->getMeasurement() ? q->getMeasurement()->getId() : "null") << "\n";
             }
         });
 
