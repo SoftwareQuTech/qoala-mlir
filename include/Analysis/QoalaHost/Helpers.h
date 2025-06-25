@@ -89,7 +89,7 @@ namespace qoala::analysis {
             int virtualQubits = 0;
             int physicalQubits = 0;
         };
-    }
+    } // namespace qmemeff
 } // namespace qoala::analysis
 
 #endif // HELPERS_H
