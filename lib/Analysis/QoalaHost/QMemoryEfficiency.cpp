@@ -68,7 +68,7 @@ namespace qoala::analysis {
 
     float QoalaHostQMemoryEfficiency::getEfficiency() const {
         if (logicalQubits == 0) {
-            llvm::errs() << "Warning: logicalQubits is zero; cannot compute efficiency.\n";
+            llvm::errs() << "Warning: virtualQubits is zero; cannot compute efficiency.\n";
             return 0.0f;  // Or return 1.0f if you prefer to treat "no usage" as maximally efficient
         }
 
