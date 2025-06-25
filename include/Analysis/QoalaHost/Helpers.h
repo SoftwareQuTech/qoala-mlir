@@ -151,9 +151,7 @@ namespace qoala::analysis {
             void addOperation(MILPOperation *op) { operations_.push_back(op); }
             const std::vector<MILPOperation *> &getOperations() const { return operations_; }
 
-            void addTask(std::unique_ptr<MILPTask> task) {
-                tasks_.push_back(std::move(task));
-            }
+            void addTask(std::unique_ptr<MILPTask> task) { tasks_.push_back(std::move(task)); }
             const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
 
             void setBlock(mlir::Block *block) { blk_ = block; }
@@ -198,8 +196,7 @@ namespace qoala::analysis {
         using BlockPrecedenceList = std::vector<BlockPrecedence>;
 
         OpType inferTypeFromCall(mlir::Operation *op, mlir::ModuleOp moduleOp);
-        mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk,
-                                               const mlir::Location &loc);
+        mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
                    BlockPrecedenceList, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
