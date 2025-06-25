@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qoalahost-show-analysis-qmemeff | FileCheck %s
+// RUN: qoala-opt %s --qoalahost-show-analysis-qmem-eff | FileCheck %s
 // CHECK: Efficiency = 5.000000e-01
 
 module {

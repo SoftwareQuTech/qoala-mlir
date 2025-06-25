@@ -4,7 +4,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
 
-#define DEBUG_TYPE "qoalahost-show-analysis-pass-qmemeff"
+#define DEBUG_TYPE "qoalahost-show-analysis-pass-qmem-eff"
 
 using namespace mlir;
 
