@@ -185,56 +185,38 @@ namespace qoala::analysis::reordering {
             }
 
             // Handle ArrayAttr-based fields (predecessors, dependencies)
-            mlir::ArrayAttr predecessorsAttr = blkMeta->getAttrOfType<mlir::ArrayAttr>("predecessors");
-            if (predecessorsAttr) {
-                for (mlir::Attribute attrElem: predecessorsAttr) {
-                    mlir::StringAttr strAttr = attrElem.dyn_cast<mlir::StringAttr>();
-                    if (!strAttr)
-                        continue;
-
-                    std::string predId = strAttr.str();
-                    std::unordered_map<std::string, reordering::MILPBlock *>::iterator it = idToBlockMap.find(predId);
-                    if (it != idToBlockMap.end()) {
-                        reordering::MILPBlock *predBlock = it->second;
-                        precedences.emplace_back(predBlock, blk);
-                    }
+            if (auto predsAttr = blkMeta.getPredecessorsAttr()) {
+                for (mlir::StringRef pred: predsAttr.getAsValueRange<mlir::StringAttr>()) {
+                    auto it = idToBlockMap.find(pred.str());
+                    if (it != idToBlockMap.end())
+                        precedences.emplace_back(it->second, blk);
                 }
             }
 
-            mlir::ArrayAttr dependenciesAttr = blkMeta->getAttrOfType<mlir::ArrayAttr>("dependencies");
-            if (dependenciesAttr) {
-                for (mlir::Attribute attrElem: dependenciesAttr) {
-                    mlir::StringAttr strAttr = attrElem.dyn_cast<mlir::StringAttr>();
-                    if (!strAttr)
-                        continue;
-
-                    std::string predId = strAttr.str();
-                    std::unordered_map<std::string, reordering::MILPBlock *>::iterator it = idToBlockMap.find(predId);
-                    if (it != idToBlockMap.end()) {
-                        reordering::MILPBlock *predBlock = it->second;
-                        precedences.emplace_back(predBlock, blk);
-                    }
+            if (auto depsAttr = blkMeta.getDependenciesAttr()) {
+                for (mlir::StringRef dep: depsAttr.getAsValueRange<mlir::StringAttr>()) {
+                    auto it = idToBlockMap.find(dep.str());
+                    if (it != idToBlockMap.end())
+                        precedences.emplace_back(it->second, blk);
                 }
             }
 
             // Handle string-based single references (prev_ent, prev_comm)
-            mlir::StringAttr prevEntAttr = blkMeta->getAttrOfType<mlir::StringAttr>("prev_ent");
-            if (prevEntAttr) {
-                std::string predId = prevEntAttr.str();
-                std::unordered_map<std::string, reordering::MILPBlock *>::iterator it = idToBlockMap.find(predId);
-                if (it != idToBlockMap.end()) {
-                    reordering::MILPBlock *predBlock = it->second;
-                    precedences.emplace_back(predBlock, blk);
+            if (auto prevEntAttr = blkMeta.getPrevEntAttr()) {
+                mlir::StringRef pred = prevEntAttr.getValue();
+                if (!pred.empty()) {
+                    auto it = idToBlockMap.find(pred.str());
+                    if (it != idToBlockMap.end())
+                        precedences.emplace_back(it->second, blk);
                 }
             }
 
-            mlir::StringAttr prevCommAttr = blkMeta->getAttrOfType<mlir::StringAttr>("prev_comm");
-            if (prevCommAttr) {
-                std::string predId = prevCommAttr.str();
-                std::unordered_map<std::string, reordering::MILPBlock *>::iterator it = idToBlockMap.find(predId);
-                if (it != idToBlockMap.end()) {
-                    reordering::MILPBlock *predBlock = it->second;
-                    precedences.emplace_back(predBlock, blk);
+            if (auto prevCommAttr = blkMeta.getPrevCommAttr()) {
+                mlir::StringRef pred = prevCommAttr.getValue();
+                if (!pred.empty()) {
+                    auto it = idToBlockMap.find(pred.str());
+                    if (it != idToBlockMap.end())
+                        precedences.emplace_back(it->second, blk);
                 }
             }
         }
@@ -446,8 +428,6 @@ namespace qoala::analysis::reordering {
             MILPOperation *measOp = nullptr;
 
             for (mlir::Operation *op: ops) {
-                llvm::StringRef name = op->getName().getStringRef();
-
                 if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
                     allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
                 }
