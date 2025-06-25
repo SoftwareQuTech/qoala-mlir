@@ -4,22 +4,22 @@
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
 
-#define DEBUG_TYPE "qoalahost-show-analysis-pass"
+#define DEBUG_TYPE "qoalahost-show-analysis-pass-qmemeff"
 
 using namespace mlir;
 
 namespace qoala::analysis {
-#define GEN_PASS_DEF_QOALAHOSTSHOWANALYSIS
+#define GEN_PASS_DEF_QOALAHOSTQMEMEFFSHOWANALYSIS
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostShowAnalysisPass
-        : public impl::QoalaHostShowAnalysisBase<QoalaHostShowAnalysisPass> {
-        using QoalaHostShowAnalysisBase::QoalaHostShowAnalysisBase;
+    class QoalaHostQMemEffShowAnalysis
+        : public impl::QoalaHostQMemEffShowAnalysisBase<QoalaHostQMemEffShowAnalysis> {
+        using QoalaHostQMemEffShowAnalysisBase::QoalaHostQMemEffShowAnalysisBase;
         void runOnOperation() override;
     };
 
-    void QoalaHostShowAnalysisPass::runOnOperation() {
-        auto &analysis = getAnalysis<QoalaHostQMemoryEfficiency>();
+    void QoalaHostQMemEffShowAnalysis::runOnOperation() {
+        auto &analysis = getAnalysis<qmemeff::QoalaHostQMemoryEfficiency>();
         llvm::outs() << "Efficiency = " << analysis.getEfficiency() << "\n";
 
     }

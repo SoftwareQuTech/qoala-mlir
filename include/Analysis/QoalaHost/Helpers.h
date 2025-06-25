@@ -74,19 +74,22 @@ namespace qoala::analysis {
 
         mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp);
     } // namespace precedences
+    
+    namespace qmemeff {
+        class QoalaHostQMemoryEfficiency {
+        public:
+            QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
-    class QoalaHostQMemoryEfficiency {
-    public:
-        QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
-        int getVirtualQubitCount() const { return virtualQubits; }
-        int getPhysicalQubitCount() const { return physicalQubits; }
-        float getEfficiency() const;
+            int getVirtualQubitCount() const { return virtualQubits; }
+            int getPhysicalQubitCount() const { return physicalQubits; }
+            float getEfficiency() const;
 
-    private:
-        int virtualQubits = 0;
-        int physicalQubits = 0;
-    };
+        private:
+            int virtualQubits = 0;
+            int physicalQubits = 0;
+        };
+    }
 } // namespace qoala::analysis
 
 #endif // HELPERS_H

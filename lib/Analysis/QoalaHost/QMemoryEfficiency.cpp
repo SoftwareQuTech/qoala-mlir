@@ -10,7 +10,7 @@
 using namespace mlir;
 using namespace qoala::dialects;
 
-namespace qoala::analysis {
+namespace qoala::analysis::qmemeff {
 
     QoalaHostQMemoryEfficiency::QoalaHostQMemoryEfficiency(Operation *op) {
         // Compute quantum memory efficiency as 1-(virtualQubits/physicalQubits), the closer to 1 the better.
@@ -36,7 +36,7 @@ namespace qoala::analysis {
         // then walk trough each operation in the callee and search for qalloc and measure operations.
 
         // TODO Current implementation does not take into account epr request callbacks.
-        // In the future, add support for epr request callbacks if needed.
+        // In the future, add support for epr request callbacks if needed. See issue qoala-kanban-board#89.
         mainFunc.walk([&](mlir::Operation *op) {
             if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
                 const Operation *callee = SymbolTable::lookupNearestSymbolFrom(callOp, callOp.getCalleeAttr());
@@ -75,4 +75,4 @@ namespace qoala::analysis {
         float efficiency = 1.0f - static_cast<float>(physicalQubits) / virtualQubits;
         return efficiency;
     }
-} // namespace qoala::analysis
+} // namespace qoala::analysis::memeff
