@@ -79,12 +79,12 @@ namespace qoala::analysis {
     public:
         QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
-        int getLogicalQubitCount() const { return logicalQubits; }
+        int getVirtualQubitCount() const { return virtualQubits; }
         int getPhysicalQubitCount() const { return physicalQubits; }
         float getEfficiency() const;
 
     private:
-        int logicalQubits = 0;
+        int virtualQubits = 0;
         int physicalQubits = 0;
     };
 } // namespace qoala::analysis

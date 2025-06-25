@@ -44,8 +44,8 @@ namespace qoala::analysis {
                     routine.walk([&](mlir::Operation *calleeOp) {
                         if (calleeOp && isa<netqasm::QAllocOp>(calleeOp)) {
                             LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << *calleeOp << "\n");
-                            // Increase logical qubits for every qalloc op.
-                            ++logicalQubits;
+                            // Increase virtual qubits for every qalloc op.
+                            ++virtualQubits;
                             // Increase physical qubits only if the measured buffer equals 0.
                             if (measured == 0) {
                                 ++physicalQubits;
@@ -67,12 +67,12 @@ namespace qoala::analysis {
     }
 
     float QoalaHostQMemoryEfficiency::getEfficiency() const {
-        if (logicalQubits == 0) {
+        if (virtualQubits == 0) {
             llvm::errs() << "Warning: virtualQubits is zero; cannot compute efficiency.\n";
             return 0.0f;  // Or return 1.0f if you prefer to treat "no usage" as maximally efficient
         }
 
-        float efficiency = 1.0f - static_cast<float>(physicalQubits) / logicalQubits;
+        float efficiency = 1.0f - static_cast<float>(physicalQubits) / virtualQubits;
         return efficiency;
     }
 } // namespace qoala::analysis
