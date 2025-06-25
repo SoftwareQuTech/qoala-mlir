@@ -68,9 +68,7 @@ namespace qoala::analysis::reordering {
                 for (size_t i = 1; i + 1 < ops.size(); ++i)
                     t1->addOperation(ops[i]);
                 blk->addTask(std::move(t1));
-                // Task 2 – return (C) : PostTask
-                // At the moment, the PostTask is the netqasm.return op which is not accurate.
-                // We should add an Operation which does nothing instead.
+                // Task 2 – return (C) : PostTask.
                 auto t2 = std::make_unique<MILPTask>("2", blk, TG::C);
                 t2->addOperation(ops.back());
                 blk->addTask(std::move(t2));
@@ -138,8 +136,7 @@ namespace qoala::analysis::reordering {
             for (auto it = firstIt; it != block->end(); ++it) {
                 mlir::Operation *op = &*it;
 
-                if (blkType == OpType::CL &&
-                    (llvm::isa<qoalahost::ReturnOp>(op) || llvm::isa<qoalahost::NopTOp>(op)))
+                if (blkType == OpType::CL && (llvm::isa<qoalahost::ReturnOp>(op) || llvm::isa<qoalahost::NopTOp>(op)))
                     break; // stop at terminator‑like op in CL block
 
                 // Create MILPOperation
@@ -169,6 +166,17 @@ namespace qoala::analysis::reordering {
                                 blk->addOperation(milpSub);
                                 opToMilpOp[&cOp] = milpSub;
                                 if (llvm::isa<netqasm::ReturnOp>(cOp)) {
+                                    // Insert qoalahost.NopOp in caller block & track to model PostTask
+                                    mlir::OpBuilder b(moduleOp.getContext());
+                                    b.setInsertionPointToEnd(block);
+                                    auto nop = b.create<qoalahost::NopOp>(cOp.getLoc());
+
+                                    std::string nopId = blkId + "::" + std::to_string(opIdx++);
+                                    auto *milpNop = new MILPOperation(nopId, blkType, 1.0);
+                                    milpNop->setOperation(nop.getOperation());
+                                    blk->addOperation(milpNop);
+                                    opToMilpOp[nop.getOperation()] = milpNop;
+
                                     foundReturn = true;
                                     break;
                                 }
