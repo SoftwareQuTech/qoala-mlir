@@ -13,7 +13,7 @@ using namespace qoala::dialects;
 namespace qoala::analysis {
 
     QoalaHostQMemoryEfficiency::QoalaHostQMemoryEfficiency(Operation *op) {
-        // Conpute quantum memory efficiency as 1-(virtualQubits/physicalQubits), the closer to 1 the better.
+        // Compute quantum memory efficiency as 1-(virtualQubits/physicalQubits), the closer to 1 the better.
         // Virtual qubits correspond to the number of qalloc ops present in a programm,
         // physical qubits instead refers to the actual qubits that will be used by 
         // the QNPU during programm exectuion. This two numbers may differ as each time 
