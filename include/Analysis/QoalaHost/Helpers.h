@@ -81,7 +81,8 @@ namespace qoala::analysis {
      * Used to analyze control/data dependencies and enable block reordering.
      */
     namespace reordering {
-        enum class OpType { CL, CC, QL, QC, UNKNOWN };
+        enum class OpType { CL, CC, QL, QC };
+        enum class TaskGroup { C, Q };
 
         // === MILPOperation ===
         class MILPOperation {
@@ -112,11 +113,11 @@ namespace qoala::analysis {
 
         class MILPTask {
         public:
-            MILPTask(std::string id, MILPBlock *parent, const std::string &group) :
+            MILPTask(std::string id, MILPBlock *parent, const TaskGroup group) :
                 id_(id), parent_block_(parent), group_(group) {}
 
             const std::string &getId() const { return id_; }
-            const std::string &getGroup() const { return group_; }
+            TaskGroup getGroup() const { return group_; }
 
             void addOperation(MILPOperation *op) { operations_.push_back(op); }
             const std::vector<MILPOperation *> &getOperations() const { return operations_; }
@@ -134,7 +135,7 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
-            std::string group_;
+            TaskGroup group_;
             std::vector<MILPOperation *> operations_;
             MILPBlock *parent_block_;
         };

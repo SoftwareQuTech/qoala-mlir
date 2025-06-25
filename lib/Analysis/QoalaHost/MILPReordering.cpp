@@ -82,8 +82,6 @@ namespace qoala::analysis::reordering {
                     blockType = OpType::QC;
                 else if (llvm::isa<netqasm::LocalRoutineOp>(calleeFunc))
                     blockType = OpType::QL;
-                else
-                    blockType = OpType::UNKNOWN;
 
                 blockPtr = std::make_shared<MILPBlock>(blockId, blockType);
                 blockPtr->setBlock(&block);
@@ -270,7 +268,7 @@ namespace qoala::analysis::reordering {
                     return {blocks, qubits, precedences, mlir::failure()};
                 }
 
-                auto task = std::make_unique<MILPTask>("0", block, "C");
+                auto task = std::make_unique<MILPTask>("0", block, reordering::TaskGroup::C);
                 for (MILPOperation *op: ops) {
                     task->addOperation(op);
                 }
@@ -286,19 +284,26 @@ namespace qoala::analysis::reordering {
                 }
 
                 // Task 0: first op
-                auto task0 = std::make_unique<MILPTask>("0", block, "Q");
+                // This will always be the `qoalahost.call`
+                auto task0 = std::make_unique<MILPTask>("0", block, reordering::TaskGroup::C);
                 task0->addOperation(ops.front());
                 block->addTask(std::move(task0));
 
                 // Task 1: middle ops
-                auto task1 = std::make_unique<MILPTask>("1", block, "Q");
+                auto task1 = std::make_unique<MILPTask>("1", block, reordering::TaskGroup::Q);
                 for (size_t i = 1; i < ops.size() - 1; ++i) {
                     task1->addOperation(ops[i]);
                 }
                 block->addTask(std::move(task1));
 
                 // Task 2: last op
-                auto task2 = std::make_unique<MILPTask>("2", block, "Q");
+                // This will always be the `netqasm.return`. This task is a classical task that will be executed by the
+                // QNPU and not the CNPU. However, we are using it to model the PostTask. Since the time to run a
+                // classical local task is negligeable compared to other tasks, this constitutes a good approximation.
+                // However, it is possible in iqoala netqasm routines to have instructions to send the result to the
+                // CNPU. This would come from the netqasm.return op returning something. We can maybe improve the model
+                // here.
+                auto task2 = std::make_unique<MILPTask>("2", block, reordering::TaskGroup::C);
                 task2->addOperation(ops.back());
                 block->addTask(std::move(task2));
             }
@@ -311,7 +316,7 @@ namespace qoala::analysis::reordering {
                 for (const auto &taskPtr: block->getTasks()) {
                     const auto *task = taskPtr.get();
                     llvm::dbgs() << " - Task " << task->getId() << " (Block=" << block->getId()
-                                 << ", Group=" << task->getGroup() << ")\n";
+                                 << ", Group=" << static_cast<int>(task->getGroup()) << ")\n";
 
                     for (const reordering::MILPOperation *op: task->getOperations()) {
                         llvm::dbgs() << "     * Op " << op->getId() << " ("
@@ -388,7 +393,7 @@ namespace qoala::analysis::reordering {
 
                         for (auto &block: callee->getRegion(0)) {
                             for (auto &innerOp: block) {
-                                if (innerOp.getName().getStringRef() == "netqasm.return") {
+                                if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
 
                                     auto retVals = innerOp.getOperands();
                                     auto callResults = callOp->getResults();
@@ -443,11 +448,11 @@ namespace qoala::analysis::reordering {
             for (mlir::Operation *op: ops) {
                 llvm::StringRef name = op->getName().getStringRef();
 
-                if (name == "netqasm.init" || name == "netqasm.eprs") {
+                if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
                     allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
                 }
 
-                if (name == "netqasm.measure") {
+                if (llvm::isa<netqasm::MeasureOp>(op)) {
                     measOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
                 }
             }
