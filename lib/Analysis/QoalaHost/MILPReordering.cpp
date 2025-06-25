@@ -259,6 +259,7 @@ namespace qoala::analysis::reordering {
                 llvm::dbgs() << "  " << e.first->getId() << " -> " << e.second->getId() << "\n";
         });
 
+        // TODO: check what happens if we have a netqasm::EprsMeasureOp
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
 
         llvm::DenseMap<mlir::Value, llvm::SmallVector<mlir::Operation *, 4>> qubitToOps;
