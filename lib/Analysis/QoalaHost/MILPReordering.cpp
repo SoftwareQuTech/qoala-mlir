@@ -5,6 +5,7 @@
 #include "mlir/IR/SymbolTable.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "Tools/QoalaOpt.h"
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
@@ -16,6 +17,46 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::reordering {
+    double getOperationDuration(mlir::Operation *op) {
+        // CallOp and NopOp are the Pre and Post tasks
+        if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op))
+            return qoalaOptHostInstrTime;
+
+        // TODO: check in translation if the size of tensor decides the number of send ops
+        if (isa<qoalahost::SendIntsOp>(op) || isa<qoalahost::SendFloatsOp>(op))
+            return qoalaOptHostInstrTime;
+
+        // TODO: check in translation if the size of tensor decides the number of recv ops
+        if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op))
+            return qoalaOptLatency + qoalaOptHostPeerLatency;
+
+        // Netqasm operations that are classical operations
+        if (isa<netqasm::QAllocOp>(op) || isa<netqasm::QFreeOp>(op))
+            return qoalaOptQNosInstrTime;
+
+        // Each operand will be converted to one netqasm instruction in the iqoala file
+        if (isa<netqasm::ReturnOp>(op))
+            return op->getNumOperands() * qoalaOptQNosInstrTime;
+
+        // Single qubit gate operations, qubit init and measure
+        if (isa<netqasm::QInitOp>(op) || isa<netqasm::RotateXOp>(op) || isa<netqasm::RotateYOp>(op) ||
+            isa<netqasm::RotateZOp>(op) || isa<netqasm::HadamardOp>(op) || isa<netqasm::MeasureOp>(op))
+            return qoalaOptSingleGateDuration;
+
+        // Two qubits gate oeprations
+        if (isa<netqasm::CnotOp>(op) || isa<netqasm::CzOp>(op) || isa<netqasm::CrotXOp>(op))
+            return qoalaOptTwoGateDuration;
+
+        if (isa<netqasm::EprsOp>(op))
+            return qoalaOptLinkDuration;
+
+        if (isa<netqasm::EprsMeasureOp>(op))
+            return qoalaOptLinkDuration + qoalaOptSingleGateDuration;
+
+        // Any other instructions are the ones in CL blocks
+        return qoalaOptHostInstrTime;
+    }
+
     OpType inferTypeFromCall(mlir::Operation *op, mlir::ModuleOp moduleOp) {
         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
             auto symRef = callOp.getCalleeAttr().dyn_cast_or_null<mlir::SymbolRefAttr>();
@@ -141,7 +182,7 @@ namespace qoala::analysis::reordering {
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
-                auto *milpOp = new MILPOperation(opId, blkType, /*cost*/ 1.0);
+                auto *milpOp = new MILPOperation(opId, blkType, getOperationDuration(op));
                 milpOp->setOperation(op);
                 blk->addOperation(milpOp);
                 opToMilpOp[op] = milpOp;
@@ -161,7 +202,7 @@ namespace qoala::analysis::reordering {
                         for (mlir::Block &cb: calleeFunc->getRegion(0)) {
                             for (mlir::Operation &cOp: cb) {
                                 std::string subId = blkId + "::" + std::to_string(opIdx++);
-                                auto *milpSub = new MILPOperation(subId, blkType, 1.0);
+                                auto *milpSub = new MILPOperation(subId, blkType, getOperationDuration(&cOp));
                                 milpSub->setOperation(&cOp);
                                 blk->addOperation(milpSub);
                                 opToMilpOp[&cOp] = milpSub;
@@ -172,7 +213,8 @@ namespace qoala::analysis::reordering {
                                     auto nop = b.create<qoalahost::NopOp>(cOp.getLoc());
 
                                     std::string nopId = blkId + "::" + std::to_string(opIdx++);
-                                    auto *milpNop = new MILPOperation(nopId, blkType, 1.0);
+                                    auto *milpNop =
+                                            new MILPOperation(nopId, blkType, getOperationDuration(nop.getOperation()));
                                     milpNop->setOperation(nop.getOperation());
                                     blk->addOperation(milpNop);
                                     opToMilpOp[nop.getOperation()] = milpNop;
@@ -248,7 +290,8 @@ namespace qoala::analysis::reordering {
                     const auto *t = tPtr.get();
                     llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << (int) t->getGroup() << "]\n";
                     for (const auto *op: t->getOperations())
-                        llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName() << "\n";
+                        llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
+                                     << " , duration=" << op->getDuration() << "ns\n";
                 }
             }
         });

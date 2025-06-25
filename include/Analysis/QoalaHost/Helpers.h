@@ -195,6 +195,7 @@ namespace qoala::analysis {
         using BlockPrecedence = std::pair<MILPBlock *, MILPBlock *>;
         using BlockPrecedenceList = std::vector<BlockPrecedence>;
 
+        double getOperationDuration(mlir::Operation *op);
         OpType inferTypeFromCall(mlir::Operation *op, mlir::ModuleOp moduleOp);
         mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
