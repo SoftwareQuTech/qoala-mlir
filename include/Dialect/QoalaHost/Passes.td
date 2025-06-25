@@ -8,7 +8,7 @@ def QoalaHostAddBlockPrecedences : Pass<"qoalahost-add-block-precedences", "mlir
     let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
 
-def QoalaHostQMemoryUsage : Pass<"qoalahost-qmem-use", "mlir::ModuleOp"> {
+def QoalaHostQMemoryUsage : Pass<"qoalahost-qmem-eff", "mlir::ModuleOp"> {
     let summary = "Compute quantum memory usage in LIR.";
     let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
