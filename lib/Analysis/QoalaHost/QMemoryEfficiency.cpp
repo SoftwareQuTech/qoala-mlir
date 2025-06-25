@@ -14,7 +14,7 @@ namespace qoala::analysis {
 
     QoalaHostQMemoryEfficiency::QoalaHostQMemoryEfficiency(Operation *op) {
         // Compute quantum memory efficiency as 1-(virtualQubits/physicalQubits), the closer to 1 the better.
-        // Virtual qubits correspond to the number of qalloc ops present in a programm,
+        // Virtual qubits correspond to the number of qalloc ops present in a program,
         // physical qubits instead refers to the actual qubits that will be used by 
         // the QNPU during programm exectuion. This two numbers may differ as each time 
         // a qubit is measured, its memory location is freed and can be reaused by a subsequent qalloc op.
