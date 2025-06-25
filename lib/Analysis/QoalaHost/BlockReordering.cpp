@@ -3,6 +3,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/Debug.h"
 #include "Tools/QoalaOpt.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "qoalahost-reorder-blocks-pass"
 
@@ -60,5 +61,15 @@ namespace qoala::analysis {
         // }
 
         // model.cleanup();
+
+        // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
+        // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
+        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        if (mainFuncs.empty()) {
+            mlir::emitError(moduleOp.getLoc(), "No main function found in module");
+            signalPassFailure();
+        }
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
     }
 } // namespace qoala::analysis
