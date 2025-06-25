@@ -2,7 +2,6 @@ add_mlir_dialect_library(MLIRQoalaHostAnalysis
     IsolateOperations.cpp
     Precedences.cpp
     AddPrecedences.cpp
-    QMemoryUsage.cpp
     QMemoryEfficiency.cpp
     Show.cpp
     
