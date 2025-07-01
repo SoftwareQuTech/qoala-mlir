@@ -255,9 +255,17 @@ namespace qoala::analysis {
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
-        [[maybe_unused]] static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
-            return C.count({a->getId(), b->getId()}) > 0;
-        };
+        /**
+         * Determines whether there exists a transitive precedence path from block `a` to block `b`
+         * based on the computed closure of the precedence graph.
+         * This is used to identify whether two blocks are already ordered with respect to each other,
+         * which is particularly relevant when enforcing FCFS constraints only between independent blocks.
+         * @param a Pointer to the source MILPBlock.
+         * @param b Pointer to the destination MILPBlock.
+         * @param C The transitive closure of all precedence edges, represented as a set of (from, to) block ID pairs.
+         * @return true if `b` is reachable from `a` (i.e., a precedes b), false otherwise.
+         */
+        bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C);
 
         /**
          * Returns the execution duration (in nanoseconds) of a given operation

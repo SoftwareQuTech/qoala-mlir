@@ -580,6 +580,10 @@ namespace qoala::analysis::reordering {
         }
     }
 
+    bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+        return C.count({a->getId(), b->getId()}) > 0;
+    };
+
     void MILPModelBuilder::addFCFSTaskConstraints() {
         const int eps = 1;
 
