@@ -6,14 +6,9 @@
 #include "Dialect/QoalaHost/Passes.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "Tools/QoalaOpt.h"
-#include <set>
-#include <unordered_set>
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
-#include <scip/cons.h>
-#include <scip/cons_linear.h>
-#include <scip/expr_sum.h>
 
 #define DEBUG_TYPE "qoalahost-reorder-blocks-pass-internal"
 
@@ -460,10 +455,6 @@ namespace qoala::analysis::reordering {
         return {blocks, qubits, precedences, mlir::success()};
     }
 
-    MILPModelBuilder::MILPModelBuilder() : scip_(nullptr) {}
-
-    MILPModelBuilder::~MILPModelBuilder() { cleanup(); }
-
     bool MILPModelBuilder::initialize() {
         if (SCIPcreate(&scip_) != SCIP_OKAY)
             return false;
@@ -545,11 +536,6 @@ namespace qoala::analysis::reordering {
             SCIPaddCons(scip_, c);
             SCIPreleaseCons(scip_, &c);
         }
-    }
-
-    using Closure = std::set<std::pair<std::string, std::string>>;
-    static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
-        return C.count({a->getId(), b->getId()}) > 0;
     }
 
     void MILPModelBuilder::addFCFSTaskConstraints() {

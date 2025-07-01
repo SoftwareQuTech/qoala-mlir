@@ -4,6 +4,8 @@
 #include "llvm/Support/Casting.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <set>
+
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
 
@@ -201,8 +203,8 @@ namespace qoala::analysis {
         // Encapsulates the SCIP MILP modeling process
         class MILPModelBuilder {
         public:
-            MILPModelBuilder();
-            ~MILPModelBuilder();
+            MILPModelBuilder() : scip_(nullptr) {}
+            ~MILPModelBuilder() { cleanup(); }
 
             // Initialize SCIP and setup base model
             bool initialize();
@@ -249,6 +251,11 @@ namespace qoala::analysis {
 
             // Utility to create SCIP variable
             SCIP_VAR *createContinuousVariable(const std::string &name, double lb, double ub);
+        };
+
+        using Closure = std::set<std::pair<std::string, std::string>>;
+        static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+            return C.count({a->getId(), b->getId()}) > 0;
         };
 
         mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp module,
