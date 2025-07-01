@@ -86,7 +86,7 @@ namespace qoala::analysis {
         enum class OpType { CL, CC, QL, QC };
         enum class TaskGroup { C, Q };
 
-        // === MILPOperation ===
+        // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
             MILPOperation(const std::string &id, OpType type, double duration) :
@@ -110,9 +110,9 @@ namespace qoala::analysis {
             mlir::Operation *op_;
         };
 
-        // === MILPTask ===
-        class MILPBlock; // forward declaration
 
+        class MILPBlock; // forward declaration
+        // Class to represent a Task for the MILP model
         class MILPTask {
         public:
             MILPTask(std::string id, MILPBlock *parent, const TaskGroup group) :
@@ -142,7 +142,7 @@ namespace qoala::analysis {
             std::vector<MILPOperation *> operations_;
         };
 
-        // === MILPBlock ===
+        // Class to represent a block for the MILP model
         class MILPBlock {
         public:
             MILPBlock(const std::string &id, OpType type) : id_(id), type_(type), blk_(nullptr) {}
@@ -170,7 +170,7 @@ namespace qoala::analysis {
             mlir::Block *blk_;
         };
 
-        // === MILPQubit ===
+        // Class to represent a qubit for the MILP model
         class MILPQubit {
         public:
             MILPQubit(const std::string &id) : id_(id), alloc_op_(nullptr), meas_op_(nullptr) {}
@@ -192,13 +192,6 @@ namespace qoala::analysis {
         // each pair (A, B) means "A must finish before B starts"
         using BlockPrecedence = std::pair<MILPBlock *, MILPBlock *>;
         using BlockPrecedenceList = std::vector<BlockPrecedence>;
-
-        double getOperationDuration(mlir::Operation *op);
-        OpType inferTypeFromCall(mlir::Operation *op, mlir::ModuleOp moduleOp);
-        mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
-        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
-                   BlockPrecedenceList, mlir::LogicalResult>
-        buildMILPFromMLIR(mlir::ModuleOp module);
 
         // Encapsulates the SCIP MILP modeling process
         class MILPModelBuilder {
@@ -266,7 +259,46 @@ namespace qoala::analysis {
             return C.count({a->getId(), b->getId()}) > 0;
         };
 
-        mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp module,
+        /**
+         * Returns the execution duration (in nanoseconds) of a given operation
+         * to be used in the MILP model.
+         * @param op The operation whose duration is to be determined.
+         */
+        double getOperationDuration(mlir::Operation *op);
+        
+        /**
+         * Infers the block type based on the given operation (typically the first
+         * non BlkMeta operation in a block).
+         * @param op The operation to inspect.
+         * @param moduleOp The parent module, used to resolve symbol references.
+         */
+        OpType getBlockType(mlir::Operation *op, mlir::ModuleOp moduleOp);
+        
+        /**
+         * Creates the set of MILP tasks associated with a given block.
+         * @param blk The MILPBlock for which to create tasks.
+         * @param loc The location used for emitting diagnostics on failure.
+         */
+        mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
+        
+        /**
+         * Constructs the MILP model from the given MLIR module. This includes building
+         * MILP blocks, qubit usage, and block precedence constraints.
+         * @param module The MLIR module to analyze.
+         * @returns A tuple containing the constructed MILP blocks, qubits, precedence list,
+         *          and a LogicalResult indicating success or failure.
+         */
+        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
+                   BlockPrecedenceList, mlir::LogicalResult>
+        buildMILPFromMLIR(mlir::ModuleOp module);
+        
+        /**
+         * Reorders the blocks in the given module based on the specified MILP solution order.
+         * This mainly affects the block order inside MainFuncOp.
+         * @param moduleOp The module whose blocks will be reordered.
+         * @param orderedBlockIds A list of block IDs (as specified in BlkMeta) in the desired order.
+         */
+        mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp,
                                                      const std::vector<std::string> &orderedBlockIds);
     } // namespace reordering
 } // namespace qoala::analysis

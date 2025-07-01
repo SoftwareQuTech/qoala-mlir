@@ -57,7 +57,16 @@ namespace qoala::analysis::reordering {
         return qoalaOptHostInstrTime;
     }
 
-    OpType inferTypeFromCall(Operation *op, ModuleOp moduleOp) {
+    OpType getBlockType(Operation *op, ModuleOp moduleOp) {
+        // First, handle communication ops (CC)
+        if (llvm::isa<qoalahost::SendIntsOp>(op) ||
+            llvm::isa<qoalahost::RecvIntsOp>(op) ||
+            llvm::isa<qoalahost::SendFloatsOp>(op) ||
+            llvm::isa<qoalahost::RecvFloatsOp>(op)) {
+            return OpType::CC;
+        }
+
+        // Then check for call-based classification
         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
             SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
             if (!symRef)
@@ -68,8 +77,11 @@ namespace qoala::analysis::reordering {
             if (llvm::isa<netqasm::LocalRoutineOp>(callee))
                 return OpType::QL;
         }
+
+        // Default fallback
         return OpType::CL;
     }
+
 
     LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
         const std::vector<MILPOperation *> &ops = blk->getOperations();
@@ -157,13 +169,7 @@ namespace qoala::analysis::reordering {
             }
             Operation *firstOp = &*firstIt;
 
-            OpType blkType = OpType::CL;
-            if (llvm::isa<qoalahost::SendIntsOp>(firstOp) || llvm::isa<qoalahost::RecvIntsOp>(firstOp) ||
-                llvm::isa<qoalahost::SendFloatsOp>(firstOp) || llvm::isa<qoalahost::RecvFloatsOp>(firstOp)) {
-                blkType = OpType::CC;
-            } else {
-                blkType = inferTypeFromCall(firstOp, moduleOp);
-            }
+            OpType blkType = getBlockType(firstOp, moduleOp);
 
             std::string blkId = blkMeta.getBlockId().str();
             std::shared_ptr<MILPBlock> blkPtr = std::make_shared<MILPBlock>(blkId, blkType);
@@ -724,6 +730,7 @@ namespace qoala::analysis::reordering {
     }
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
+        // TODO: check what happens if we have a qoalahost.return op in its own block at the end of representation
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
