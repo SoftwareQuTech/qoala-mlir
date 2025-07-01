@@ -510,7 +510,7 @@ namespace qoala::analysis::reordering {
             return false;
         if (SCIPincludeDefaultPlugins(scip_) != SCIP_OKAY)
             return false;
-        /* Create the (still empty) problem before any variables are added. */
+        // Create the (still empty) problem before any variables are added.
         if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY)
             return false;
         return true;
