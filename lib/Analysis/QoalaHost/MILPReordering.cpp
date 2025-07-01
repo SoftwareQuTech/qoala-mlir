@@ -326,85 +326,78 @@ namespace qoala::analysis::reordering {
             return v;
         };
 
-        // Traverse all call sites and track memory-effect operationsmainFunc
-        for (mlir::Block &block: mainFunc.getBody()) {
-            for (mlir::Operation &op: block) {
-                auto callOp = llvm::dyn_cast<qoalahost::CallOp>(&op);
-                if (!callOp)
-                    continue;
+        // Traverse every qoalahost.call, analyse its callee, and
+        //  - collect MemoryEffect ops in qubitToOps
+        //  - establish result-to-qalloc aliases in resolvedQubitAlias
+        mainFunc.walk([&](qoalahost::CallOp callOp) -> mlir::WalkResult {
+            mlir::SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<mlir::SymbolRefAttr>();
+            if (!symRef)
+                return mlir::WalkResult::advance();
 
-                auto symRef = callOp.getCalleeAttr().dyn_cast<mlir::SymbolRefAttr>();
-                if (!symRef)
-                    continue;
+            mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+            if (!callee || callee->getNumRegions() == 0)
+                return mlir::WalkResult::advance();
 
-                mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                if (!callee || callee->getNumRegions() == 0)
-                    continue;
+            mlir::Block &entry = callee->getRegion(0).front();
 
-                mlir::Block &entry = callee->getRegion(0).front();
-                mlir::ValueRange actualArgs = callOp->getOperands();
-                mlir::ValueRange formalArgs = entry.getArguments();
+            llvm::DenseMap<mlir::Value, mlir::Value> argMap;
+            mlir::ValueRange formalArgs = entry.getArguments();
+            mlir::ValueRange actualArgs = callOp->getOperands();
+            for (size_t i = 0, e = std::min(formalArgs.size(), actualArgs.size()); i < e; ++i)
+                argMap[formalArgs[i]] = actualArgs[i];
 
-                llvm::DenseMap<mlir::Value, mlir::Value> argMap;
-                for (size_t i = 0; i < std::min(formalArgs.size(), actualArgs.size()); ++i)
-                    argMap[formalArgs[i]] = actualArgs[i];
+            entry.walk([&](mlir::MemoryEffectOpInterface memOp) {
+                llvm::SmallVector<mlir::MemoryEffects::EffectInstance, 4> effects;
+                memOp.getEffects(effects);
 
-                // Gather memory effects inside callee
-                for (mlir::Operation &innerOp: entry) {
-                    if (auto memOp = llvm::dyn_cast<mlir::MemoryEffectOpInterface>(&innerOp)) {
-                        llvm::SmallVector<mlir::MemoryEffects::EffectInstance, 4> effects;
-                        memOp.getEffects(effects);
-                        for (mlir::MemoryEffects::EffectInstance &eff: effects) {
-                            mlir::Value val = eff.getValue();
-                            if (!val)
-                                continue;
+                for (mlir::MemoryEffects::EffectInstance &eff: effects) {
+                    mlir::Value v = eff.getValue();
+                    if (!v)
+                        continue;
 
-                            mlir::Value resolved = argMap.lookup(val);
-                            if (!resolved)
-                                resolved = val;
+                    mlir::Value resolved = argMap.lookup(v);
+                    if (!resolved)
+                        resolved = v;
 
-                            // Do not resolve yet — we merge later
-                            mlir::Value canonical = resolve(resolved);
-                            qubitToOps[canonical].push_back(&innerOp);
-                            LLVM_DEBUG(llvm::dbgs()
-                                       << "    [Track] " << innerOp.getName() << " → " << canonical << "\n");
-                        }
+                    mlir::Value canonical = resolve(resolved);
+                    qubitToOps[canonical].push_back(memOp.getOperation());
+
+                    LLVM_DEBUG(llvm::dbgs() << "    [Track] " << memOp->getName() << " → " << canonical << '\n');
+                }
+            });
+
+            if (callOp->getNumResults() == 0)
+                return mlir::WalkResult::advance();
+
+            bool foundReturn = false;
+            callee->walk([&](netqasm::ReturnOp ret) {
+                mlir::ValueRange retVals = ret.getOperands();
+                auto callResults = callOp->getResults();
+
+                for (size_t i = 0, e = std::min(retVals.size(), callResults.size()); i < e; ++i) {
+                    mlir::Value result = callResults[i];
+                    mlir::Value retVal = retVals[i];
+                    mlir::Value final = resolve(retVal);
+
+                    if (auto *def = final.getDefiningOp(); def && isa<netqasm::QAllocOp>(def)) {
+                        resolvedQubitAlias[result] = final;
+                        LLVM_DEBUG(llvm::dbgs() << "  [Alias→QAlloc] " << result << " ↦ " << final << " (qalloc)\n");
+                    } else {
+                        LLVM_DEBUG(llvm::dbgs() << "  [Skip Alias] " << result << " ↦ " << final << " (not qalloc)\n");
                     }
                 }
 
-                // Track result → returned value alias
-                if (callOp->getNumResults() > 0) {
+                foundReturn = true;
+                return mlir::WalkResult::interrupt(); // stop after first ReturnOp
+            });
 
-                    for (mlir::Block &block: callee->getRegion(0)) {
-                        for (mlir::Operation &innerOp: block) {
-                            if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
-
-                                mlir::ValueRange retVals = innerOp.getOperands();
-                                mlir::Operation::result_range callResults = callOp->getResults();
-
-                                for (size_t i = 0; i < std::min(retVals.size(), callResults.size()); ++i) {
-                                    mlir::Value res = callResults[i];
-                                    mlir::Value retVal = retVals[i];
-                                    mlir::Value final = resolve(retVal);
-
-                                    mlir::Operation *defOp = final.getDefiningOp();
-                                    if (defOp && isa<netqasm::QAllocOp>(defOp)) {
-                                        resolvedQubitAlias[res] = final;
-                                        LLVM_DEBUG(llvm::dbgs()
-                                                   << "  [Alias→QAlloc] " << res << " ↦ " << final << " (qalloc)\n");
-                                    } else {
-                                        LLVM_DEBUG(llvm::dbgs()
-                                                   << "  [Skip Alias] " << res << " ↦ " << final << " (not qalloc)\n");
-                                    }
-                                }
-
-                                break;
-                            }
-                        }
-                    }
-                }
+            if (!foundReturn) {
+                mlir::emitError(callOp.getLoc(), "callee has no netqasm.return instruction");
+                return mlir::WalkResult::interrupt();
             }
-        }
+
+            return mlir::WalkResult::advance();
+        });
 
         LLVM_DEBUG({
             llvm::dbgs() << "[Qubit→Ops]\n";
