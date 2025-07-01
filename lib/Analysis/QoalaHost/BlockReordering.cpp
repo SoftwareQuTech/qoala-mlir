@@ -81,7 +81,7 @@ namespace qoala::analysis {
         for (const auto &[id, _, __]: blockTimes) {
             orderedBlockIds.push_back(id);
         }
-        mlir::LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
+        LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
         if (failed(status)) {
             signalPassFailure();
         }
@@ -90,7 +90,7 @@ namespace qoala::analysis {
         // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
-            mlir::emitError(moduleOp.getLoc(), "No main function found in module");
+            emitError(moduleOp.getLoc(), "No main function found in module");
             signalPassFailure();
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();

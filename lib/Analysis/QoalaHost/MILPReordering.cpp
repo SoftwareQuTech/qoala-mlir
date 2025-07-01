@@ -17,7 +17,7 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::reordering {
-    double getOperationDuration(mlir::Operation *op) {
+    double getOperationDuration(Operation *op) {
         // CallOp and NopOp are the Pre and Post tasks
         if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op))
             return qoalaOptHostInstrTime;
@@ -57,12 +57,12 @@ namespace qoala::analysis::reordering {
         return qoalaOptHostInstrTime;
     }
 
-    OpType inferTypeFromCall(mlir::Operation *op, mlir::ModuleOp moduleOp) {
+    OpType inferTypeFromCall(Operation *op, ModuleOp moduleOp) {
         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-            mlir::SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<mlir::SymbolRefAttr>();
+            SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
             if (!symRef)
                 return OpType::CL;
-            mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+            Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
             if (llvm::isa<netqasm::RequestRoutineOp>(callee))
                 return OpType::QC;
             if (llvm::isa<netqasm::LocalRoutineOp>(callee))
@@ -71,20 +71,20 @@ namespace qoala::analysis::reordering {
         return OpType::CL;
     }
 
-    mlir::LogicalResult createTasksForBlock(MILPBlock *blk, const mlir::Location &loc) {
+    LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
         const std::vector<MILPOperation *> &ops = blk->getOperations();
         if (ops.empty()) {
-            mlir::emitError(loc) << "MILPBlock '" << blk->getId() << "' has no operations — this should not happen.";
-            return mlir::failure();
+            emitError(loc) << "MILPBlock '" << blk->getId() << "' has no operations — this should not happen.";
+            return failure();
         }
 
         switch (blk->getType()) {
             case OpType::CL:
             case OpType::CC: {
                 if (blk->getType() == OpType::CC && ops.size() != 1) {
-                    mlir::emitError(loc) << "MILPBlock of type CC should contain exactly one operation, but got "
-                                         << ops.size();
-                    return mlir::failure();
+                    emitError(loc) << "MILPBlock of type CC should contain exactly one operation, but got "
+                                   << ops.size();
+                    return failure();
                 }
                 std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 for (MILPOperation *op: ops)
@@ -95,8 +95,8 @@ namespace qoala::analysis::reordering {
             case OpType::QL:
             case OpType::QC: {
                 if (ops.size() < 3) {
-                    mlir::emitError(loc) << "QL/QC block must contain at least 3 operations to form 3 tasks";
-                    return mlir::failure();
+                    emitError(loc) << "QL/QC block must contain at least 3 operations to form 3 tasks";
+                    return failure();
                 }
                 // Task 0 – call (C): PreTask
                 std::unique_ptr<MILPTask> t0 = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
@@ -114,48 +114,48 @@ namespace qoala::analysis::reordering {
                 break;
             }
         }
-        return mlir::success();
+        return success();
     }
 
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
-               mlir::LogicalResult>
-    buildMILPFromMLIR(mlir::ModuleOp moduleOp) {
+               LogicalResult>
+    buildMILPFromMLIR(ModuleOp moduleOp) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         std::vector<std::shared_ptr<MILPQubit>> qubits;
         BlockPrecedenceList precedences;
 
         llvm::StringMap<MILPBlock *> idToBlockMap;
-        std::unordered_map<mlir::Operation *, MILPOperation *> opToMilpOp;
+        std::unordered_map<Operation *, MILPOperation *> opToMilpOp;
         std::vector<std::pair<std::string, std::string>> unresolvedEdges;
 
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
-            mlir::emitError(moduleOp.getLoc(), "No main function found in module");
-            return {blocks, qubits, precedences, mlir::failure()};
+            emitError(moduleOp.getLoc(), "No main function found in module");
+            return {blocks, qubits, precedences, failure()};
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
         // TODO: do not use SmallPtrSet because we have no way of knowing the needed size
-        llvm::SmallPtrSet<mlir::Block *, 32> visitedBlocks;
-        mlir::LogicalResult status = mlir::success();
+        llvm::SmallPtrSet<Block *, 32> visitedBlocks;
+        LogicalResult status = success();
 
         // Walk every BlkMeta once and build blocks / tasks / edges
         mainFunc.walk([&](qoalahost::BlkMeta blkMeta) {
-            if (mlir::failed(status))
+            if (failed(status))
                 return;
 
-            mlir::Block *block = blkMeta->getBlock();
+            Block *block = blkMeta->getBlock();
             if (!visitedBlocks.insert(block).second)
                 return;
 
             // Determine block type from first non‑meta op
-            mlir::Block::iterator firstIt = std::next(block->begin());
+            Block::iterator firstIt = std::next(block->begin());
             if (firstIt == block->end()) {
-                mlir::emitError(blkMeta.getLoc(), "Block has no body after BlkMeta");
-                status = mlir::failure();
+                emitError(blkMeta.getLoc(), "Block has no body after BlkMeta");
+                status = failure();
                 return;
             }
-            mlir::Operation *firstOp = &*firstIt;
+            Operation *firstOp = &*firstIt;
 
             OpType blkType = OpType::CL;
             if (llvm::isa<qoalahost::SendIntsOp>(firstOp) || llvm::isa<qoalahost::RecvIntsOp>(firstOp) ||
@@ -173,8 +173,8 @@ namespace qoala::analysis::reordering {
 
             int opIdx = 0;
 
-            for (mlir::Block::iterator it = firstIt; it != block->end(); ++it) {
-                mlir::Operation *op = &*it;
+            for (Block::iterator it = firstIt; it != block->end(); ++it) {
+                Operation *op = &*it;
 
                 if (blkType == OpType::CL && (llvm::isa<qoalahost::ReturnOp>(op) || llvm::isa<qoalahost::NopTOp>(op)))
                     break; // stop at terminator‑like op in CL block
@@ -189,18 +189,17 @@ namespace qoala::analysis::reordering {
                 // Inline body for QL/QC blocks immediately after call
                 if (blkType == OpType::QL || blkType == OpType::QC) {
                     if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-                        mlir::SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<mlir::SymbolRefAttr>();
-                        mlir::Operation *callee =
-                                sym ? mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
-                        auto calleeFunc = llvm::dyn_cast_or_null<mlir::FunctionOpInterface>(callee);
+                        SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
+                        Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
+                        auto calleeFunc = llvm::dyn_cast_or_null<FunctionOpInterface>(callee);
                         if (!calleeFunc) {
-                            mlir::emitError(op->getLoc(), "Callee is not a FunctionOpInterface");
-                            status = mlir::failure();
+                            emitError(op->getLoc(), "Callee is not a FunctionOpInterface");
+                            status = failure();
                             return;
                         }
                         bool foundReturn = false;
-                        for (mlir::Block &cb: calleeFunc->getRegion(0)) {
-                            for (mlir::Operation &cOp: cb) {
+                        for (Block &cb: calleeFunc->getRegion(0)) {
+                            for (Operation &cOp: cb) {
                                 std::string subId = blkId + "::" + std::to_string(opIdx++);
                                 MILPOperation *milpSub = new MILPOperation(subId, blkType, getOperationDuration(&cOp));
                                 milpSub->setOperation(&cOp);
@@ -208,7 +207,7 @@ namespace qoala::analysis::reordering {
                                 opToMilpOp[&cOp] = milpSub;
                                 if (llvm::isa<netqasm::ReturnOp>(cOp)) {
                                     // Insert qoalahost.NopOp in caller block & track to model PostTask
-                                    mlir::OpBuilder b(moduleOp.getContext());
+                                    OpBuilder b(moduleOp.getContext());
                                     b.setInsertionPointToEnd(block);
                                     qoalahost::NopOp nop = b.create<qoalahost::NopOp>(cOp.getLoc());
 
@@ -227,8 +226,8 @@ namespace qoala::analysis::reordering {
                                 break;
                         }
                         if (!foundReturn) {
-                            mlir::emitError(op->getLoc(), "Callee does not end in netqasm::ReturnOp");
-                            status = mlir::failure();
+                            emitError(op->getLoc(), "Callee does not end in netqasm::ReturnOp");
+                            status = failure();
                         }
                         break; // after inlined body
                     }
@@ -238,12 +237,12 @@ namespace qoala::analysis::reordering {
                     break; // single‑op block for CC
             }
 
-            if (mlir::failed(status))
+            if (failed(status))
                 return;
 
             // Precedence edges: for our optimization all types of precedences are equivalent.
             // The differenciation is needed for the translation step.
-            auto recordEdge = [&](mlir::StringRef predId) {
+            auto recordEdge = [&](StringRef predId) {
                 if (predId.empty())
                     return;
                 auto it = idToBlockMap.find(predId);
@@ -252,39 +251,39 @@ namespace qoala::analysis::reordering {
                 else
                     unresolvedEdges.emplace_back(predId.str(), blkId);
             };
-            if (mlir::ArrayAttr a = blkMeta.getPredecessorsAttr()) {
-                for (llvm::StringRef s: a.getAsValueRange<mlir::StringAttr>()) {
+            if (ArrayAttr a = blkMeta.getPredecessorsAttr()) {
+                for (llvm::StringRef s: a.getAsValueRange<StringAttr>()) {
                     recordEdge(s);
                 }
             }
-            if (mlir::ArrayAttr a = blkMeta.getDependenciesAttr()) {
-                for (llvm::StringRef s: a.getAsValueRange<mlir::StringAttr>()) {
+            if (ArrayAttr a = blkMeta.getDependenciesAttr()) {
+                for (llvm::StringRef s: a.getAsValueRange<StringAttr>()) {
                     recordEdge(s);
                 }
             }
-            if (mlir::StringAttr a = blkMeta.getPrevEntAttr()) {
+            if (StringAttr a = blkMeta.getPrevEntAttr()) {
                 recordEdge(a.getValue());
             }
-            if (mlir::StringAttr a = blkMeta.getPrevCommAttr()) {
+            if (StringAttr a = blkMeta.getPrevCommAttr()) {
                 recordEdge(a.getValue());
             }
 
             // Tasks
-            if (mlir::failed(createTasksForBlock(blk, blkMeta.getLoc()))) {
-                status = mlir::failure();
+            if (failed(createTasksForBlock(blk, blkMeta.getLoc()))) {
+                status = failure();
                 return;
             }
 
             blocks.push_back(std::move(blkPtr));
         });
 
-        if (mlir::failed(status))
-            return {blocks, qubits, precedences, mlir::failure()};
+        if (failed(status))
+            return {blocks, qubits, precedences, failure()};
 
         // Fail if unresolved edges remain
         if (!unresolvedEdges.empty()) {
-            mlir::emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
-            return {blocks, qubits, precedences, mlir::failure()};
+            emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
+            return {blocks, qubits, precedences, failure()};
         }
 
         LLVM_DEBUG({
@@ -311,11 +310,11 @@ namespace qoala::analysis::reordering {
         // TODO: check what happens if we have a netqasm::EprsMeasureOp
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
 
-        llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>> qubitToOps;
-        llvm::DenseMap<mlir::Value, mlir::Value> resolvedQubitAlias;
+        llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
+        llvm::DenseMap<Value, Value> resolvedQubitAlias;
 
-        auto resolve = [&](mlir::Value v) -> mlir::Value {
-            llvm::SmallPtrSet<mlir::Value, 4> seen;
+        auto resolve = [&](Value v) -> Value {
+            llvm::SmallPtrSet<Value, 4> seen;
             while (resolvedQubitAlias.count(v)) {
                 if (!seen.insert(v).second)
                     break;
@@ -327,37 +326,37 @@ namespace qoala::analysis::reordering {
         // Traverse every qoalahost.call, analyse its callee, and
         //  - collect MemoryEffect ops in qubitToOps
         //  - establish result-to-qalloc aliases in resolvedQubitAlias
-        mainFunc.walk([&](qoalahost::CallOp callOp) -> mlir::WalkResult {
-            mlir::SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<mlir::SymbolRefAttr>();
+        mainFunc.walk([&](qoalahost::CallOp callOp) -> WalkResult {
+            SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
             if (!symRef)
-                return mlir::WalkResult::advance();
+                return WalkResult::advance();
 
-            mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+            Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
             if (!callee || callee->getNumRegions() == 0)
-                return mlir::WalkResult::advance();
+                return WalkResult::advance();
 
-            mlir::Block &entry = callee->getRegion(0).front();
+            Block &entry = callee->getRegion(0).front();
 
-            llvm::DenseMap<mlir::Value, mlir::Value> argMap;
-            mlir::ValueRange formalArgs = entry.getArguments();
-            mlir::ValueRange actualArgs = callOp->getOperands();
+            llvm::DenseMap<Value, Value> argMap;
+            ValueRange formalArgs = entry.getArguments();
+            ValueRange actualArgs = callOp->getOperands();
             for (size_t i = 0, e = std::min(formalArgs.size(), actualArgs.size()); i < e; ++i)
                 argMap[formalArgs[i]] = actualArgs[i];
 
-            entry.walk([&](mlir::MemoryEffectOpInterface memOp) {
-                llvm::SmallVector<mlir::MemoryEffects::EffectInstance, 4> effects;
+            entry.walk([&](MemoryEffectOpInterface memOp) {
+                llvm::SmallVector<MemoryEffects::EffectInstance, 4> effects;
                 memOp.getEffects(effects);
 
-                for (mlir::MemoryEffects::EffectInstance &eff: effects) {
-                    mlir::Value v = eff.getValue();
+                for (MemoryEffects::EffectInstance &eff: effects) {
+                    Value v = eff.getValue();
                     if (!v)
                         continue;
 
-                    mlir::Value resolved = argMap.lookup(v);
+                    Value resolved = argMap.lookup(v);
                     if (!resolved)
                         resolved = v;
 
-                    mlir::Value canonical = resolve(resolved);
+                    Value canonical = resolve(resolved);
                     qubitToOps[canonical].push_back(memOp.getOperation());
 
                     LLVM_DEBUG(llvm::dbgs() << "    [Track] " << memOp->getName() << " → " << canonical << '\n');
@@ -365,17 +364,17 @@ namespace qoala::analysis::reordering {
             });
 
             if (callOp->getNumResults() == 0)
-                return mlir::WalkResult::advance();
+                return WalkResult::advance();
 
             bool foundReturn = false;
             callee->walk([&](netqasm::ReturnOp ret) {
-                mlir::ValueRange retVals = ret.getOperands();
+                ValueRange retVals = ret.getOperands();
                 auto callResults = callOp->getResults();
 
                 for (size_t i = 0, e = std::min(retVals.size(), callResults.size()); i < e; ++i) {
-                    mlir::Value result = callResults[i];
-                    mlir::Value retVal = retVals[i];
-                    mlir::Value final = resolve(retVal);
+                    Value result = callResults[i];
+                    Value retVal = retVals[i];
+                    Value final = resolve(retVal);
 
                     if (auto *def = final.getDefiningOp(); def && isa<netqasm::QAllocOp>(def)) {
                         resolvedQubitAlias[result] = final;
@@ -386,15 +385,15 @@ namespace qoala::analysis::reordering {
                 }
 
                 foundReturn = true;
-                return mlir::WalkResult::interrupt(); // stop after first ReturnOp
+                return WalkResult::interrupt(); // stop after first ReturnOp
             });
 
             if (!foundReturn) {
-                mlir::emitError(callOp.getLoc(), "callee has no netqasm.return instruction");
-                return mlir::WalkResult::interrupt();
+                emitError(callOp.getLoc(), "callee has no netqasm.return instruction");
+                return WalkResult::interrupt();
             }
 
-            return mlir::WalkResult::advance();
+            return WalkResult::advance();
         });
 
         LLVM_DEBUG({
@@ -409,9 +408,9 @@ namespace qoala::analysis::reordering {
 
         int qubitIndex = 0;
 
-        for (const std::pair<const mlir::Value, std::vector<mlir::Operation *>> &entry: qubitToOps) {
-            mlir::Value qubit = entry.first;
-            const std::vector<mlir::Operation *> &ops = entry.second;
+        for (const std::pair<const Value, std::vector<Operation *>> &entry: qubitToOps) {
+            Value qubit = entry.first;
+            const std::vector<Operation *> &ops = entry.second;
 
             std::string id = "q" + std::to_string(qubitIndex++);
             std::shared_ptr<MILPQubit> qubitPtr = std::make_shared<MILPQubit>(id);
@@ -419,7 +418,7 @@ namespace qoala::analysis::reordering {
             MILPOperation *allocOp = nullptr;
             MILPOperation *measOp = nullptr;
 
-            for (mlir::Operation *op: ops) {
+            for (Operation *op: ops) {
                 if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
                     allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
                 }
@@ -449,7 +448,7 @@ namespace qoala::analysis::reordering {
             }
         });
 
-        return {blocks, qubits, precedences, mlir::success()};
+        return {blocks, qubits, precedences, success()};
     }
 
     bool MILPModelBuilder::initialize() {
@@ -693,11 +692,11 @@ namespace qoala::analysis::reordering {
         return v;
     }
 
-    mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
+    LogicalResult reorderBlocksByMilpOrder(ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
-            mlir::emitError(moduleOp.getLoc(), "No main function found in module");
-            return mlir::failure();
+            emitError(moduleOp.getLoc(), "No main function found in module");
+            return failure();
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
         auto &body = mainFunc.getBody();
@@ -705,7 +704,7 @@ namespace qoala::analysis::reordering {
         llvm::StringMap<Block *> idToBlock;
 
         for (Block &blk: body) {
-            for (mlir::Operation &op: blk) {
+            for (Operation &op: blk) {
                 if (auto meta = llvm::dyn_cast<qoalahost::BlkMeta>(op)) {
                     idToBlock[meta.getBlockId()] = &blk;
                     break;
@@ -717,7 +716,7 @@ namespace qoala::analysis::reordering {
         for (const std::string &id: orderedIds) {
             auto it = idToBlock.find(id);
             if (it == idToBlock.end())
-                return moduleOp.emitError("unknown block_id “") << id << "”", mlir::failure();
+                return moduleOp.emitError("unknown block_id “") << id << "”", failure();
 
             Block *blk = it->second;
             if (blk != insertionPoint)
@@ -725,6 +724,6 @@ namespace qoala::analysis::reordering {
             insertionPoint = blk->getNextNode();
         }
 
-        return mlir::success();
+        return success();
     }
 } // namespace qoala::analysis::reordering
