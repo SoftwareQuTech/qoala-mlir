@@ -89,12 +89,12 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(const std::string &id, OpType type, double duration) :
+            MILPOperation(const std::string &id, OpType type, int duration) :
                 id_(id), type_(type), duration_(duration), start_time_(0.0), op_(nullptr) {}
 
             const std::string &getId() const { return id_; }
             OpType getType() const { return type_; }
-            double getDuration() const { return duration_; }
+            int getDuration() const { return duration_; }
 
             void setStartTime(double startTime) { start_time_ = startTime; }
             double getStartTime() const { return start_time_; }
@@ -105,7 +105,7 @@ namespace qoala::analysis {
         private:
             std::string id_;
             OpType type_;
-            double duration_;
+            int duration_;
             double start_time_;
             mlir::Operation *op_;
         };
@@ -126,8 +126,8 @@ namespace qoala::analysis {
 
             MILPOperation *getFirstOperation() const { return operations_.empty() ? nullptr : operations_.front(); }
 
-            double getDuration() const {
-                double dur = 0.0;
+            int getDuration() const {
+                int dur = 0.0;
                 for (auto *op: operations_)
                     dur += op->getDuration();
                 return dur;
@@ -244,14 +244,14 @@ namespace qoala::analysis {
             std::vector<std::shared_ptr<MILPBlock>> blocks_;
             std::vector<std::shared_ptr<MILPQubit>> qubits_;
             BlockPrecedenceList precedences_;
-            double bigM_;
-            double constOffset_ = 0.0;
+            int bigM_;
+            int constOffset_ = 0;
 
             // Map from operation ID to SCIP variable
             std::unordered_map<std::string, SCIP_VAR *> startVars_;
 
             // Utility to create SCIP variable
-            SCIP_VAR *createContinuousVariable(const std::string &name, double lb, double ub);
+            SCIP_VAR *createVariable(const std::string &name, bool strictlyPositive);
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
@@ -264,7 +264,7 @@ namespace qoala::analysis {
          * to be used in the MILP model.
          * @param op The operation whose duration is to be determined.
          */
-        double getOperationDuration(mlir::Operation *op);
+        int getOperationDuration(mlir::Operation *op);
 
         /**
          * Infers the block type based on the given operation (typically the first

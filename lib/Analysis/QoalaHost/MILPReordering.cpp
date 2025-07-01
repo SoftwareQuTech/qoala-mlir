@@ -17,7 +17,7 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::reordering {
-    double getOperationDuration(Operation *op) {
+    int getOperationDuration(Operation *op) {
         // CallOp and NopOp are the Pre and Post tasks
         if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op))
             return qoalaOptHostInstrTime;
@@ -525,15 +525,16 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPModelBuilder::createVariables() {
-        double total = 0.0;
+        int total = 0;
         for (const std::shared_ptr<MILPBlock> &blk: blocks_)
             for (const MILPOperation *op: blk->getOperations()) {
                 total += op->getDuration();
                 const std::string &id = op->getId();
                 if (!startVars_.count(id))
-                    startVars_[id] = createContinuousVariable("s_" + id, 0.0, SCIPinfinity(scip_));
+                    startVars_[id] = createVariable("s_" + id, /*strictlyPositive=*/false);
             }
         bigM_ = 2 * total;
+        LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
 
         // Add offset here if needed (safe stage)
         if (constOffset_ != 0.0)
@@ -550,7 +551,7 @@ namespace qoala::analysis::reordering {
                     const MILPOperation *o2 = ops[j + 1];
                     SCIP_CONS *c;
                     std::string name = "ord_" + o1->getId() + "_" + o2->getId();
-                    double rhs = o1->getDuration();
+                    int rhs = o1->getDuration();
                     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
                     SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                     SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -570,7 +571,7 @@ namespace qoala::analysis::reordering {
 
             SCIP_CONS *c;
             std::string name = "prec_" + pred->getId() + "_" + succ->getId();
-            double lhs = predLast->getDuration();
+            int lhs = predLast->getDuration();
             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
             SCIPaddCoefLinear(scip_, c, startVars_[succFirst->getId()], 1.0);
             SCIPaddCoefLinear(scip_, c, startVars_[predLast->getId()], -1.0);
@@ -580,7 +581,7 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPModelBuilder::addFCFSTaskConstraints() {
-        const double eps = 1.0;
+        const int eps = 1;
 
         // transitive closure of precedence DAG
         Closure clos;
@@ -622,7 +623,7 @@ namespace qoala::analysis::reordering {
                 for (int k: idx) {
                     const MILPOperation *o1 = t1[k]->getOperations().front();
                     const MILPOperation *o2 = t2[k]->getOperations().front();
-                    double dur1 = 0.0, dur2 = 0.0;
+                    int dur1 = 0, dur2 = 0;
                     for (MILPOperation *op: t1[k]->getOperations())
                         dur1 += op->getDuration();
                     for (MILPOperation *op: t2[k]->getOperations())
@@ -632,7 +633,7 @@ namespace qoala::analysis::reordering {
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
-                        double lhs = dur1 + eps;
+                        int lhs = dur1 + eps;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -644,7 +645,7 @@ namespace qoala::analysis::reordering {
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
-                        double lhs = dur2 + eps - bigM_;
+                        int lhs = dur2 + eps - bigM_;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], -1.0);
@@ -673,7 +674,7 @@ namespace qoala::analysis::reordering {
             const MILPOperation *first2 = t2->getOperations().front();
             const MILPOperation *first3 = t3->getOperations().front();
 
-            double dur1 = 0.0, dur2 = 0.0;
+            int dur1 = 0, dur2 = 0;
             for (MILPOperation *op: t1->getOperations())
                 dur1 += op->getDuration();
             for (MILPOperation *op: t2->getOperations())
@@ -723,7 +724,19 @@ namespace qoala::analysis::reordering {
 
     double MILPModelBuilder::getOperationStartTime(const std::string &id) const {
         auto it = startVars_.find(id);
-        return (it == startVars_.end()) ? -1.0 : SCIPgetSolVal(scip_, nullptr, it->second);
+        if (it == startVars_.end()) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: start time requested for unknown operation " << id << "\n");
+            return -1.0;
+        }
+
+        double val = SCIPgetSolVal(scip_, nullptr, it->second);
+
+        // Defensive checks for invalid SCIP values
+        if (val < 0.0 || std::isnan(val) || std::isinf(val)) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for operation " << id << ": " << val << "\n");
+        }
+
+        return val;
     }
 
 
@@ -739,9 +752,10 @@ namespace qoala::analysis::reordering {
     }
 
 
-    SCIP_VAR *MILPModelBuilder::createContinuousVariable(const std::string &name, double lb, double ub) {
+    SCIP_VAR *MILPModelBuilder::createVariable(const std::string &name, bool strictlyPositive) {
+        double lb = strictlyPositive ? 1.0 : 0.0;
         SCIP_VAR *v = nullptr;
-        SCIPcreateVarBasic(scip_, &v, name.c_str(), lb, ub, 0.0, SCIP_VARTYPE_CONTINUOUS);
+        SCIPcreateVarBasic(scip_, &v, name.c_str(), lb, SCIPinfinity(scip_), 0.0, SCIP_VARTYPE_INTEGER);
         SCIPaddVar(scip_, v);
         return v;
     }
