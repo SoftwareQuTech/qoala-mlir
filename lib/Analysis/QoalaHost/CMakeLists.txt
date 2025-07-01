@@ -16,3 +16,7 @@ target_include_directories(MLIRQoalaHostAnalysis
   PRIVATE
     ${SCIP_INCLUDE_DIR}
 )
+
+target_compile_options(obj.MLIRQoalaHostAnalysis PRIVATE
+  -Wno-macro-redefined
+)

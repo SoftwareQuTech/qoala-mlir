@@ -408,8 +408,7 @@ namespace qoala::analysis::reordering {
 
         int qubitIndex = 0;
 
-        for (const std::pair<const Value, std::vector<Operation *>> &entry: qubitToOps) {
-            Value qubit = entry.first;
+        for (const auto &entry : qubitToOps) {
             const std::vector<Operation *> &ops = entry.second;
 
             std::string id = "q" + std::to_string(qubitIndex++);
@@ -508,7 +507,7 @@ namespace qoala::analysis::reordering {
     }
     // precedence edges
     void MILPModelBuilder::addBlockPrecedenceConstraints() {
-        for (const std::pair<const MILPBlock *, const MILPBlock *> &e: precedences_) {
+        for (const auto &e: precedences_) {
             const MILPBlock *pred = e.first;
             const MILPBlock *succ = e.second;
             const MILPOperation *predLast = pred->lastOp();
@@ -530,7 +529,7 @@ namespace qoala::analysis::reordering {
 
         // transitive closure of precedence DAG
         Closure clos;
-        for (const std::pair<const MILPBlock *, const MILPBlock *> &e: precedences_)
+        for (const auto &e: precedences_)
             clos.insert({e.first->getId(), e.second->getId()});
 
         bool grown;

@@ -137,9 +137,9 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
+            MILPBlock *parent_block_;
             TaskGroup group_;
             std::vector<MILPOperation *> operations_;
-            MILPBlock *parent_block_;
         };
 
         // === MILPBlock ===
@@ -260,7 +260,7 @@ namespace qoala::analysis {
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
-        static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+        [[maybe_unused]] static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
             return C.count({a->getId(), b->getId()}) > 0;
         };
 
