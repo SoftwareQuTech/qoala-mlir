@@ -90,14 +90,11 @@ namespace qoala::analysis {
         class MILPOperation {
         public:
             MILPOperation(const std::string &id, OpType type, int duration) :
-                id_(id), type_(type), duration_(duration), start_time_(0.0), op_(nullptr) {}
+                id_(id), type_(type), duration_(duration), op_(nullptr) {}
 
             const std::string &getId() const { return id_; }
             OpType getType() const { return type_; }
             int getDuration() const { return duration_; }
-
-            void setStartTime(double startTime) { start_time_ = startTime; }
-            double getStartTime() const { return start_time_; }
 
             void setOperation(mlir::Operation *op) { op_ = op; }
             mlir::Operation *getOperation() const { return op_; }
@@ -106,7 +103,6 @@ namespace qoala::analysis {
             std::string id_;
             OpType type_;
             int duration_;
-            double start_time_;
             mlir::Operation *op_;
         };
 
