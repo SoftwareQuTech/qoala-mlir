@@ -77,6 +77,15 @@ namespace qoala::analysis {
 
         model.cleanup();
 
+        std::vector<std::string> orderedBlockIds;
+        for (const auto &[id, _, __]: blockTimes) {
+            orderedBlockIds.push_back(id);
+        }
+        mlir::LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
+        if (failed(status)) {
+            signalPassFailure();
+        }
+
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
         // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();

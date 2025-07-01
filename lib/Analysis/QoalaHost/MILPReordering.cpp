@@ -717,4 +717,39 @@ namespace qoala::analysis::reordering {
         SCIPaddVar(scip_, v);
         return v;
     }
+
+    mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
+        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        if (mainFuncs.empty()) {
+            mlir::emitError(moduleOp.getLoc(), "No main function found in module");
+            return mlir::failure();
+        }
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        auto &body = mainFunc.getBody();
+
+        llvm::StringMap<Block *> idToBlock;
+
+        for (Block &blk: body) {
+            for (mlir::Operation &op: blk) {
+                if (auto meta = llvm::dyn_cast<qoalahost::BlkMeta>(op)) {
+                    idToBlock[meta.getBlockId()] = &blk;
+                    break;
+                }
+            }
+        }
+
+        Block *insertionPoint = &body.front();
+        for (const std::string &id: orderedIds) {
+            auto it = idToBlock.find(id);
+            if (it == idToBlock.end())
+                return moduleOp.emitError("unknown block_id “") << id << "”", mlir::failure();
+
+            Block *blk = it->second;
+            if (blk != insertionPoint)
+                blk->moveBefore(insertionPoint);
+            insertionPoint = blk->getNextNode();
+        }
+
+        return mlir::success();
+    }
 } // namespace qoala::analysis::reordering

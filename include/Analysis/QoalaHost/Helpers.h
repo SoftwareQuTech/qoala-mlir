@@ -250,6 +250,9 @@ namespace qoala::analysis {
             // Utility to create SCIP variable
             SCIP_VAR *createContinuousVariable(const std::string &name, double lb, double ub);
         };
+
+        mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp module,
+                                                     const std::vector<std::string> &orderedBlockIds);
     } // namespace reordering
 } // namespace qoala::analysis
 
