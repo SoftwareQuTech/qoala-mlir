@@ -489,15 +489,6 @@ namespace qoala::analysis::reordering {
             SCIPaddObjoffset(scip_, constOffset_);
     }
 
-
-    void MILPModelBuilder::addConstraints() {
-        // Call individual constraint-adding methods
-        addIntraTaskOrderingConstraints();
-        addBlockPrecedenceConstraints();
-        addFCFSTaskConstraints();
-        addIntraBlockSequencingConstraints();
-    }
-
     // equality chain inside each task
     void MILPModelBuilder::addIntraTaskOrderingConstraints() {
         for (const std::shared_ptr<MILPBlock> &blk: blocks_) {

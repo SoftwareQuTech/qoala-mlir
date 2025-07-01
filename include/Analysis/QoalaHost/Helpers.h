@@ -218,7 +218,13 @@ namespace qoala::analysis {
             void createVariables();
 
             // Add all constraints to the model
-            void addConstraints();
+            void addConstraints() {
+                // Call individual constraint-adding methods
+                addIntraTaskOrderingConstraints();
+                addBlockPrecedenceConstraints();
+                addFCFSTaskConstraints();
+                addIntraBlockSequencingConstraints();
+            }
 
             // Add a single group of constraints (optional modular form)
             void addIntraTaskOrderingConstraints();
