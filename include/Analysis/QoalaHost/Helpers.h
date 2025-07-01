@@ -265,7 +265,7 @@ namespace qoala::analysis {
          * @param op The operation whose duration is to be determined.
          */
         double getOperationDuration(mlir::Operation *op);
-        
+
         /**
          * Infers the block type based on the given operation (typically the first
          * non BlkMeta operation in a block).
@@ -273,14 +273,14 @@ namespace qoala::analysis {
          * @param moduleOp The parent module, used to resolve symbol references.
          */
         OpType getBlockType(mlir::Operation *op, mlir::ModuleOp moduleOp);
-        
+
         /**
          * Creates the set of MILP tasks associated with a given block.
          * @param blk The MILPBlock for which to create tasks.
          * @param loc The location used for emitting diagnostics on failure.
          */
         mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
-        
+
         /**
          * Constructs the MILP model from the given MLIR module. This includes building
          * MILP blocks, qubit usage, and block precedence constraints.
@@ -291,7 +291,7 @@ namespace qoala::analysis {
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
                    BlockPrecedenceList, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
-        
+
         /**
          * Reorders the blocks in the given module based on the specified MILP solution order.
          * This mainly affects the block order inside MainFuncOp.
