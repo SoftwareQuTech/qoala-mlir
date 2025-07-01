@@ -754,7 +754,7 @@ namespace qoala::analysis::reordering {
         // This models:
         //      Objective = sum ((start(Meas) + dur(meas)) - (start(Alloc) - dur(alloc)))
         //                = Total lifetime time per qubit
-        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
+        SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
         constOffset_ = 0.0;
 
         for (const std::shared_ptr<MILPQubit> &q: qubits_) {
@@ -763,8 +763,13 @@ namespace qoala::analysis::reordering {
             if (!(alloc && meas))
                 continue;
 
-            SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
-            SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
+            // Flip sign of coefficients depending on mode
+            double allocCoeff = qoalaOptUnoptimize ? 1.0 : -1.0;
+            double measCoeff = qoalaOptUnoptimize ? -1.0 : 1.0;
+
+            SCIPchgVarObj(scip_, startVars_[alloc->getId()], allocCoeff);
+            SCIPchgVarObj(scip_, startVars_[meas->getId()], measCoeff);
+
             constOffset_ += meas->getDuration() - alloc->getDuration();
         }
     }
