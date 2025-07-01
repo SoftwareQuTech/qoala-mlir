@@ -35,32 +35,47 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        // reordering::MILPModelBuilder model;
-        // if (!model.initialize()) {
-        //     moduleOp.emitError("Failed to initialize SCIP.");
-        //     signalPassFailure();
-        //     return;
-        // }
+        reordering::MILPModelBuilder model;
+        if (!model.initialize()) {
+            moduleOp.emitError("Failed to initialize SCIP.");
+            signalPassFailure();
+        }
 
-        // model.setProblemData(blocks, qubits);
-        // model.createVariables();
-        // model.addConstraints();
-        // model.setObjective();
+        model.setProblemData(blocks, qubits, precedences);
+        model.createVariables();
+        model.addConstraints();
+        model.setObjective();
 
-        // if (!model.optimize()) {
-        //     moduleOp.emitError("MILP solve failed.");
-        //     signalPassFailure();
-        //     return;
-        // }
+        if (!model.optimize()) {
+            moduleOp.emitError("MILP solve failed.");
+            signalPassFailure();
+        }
 
-        // for (const auto &block: blocks) {
-        //     for (const auto *op: block->getOperations()) {
-        //         double start = model.getOperationStartTime(op->getId());
-        //         LLVM_DEBUG(llvm::dbgs() << "Start[" << op->getId() << "] = " << start << "\n");
-        //     }
-        // }
+        std::vector<std::tuple<std::string, double, double>> blockTimes;
 
-        // model.cleanup();
+        for (const auto &block: blocks) {
+            const auto &ops = block->getOperations();
+            if (ops.empty())
+                continue;
+
+            const auto *firstOp = ops.front();
+            const auto *lastOp = ops.back();
+            double start = model.getOperationStartTime(firstOp->getId());
+            double end = model.getOperationStartTime(lastOp->getId()) + lastOp->getDuration();
+
+            blockTimes.emplace_back(block->getId(), start, end);
+        }
+
+        // Sort by start time
+        std::sort(blockTimes.begin(), blockTimes.end(),
+                  [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
+
+        // Debug print
+        for (const auto &[id, start, end]: blockTimes) {
+            LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
+        }
+
+        model.cleanup();
 
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
         // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.

@@ -157,6 +157,9 @@ namespace qoala::analysis {
             void setBlock(mlir::Block *block) { blk_ = block; }
             mlir::Block *getBlock() const { return blk_; }
 
+            const MILPOperation *firstOp() const { return operations_.front(); }
+            const MILPOperation *lastOp() const { return operations_.back(); }
+
         private:
             std::string id_;
             OpType type_;
@@ -177,13 +180,6 @@ namespace qoala::analysis {
 
             MILPOperation *getAllocation() const { return alloc_op_; }
             MILPOperation *getMeasurement() const { return meas_op_; }
-
-            double computeLifetime() const {
-                if (!alloc_op_ || !meas_op_)
-                    return 0.0;
-                return (meas_op_->getStartTime() + meas_op_->getDuration()) -
-                       (alloc_op_->getStartTime() + alloc_op_->getDuration());
-            }
 
         private:
             std::string id_;
@@ -213,7 +209,8 @@ namespace qoala::analysis {
 
             // Inject blocks and qubits to be used in modeling
             void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
-                                const std::vector<std::shared_ptr<MILPQubit>> &qubits);
+                                const std::vector<std::shared_ptr<MILPQubit>> &qubits,
+                                const BlockPrecedenceList precedences);
 
             // Create SCIP variables for each operation
             void createVariables();
@@ -243,6 +240,9 @@ namespace qoala::analysis {
             SCIP *scip_; // main SCIP context
             std::vector<std::shared_ptr<MILPBlock>> blocks_;
             std::vector<std::shared_ptr<MILPQubit>> qubits_;
+            BlockPrecedenceList precedences_;
+            double bigM_;
+            double constOffset_ = 0.0;
 
             // Map from operation ID to SCIP variable
             std::unordered_map<std::string, SCIP_VAR *> startVars_;

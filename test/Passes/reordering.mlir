@@ -35,15 +35,15 @@ module {
         %1 = qoalahost.call @entanglement() : () -> i32
     ^bb2:
         qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
-        qoalahost.call @bsm_cnot(%0, %1) : (i32, i32) -> ()
+        qoalahost.call @bsm_h(%0) : (i32) -> ()
     ^bb3:
         qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-        qoalahost.call @bsm_h(%0) : (i32) -> ()
+        qoalahost.call @bsm_cnot(%0, %1) : (i32, i32) -> ()
     ^bb4:
         qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m0 = qoalahost.call @bsm_meas_local(%0) : (i32) -> i1
     ^bb5:
-        qoalahost.blk_meta  {block_id = "block_5", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_5", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m1 = qoalahost.call @bsm_meas_ent(%1) : (i32) -> i1
     ^bb6:
         qoalahost.blk_meta  {block_id = "block_6", dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}

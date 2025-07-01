@@ -6,9 +6,14 @@
 #include "Dialect/QoalaHost/Passes.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "Tools/QoalaOpt.h"
+#include <set>
+#include <unordered_set>
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
+#include <scip/cons.h>
+#include <scip/cons_linear.h>
+#include <scip/expr_sum.h>
 
 #define DEBUG_TYPE "qoalahost-reorder-blocks-pass-internal"
 
@@ -460,73 +465,256 @@ namespace qoala::analysis::reordering {
     MILPModelBuilder::~MILPModelBuilder() { cleanup(); }
 
     bool MILPModelBuilder::initialize() {
-        SCIP_RETCODE retcode = SCIPcreate(&scip_);
-        if (retcode != SCIP_OKAY)
+        if (SCIPcreate(&scip_) != SCIP_OKAY)
             return false;
-
-        retcode = SCIPincludeDefaultPlugins(scip_);
-        return retcode == SCIP_OKAY;
+        if (SCIPincludeDefaultPlugins(scip_) != SCIP_OKAY)
+            return false;
+        /* Create the (still empty) problem before any variables are added. */
+        if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY)
+            return false;
+        return true;
     }
 
     void MILPModelBuilder::setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
-                                          const std::vector<std::shared_ptr<MILPQubit>> &qubits) {
+                                          const std::vector<std::shared_ptr<MILPQubit>> &qubits,
+                                          const BlockPrecedenceList precedences) {
         blocks_ = blocks;
         qubits_ = qubits;
+        precedences_ = precedences;
     }
 
     void MILPModelBuilder::createVariables() {
-        // Placeholder: create SCIP_VARs and store in startVars_
+        double total = 0.0;
+        for (const auto &blk: blocks_)
+            for (const auto *op: blk->getOperations()) {
+                total += op->getDuration();
+                const std::string &id = op->getId();
+                if (!startVars_.count(id))
+                    startVars_[id] = createContinuousVariable("s_" + id, 0.0, SCIPinfinity(scip_));
+            }
+        bigM_ = 2 * total;
+
+        // Add offset here if needed (safe stage)
+        if (constOffset_ != 0.0)
+            SCIPaddObjoffset(scip_, constOffset_);
     }
 
+
     void MILPModelBuilder::addConstraints() {
-        // Placeholder: call individual constraint-adding methods
+        // Call individual constraint-adding methods
         addIntraTaskOrderingConstraints();
         addBlockPrecedenceConstraints();
         addFCFSTaskConstraints();
         addIntraBlockSequencingConstraints();
     }
 
+    // equality chain inside each task
     void MILPModelBuilder::addIntraTaskOrderingConstraints() {
-        // Placeholder
+        for (const auto &blk: blocks_) {
+            for (const auto &t: blk->getTasks()) {
+                const auto &ops = t->getOperations();
+                for (size_t j = 0; j + 1 < ops.size(); ++j) {
+                    const MILPOperation *o1 = ops[j];
+                    const MILPOperation *o2 = ops[j + 1];
+                    SCIP_CONS *c;
+                    std::string name = "ord_" + o1->getId() + "_" + o2->getId();
+                    double rhs = o1->getDuration();
+                    SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
+                    SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
+                    SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
+                    SCIPaddCons(scip_, c);
+                    SCIPreleaseCons(scip_, &c);
+                }
+            }
+        }
+    }
+    // precedence edges
+    void MILPModelBuilder::addBlockPrecedenceConstraints() {
+        for (const auto &e: precedences_) {
+            const auto *pred = e.first;
+            const auto *succ = e.second;
+            const auto *predLast = pred->lastOp();
+            const auto *succFirst = succ->firstOp();
+
+            SCIP_CONS *c;
+            std::string name = "prec_" + pred->getId() + "_" + succ->getId();
+            double lhs = predLast->getDuration();
+            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
+            SCIPaddCoefLinear(scip_, c, startVars_[succFirst->getId()], 1.0);
+            SCIPaddCoefLinear(scip_, c, startVars_[predLast->getId()], -1.0);
+            SCIPaddCons(scip_, c);
+            SCIPreleaseCons(scip_, &c);
+        }
     }
 
-    void MILPModelBuilder::addBlockPrecedenceConstraints() {
-        // Placeholder
+    using Closure = std::set<std::pair<std::string, std::string>>;
+    static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+        return C.count({a->getId(), b->getId()}) > 0;
     }
 
     void MILPModelBuilder::addFCFSTaskConstraints() {
-        // Placeholder
+        const double eps = 1.0;
+
+        // transitive closure of precedence DAG
+        Closure clos;
+        for (const auto &e: precedences_)
+            clos.insert({e.first->getId(), e.second->getId()});
+        bool grown;
+        do {
+            grown = false;
+            for (auto &p: clos)
+                for (auto &q: clos)
+                    if (p.second == q.first && clos.insert({p.first, q.second}).second)
+                        grown = true;
+        } while (grown);
+
+        const int B = static_cast<int>(blocks_.size());
+        for (int i = 0; i < B; ++i) {
+            const auto *b1 = blocks_[i].get();
+            for (int j = i + 1; j < B; ++j) {
+                const auto *b2 = blocks_[j].get();
+
+                if (reachable(b1, b2, clos) || reachable(b2, b1, clos))
+                    continue;
+                if (b1->getTasks().empty() || b2->getTasks().empty())
+                    continue;
+                if (b1->getTasks().front()->getGroup() != b2->getTasks().front()->getGroup())
+                    continue;
+
+                // binary selector z
+                SCIP_VAR *z;
+                std::string zname = "z_" + b1->getId() + "_" + b2->getId();
+                SCIPcreateVarBasic(scip_, &z, zname.c_str(), 0.0, 1.0, 0.0, SCIP_VARTYPE_BINARY);
+                SCIPaddVar(scip_, z);
+
+                const auto &t1 = b1->getTasks();
+                const auto &t2 = b2->getTasks();
+                const std::vector<int> idx =
+                        (t1.size() == 3 && t2.size() == 3) ? std::vector<int>{0, 1, 2} : std::vector<int>{0};
+                for (int k: idx) {
+                    const auto *o1 = t1[k]->getOperations().front();
+                    const auto *o2 = t2[k]->getOperations().front();
+                    double dur1 = 0.0, dur2 = 0.0;
+                    for (auto *op: t1[k]->getOperations())
+                        dur1 += op->getDuration();
+                    for (auto *op: t2[k]->getOperations())
+                        dur2 += op->getDuration();
+
+                    // s(o2) - s(o1) + M z ≥ dur1+eps
+                    {
+                        SCIP_CONS *c;
+                        std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
+                        double lhs = dur1 + eps;
+                        SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
+                        SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
+                        SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
+                        SCIPaddCoefLinear(scip_, c, z, bigM_);
+                        SCIPaddCons(scip_, c);
+                        SCIPreleaseCons(scip_, &c);
+                    }
+                    // s(o1) - s(o2) - M z ≥ dur2+eps - M
+                    {
+                        SCIP_CONS *c;
+                        std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
+                        double lhs = dur2 + eps - bigM_;
+                        SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
+                        SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], 1.0);
+                        SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], -1.0);
+                        SCIPaddCoefLinear(scip_, c, z, -bigM_);
+                        SCIPaddCons(scip_, c);
+                        SCIPreleaseCons(scip_, &c);
+                    }
+                }
+                SCIPreleaseVar(scip_, &z);
+            }
+        }
     }
 
     void MILPModelBuilder::addIntraBlockSequencingConstraints() {
-        // Placeholder
+        for (const auto &blk: blocks_) {
+            if (blk->getType() != OpType::QL && blk->getType() != OpType::QC)
+                continue;
+            const auto &tasks = blk->getTasks();
+            if (tasks.size() != 3)
+                continue;
+
+            const auto *t1 = tasks[0].get();
+            const auto *t2 = tasks[1].get();
+            const auto *t3 = tasks[2].get();
+
+            const auto *first2 = t2->getOperations().front();
+            const auto *first3 = t3->getOperations().front();
+
+            double dur1 = 0.0, dur2 = 0.0;
+            for (auto *op: t1->getOperations())
+                dur1 += op->getDuration();
+            for (auto *op: t2->getOperations())
+                dur2 += op->getDuration();
+
+            // t2 after t1
+            {
+                SCIP_CONS *c;
+                std::string n = "seq1_" + blk->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, dur1, dur1);
+                SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_[t1->getOperations().front()->getId()], -1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+            // t3 after t2
+            {
+                SCIP_CONS *c;
+                std::string n = "seq2_" + blk->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, dur2, dur2);
+                SCIPaddCoefLinear(scip_, c, startVars_[first3->getId()], 1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], -1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+        }
     }
 
     void MILPModelBuilder::setObjective() {
-        // Placeholder
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
+        constOffset_ = 0.0;
+
+        for (const auto &q: qubits_) {
+            const auto *alloc = q->getAllocation();
+            const auto *meas = q->getMeasurement();
+            if (!(alloc && meas))
+                continue;
+
+            SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
+            SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
+            constOffset_ += meas->getDuration() - alloc->getDuration();
+        }
     }
 
-    bool MILPModelBuilder::optimize() {
-        SCIP_RETCODE retcode = SCIPsolve(scip_);
-        return retcode == SCIP_OKAY;
+    bool MILPModelBuilder::optimize() { return (SCIPsolve(scip_) == SCIP_OKAY); }
+
+
+    double MILPModelBuilder::getOperationStartTime(const std::string &id) const {
+        auto it = startVars_.find(id);
+        return (it == startVars_.end()) ? -1.0 : SCIPgetSolVal(scip_, nullptr, it->second);
     }
 
-    double MILPModelBuilder::getOperationStartTime(const std::string &opId) const {
-        auto it = startVars_.find(opId);
-        if (it == startVars_.end())
-            return -1.0;
-        return SCIPgetSolVal(scip_, nullptr, it->second);
-    }
 
     void MILPModelBuilder::cleanup() {
+        for (auto &[_, var]: startVars_)
+            SCIPreleaseVar(scip_, &var);
+        startVars_.clear();
+
         if (scip_ != nullptr) {
             SCIPfree(&scip_);
             scip_ = nullptr;
         }
     }
 
+
     SCIP_VAR *MILPModelBuilder::createContinuousVariable(const std::string &name, double lb, double ub) {
-        // Placeholder: actual SCIPvarCreateBasic call should go here later
-        return nullptr;
+        SCIP_VAR *v = nullptr;
+        SCIPcreateVarBasic(scip_, &v, name.c_str(), lb, ub, 0.0, SCIP_VARTYPE_CONTINUOUS);
+        SCIPaddVar(scip_, v);
+        return v;
     }
 } // namespace qoala::analysis::reordering
