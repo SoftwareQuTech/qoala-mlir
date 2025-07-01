@@ -58,8 +58,8 @@ namespace qoala::analysis {
             if (ops.empty())
                 continue;
 
-            const auto *firstOp = ops.front();
-            const auto *lastOp = ops.back();
+            const reordering::MILPOperation *firstOp = ops.front();
+            const reordering::MILPOperation *lastOp = ops.back();
             double start = model.getOperationStartTime(firstOp->getId());
             double end = model.getOperationStartTime(lastOp->getId()) + lastOp->getDuration();
 
@@ -70,7 +70,6 @@ namespace qoala::analysis {
         std::sort(blockTimes.begin(), blockTimes.end(),
                   [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
 
-        // Debug print
         for (const auto &[id, start, end]: blockTimes) {
             LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
         }
