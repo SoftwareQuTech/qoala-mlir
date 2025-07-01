@@ -327,82 +327,78 @@ namespace qoala::analysis::reordering {
         };
 
         // Traverse all call sites and track memory-effect operationsmainFunc
-        // TODO: do not need a loop here since we have a guarantee that we have only one mainFunc which already
-        // selected at the beginning of the function
-        for (auto mainFunc: moduleOp.getOps<qoalahost::MainFuncOp>()) {
-            for (mlir::Block &block: mainFunc.getBody()) {
-                for (mlir::Operation &op: block) {
-                    auto callOp = llvm::dyn_cast<qoalahost::CallOp>(&op);
-                    if (!callOp)
-                        continue;
+        for (mlir::Block &block: mainFunc.getBody()) {
+            for (mlir::Operation &op: block) {
+                auto callOp = llvm::dyn_cast<qoalahost::CallOp>(&op);
+                if (!callOp)
+                    continue;
 
-                    auto symRef = callOp.getCalleeAttr().dyn_cast<mlir::SymbolRefAttr>();
-                    if (!symRef)
-                        continue;
+                auto symRef = callOp.getCalleeAttr().dyn_cast<mlir::SymbolRefAttr>();
+                if (!symRef)
+                    continue;
 
-                    mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                    if (!callee || callee->getNumRegions() == 0)
-                        continue;
+                mlir::Operation *callee = mlir::SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+                if (!callee || callee->getNumRegions() == 0)
+                    continue;
 
-                    mlir::Block &entry = callee->getRegion(0).front();
-                    mlir::ValueRange actualArgs = callOp->getOperands();
-                    mlir::ValueRange formalArgs = entry.getArguments();
+                mlir::Block &entry = callee->getRegion(0).front();
+                mlir::ValueRange actualArgs = callOp->getOperands();
+                mlir::ValueRange formalArgs = entry.getArguments();
 
-                    llvm::DenseMap<mlir::Value, mlir::Value> argMap;
-                    for (size_t i = 0; i < std::min(formalArgs.size(), actualArgs.size()); ++i)
-                        argMap[formalArgs[i]] = actualArgs[i];
+                llvm::DenseMap<mlir::Value, mlir::Value> argMap;
+                for (size_t i = 0; i < std::min(formalArgs.size(), actualArgs.size()); ++i)
+                    argMap[formalArgs[i]] = actualArgs[i];
 
-                    // Gather memory effects inside callee
-                    for (mlir::Operation &innerOp: entry) {
-                        if (auto memOp = llvm::dyn_cast<mlir::MemoryEffectOpInterface>(&innerOp)) {
-                            llvm::SmallVector<mlir::MemoryEffects::EffectInstance, 4> effects;
-                            memOp.getEffects(effects);
-                            for (mlir::MemoryEffects::EffectInstance &eff: effects) {
-                                mlir::Value val = eff.getValue();
-                                if (!val)
-                                    continue;
+                // Gather memory effects inside callee
+                for (mlir::Operation &innerOp: entry) {
+                    if (auto memOp = llvm::dyn_cast<mlir::MemoryEffectOpInterface>(&innerOp)) {
+                        llvm::SmallVector<mlir::MemoryEffects::EffectInstance, 4> effects;
+                        memOp.getEffects(effects);
+                        for (mlir::MemoryEffects::EffectInstance &eff: effects) {
+                            mlir::Value val = eff.getValue();
+                            if (!val)
+                                continue;
 
-                                mlir::Value resolved = argMap.lookup(val);
-                                if (!resolved)
-                                    resolved = val;
+                            mlir::Value resolved = argMap.lookup(val);
+                            if (!resolved)
+                                resolved = val;
 
-                                // Do not resolve yet — we merge later
-                                mlir::Value canonical = resolve(resolved);
-                                qubitToOps[canonical].push_back(&innerOp);
-                                LLVM_DEBUG(llvm::dbgs()
-                                           << "    [Track] " << innerOp.getName() << " → " << canonical << "\n");
-                            }
+                            // Do not resolve yet — we merge later
+                            mlir::Value canonical = resolve(resolved);
+                            qubitToOps[canonical].push_back(&innerOp);
+                            LLVM_DEBUG(llvm::dbgs()
+                                       << "    [Track] " << innerOp.getName() << " → " << canonical << "\n");
                         }
                     }
+                }
 
-                    // Track result → returned value alias
-                    if (callOp->getNumResults() > 0) {
+                // Track result → returned value alias
+                if (callOp->getNumResults() > 0) {
 
-                        for (mlir::Block &block: callee->getRegion(0)) {
-                            for (mlir::Operation &innerOp: block) {
-                                if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
+                    for (mlir::Block &block: callee->getRegion(0)) {
+                        for (mlir::Operation &innerOp: block) {
+                            if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
 
-                                    mlir::ValueRange retVals = innerOp.getOperands();
-                                    mlir::Operation::result_range callResults = callOp->getResults();
+                                mlir::ValueRange retVals = innerOp.getOperands();
+                                mlir::Operation::result_range callResults = callOp->getResults();
 
-                                    for (size_t i = 0; i < std::min(retVals.size(), callResults.size()); ++i) {
-                                        mlir::Value res = callResults[i];
-                                        mlir::Value retVal = retVals[i];
-                                        mlir::Value final = resolve(retVal);
+                                for (size_t i = 0; i < std::min(retVals.size(), callResults.size()); ++i) {
+                                    mlir::Value res = callResults[i];
+                                    mlir::Value retVal = retVals[i];
+                                    mlir::Value final = resolve(retVal);
 
-                                        mlir::Operation *defOp = final.getDefiningOp();
-                                        if (defOp && isa<netqasm::QAllocOp>(defOp)) {
-                                            resolvedQubitAlias[res] = final;
-                                            LLVM_DEBUG(llvm::dbgs() << "  [Alias→QAlloc] " << res << " ↦ " << final
-                                                                    << " (qalloc)\n");
-                                        } else {
-                                            LLVM_DEBUG(llvm::dbgs() << "  [Skip Alias] " << res << " ↦ " << final
-                                                                    << " (not qalloc)\n");
-                                        }
+                                    mlir::Operation *defOp = final.getDefiningOp();
+                                    if (defOp && isa<netqasm::QAllocOp>(defOp)) {
+                                        resolvedQubitAlias[res] = final;
+                                        LLVM_DEBUG(llvm::dbgs()
+                                                   << "  [Alias→QAlloc] " << res << " ↦ " << final << " (qalloc)\n");
+                                    } else {
+                                        LLVM_DEBUG(llvm::dbgs()
+                                                   << "  [Skip Alias] " << res << " ↦ " << final << " (not qalloc)\n");
                                     }
-
-                                    break;
                                 }
+
+                                break;
                             }
                         }
                     }
