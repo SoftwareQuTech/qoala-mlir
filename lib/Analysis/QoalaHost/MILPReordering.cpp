@@ -541,8 +541,15 @@ namespace qoala::analysis::reordering {
             SCIPaddObjoffset(scip_, constOffset_);
     }
 
-    // equality chain inside each task
     void MILPModelBuilder::addIntraTaskOrderingConstraints() {
+        // Adds equality constraints to enforce strict sequential execution of operations
+        // within the same task (i.e., intra-task ordering).
+        // For each pair of consecutive operations `o1`, `o2` in a task, we enforce:
+        //      start(o2) = start(o1) + duration(o1)
+        // This is encoded as a linear constraint:
+        //      start(o2) - start(o1) = duration(o1)
+        // Which ensures operations within a task run in a chain without overlap.
+
         for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
             for (const std::unique_ptr<MILPTask> &t: blk->getTasks()) {
                 const std::vector<MILPOperation *> &ops = t->getOperations();
@@ -561,8 +568,14 @@ namespace qoala::analysis::reordering {
             }
         }
     }
-    // precedence edges
+
     void MILPModelBuilder::addBlockPrecedenceConstraints() {
+        // Adds precedence constraints between blocks based on their dependency edges.
+        // If block A must precede block B, we enforce:
+        //      start(firstOp(B)) ≥ start(lastOp(A)) + duration(lastOp(A))
+        // This ensures B's operations begin only after A's last operation finishes.
+        // Implemented using a linear inequality with a lower bound (right-hand side).
+
         for (const auto &e: precedences_) {
             const MILPBlock *pred = e.first;
             const MILPBlock *succ = e.second;
@@ -585,9 +598,23 @@ namespace qoala::analysis::reordering {
     };
 
     void MILPModelBuilder::addFCFSTaskConstraints() {
+        // Adds mutual exclusion constraints between *tasks* of different blocks that are not transitively ordered
+        // by existing precedence constraints. These constraints enforce *First-Come-First-Served* (FCFS) ordering.
+        // For each unordered pair of blocks (b1, b2) that:
+        //   - are not reachable from one another (i.e., no precedence edge or transitive dependency),
+        //   - belong to the same task group, and
+        //   - both contain at least one task,
+        // we introduce a binary selector variable `z`. This variable determines the relative execution order:
+        //   - If z = 0 -> all relevant tasks in b1 must finish before the corresponding tasks in b2 can start.
+        //   - If z = 1 -> the reverse: tasks in b2 must complete before b1 can begin those same task slots.
+        // If both blocks are quantum (i.e., composed of 3 tasks), constraints are applied for each of the 3
+        // corresponding task slots (e.g., task 0 in b1 must finish before task 0 in b2). If either block is classical
+        // (i.e., has only a single task), the constraint is applied only on the first task.
+        // These constraints are enforced using a standard *big-M* encoding to allow either order (but not both).
+
         const int eps = 1;
 
-        // transitive closure of precedence DAG
+        // Build transitive closure of the precedence DAG (reachable pairs).
         Closure clos;
         for (const auto &e: precedences_)
             clos.insert({e.first->getId(), e.second->getId()});
@@ -601,12 +628,14 @@ namespace qoala::analysis::reordering {
                         grown = true;
         } while (grown);
 
+        // Enumerate unordered block pairs that share the same task group.
         const int B = static_cast<int>(blocks_.size());
         for (int i = 0; i < B; ++i) {
             const MILPBlock *b1 = blocks_[i].get();
             for (int j = i + 1; j < B; ++j) {
                 const MILPBlock *b2 = blocks_[j].get();
 
+                // Skip if already ordered, have no tasks, or different groups.
                 if (reachable(b1, b2, clos) || reachable(b2, b1, clos))
                     continue;
                 if (b1->getTasks().empty() || b2->getTasks().empty())
@@ -614,12 +643,13 @@ namespace qoala::analysis::reordering {
                 if (b1->getTasks().front()->getGroup() != b2->getTasks().front()->getGroup())
                     continue;
 
-                // binary selector z
+                // Binary selector z
                 SCIP_VAR *z;
                 std::string zname = "z_" + b1->getId() + "_" + b2->getId();
                 SCIPcreateVarBasic(scip_, &z, zname.c_str(), 0.0, 1.0, 0.0, SCIP_VARTYPE_BINARY);
                 SCIPaddVar(scip_, z);
 
+                // Which task indices do we need?  {0,1,2} for Q×Q, {0} otherwise.
                 const std::vector<std::unique_ptr<MILPTask>> &t1 = b1->getTasks();
                 const std::vector<std::unique_ptr<MILPTask>> &t2 = b2->getTasks();
                 const std::vector<int> idx =
@@ -633,7 +663,7 @@ namespace qoala::analysis::reordering {
                     for (MILPOperation *op: t2[k]->getOperations())
                         dur2 += op->getDuration();
 
-                    // s(o2) - s(o1) + M z ≥ dur1+eps
+                    // //  FCFS inequality 1: s(o2) - s(o1) + M z ≥ dur1+eps
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
@@ -645,7 +675,7 @@ namespace qoala::analysis::reordering {
                         SCIPaddCons(scip_, c);
                         SCIPreleaseCons(scip_, &c);
                     }
-                    // s(o1) - s(o2) - M z ≥ dur2+eps - M
+                    // FCFS inequality 2: s(o1) - s(o2) - M z ≥ dur2+eps - M
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
@@ -664,6 +694,15 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPModelBuilder::addIntraBlockSequencingConstraints() {
+        // Enforces intra-block task precedence constraints for QL/QC blocks that follow the standard
+        // 3-task structure: Task1 → Task2 → Task3.
+        // For each such block:
+        //  - Task2 must start *after* Task1 finishes
+        //  - Task3 must start *after* Task2 finishes
+        // These are encoded as inequality constraints:
+        //      start(t2) ≥ start(t1) + dur(t1)
+        //      start(t3) ≥ start(t2) + dur(t2)
+
         for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
             if (blk->getType() != OpType::QL && blk->getType() != OpType::QC)
                 continue;
@@ -708,6 +747,13 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPModelBuilder::setObjective() {
+        // Sets the MILP objective to minimize the total qubit usage time across all qubits.
+        // For each qubit:
+        //  - MeasureOp start time contributes positively to the objective
+        //  - AllocationOp start time contributes negatively
+        // This models:
+        //      Objective = sum ((start(Meas) + dur(meas)) - (start(Alloc) - dur(alloc)))
+        //                = Total lifetime time per qubit
         SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
         constOffset_ = 0.0;
 
@@ -725,8 +771,10 @@ namespace qoala::analysis::reordering {
 
     bool MILPModelBuilder::optimize() { return (SCIPsolve(scip_) == SCIP_OKAY); }
 
-
     double MILPModelBuilder::getOperationStartTime(const std::string &id) const {
+        // Returns the computed start time (from SCIP solution) for a given operation by ID.
+        // Includes defensive checks and debug warnings for missing or invalid SCIP variable values.
+
         auto it = startVars_.find(id);
         if (it == startVars_.end()) {
             LLVM_DEBUG(llvm::dbgs() << "Warning: start time requested for unknown operation " << id << "\n");
@@ -765,8 +813,13 @@ namespace qoala::analysis::reordering {
     }
 
     std::vector<std::string> MILPModelBuilder::getOrderedBlocks() {
+        // Returns a list of block IDs ordered by their start times as determined by the MILP solution.
+        // This function computes the start and end time for each block based on the first and last operations
+        // in the block, using the MILP solver's solution. The list of blocks is then sorted by their start times.
+
         std::vector<std::tuple<std::string, double, double>> blockTimes;
 
+        // Collect start and end times for each block using operation timings from the MILP solution.
         for (const auto &block: blocks_) {
             const auto &ops = block->getOperations();
             if (ops.empty())
@@ -780,7 +833,7 @@ namespace qoala::analysis::reordering {
             blockTimes.emplace_back(block->getId(), start, end);
         }
 
-        // Sort by start time
+        // Sort the blocks based on start time (ascending order).
         std::sort(blockTimes.begin(), blockTimes.end(),
                   [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
 
@@ -788,6 +841,7 @@ namespace qoala::analysis::reordering {
             LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
         }
 
+        // Extract the ordered block IDs into a list to be returned.
         std::vector<std::string> orderedBlockIds;
         for (const auto &[id, _, __]: blockTimes) {
             orderedBlockIds.push_back(id);
@@ -808,6 +862,7 @@ namespace qoala::analysis::reordering {
 
         llvm::StringMap<Block *> idToBlock;
 
+        // Reorder the blocks in-place in the function body based on the MILP-provided order.
         for (Block &blk: body) {
             for (Operation &op: blk) {
                 if (auto meta = llvm::dyn_cast<qoalahost::BlkMeta>(op)) {
@@ -817,6 +872,7 @@ namespace qoala::analysis::reordering {
             }
         }
 
+        // Move each block before the next insertion point; update insertion point after each move.
         Block *insertionPoint = &body.front();
         for (const std::string &id: orderedIds) {
             auto it = idToBlock.find(id);
