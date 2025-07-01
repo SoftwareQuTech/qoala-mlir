@@ -51,35 +51,10 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        std::vector<std::tuple<std::string, double, double>> blockTimes;
-
-        for (const auto &block: blocks) {
-            const auto &ops = block->getOperations();
-            if (ops.empty())
-                continue;
-
-            const reordering::MILPOperation *firstOp = ops.front();
-            const reordering::MILPOperation *lastOp = ops.back();
-            double start = model.getOperationStartTime(firstOp->getId());
-            double end = model.getOperationStartTime(lastOp->getId()) + lastOp->getDuration();
-
-            blockTimes.emplace_back(block->getId(), start, end);
-        }
-
-        // Sort by start time
-        std::sort(blockTimes.begin(), blockTimes.end(),
-                  [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
-
-        for (const auto &[id, start, end]: blockTimes) {
-            LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
-        }
+        std::vector<std::string> orderedBlockIds = model.getOrderedBlocks();
 
         model.cleanup();
 
-        std::vector<std::string> orderedBlockIds;
-        for (const auto &[id, _, __]: blockTimes) {
-            orderedBlockIds.push_back(id);
-        }
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
         if (failed(status)) {
             signalPassFailure();

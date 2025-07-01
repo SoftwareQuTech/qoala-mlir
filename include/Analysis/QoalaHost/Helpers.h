@@ -241,6 +241,8 @@ namespace qoala::analysis {
             // Retrieve start time for a specific operation (by ID)
             double getOperationStartTime(const std::string &opId) const;
 
+            std::vector<std::string> getOrderedBlocks();
+
             // Cleanup and destroy SCIP
             void cleanup();
 

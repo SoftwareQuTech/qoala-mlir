@@ -408,7 +408,7 @@ namespace qoala::analysis::reordering {
 
         int qubitIndex = 0;
 
-        for (const auto &entry : qubitToOps) {
+        for (const auto &entry: qubitToOps) {
             const std::vector<Operation *> &ops = entry.second;
 
             std::string id = "q" + std::to_string(qubitIndex++);
@@ -689,6 +689,38 @@ namespace qoala::analysis::reordering {
         SCIPcreateVarBasic(scip_, &v, name.c_str(), lb, ub, 0.0, SCIP_VARTYPE_CONTINUOUS);
         SCIPaddVar(scip_, v);
         return v;
+    }
+
+    std::vector<std::string> MILPModelBuilder::getOrderedBlocks() {
+        std::vector<std::tuple<std::string, double, double>> blockTimes;
+
+        for (const auto &block: blocks_) {
+            const auto &ops = block->getOperations();
+            if (ops.empty())
+                continue;
+
+            const reordering::MILPOperation *firstOp = ops.front();
+            const reordering::MILPOperation *lastOp = ops.back();
+            double start = getOperationStartTime(firstOp->getId());
+            double end = getOperationStartTime(lastOp->getId()) + lastOp->getDuration();
+
+            blockTimes.emplace_back(block->getId(), start, end);
+        }
+
+        // Sort by start time
+        std::sort(blockTimes.begin(), blockTimes.end(),
+                  [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
+
+        for (const auto &[id, start, end]: blockTimes) {
+            LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
+        }
+
+        std::vector<std::string> orderedBlockIds;
+        for (const auto &[id, _, __]: blockTimes) {
+            orderedBlockIds.push_back(id);
+        }
+
+        return orderedBlockIds;
     }
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
