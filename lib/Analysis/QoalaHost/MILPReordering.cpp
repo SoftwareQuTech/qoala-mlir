@@ -78,8 +78,6 @@ namespace qoala::analysis::reordering {
             return mlir::failure();
         }
 
-        using TG = TaskGroup;
-
         switch (blk->getType()) {
             case OpType::CL:
             case OpType::CC: {
@@ -88,7 +86,7 @@ namespace qoala::analysis::reordering {
                                          << ops.size();
                     return mlir::failure();
                 }
-                std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TG::C);
+                std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 for (MILPOperation *op: ops)
                     task->addOperation(op);
                 blk->addTask(std::move(task));
@@ -101,16 +99,16 @@ namespace qoala::analysis::reordering {
                     return mlir::failure();
                 }
                 // Task 0 – call (C): PreTask
-                std::unique_ptr<MILPTask> t0 = std::make_unique<MILPTask>("0", blk, TG::C);
+                std::unique_ptr<MILPTask> t0 = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 t0->addOperation(ops.front());
                 blk->addTask(std::move(t0));
                 // Task 1 – middle (Q): Quantum Routine
-                std::unique_ptr<MILPTask> t1 = std::make_unique<MILPTask>("1", blk, TG::Q);
+                std::unique_ptr<MILPTask> t1 = std::make_unique<MILPTask>("1", blk, TaskGroup::Q);
                 for (size_t i = 1; i + 1 < ops.size(); ++i)
                     t1->addOperation(ops[i]);
                 blk->addTask(std::move(t1));
                 // Task 2 – return (C) : PostTask.
-                std::unique_ptr<MILPTask> t2 = std::make_unique<MILPTask>("2", blk, TG::C);
+                std::unique_ptr<MILPTask> t2 = std::make_unique<MILPTask>("2", blk, TaskGroup::C);
                 t2->addOperation(ops.back());
                 blk->addTask(std::move(t2));
                 break;
