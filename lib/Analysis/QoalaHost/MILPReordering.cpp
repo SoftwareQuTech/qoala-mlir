@@ -22,11 +22,13 @@ namespace qoala::analysis::reordering {
         if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op))
             return qoalaOptHostInstrTime;
 
-        // TODO: check in translation if the size of tensor decides the number of send ops
+        // TODO - check in translation if the size of tensor decides the number of send ops.
+        // After tensor lowering in #72.
         if (isa<qoalahost::SendIntsOp>(op) || isa<qoalahost::SendFloatsOp>(op))
             return qoalaOptHostInstrTime;
 
-        // TODO: check in translation if the size of tensor decides the number of recv ops
+        // TODO - check in translation if the size of tensor decides the number of recv ops.
+        // After tensor lowering in #72.
         if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op))
             return qoalaOptLatency + qoalaOptHostPeerLatency;
 
@@ -169,8 +171,7 @@ namespace qoala::analysis::reordering {
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        // TODO: do not use SmallPtrSet because we have no way of knowing the needed size
-        llvm::SmallPtrSet<Block *, 32> visitedBlocks;
+        llvm::DenseSet<Block *> visitedBlocks;
         LogicalResult status = success();
 
         // This walk processes each `qoalahost.BlkMeta` operation in the `mainFunc`
