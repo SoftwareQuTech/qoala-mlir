@@ -22,17 +22,17 @@ module {
     netqasm.return %0, %1 : i32, i1
   }
   qoalahost.main_func @test_add_block_deps() {
-    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb1:
     // expected-error@+1 {{'qoalahost.blk_meta' op contains a depdency before its declaration.}}
-    qoalahost.blk_meta  {block_id = "block_1", dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @__qoala_wrapper1(%0, %2#0) : (i32, i32) -> i1
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %2:2 = qoalahost.call @__qoala_wrapper2() : () -> (i32, i1)
   ^bb3:
-    qoalahost.blk_meta  {block_id = "block_3", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.return
   }
 }
