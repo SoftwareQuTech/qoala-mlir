@@ -959,8 +959,8 @@ namespace qoala::analysis::reordering {
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
         // And identify any block containing a ReturnOp.
-        for (Block &blk : body) {
-            for (Operation &op : blk) {
+        for (Block &blk: body) {
+            for (Operation &op: blk) {
                 if (llvm::isa<qoalahost::ReturnOp>(op)) {
                     returnBlock = &blk;
                     break;
@@ -974,7 +974,7 @@ namespace qoala::analysis::reordering {
 
         // Move each block before the next insertion point; update insertion point after each move.
         Block *insertionPoint = &body.front();
-        for (const std::string &id : orderedIds) {
+        for (const std::string &id: orderedIds) {
             auto it = idToBlock.find(id);
             if (it == idToBlock.end()) {
                 return moduleOp.emitError("unknown block_id \"") << id << "\"", failure();

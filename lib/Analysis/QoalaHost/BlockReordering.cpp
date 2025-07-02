@@ -25,10 +25,10 @@ namespace qoala::analysis {
         LLVM_DEBUG(llvm::dbgs() << "QoalaHostReorderBlocksPass: single_gate_duration=" << qoalaOptSingleGateDuration
                                 << "ns, two_gate_duration=" << qoalaOptTwoGateDuration
                                 << "ns, latency=" << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration
-                                << "ns, host_instr_time=" << qoalaOptHostInstrTime
-                                << "ns, host_peer_latency=" << qoalaOptHostPeerLatency
-                                << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime << "ns, with-deadlines="
-                                << this->withDeadlines << "\n");
+                                << "ns, host_instr_time=" << qoalaOptHostInstrTime << "ns, host_peer_latency="
+                                << qoalaOptHostPeerLatency << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime
+                                << "ns, qubitf_lifetime=" << qoalaOptQubitLifetime
+                                << "ns, with-deadlines=" << this->withDeadlines << "\n");
 
         ModuleOp moduleOp = this->getOperation();
 
