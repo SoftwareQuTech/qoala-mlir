@@ -241,7 +241,6 @@ namespace qoala::analysis {
             std::vector<std::shared_ptr<MILPQubit>> qubits_;
             BlockPrecedenceList precedences_;
             int bigM_;
-            int constOffset_ = 0;
 
             // Map from operation ID to SCIP variable
             std::unordered_map<std::string, SCIP_VAR *> startVars_;

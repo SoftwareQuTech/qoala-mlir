@@ -535,10 +535,6 @@ namespace qoala::analysis::reordering {
             }
         bigM_ = 2 * total;
         LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
-
-        // Add offset here if needed (safe stage)
-        if (constOffset_ != 0.0)
-            SCIPaddObjoffset(scip_, constOffset_);
     }
 
     void MILPModelBuilder::addIntraTaskOrderingConstraints() {
@@ -754,8 +750,9 @@ namespace qoala::analysis::reordering {
         // This models:
         //      Objective = sum ((start(Meas) + dur(meas)) - (start(Alloc) - dur(alloc)))
         //                = Total lifetime time per qubit
+        // In this implementation we remove dur(meas) - dur(alloc) from the objective, as those are not
+        // variables and have no influence on the result.
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
-        constOffset_ = 0.0;
 
         for (const std::shared_ptr<MILPQubit> &q: qubits_) {
             const MILPOperation *alloc = q->getAllocation();
@@ -769,8 +766,6 @@ namespace qoala::analysis::reordering {
 
             SCIPchgVarObj(scip_, startVars_[alloc->getId()], allocCoeff);
             SCIPchgVarObj(scip_, startVars_[meas->getId()], measCoeff);
-
-            constOffset_ += meas->getDuration() - alloc->getDuration();
         }
     }
 
