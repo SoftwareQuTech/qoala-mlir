@@ -2,6 +2,11 @@
 
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_5", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_6", dependencies = ["block_4", "block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
 
 module {
   qremote.remote @Bob
