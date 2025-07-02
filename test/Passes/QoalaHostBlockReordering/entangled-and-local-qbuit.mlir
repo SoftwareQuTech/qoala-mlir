@@ -45,10 +45,10 @@ module {
         qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         %1 = qoalahost.call @entanglement() : () -> i32
     ^bb2:
-        qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
         qoalahost.call @bsm_h(%0) : (i32) -> ()
     ^bb3:
-        qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
         qoalahost.call @bsm_cnot(%0, %1) : (i32, i32) -> ()
     ^bb4:
         qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
