@@ -754,18 +754,16 @@ namespace qoala::analysis::reordering {
         // variables and have no influence on the result.
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
 
+        LLVM_DEBUG(llvm::dbgs() << "allocCoeff=" << allocCoeff << ", measCoeff=" << measCoeff << "\n");
+
         for (const std::shared_ptr<MILPQubit> &q: qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
             if (!(alloc && meas))
                 continue;
 
-            // Flip sign of coefficients depending on mode
-            double allocCoeff = qoalaOptUnoptimize ? 1.0 : -1.0;
-            double measCoeff = qoalaOptUnoptimize ? -1.0 : 1.0;
-
-            SCIPchgVarObj(scip_, startVars_[alloc->getId()], allocCoeff);
-            SCIPchgVarObj(scip_, startVars_[meas->getId()], measCoeff);
+            SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
+            SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
         }
     }
 
