@@ -9,6 +9,10 @@ def QoalaHostAddBlockPrecedences : Pass<"qoalahost-add-block-precedences", "mlir
 }
 def QoalaHostReorderBlocks : Pass<"qoalahost-reorder-blocks", "mlir::ModuleOp"> {
     let summary = "Reorder blocks in QoalaHost main function for minimizing qubits lifetimes.";
+    let options = [
+        Option<"withDeadlines", "with-deadlines", "bool", /*default=*/"false",
+               "Whether to compute and add deadlines when reordering blocks.">,
+    ];
     let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
 

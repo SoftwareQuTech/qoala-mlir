@@ -27,7 +27,8 @@ namespace qoala::analysis {
                                 << "ns, latency=" << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration
                                 << "ns, host_instr_time=" << qoalaOptHostInstrTime
                                 << "ns, host_peer_latency=" << qoalaOptHostPeerLatency
-                                << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime << "ns\n");
+                                << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime << "ns, with-deadlines="
+                                << this->withDeadlines << "\n");
 
         ModuleOp moduleOp = this->getOperation();
 
