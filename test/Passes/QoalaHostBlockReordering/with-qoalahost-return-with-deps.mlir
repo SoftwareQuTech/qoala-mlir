@@ -2,12 +2,6 @@
 
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_2", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_3", dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_4", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_5", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_6", dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_7", dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
 
 module {
   qremote.remote @Bob
@@ -57,17 +51,7 @@ module {
         qoalahost.blk_meta  {block_id = "block_5", dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m1 = qoalahost.call @bsm_meas_ent(%1) : (i32) -> i1
     ^bb6:
-        qoalahost.blk_meta  {block_id = "block_6", dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-        %m0_ext = arith.extsi %m0 : i1 to i32
-        %m0_tensor = tensor.from_elements %m0_ext : tensor<1xi32>
-        qoalahost.send_ints %m0_tensor {remote = @Bob} : tensor<1xi32>
-        qoalahost.nop_term
-    ^bb7:
-        qoalahost.blk_meta  {block_id = "block_7", dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
-        %m1_ext = arith.extsi %m1 : i1 to i32
-        %m1_tensor = tensor.from_elements %m1_ext : tensor<1xi32>
-        qoalahost.send_ints %m1_tensor {remote = @Bob} : tensor<1xi32>
-        qoalahost.nop_term
-
+        qoalahost.blk_meta  {block_id = "block_6", dependencies = ["block_4", "block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.return %m0, %m1 : i1, i1
   }
 }

@@ -190,8 +190,22 @@ namespace qoala::analysis::reordering {
                 status = failure();
                 return;
             }
-            Operation *firstOp = &*firstIt;
 
+            // Skip this block entirely if it contains a qoalahost::ReturnOp.
+            // Even if the ReturnOp is not the last operation, we ignore the entire block
+            // because:
+            //   - ReturnOps only appear in classical (CL) blocks
+            //   - These blocks typically have minimal performance impact
+            //   - Optimizing their placement is unlikely to affect overall program performance
+            // Thus, any CL block containing a ReturnOp is excluded from MILP modeling.
+            for (Operation &op : *block) {
+                if (llvm::isa<qoalahost::ReturnOp>(&op)) {
+                    LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
+                    return;
+                }
+            }
+
+            Operation *firstOp = &*firstIt;
             OpType blkType = getBlockType(firstOp, moduleOp);
 
             // Create new MILPBlock object and associate with block ID and type
@@ -209,7 +223,7 @@ namespace qoala::analysis::reordering {
                 Operation *op = &*it;
 
                 // Stop early if we reach a return/nop_term in a classical block
-                if (blkType == OpType::CL && (llvm::isa<qoalahost::ReturnOp>(op) || llvm::isa<qoalahost::NopTOp>(op)))
+                if (blkType == OpType::CL && llvm::isa<qoalahost::NopTOp>(op))
                     break;
 
                 // Create MILPOperation
@@ -347,7 +361,6 @@ namespace qoala::analysis::reordering {
                 llvm::dbgs() << "  " << e.first->getId() << " -> " << e.second->getId() << "\n";
         });
 
-        // TODO: check what happens if we have a netqasm::EprsMeasureOp
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
 
         // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
@@ -754,8 +767,6 @@ namespace qoala::analysis::reordering {
         // variables and have no influence on the result.
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
 
-        LLVM_DEBUG(llvm::dbgs() << "allocCoeff=" << allocCoeff << ", measCoeff=" << measCoeff << "\n");
-
         for (const std::shared_ptr<MILPQubit> &q: qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
@@ -849,7 +860,6 @@ namespace qoala::analysis::reordering {
     }
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp moduleOp, const std::vector<std::string> &orderedIds) {
-        // TODO: check what happens if we have a qoalahost.return op in its own block at the end of representation
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
@@ -859,10 +869,16 @@ namespace qoala::analysis::reordering {
         auto &body = mainFunc.getBody();
 
         llvm::StringMap<Block *> idToBlock;
+        Block *returnBlock = nullptr;
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
-        for (Block &blk: body) {
-            for (Operation &op: blk) {
+        // And identify any block containing a ReturnOp.
+        for (Block &blk : body) {
+            for (Operation &op : blk) {
+                if (llvm::isa<qoalahost::ReturnOp>(op)) {
+                    returnBlock = &blk;
+                    break;
+                }
                 if (auto meta = llvm::dyn_cast<qoalahost::BlkMeta>(op)) {
                     idToBlock[meta.getBlockId()] = &blk;
                     break;
@@ -872,16 +888,20 @@ namespace qoala::analysis::reordering {
 
         // Move each block before the next insertion point; update insertion point after each move.
         Block *insertionPoint = &body.front();
-        for (const std::string &id: orderedIds) {
+        for (const std::string &id : orderedIds) {
             auto it = idToBlock.find(id);
             if (it == idToBlock.end())
-                return moduleOp.emitError("unknown block_id “") << id << "”", failure();
+                return moduleOp.emitError("unknown block_id \"") << id << "\"", failure();
 
             Block *blk = it->second;
             if (blk != insertionPoint)
                 blk->moveBefore(insertionPoint);
             insertionPoint = blk->getNextNode();
         }
+
+        // Ensure returnBlock (if present) is the final block in the function body
+        if (returnBlock && returnBlock->getNextNode() != nullptr)
+            returnBlock->moveBefore(nullptr); // Moves to the end of the block list
 
         return success();
     }
