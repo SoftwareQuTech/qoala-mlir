@@ -331,9 +331,11 @@ namespace qoala::analysis::precedences {
                 }
             }
 
+            mlir::DictionaryAttr emptyDictAttr = mlir::DictionaryAttr::get(builder.getContext());
+
             // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predsAttr, dataDepsAttr,
-                                               prevCommAttr, prevReqAttr);
+                                               prevCommAttr, prevReqAttr, emptyDictAttr);
 
             LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with predecessors "
                                     << predsAttr << " with dependencies " << dataDepsAttr << " with previous comm "
