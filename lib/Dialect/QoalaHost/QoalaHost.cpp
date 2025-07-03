@@ -111,6 +111,14 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
             return op.emitOpError() << "contains a previous ent precedence before its decalration.";
         }
 
+        mlir::DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
+        for (mlir::NamedAttribute pair : deadlinesAttr.getValue()) {
+            std::string key = std::string(pair.getName().strref());
+            if (blkIds.find(key) == blkIds.end()) {
+                return op.emitOpError() << "contains a block idenetifer in deadlines before its declaration.";
+            }
+        }
+
         blkIds.insert(op.getBlockId().str());
     }
 
