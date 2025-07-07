@@ -113,9 +113,9 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
-        std::optional<iqoala::Block *> findIdDependency(const std::string &key);
-        void addIdDependency(const std::string &key, iqoala::Block *block) {
-            dependenciesIdsToIQoalaBlocks[key] = block;
+        std::optional<iqoala::Block *> findIdPrecedence(const std::string &key);
+        void addIdPrecedence(const std::string &key, iqoala::Block *block) {
+            precedencesIdsToIQoalaBlocks[key] = block;
         }
 
     protected:
@@ -146,8 +146,8 @@ namespace qoala::translate {
         // that are used to retrieve those values in the MC model
         mlir::DenseMap<assembly::iQoalaMCInstruction *, mlir::BlockArgument> mcArgsValsMap;
 
-        // Map for tracking the dependencie ID (added by the AddBlockDependencies pass) and its Block
-        std::map<std::string, iqoala::Block *> dependenciesIdsToIQoalaBlocks;
+        // Map for tracking the precedence ID (added by the AddBlockPrecedences pass) and its Block
+        std::map<std::string, iqoala::Block *> precedencesIdsToIQoalaBlocks;
     };
 } // namespace qoala::translate
 

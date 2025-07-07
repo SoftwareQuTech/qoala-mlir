@@ -65,6 +65,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // Verification of qoalahost.blk_meta sanity.
     // 1. There must exactly one qoalahost.blk_meta operation per block
     // 2. The qoalahost.blk_meta operation is always the first one of its block
+    // 3. A block block whose identifier is present in the blk_meta of another must be decalred before
     std::set<std::string> blkIds;
     for (Block &block: getBody()) {
         auto blkMetas = block.getOps<BlkMeta>();
@@ -87,12 +88,25 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
             return op.emitOpError() << "must be the first operation in each block.";
         }
 
-        // We also ensure that the blocks are defined is a sane order. A block can be a predecessors of another one
+        // We also ensure that the blocks are defined is a sane order. A block can be a precedence of another one
         // iif it is declared first.
         for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
                 return op.emitOpError() << "contains a predecessor before its declaration.";
             }
+        }
+        for (StringRef pred: op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
+            if (blkIds.find(pred.str()) == blkIds.end()) {
+                return op.emitOpError() << "contains a depdency before its declaration.";
+            }
+        }
+        std::string prevComm = op.getPrevCommAttr().getValue().str();
+        if (!prevComm.empty() && !blkIds.count(prevComm)) {
+            return op.emitOpError() << "contains a previous comm precedence before its decalration.";
+        }
+        std::string prevEnt = op.getPrevEntAttr().getValue().str();
+        if (!prevEnt.empty() && !blkIds.count(prevEnt)) {
+            return op.emitOpError() << "contains a previous ent precedence before its decalration.";
         }
 
         blkIds.insert(op.getBlockId().str());

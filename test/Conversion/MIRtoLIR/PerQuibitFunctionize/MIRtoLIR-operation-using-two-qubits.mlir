@@ -30,34 +30,34 @@ module {
 
     // CHECK: qoalahost.main_func @test_functionize_op_using_two_qubits()
     qmem.func @test_functionize_op_using_two_qubits() {
-        // CHECK: qoalahost.blk_meta {block_id = "block_0", predecessors = []}
+        // CHECK: qoalahost.blk_meta {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[MAIN_QUBIT_0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
         %q0 = qmem.qalloc : i32
         qmem.eprs %q0 {remote = @Bob}
 
         // CHECK: ^[[BLOCK_1:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[MAIN_QUBIT_1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
         %q1 = qmem.qalloc : i32
         qmem.init %q1
 
         // CHECK: ^[[BLOCK_2:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", predecessors = ["block_0", "block_1"]}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: qoalahost.call @[[WRAPPER2]](%[[MAIN_QUBIT_0]], %[[MAIN_QUBIT_1]]) : (i32, i32) -> ()
         qmem.cnot %q0, %q1
 
         // CHECK: ^[[BLOCK_3:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = ["block_0"]}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[UNUSED_A:.*]] = qoalahost.call @[[WRAPPER3]](%[[MAIN_QUBIT_0]]) : (i32) -> i1
         %m0 = qmem.measure %q0 : i1
 
         // CHECK: ^[[BLOCK_4:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = ["block_1"]}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[UNUSED_B:.*]] = qoalahost.call @[[WRAPPER4]](%[[MAIN_QUBIT_1]]) : (i32) -> i1
         %m1 = qmem.measure %q1 : i1
 
         // CHECK: ^[[BLOCK_5:.*]]:
-        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = []}
+        // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: qoalahost.return
         qmem.return
     }

@@ -268,15 +268,42 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Otherwise, we can assume that something is wrong (a block can be defined before its predecessors),
                 // and we fail.
                 for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
-                    if (auto dependency = moduleTranslation->findIdDependency(pred.str())) {
-                        block->addPredecessor(dependency.value());
+                    if (auto predecessor = moduleTranslation->findIdPrecedence(pred.str())) {
+                        block->addPredecessor(predecessor.value());
                     } else {
                         return failure();
                     }
                 }
+                for (StringRef dep: op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
+                    if (auto dependency = moduleTranslation->findIdPrecedence(dep.str())) {
+                        block->addDependency(dependency.value());
+                    } else {
+                        return failure();
+                    }
+                }
+                std::string prevComm = op.getPrevCommAttr().getValue().str();
+                if (!prevComm.empty()) {
+                    if (auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
+                        block->setPrevComm(blk.value());
+                    } else {
+                        return failure();
+                    }
+                } else {
+                    block->setPrevComm(nullptr);
+                }
+                std::string prevEnt = op.getPrevEntAttr().getValue().str();
+                if (!prevEnt.empty()) {
+                    if (auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
+                        block->setPrevEnt(blk.value());
+                    } else {
+                        return failure();
+                    }
+                } else {
+                    block->setPrevComm(nullptr);
+                }
 
                 // We can safely add the new mapping between the dependency ID and the Block.
-                moduleTranslation->addIdDependency(op.getBlockId().str(), block);
+                moduleTranslation->addIdPrecedence(op.getBlockId().str(), block);
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {

@@ -241,6 +241,9 @@ namespace qoala::iqoala {
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
 
         void addPredecessor(Block *pred) { this->predecessors.push_back(pred); }
+        void addDependency(Block *dep) { this->dependencies.push_back(dep); }
+        void setPrevComm(Block *prevComm) { this->prevComm = prevComm; }
+        void setPrevEnt(Block *prevEnt) { this->prevEnt = prevEnt; }
         std::vector<Block *> getPredecessors() { return this->predecessors; }
 
     private:
@@ -254,6 +257,9 @@ namespace qoala::iqoala {
         // In the meantime, these vectors are unused, but will be populated
         // when translating the CFG information.
         std::vector<Block *> predecessors;
+        std::vector<Block *> dependencies;
+        Block *prevComm;
+        Block *prevEnt;
         std::vector<Block *> successors;
     };
 
