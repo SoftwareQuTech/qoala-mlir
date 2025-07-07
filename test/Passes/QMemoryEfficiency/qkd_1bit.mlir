@@ -11,16 +11,16 @@ module {
     }
 
     qoalahost.main_func @main() {
-      qoalahost.blk_meta  {block_id = "block_0", predecessors = []}
+      qoalahost.blk_meta  {block_id = "block_0", predecessors = [], dependencies = [], prev_comm = "", prev_ent = ""}
       %zero = arith.constant 0 : index
       qoalahost.nop_term
     
     ^bb1:
-      qoalahost.blk_meta  {block_id = "block_1", predecessors = []}
+      qoalahost.blk_meta  {block_id = "block_1", predecessors = [], dependencies = [], prev_comm = "", prev_ent = ""}
       %bit = qoalahost.call @req1() : () -> i1
     
     ^bb2:
-      qoalahost.blk_meta  {block_id = "block_2", predecessors = []}
+      qoalahost.blk_meta  {block_id = "block_2", predecessors = [], dependencies = [], prev_comm = "", prev_ent = ""}
       qoalahost.return
     
     }
