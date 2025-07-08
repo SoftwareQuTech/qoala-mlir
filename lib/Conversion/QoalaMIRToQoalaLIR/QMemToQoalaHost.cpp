@@ -20,8 +20,8 @@ using namespace qoala::helpers::angle;
 
 namespace qoala::helpers {
     void configureQMemToQoalaHostTarget(ConversionTarget &target,
-                                        bool intRotsAreLegal,
-                                        bool floatRotsAreLegal) {
+                                        const bool intRotsAreLegal,
+                                        const bool floatRotsAreLegal) {
         target.addLegalDialect<qoalahost::QoalaHostDialect>();
         target.addIllegalDialect<qmem::QMemDialect>();
         target.addLegalOp<
@@ -110,8 +110,7 @@ namespace qoala::conversion {
             insertAngleConversionFunctionDeclaration(module);
         }
 
-        LogicalResult result = applyPartialConversion(module, target, std::move(patterns));
-        if (failed(result)) {
+        if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
             signalPassFailure();
         }
     }

@@ -86,6 +86,8 @@ namespace qoala::helpers {
      * Configures the given ConversionTarget object to specify the valid state of the IR after
      * applying the QMem to QoalaHost dialect conversion.
      * @param target The ConversionTarget object to configure
+     * @param intRotsAreLegal Whether the integer rotations are considered legal in the target or not.
+     * @param floatRotsAreLegal Whether the float rotations are considered legal in the target or not.
      */
     void configureQMemToQoalaHostTarget(mlir::ConversionTarget &target,
                                         bool intRotsAreLegal,

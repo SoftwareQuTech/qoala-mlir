@@ -75,8 +75,7 @@ namespace qoala::conversion {
 
         // We finally apply a **full** conversion, since we correctly defined all the
         // dialects that are "legal" in the target IR
-        LogicalResult result = applyFullConversion(operation, target, std::move(patterns));
-        if (failed(result)) {
+        if (failed(applyFullConversion(operation, target, std::move(patterns)))) {
             LLVM_DEBUG(llvm::dbgs() << *operation << "\n");
             signalPassFailure();
         }

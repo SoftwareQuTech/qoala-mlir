@@ -26,9 +26,7 @@ namespace qoala::analysis {
         functionize::functionizeModule(module, functionize::functionizeOpClassifier, 0);
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
-            if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {
-                WalkResult::advance();
-            } else {
+            if (funcDecl.getSymName() == helpers::angle::angleConversionFunctionName) {
                 helpers::moveOperationToTop(module, funcDecl);
             }
         });

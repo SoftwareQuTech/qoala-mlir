@@ -67,8 +67,7 @@ namespace qoala::analysis {
         NullTypeConverter typeConverter(&context);
         populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
-        LogicalResult f32ConversionResult = applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (failed(f32ConversionResult)) {
+        if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
             signalPassFailure();
         }
     }
