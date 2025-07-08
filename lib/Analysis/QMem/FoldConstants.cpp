@@ -20,7 +20,7 @@ namespace qoala::analysis {
     };
 
     void FoldConstantsPass::runOnOperation() {
-        if (func::FuncOp func = getOperation(); failed(helpers::foldConstants(func))) {
+        if (qmem::FuncOp func = getOperation(); failed(helpers::foldConstants(func))) {
             signalPassFailure();
         }
     }

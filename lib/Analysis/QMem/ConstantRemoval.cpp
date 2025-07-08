@@ -61,7 +61,7 @@ namespace qoala::helpers {
         return foldConstants<ModuleOp>(module);
     }
 
-    LogicalResult foldConstants(func::FuncOp &funcOp) {
-        return foldConstants<func::FuncOp>(funcOp);
+    LogicalResult foldConstants(dialects::qmem::FuncOp &funcOp) {
+        return foldConstants<dialects::qmem::FuncOp>(funcOp);
     }
 } /* namespace qoala::analysis */

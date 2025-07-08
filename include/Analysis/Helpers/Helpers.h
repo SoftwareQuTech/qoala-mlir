@@ -15,7 +15,11 @@
 
 #include <set>
 #include <vector>
-#include <mlir/Dialect/Func/Transforms/Passes.h.inc>
+
+namespace qoala::dialects::qmem {
+    // Forward declaration
+    class FuncOp;
+}
 
 namespace qoala::helpers {
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -291,7 +295,7 @@ namespace qoala::helpers {
      */
     mlir::LogicalResult foldConstants(mlir::ModuleOp &module);
 
-    mlir::LogicalResult foldConstants(mlir::func::FuncOp &funcOp);
+    mlir::LogicalResult foldConstants(dialects::qmem::FuncOp &funcOp);
 }
 
 namespace qoala::translate {

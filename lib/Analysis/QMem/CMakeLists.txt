@@ -4,6 +4,7 @@ add_mlir_dialect_library(MLIRQMemAnalysisLibs
         SimpleFunctionizeQuantumOps.cpp
         FoldConstants.cpp
         LowerF32Rotations.cpp
+        InsertAngleConversionDeclaration.cpp
         SimpleOpClassifier.cpp
         PerQubitOpClassifier.cpp
         ConstantRemoval.cpp

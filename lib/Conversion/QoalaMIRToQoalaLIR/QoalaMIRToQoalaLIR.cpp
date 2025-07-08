@@ -11,6 +11,11 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
+namespace qoala::analysis {
+#define GEN_PASS_DECL
+#include "Dialect/Helpers/HelperPasses.h.inc"
+}
+
 #define DEBUG_TYPE "mir-to-lir"
 
 using namespace mlir;
@@ -67,7 +72,8 @@ namespace qoala::conversion {
         // Note: This is the way how we will handle "dynamic" f32 values in the future.
         // We will keep inserting this declaration and assuming it will be provided by the runtime in the future.
         if (!helpers::angle::moduleContainsAngleConversionDeclaration(module)) {
-            helpers::angle::insertAngleConversionFunctionDeclaration(module);
+            //helpers::angle::insertAngleConversionFunctionDeclaration(module);
+            passManager.addPass(analysis::createAngleConversionDeclaration());
         }
 
         if (this->useSCCP) {
@@ -79,32 +85,43 @@ namespace qoala::conversion {
             // propagate the constants inside the basic blocks of the  main function
             // We need this to try to compile the rotations and move them into local routines
             // when used in conjunction with branching instructions.
-            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-            LLVM_DEBUG(llvm::dbgs() << "*** Before SCCP:\n");
-            LLVM_DEBUG(llvm::dbgs() << module << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
 
-            auto mainFuncs = module.getOps<qmem::FuncOp>();
-            assert (!mainFuncs.empty());
-            qmem::FuncOp mainFunc = *mainFuncs.begin();
+            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            // LLVM_DEBUG(llvm::dbgs() << "*** Before SCCP:\n");
+            // LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            OpPassManager &funcOpPassManager = passManager.nest<qmem::FuncOp>();
 
-            auto pm = PassManager::on<qmem::FuncOp>(&context);
-            pm.addPass(createSCCPPass());
-            if (failed(pm.run(mainFunc))) {
-                signalPassFailure();
-            }
+            // auto mainFuncs = module.getOps<qmem::FuncOp>();
+            // assert (!mainFuncs.empty());
+            // qmem::FuncOp mainFunc = *mainFuncs.begin();
 
-            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-            LLVM_DEBUG(llvm::dbgs() << "*** After SCCP:\n");
-            LLVM_DEBUG(llvm::dbgs() << module << "\n");
-            LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            funcOpPassManager.addPass(createSCCPPass());
+            // if (failed(pm.run(mainFunc))) {
+            //     signalPassFailure();
+            // }
+
+            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+            // LLVM_DEBUG(llvm::dbgs() << "*** After SCCP:\n");
+            // LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         }
 
         // Stage 2: Try to fold operations as much as possible, especially, constants
-        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 2. Folding (constant) operations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        if (failed(helpers::foldConstants(module))) {
+        // LLVM_DEBUG(llvm::dbgs() << "************************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 2. Folding (constant) operations *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "************************************\n");
+        // if (failed(helpers::foldConstants(module))) {
+        //     signalPassFailure();
+        // }
+        OpPassManager &memOpPassManager = passManager.nest<qmem::FuncOp>();
+        memOpPassManager.addPass(analysis::createFoldConstants());
+
+        LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
+        passManager.printAsTextualPipeline(llvm::dbgs());
+        LLVM_DEBUG(llvm::dbgs() << "*******************************************:\n");
+
+        if (failed(passManager.run(module))) {
             signalPassFailure();
         }
 
