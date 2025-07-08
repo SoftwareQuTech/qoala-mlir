@@ -1,4 +1,4 @@
-#include "mlir/Dialect/Func/IR/FuncOps.h"
+
 #include "mlir/Pass/Pass.h"
 
 #include "Analysis/Helpers/Helpers.h"
@@ -20,7 +20,8 @@ namespace qoala::analysis {
     };
 
     void FoldConstantsPass::runOnOperation() {
-        if (qmem::FuncOp func = getOperation(); failed(helpers::foldConstants(func))) {
+        Operation *op = this->getOperation();
+        if (failed(helpers::foldConstants(*op))) {
             signalPassFailure();
         }
     }

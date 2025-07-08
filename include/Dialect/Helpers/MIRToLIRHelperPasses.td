@@ -8,7 +8,7 @@ def SimpleFunctionize : Pass<"simple-functionize", "mlir::ModuleOp"> {
     let dependentDialects = ["qoala::dialects::qmem::QMemDialect", "mlir::func::FuncDialect"];
 }
 
-def ConvertIntegerToFloatRotations : Pass<"lower-float-rotations", "mlir::ModuleOp"> {
+def ConvertIntegerToFloatRotations : Pass<"lower-float-rotations", "qoala::dialects::qmem::FuncOp"> {
     let summary = "Converts Rotations (X, Y, Z and CrotX) that use f32 angle arguments into their counterparts using i32 arguments.";
     let dependentDialects = ["qoala::dialects::qmem::QMemDialect"];
 }
@@ -26,9 +26,9 @@ def FunctionizeQuantumOps : Pass<"functionize", "mlir::ModuleOp"> {
 // Helper pass to fold constants
 //===----------------------------------------------------------------------===//
 
-def FoldConstants : Pass<"fold-constants", "qoala::dialects::qmem::FuncOp"> {
-    let summary = "Folds constants in the functions";
-    let dependentDialects = ["mlir::func::FuncDialect", "qoala::dialects::qmem::QMemDialect"];
+def FoldConstants : Pass<"fold-constants"> {
+    let summary = "Folds constants in the nested operations";
+    let dependentDialects = [];
 }
 
 //===----------------------------------------------------------------------===//

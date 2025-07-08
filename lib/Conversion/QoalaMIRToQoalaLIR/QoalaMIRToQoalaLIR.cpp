@@ -1,9 +1,9 @@
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "llvm/Support/Debug.h"
+#include "mlir/Transforms/Passes.h"
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
@@ -14,7 +14,7 @@
 namespace qoala::analysis {
 #define GEN_PASS_DECL
 #include "Dialect/Helpers/HelperPasses.h.inc"
-}
+} // namespace qoala::analysis
 
 #define DEBUG_TYPE "mir-to-lir"
 
@@ -28,6 +28,7 @@ namespace qoala::conversion {
     class QoalaMIRToQoalaLIRPass : public impl::QoalaMIRToQoalaLIRBase<QoalaMIRToQoalaLIRPass> {
     public:
         using QoalaMIRToQoalaLIRBase::QoalaMIRToQoalaLIRBase;
+
         void runOnOperation() override;
     };
 
@@ -66,19 +67,20 @@ namespace qoala::conversion {
         // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
-        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         // Note: This is the way how we will handle "dynamic" f32 values in the future.
         // We will keep inserting this declaration and assuming it will be provided by the runtime in the future.
         if (!helpers::angle::moduleContainsAngleConversionDeclaration(module)) {
-            //helpers::angle::insertAngleConversionFunctionDeclaration(module);
+            // helpers::angle::insertAngleConversionFunctionDeclaration(module);
             passManager.addPass(analysis::createAngleConversionDeclaration());
         }
 
+        OpPassManager &funcOpPassManager = passManager.nest<qmem::FuncOp>();
         if (this->useSCCP) {
-            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1 and 2 to propagate
-            // constants inside branching blocks. This will be needed when supporting branching
+            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1
+            // and 2 to propagate constants inside branching blocks. This will be needed when supporting branching
             // instructions inside the body of a NetQASM local routine (for example, when performing
             // a different rotation based on the value of an argument).
             // We create an SCCP pass to try to
@@ -90,7 +92,6 @@ namespace qoala::conversion {
             // LLVM_DEBUG(llvm::dbgs() << "*** Before SCCP:\n");
             // LLVM_DEBUG(llvm::dbgs() << module << "\n");
             // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-            OpPassManager &funcOpPassManager = passManager.nest<qmem::FuncOp>();
 
             // auto mainFuncs = module.getOps<qmem::FuncOp>();
             // assert (!mainFuncs.empty());
@@ -114,31 +115,32 @@ namespace qoala::conversion {
         // if (failed(helpers::foldConstants(module))) {
         //     signalPassFailure();
         // }
-        OpPassManager &memOpPassManager = passManager.nest<qmem::FuncOp>();
-        memOpPassManager.addPass(analysis::createFoldConstants());
+        funcOpPassManager.addPass(analysis::createFoldConstants());
+
+        // Stage 3: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
+        // LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 3. Lowering f32 rotations *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
+        // if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
+        //     signalPassFailure();
+        // }
+        funcOpPassManager.addPass(analysis::createConvertIntegerToFloatRotations());
+
+        // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
+        // LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants (Folding again) *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
+        //
+        // if (failed(helpers::foldConstants(module))) {
+        //     signalPassFailure();
+        // }
+        passManager.addPass(analysis::createFoldConstants());
 
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
         passManager.printAsTextualPipeline(llvm::dbgs());
         LLVM_DEBUG(llvm::dbgs() << "*******************************************:\n");
 
         if (failed(passManager.run(module))) {
-            signalPassFailure();
-        }
-
-        // Stage 3: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
-        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 3. Lowering f32 rotations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
-            signalPassFailure();
-        }
-
-        // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
-        LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants (Folding again) *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
-
-        if (failed(helpers::foldConstants(module))) {
             signalPassFailure();
         }
 
@@ -149,9 +151,11 @@ namespace qoala::conversion {
 
         if (this->useSimpleFunctionize) {
             LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
-            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier, this->maxOpsPerGroup);
+            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier,
+                                                     this->maxOpsPerGroup);
         } else {
-            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier, this->maxOpsPerGroup);
+            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier,
+                                                     this->maxOpsPerGroup);
         }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
@@ -161,9 +165,7 @@ namespace qoala::conversion {
                 helpers::moveOperationToTop(module, funcDecl);
             }
         });
-        module.walk([&](const qmem::RemoteOp remote) {
-            helpers::moveOperationToTop(module, remote);
-        });
+        module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
 
         // Stage 6: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");

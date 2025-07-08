@@ -56,7 +56,7 @@ namespace qoala::analysis {
     };
 
     void LowerF32RotationsPass::runOnOperation() {
-        ModuleOp module = this->getOperation();
+        qmem::FuncOp mainFuncOp = this->getOperation();
         MLIRContext &context = this->getContext();
         LLVM_DEBUG(llvm::dbgs() << "Lowering f32 rotation operations\n");
 
@@ -67,7 +67,7 @@ namespace qoala::analysis {
         NullTypeConverter typeConverter(&context);
         populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
-        if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
+        if (failed(applyPartialConversion(mainFuncOp, f32LoweringTarget, std::move(f32Patterns)))) {
             signalPassFailure();
         }
     }
