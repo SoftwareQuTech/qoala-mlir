@@ -489,22 +489,19 @@ namespace qoala::analysis::reordering {
                 memOp.getEffects(effects);
 
                 for (MemoryEffects::EffectInstance &eff : effects) {
-                    Value v = eff.getValue();
-                    if (!v) {
-                        continue;
+                    if (Value v = eff.getValue()) {
+                        // Resolve value through argument mapping
+                        Value resolved = argMap.lookup(v);
+                        if (!resolved) {
+                            resolved = v;
+                        }
+
+                        // Canonicalize through aliases (if applicable)
+                        Value canonical = resolve(resolved);
+                        qubitToOps[canonical].push_back(memOp.getOperation());
+
+                        LLVM_DEBUG(llvm::dbgs() << "    [Track] " << memOp->getName() << " → " << canonical << '\n');
                     }
-
-                    // Resolve value through argument mapping
-                    Value resolved = argMap.lookup(v);
-                    if (!resolved) {
-                        resolved = v;
-                    }
-
-                    // Canonicalize through aliases (if applicable)
-                    Value canonical = resolve(resolved);
-                    qubitToOps[canonical].push_back(memOp.getOperation());
-
-                    LLVM_DEBUG(llvm::dbgs() << "    [Track] " << memOp->getName() << " → " << canonical << '\n');
                 }
             });
 
