@@ -120,8 +120,6 @@ namespace qoala::analysis {
             void addOperation(MILPOperation *op) { operations_.push_back(op); }
             const std::vector<MILPOperation *> &getOperations() const { return operations_; }
 
-            MILPOperation *getFirstOperation() const { return operations_.empty() ? nullptr : operations_.front(); }
-
             int getDuration() const {
                 int dur = 0.0;
                 for (auto *op: operations_)
