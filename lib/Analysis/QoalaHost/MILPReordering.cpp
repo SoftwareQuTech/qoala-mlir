@@ -125,6 +125,7 @@ namespace qoala::analysis::reordering {
                                    << ops.size();
                     return failure();
                 }
+                break;
             case OpType::CL: {
                 std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 for (const std::unique_ptr<MILPOperation> &op : ops) {
