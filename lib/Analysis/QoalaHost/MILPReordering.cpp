@@ -196,14 +196,14 @@ namespace qoala::analysis::reordering {
 
         // This walk processes each `qoalahost.BlkMeta` operation in the `mainFunc`
         // body exactly once (per MLIR block) to construct the high-level MILP structure.
-        mainFunc.walk([&](qoalahost::BlkMeta blkMeta) {
+        mainFunc.walk([&](qoalahost::BlkMeta blkMeta) -> WalkResult {
             if (failed(status)) {
-                return;
+                return WalkResult::interrupt();
             }
 
             Block *block = blkMeta->getBlock();
             if (!visitedBlocks.insert(block).second) {
-                return;
+                return WalkResult::advance();
             }
 
             // Avoid processing the same MLIR block twice (only one BlkMeta per block is valid)
@@ -211,7 +211,7 @@ namespace qoala::analysis::reordering {
             if (firstIt == block->end()) {
                 emitError(blkMeta.getLoc(), "Block has no body after BlkMeta");
                 status = failure();
-                return;
+                return WalkResult::interrupt();
             }
 
             // Skip this block entirely if it contains a qoalahost::ReturnOp.
@@ -224,7 +224,7 @@ namespace qoala::analysis::reordering {
             for (Operation &op: *block) {
                 if (llvm::isa<qoalahost::ReturnOp>(&op)) {
                     LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
-                    return;
+                    return WalkResult::advance();
                 }
             }
 
@@ -269,7 +269,7 @@ namespace qoala::analysis::reordering {
                         if (!calleeFunc) {
                             emitError(op->getLoc(), "Callee is not a FunctionOpInterface");
                             status = failure();
-                            return;
+                            return WalkResult::interrupt();
                         }
 
                         bool foundReturn = false;
@@ -306,6 +306,7 @@ namespace qoala::analysis::reordering {
                         if (!foundReturn) {
                             emitError(op->getLoc(), "Callee does not end in netqasm::ReturnOp");
                             status = failure();
+                            return WalkResult::interrupt();
                         }
                         break; // Only one call is handled per block
                     }
@@ -318,7 +319,7 @@ namespace qoala::analysis::reordering {
             }
 
             if (failed(status)) {
-                return;
+                return WalkResult::interrupt();
             }
 
             // Record precedence edges from block attributes. For our optimization all types of precedences are
@@ -354,10 +355,11 @@ namespace qoala::analysis::reordering {
             // Generate tasks for this MILP block (task-level subdivision)
             if (failed(createTasksForBlock(blk, blkMeta.getLoc()))) {
                 status = failure();
-                return;
+                return WalkResult::interrupt();
             }
 
             blocks.push_back(std::move(blkPtr));
+            return WalkResult::advance();
         });
 
         if (failed(status)) {
