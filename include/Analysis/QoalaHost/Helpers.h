@@ -249,32 +249,6 @@ namespace qoala::analysis {
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
-        /**
-         * Determines whether there exists a transitive precedence path from block `a` to block `b`
-         * based on the computed closure of the precedence graph.
-         * This is used to identify whether two blocks are already ordered with respect to each other,
-         * which is particularly relevant when enforcing FCFS constraints only between independent blocks.
-         * @param a Pointer to the source MILPBlock.
-         * @param b Pointer to the destination MILPBlock.
-         * @param C The transitive closure of all precedence edges, represented as a set of (from, to) block ID pairs.
-         * @return true if `b` is reachable from `a` (i.e., a precedes b), false otherwise.
-         */
-        bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C);
-
-        /**
-         * Infers the block type based on the given operation (typically the first
-         * non BlkMeta operation in a block).
-         * @param op The operation to inspect.
-         * @param moduleOp The parent module, used to resolve symbol references.
-         */
-        OpType getBlockType(mlir::Operation *op, mlir::ModuleOp moduleOp);
-
-        /**
-         * Creates the set of MILP tasks associated with a given block.
-         * @param blk The MILPBlock for which to create tasks.
-         * @param loc The location used for emitting diagnostics on failure.
-         */
-        mlir::LogicalResult createTasksForBlock(reordering::MILPBlock *blk, const mlir::Location &loc);
 
         /**
          * Constructs the MILP model from the given MLIR module. This includes building

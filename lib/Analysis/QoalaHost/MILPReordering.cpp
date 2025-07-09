@@ -71,7 +71,10 @@ namespace qoala::analysis::reordering {
         return qoalaOptHostInstrTime;
     }
 
-    OpType getBlockType(Operation *op, ModuleOp moduleOp) {
+    static OpType getBlockType(Operation *op, ModuleOp &moduleOp) {
+        // Infers the block type based on the given operation (typically the first
+        // non BlkMeta operation in a block).
+
         // First, handle communication ops (CC)
         if (llvm::isa<qoalahost::SendIntsOp>(op) || llvm::isa<qoalahost::RecvIntsOp>(op) ||
             llvm::isa<qoalahost::SendFloatsOp>(op) || llvm::isa<qoalahost::RecvFloatsOp>(op)) {
@@ -98,7 +101,9 @@ namespace qoala::analysis::reordering {
     }
 
 
-    LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
+    static LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
+        // Creates the set of MILP tasks associated with a given block.
+
         const std::vector<MILPOperation *> &ops = blk->getOperations();
         if (ops.empty()) {
             emitError(loc) << "MILPBlock '" << blk->getId() << "' has no operations — this should not happen.";
@@ -644,7 +649,11 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+    static bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C) {
+        // Determines whether there exists a transitive precedence path from block `a` to block `b`
+        // based on the computed closure of the precedence graph.
+        // This is used to identify whether two blocks are already ordered with respect to each other,
+        // which is particularly relevant when enforcing FCFS constraints only between independent blocks.
         return C.count({a->getId(), b->getId()}) > 0;
     };
 
