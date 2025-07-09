@@ -32,12 +32,12 @@ namespace qoala::analysis::reordering {
         // TODO - check in translation if the size of tensor decides the number of recv ops.
         // After tensor lowering in #72.
         if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op)) {
-            return qoalaOptLatency + qoalaOptHostPeerLatency
+            return qoalaOptLatency + qoalaOptHostPeerLatency;
         };
 
         // Netqasm operations that are classical operations
         if (isa<netqasm::QAllocOp>(op) || isa<netqasm::QFreeOp>(op)) {
-            return qoalaOptQNosInstrTime
+            return qoalaOptQNosInstrTime;
         };
 
         // Each operand will be converted to one netqasm instruction in the iqoala file
