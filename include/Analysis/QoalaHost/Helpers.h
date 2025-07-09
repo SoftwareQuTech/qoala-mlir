@@ -145,8 +145,12 @@ namespace qoala::analysis {
             const std::string &getId() const { return id_; }
             OpType getType() const { return type_; }
 
-            void addOperation(MILPOperation *op) { operations_.push_back(op); }
-            const std::vector<MILPOperation *> &getOperations() const { return operations_; }
+            MILPOperation *addOperation(std::unique_ptr<MILPOperation> op) {
+                MILPOperation *raw = op.get();
+                operations_.push_back(std::move(op));
+                return raw;
+            }
+            const std::vector<std::unique_ptr<MILPOperation>> &getOperations() const { return operations_; }
 
             void addTask(std::unique_ptr<MILPTask> task) { tasks_.push_back(std::move(task)); }
             const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
@@ -154,13 +158,13 @@ namespace qoala::analysis {
             void setBlock(mlir::Block *block) { blk_ = block; }
             mlir::Block *getBlock() const { return blk_; }
 
-            const MILPOperation *firstOp() const { return operations_.front(); }
-            const MILPOperation *lastOp() const { return operations_.back(); }
+            const MILPOperation *firstOp() const { return operations_.front().get(); }
+            const MILPOperation *lastOp() const { return operations_.back().get(); }
 
         private:
             std::string id_;
             OpType type_;
-            std::vector<MILPOperation *> operations_;
+            std::vector<std::unique_ptr<MILPOperation>> operations_;
             std::vector<std::unique_ptr<MILPTask>> tasks_;
             mlir::Block *blk_;
         };
