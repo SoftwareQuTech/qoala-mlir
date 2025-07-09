@@ -231,59 +231,30 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
-               LogicalResult>
-    buildMILPFromMLIR(ModuleOp moduleOp) {
-        // Constructs an intermediate MILP model from a given QoalaHost IR module.
-        // This function performs a multi-pass traversal over the input MLIR module to
-        // extract high-level scheduling constraints in preparation for MILP solving.
-        // The steps are as follows:
-        // 1. Walk the main function (`MainFuncOp`) and extract every `qoalahost.BlkMeta`.
-        //    For each such block:
-        //      - Create a MILPBlock instance and assign it a unique ID (taken from BlkMeta).
-        //      - Collect all operations (including inlined subroutines) as MILPOperations.
-        //      - Classify the block's type (CL, CC, QL, QC) using its first non-BlkMeta op.
-        //      - Create Tasks within each block.
-        // 2. For each block and operation:
-        //      - Inline the body of `qoalahost.call` instructions if they target `LocalRoutineOp` or
-        //      `RequestRoutineOp`, preserving temporal structure.
-        //      - Handle `netqasm.return` instructions in inlined routines by inserting a `qoalahost.nop` operation in
-        //      the caller block to explicitly represent a PostTask from the qoala runtime model.
-        //      - Track static dependencies declared in BlkMeta (predecessors, dependencies, prevComm and prevEnt).
-        // 3. Resolve operation-to-qubit associations:
-        //      - Analyze memory effect interfaces inside inlined routines.
-        //      - Use value-based alias tracking to resolve logical qubits across calls.
-        //      - For each qubit, record its init (netqasm.init or netqasm.eprs) and measure operations.
-        // The resulting data structures are then passed into MILPModelBuilder, which
-        // builds SCIP variables and constraints based on this semantic input.
-        // Failure is returned if invalid constructs are encountered (e.g., unknown block
-        // types, malformed calls, or unresolved aliases).
-        std::vector<std::shared_ptr<MILPBlock>> blocks;
-        std::vector<std::shared_ptr<MILPQubit>> qubits;
-        BlockPrecedenceList precedences;
-
-        llvm::StringMap<MILPBlock *> idToBlockMap;
-        std::unordered_map<mlir::Operation *, MILPOperation *> opToMilpOp;
-        std::vector<std::pair<std::string, std::string>> unresolvedEdges;
-
-        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
-        if (mainFuncs.empty()) {
-            emitError(moduleOp.getLoc(), "No main function found in module");
-            return {blocks, qubits, precedences, failure()};
-        }
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-
-        llvm::DenseSet<Block *> visitedBlocks;
-        LogicalResult status = success();
-
+    static llvm::StringMap<Operation *> collectRoutineMap(ModuleOp moduleOp) {
         llvm::StringMap<Operation *> routineMap;
+
         moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
-            if (auto localRoutine = llvm::dyn_cast<netqasm::LocalRoutineOp>(routine.getOperation())) {
-                routineMap.try_emplace(localRoutine.getSymName(), localRoutine.getOperation());
-            } else if (auto requestRoutine = llvm::dyn_cast<netqasm::RequestRoutineOp>(routine.getOperation())) {
-                routineMap.try_emplace(requestRoutine.getSymName(), requestRoutine.getOperation());
+            Operation *op = routine.getOperation();
+
+            if (auto localRoutine = llvm::dyn_cast<netqasm::LocalRoutineOp>(op)) {
+                routineMap.try_emplace(localRoutine.getSymName(), op);
+            } else if (auto requestRoutine = llvm::dyn_cast<netqasm::RequestRoutineOp>(op)) {
+                routineMap.try_emplace(requestRoutine.getSymName(), op);
             }
         });
+
+        return routineMap;
+    }
+
+    static LogicalResult buildMilpBlocks(qoalahost::MainFuncOp mainFunc, const llvm::StringMap<Operation *> &routineMap,
+                                         std::vector<std::shared_ptr<MILPBlock>> &outBlocks,
+                                         BlockPrecedenceList &outPrecedences,
+                                         llvm::StringMap<MILPBlock *> &idToBlockMap,
+                                         std::unordered_map<mlir::Operation *, MILPOperation *> &opToMilpOp,
+                                         std::vector<std::pair<std::string, std::string>> &unresolvedEdges) {
+        llvm::DenseSet<Block *> visitedBlocks;
+        LogicalResult status = success();
 
         // This walk processes each `qoalahost.BlkMeta` operation in the `mainFunc`
         // body exactly once (per MLIR block) to construct the high-level MILP structure.
@@ -381,19 +352,19 @@ namespace qoala::analysis::reordering {
             // equivalent. The differenciation is needed for the translation step.
             if (ArrayAttr a = blkMeta.getPredecessorsAttr()) {
                 for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
-                    recordEdge(s, idToBlockMap, precedences, unresolvedEdges, blk, blkId);
+                    recordEdge(s, idToBlockMap, outPrecedences, unresolvedEdges, blk, blkId);
                 }
             }
             if (ArrayAttr a = blkMeta.getDependenciesAttr()) {
                 for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
-                    recordEdge(s, idToBlockMap, precedences, unresolvedEdges, blk, blkId);
+                    recordEdge(s, idToBlockMap, outPrecedences, unresolvedEdges, blk, blkId);
                 }
             }
             if (StringAttr a = blkMeta.getPrevEntAttr()) {
-                recordEdge(a.getValue(), idToBlockMap, precedences, unresolvedEdges, blk, blkId);
+                recordEdge(a.getValue(), idToBlockMap, outPrecedences, unresolvedEdges, blk, blkId);
             }
             if (StringAttr a = blkMeta.getPrevCommAttr()) {
-                recordEdge(a.getValue(), idToBlockMap, precedences, unresolvedEdges, blk, blkId);
+                recordEdge(a.getValue(), idToBlockMap, outPrecedences, unresolvedEdges, blk, blkId);
             }
 
             // Generate tasks for this MILP block (task-level subdivision)
@@ -402,49 +373,17 @@ namespace qoala::analysis::reordering {
                 return WalkResult::interrupt();
             }
 
-            blocks.push_back(std::move(blkPtr));
+            outBlocks.push_back(std::move(blkPtr));
             return WalkResult::advance();
         });
 
-        if (failed(status)) {
-            return {blocks, qubits, precedences, failure()};
-        }
+        return status;
+    }
 
-        // Fail if unresolved edges remain
-        if (!unresolvedEdges.empty()) {
-            emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
-            return {blocks, qubits, precedences, failure()};
-        }
-
-        LLVM_DEBUG({
-            llvm::dbgs() << "[MILP] Blocks and tasks:\n";
-            for (const auto &bp : blocks) {
-                const auto *b = bp.get();
-                llvm::dbgs() << " - Block " << b->getId() << " (type=" << (int) b->getType() << ")\n";
-                for (const auto &tPtr : b->getTasks()) {
-                    const auto *t = tPtr.get();
-                    llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << (int) t->getGroup() << "]\n";
-                    for (const auto *op : t->getOperations()) {
-                        llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
-                                     << " , duration=" << op->getDuration() << "ns\n";
-                    }
-                }
-            }
-        });
-
-        LLVM_DEBUG({
-            llvm::dbgs() << "[MILP] Precedence edges:\n";
-            for (auto &e : precedences) {
-                llvm::dbgs() << "  " << e.first->getId() << " -> " << e.second->getId() << "\n";
-            }
-        });
-
-        LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
-
-        // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
-        llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
-        // Maps result of call to actual QAlloc op it aliases (transitive resolution)
-        llvm::DenseMap<Value, Value> resolvedQubitAlias;
+    static LogicalResult collectQubitUsage(qoalahost::MainFuncOp mainFunc, ModuleOp moduleOp,
+                                           llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,
+                                           llvm::DenseMap<Value, Value> &resolvedQubitAlias) {
+        LogicalResult status = success();
 
         // Helper to resolve the final canonical Qubit value (transitive alias flattening)
         auto resolve = [&](Value v) -> Value {
@@ -535,6 +474,7 @@ namespace qoala::analysis::reordering {
             });
 
             if (!foundReturn) {
+                status = failure();
                 emitError(callOp.getLoc(), "callee has no netqasm.return instruction");
                 return WalkResult::interrupt();
             }
@@ -542,16 +482,12 @@ namespace qoala::analysis::reordering {
             return WalkResult::advance();
         });
 
-        LLVM_DEBUG({
-            llvm::dbgs() << "[Qubit→Ops]\n";
-            for (auto &entry : qubitToOps) {
-                llvm::dbgs() << " - Raw Qubit: " << entry.first << "\n";
-                for (auto *op : entry.second) {
-                    llvm::dbgs() << "     * " << op->getName() << "\n";
-                }
-            }
-        });
+        return status;
+    }
 
+    static void buildMilpQubits(const llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,
+                                const std::unordered_map<mlir::Operation *, MILPOperation *> &opToMilpOp,
+                                std::vector<std::shared_ptr<MILPQubit>> &outQubits) {
         int qubitIndex = 0;
 
         // Construct MILPQubit objects
@@ -568,11 +504,13 @@ namespace qoala::analysis::reordering {
 
             for (Operation *op : ops) {
                 if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
-                    allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
+                    auto it = opToMilpOp.find(op);
+                    allocOp = (it != opToMilpOp.end()) ? it->second : nullptr;
                 }
 
                 if (llvm::isa<netqasm::MeasureOp>(op)) {
-                    measOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
+                    auto itMeas = opToMilpOp.find(op);
+                    measOp = (itMeas != opToMilpOp.end()) ? itMeas->second : nullptr;
                 }
             }
 
@@ -584,11 +522,110 @@ namespace qoala::analysis::reordering {
                 qubitPtr->setMeasurement(measOp);
             }
 
-            LLVM_DEBUG(llvm::dbgs() << "  [Qubit] " << id << ": alloc=" << (allocOp ? allocOp->getId() : "null")
-                                    << ", meas=" << (measOp ? measOp->getId() : "null") << "\n");
-
-            qubits.push_back(std::move(qubitPtr));
+            outQubits.push_back(std::move(qubitPtr));
         }
+    }
+
+    std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
+               LogicalResult>
+    buildMILPFromMLIR(ModuleOp moduleOp) {
+        // Constructs an intermediate MILP model from a given QoalaHost IR module.
+        // This function performs a multi-pass traversal over the input MLIR module to
+        // extract high-level scheduling constraints in preparation for MILP solving.
+        // The steps are as follows:
+        // 1. Walk the main function (`MainFuncOp`) and extract every `qoalahost.BlkMeta`.
+        //    For each such block:
+        //      - Create a MILPBlock instance and assign it a unique ID (taken from BlkMeta).
+        //      - Collect all operations (including inlined subroutines) as MILPOperations.
+        //      - Classify the block's type (CL, CC, QL, QC) using its first non-BlkMeta op.
+        //      - Create Tasks within each block.
+        // 2. For each block and operation:
+        //      - Inline the body of `qoalahost.call` instructions if they target `LocalRoutineOp` or
+        //      `RequestRoutineOp`, preserving temporal structure.
+        //      - Handle `netqasm.return` instructions in inlined routines by inserting a `qoalahost.nop` operation
+        //      in the caller block to explicitly represent a PostTask from the qoala runtime model.
+        //      - Track static dependencies declared in BlkMeta (predecessors, dependencies, prevComm and prevEnt).
+        // 3. Resolve operation-to-qubit associations:
+        //      - Analyze memory effect interfaces inside inlined routines.
+        //      - Use value-based alias tracking to resolve logical qubits across calls.
+        //      - For each qubit, record its init (netqasm.init or netqasm.eprs) and measure operations.
+        // The resulting data structures are then passed into MILPModelBuilder, which
+        // builds SCIP variables and constraints based on this semantic input.
+        // Failure is returned if invalid constructs are encountered (e.g., unknown block
+        // types, malformed calls, or unresolved aliases).
+        std::vector<std::shared_ptr<MILPBlock>> blocks;
+        std::vector<std::shared_ptr<MILPQubit>> qubits;
+        BlockPrecedenceList precedences;
+
+        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        if (mainFuncs.empty()) {
+            emitError(moduleOp.getLoc(), "No main function found in module");
+            return {blocks, qubits, precedences, failure()};
+        }
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+
+        llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
+
+        llvm::StringMap<MILPBlock *> idToBlockMap;
+        std::unordered_map<Operation *, MILPOperation *> opToMilpOp;
+        std::vector<std::pair<std::string, std::string>> unresolvedEdges;
+
+        if (failed(buildMilpBlocks(mainFunc, routineMap, blocks, precedences, idToBlockMap, opToMilpOp,
+                                   unresolvedEdges))) {
+            return {blocks, qubits, precedences, failure()};
+        }
+
+        // Fail if unresolved edges remain
+        if (!unresolvedEdges.empty()) {
+            emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
+            return {blocks, qubits, precedences, failure()};
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[MILP] Blocks and tasks:\n";
+            for (const auto &bp : blocks) {
+                const auto *b = bp.get();
+                llvm::dbgs() << " - Block " << b->getId() << " (type=" << (int) b->getType() << ")\n";
+                for (const auto &tPtr : b->getTasks()) {
+                    const auto *t = tPtr.get();
+                    llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << (int) t->getGroup() << "]\n";
+                    for (const auto *op : t->getOperations()) {
+                        llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
+                                     << " , duration=" << op->getDuration() << "ns\n";
+                    }
+                }
+            }
+        });
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[MILP] Precedence edges:\n";
+            for (auto &e : precedences) {
+                llvm::dbgs() << "  " << e.first->getId() << " -> " << e.second->getId() << "\n";
+            }
+        });
+
+        LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
+
+        // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
+        llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
+        // Maps result of call to actual QAlloc op it aliases (transitive resolution)
+        llvm::DenseMap<Value, Value> resolvedQubitAlias;
+
+        if (failed(collectQubitUsage(mainFunc, moduleOp, qubitToOps, resolvedQubitAlias))) {
+            return {blocks, qubits, precedences, failure()};
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "[Qubit→Ops]\n";
+            for (auto &entry : qubitToOps) {
+                llvm::dbgs() << " - Raw Qubit: " << entry.first << "\n";
+                for (auto *op : entry.second) {
+                    llvm::dbgs() << "     * " << op->getName() << "\n";
+                }
+            }
+        });
+
+        buildMilpQubits(qubitToOps, opToMilpOp, qubits);
 
         LLVM_DEBUG({
             llvm::dbgs() << "[MILP] Constructed MILPQubits:\n";
