@@ -207,6 +207,22 @@ namespace qoala::analysis::reordering {
         return success();
     }
 
+    static void recordEdge(StringRef predId, const llvm::StringMap<MILPBlock *> &idToBlockMap,
+                           std::vector<std::pair<MILPBlock *, MILPBlock *>> &precedences,
+                           std::vector<std::pair<std::string, std::string>> &unresolvedEdges, MILPBlock *blk,
+                           const std::string &blkId) {
+        if (predId.empty()) {
+            return;
+        }
+
+        auto it = idToBlockMap.find(predId.str());
+        if (it != idToBlockMap.end()) {
+            precedences.emplace_back(it->second, blk);
+        } else {
+            unresolvedEdges.emplace_back(predId.str(), blkId);
+        }
+    }
+
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
                LogicalResult>
     buildMILPFromMLIR(ModuleOp moduleOp) {
@@ -346,32 +362,21 @@ namespace qoala::analysis::reordering {
 
             // Record precedence edges from block attributes. For our optimization all types of precedences are
             // equivalent. The differenciation is needed for the translation step.
-            auto recordEdge = [&](StringRef predId) {
-                if (predId.empty()) {
-                    return;
-                }
-                auto it = idToBlockMap.find(predId);
-                if (it != idToBlockMap.end()) {
-                    precedences.emplace_back(it->second, blk);
-                } else {
-                    unresolvedEdges.emplace_back(predId.str(), blkId);
-                }
-            };
             if (ArrayAttr a = blkMeta.getPredecessorsAttr()) {
                 for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
-                    recordEdge(s);
+                    recordEdge(s, idToBlockMap, precedences, unresolvedEdges, blk, blkId);
                 }
             }
             if (ArrayAttr a = blkMeta.getDependenciesAttr()) {
                 for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
-                    recordEdge(s);
+                    recordEdge(s, idToBlockMap, precedences, unresolvedEdges, blk, blkId);
                 }
             }
             if (StringAttr a = blkMeta.getPrevEntAttr()) {
-                recordEdge(a.getValue());
+                recordEdge(a.getValue(), idToBlockMap, precedences, unresolvedEdges, blk, blkId);
             }
             if (StringAttr a = blkMeta.getPrevCommAttr()) {
-                recordEdge(a.getValue());
+                recordEdge(a.getValue(), idToBlockMap, precedences, unresolvedEdges, blk, blkId);
             }
 
             // Generate tasks for this MILP block (task-level subdivision)
