@@ -17,6 +17,7 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::reordering {
+    // TODO - refactor as a method of MILPOperation
     static int getOperationDuration(Operation *op) {
         // Returns the execution duration (in nanoseconds) of a given operation
         // to be used in the MILP model.
@@ -80,6 +81,7 @@ namespace qoala::analysis::reordering {
         return (it != routineMap.end()) ? it->second : nullptr;
     }
 
+    // TODO - refactor as a method of MILPTask
     static OpType getBlockType(Operation *op, llvm::StringMap<Operation *> routineMap) {
         // Infers the block type based on the given operation (typically the first
         // non BlkMeta operation in a block).
