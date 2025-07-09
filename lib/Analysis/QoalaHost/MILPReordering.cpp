@@ -111,13 +111,13 @@ namespace qoala::analysis::reordering {
         }
 
         switch (blk->getType()) {
-            case OpType::CL:
-            case OpType::CC: {
-                if (blk->getType() == OpType::CC && ops.size() != 1) {
+            case OpType::CC:
+                if (ops.size() != 1) {
                     emitError(loc) << "MILPBlock of type CC should contain exactly one operation, but got "
                                    << ops.size();
                     return failure();
                 }
+            case OpType::CL: {
                 std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 for (MILPOperation *op: ops)
                     task->addOperation(op);
