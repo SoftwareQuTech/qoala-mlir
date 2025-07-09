@@ -19,6 +19,12 @@ def ConvertIntegerToFloatRotations : Pass<"lower-float-rotations", "qoala::diale
 
 def FunctionizeQuantumOps : Pass<"functionize", "mlir::ModuleOp"> {
     let summary = "Functionizes the quantum operations inside the main function of the module";
+    let options = [
+        Option<"useSimpleFunctionize", "use-simple-functionize", "bool", /*default=*/"false",
+               "WARNING: Use simple functionize; use a single quantum operation in a function wrapper.">,
+        Option<"maxOpsPerGroup", "max-ops-per-group", "uint32_t", /*default=*/"0",
+               "Set the max number of operations to place per group. This option only affects the per-qubit grouping functionization">
+    ];
     let dependentDialects = ["qoala::dialects::qmem::QMemDialect", "mlir::func::FuncDialect"];
 }
 

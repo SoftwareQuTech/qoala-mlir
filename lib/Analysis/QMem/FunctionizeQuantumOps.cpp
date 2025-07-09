@@ -23,7 +23,18 @@ namespace qoala::analysis {
     void FunctionizeQuantumOpsPass::runOnOperation() {
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
-        functionize::functionizeModule(module, functionize::functionizeOpClassifier, 0);
+
+        // Select the right functionization algorithm depending on the options
+        functionize::ClassifierFnTy classifier;
+        if (this->useSimpleFunctionize) {
+            classifier = functionize::simpleOpClassifier;
+        } else {
+            classifier = functionize::functionizeOpClassifier;
+        }
+
+        // Apply the functionization
+        functionize::functionizeModule(module, classifier, this->maxOpsPerGroup);
+
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
             if (funcDecl.getSymName() == helpers::angle::angleConversionFunctionName) {

@@ -136,6 +136,31 @@ namespace qoala::conversion {
         // }
         passManager.addPass(analysis::createFoldConstants());
 
+        // Stage 5: Functionize
+        // LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 5. Functionizing quantum operations *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
+
+        // if (this->useSimpleFunctionize) {
+        //     LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
+        //     analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier,
+        //                                              this->maxOpsPerGroup);
+        // } else {
+        //     analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier,
+        //                                              this->maxOpsPerGroup);
+        // }
+        // Correct the positions of the remote and builtin declaration
+        // module.walk([&](func::FuncOp funcDecl) {
+        //     if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {
+        //         WalkResult::advance();
+        //     } else {
+        //         helpers::moveOperationToTop(module, funcDecl);
+        //     }
+        // });
+        // module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
+
+        passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
+
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
         passManager.printAsTextualPipeline(llvm::dbgs());
         LLVM_DEBUG(llvm::dbgs() << "*******************************************:\n");
@@ -143,29 +168,6 @@ namespace qoala::conversion {
         if (failed(passManager.run(module))) {
             signalPassFailure();
         }
-
-        // Stage 5: Functionize
-        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 5. Functionizing quantum operations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
-
-        if (this->useSimpleFunctionize) {
-            LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
-            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier,
-                                                     this->maxOpsPerGroup);
-        } else {
-            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier,
-                                                     this->maxOpsPerGroup);
-        }
-        // Correct the positions of the remote and builtin declaration
-        module.walk([&](func::FuncOp funcDecl) {
-            if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {
-                WalkResult::advance();
-            } else {
-                helpers::moveOperationToTop(module, funcDecl);
-            }
-        });
-        module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
 
         // Stage 6: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
