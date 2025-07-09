@@ -1,9 +1,9 @@
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/QoalaHost/Passes.h"
-#include "mlir/IR/Diagnostics.h"
-#include "llvm/Support/Debug.h"
-#include "Tools/QoalaOpt.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "Tools/QoalaOpt.h"
+#include "llvm/Support/Debug.h"
+#include "mlir/IR/Diagnostics.h"
 
 #define DEBUG_TYPE "qoalahost-reorder-blocks-pass"
 

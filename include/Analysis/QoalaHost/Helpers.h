@@ -1,10 +1,10 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
-#include "llvm/Support/Casting.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <set>
+#include "llvm/Support/Casting.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
@@ -62,7 +62,7 @@ namespace qoala::analysis {
             });
 
             // Once we marked all the ops, we isolate them
-            for (mlir::Operation *opToIsolate: opsToIsolate) {
+            for (mlir::Operation *opToIsolate : opsToIsolate) {
                 isolateOp(opToIsolate, rewriter);
             }
         }
@@ -89,14 +89,17 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(const std::string &id, OpType type, int duration) :
-                id_(id), type_(type), duration_(duration), op_(nullptr) {}
+            MILPOperation(const std::string &id, OpType type, int duration):
+                id_(id), type_(type), duration_(duration), op_(nullptr) { }
 
             const std::string &getId() const { return id_; }
+
             OpType getType() const { return type_; }
+
             int getDuration() const { return duration_; }
 
             void setOperation(mlir::Operation *op) { op_ = op; }
+
             mlir::Operation *getOperation() const { return op_; }
 
         private:
@@ -106,23 +109,25 @@ namespace qoala::analysis {
             mlir::Operation *op_;
         };
 
-
         class MILPBlock; // forward declaration
+
         // Class to represent a Task for the MILP model
         class MILPTask {
         public:
-            MILPTask(std::string id, MILPBlock *parent, const TaskGroup group) :
-                id_(id), parent_block_(parent), group_(group) {}
+            MILPTask(std::string id, MILPBlock *parent, const TaskGroup group):
+                id_(id), parent_block_(parent), group_(group) { }
 
             const std::string &getId() const { return id_; }
+
             TaskGroup getGroup() const { return group_; }
 
             void addOperation(MILPOperation *op) { operations_.push_back(op); }
+
             const std::vector<MILPOperation *> &getOperations() const { return operations_; }
 
             int getDuration() const {
                 int dur = 0.0;
-                for (auto *op: operations_) {
+                for (auto *op : operations_) {
                     dur += op->getDuration();
                 }
                 return dur;
@@ -140,9 +145,10 @@ namespace qoala::analysis {
         // Class to represent a block for the MILP model
         class MILPBlock {
         public:
-            MILPBlock(const std::string &id, OpType type) : id_(id), type_(type), blk_(nullptr) {}
+            MILPBlock(const std::string &id, OpType type): id_(id), type_(type), blk_(nullptr) { }
 
             const std::string &getId() const { return id_; }
+
             OpType getType() const { return type_; }
 
             MILPOperation *addOperation(std::unique_ptr<MILPOperation> op) {
@@ -150,15 +156,19 @@ namespace qoala::analysis {
                 operations_.push_back(std::move(op));
                 return raw;
             }
+
             const std::vector<std::unique_ptr<MILPOperation>> &getOperations() const { return operations_; }
 
             void addTask(std::unique_ptr<MILPTask> task) { tasks_.push_back(std::move(task)); }
+
             const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
 
             void setBlock(mlir::Block *block) { blk_ = block; }
+
             mlir::Block *getBlock() const { return blk_; }
 
             const MILPOperation *firstOp() const { return operations_.front().get(); }
+
             const MILPOperation *lastOp() const { return operations_.back().get(); }
 
         private:
@@ -172,14 +182,16 @@ namespace qoala::analysis {
         // Class to represent a qubit for the MILP model
         class MILPQubit {
         public:
-            MILPQubit(const std::string &id) : id_(id), alloc_op_(nullptr), meas_op_(nullptr) {}
+            MILPQubit(const std::string &id): id_(id), alloc_op_(nullptr), meas_op_(nullptr) { }
 
             const std::string &getId() const { return id_; }
 
             void setAllocation(MILPOperation *allocOp) { alloc_op_ = allocOp; }
+
             void setMeasurement(MILPOperation *measOp) { meas_op_ = measOp; }
 
             MILPOperation *getAllocation() const { return alloc_op_; }
+
             MILPOperation *getMeasurement() const { return meas_op_; }
 
         private:
@@ -195,7 +207,8 @@ namespace qoala::analysis {
         // Encapsulates the SCIP MILP modeling process
         class MILPModelBuilder {
         public:
-            MILPModelBuilder() : scip_(nullptr) {}
+            MILPModelBuilder(): scip_(nullptr) { }
+
             ~MILPModelBuilder() { cleanup(); }
 
             // Initialize SCIP and setup base model

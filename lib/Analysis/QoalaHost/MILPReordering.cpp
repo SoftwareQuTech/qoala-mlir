@@ -1,11 +1,11 @@
 #include "Analysis/QoalaHost/Helpers.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
-#include "llvm/Support/Debug.h"
-#include "mlir/IR/SymbolTable.h"
 #include "Dialect/QoalaHost/Passes.h"
-#include "llvm/Support/FormatVariadic.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Tools/QoalaOpt.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "mlir/IR/SymbolTable.h"
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
@@ -100,7 +100,6 @@ namespace qoala::analysis::reordering {
         return OpType::CL;
     }
 
-
     static LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
         // Creates the set of MILP tasks associated with a given block.
 
@@ -119,7 +118,7 @@ namespace qoala::analysis::reordering {
                 }
             case OpType::CL: {
                 std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
-                for (const std::unique_ptr<MILPOperation> &op: ops) {
+                for (const std::unique_ptr<MILPOperation> &op : ops) {
                     task->addOperation(op.get());
                 }
 
@@ -138,8 +137,9 @@ namespace qoala::analysis::reordering {
                 blk->addTask(std::move(t0));
                 // Task 1 – middle (Q): Quantum Routine
                 std::unique_ptr<MILPTask> t1 = std::make_unique<MILPTask>("1", blk, TaskGroup::Q);
-                for (size_t i = 1; i + 1 < ops.size(); ++i)
+                for (size_t i = 1; i + 1 < ops.size(); ++i) {
                     t1->addOperation(ops[i].get());
+                }
                 blk->addTask(std::move(t1));
                 // Task 2 – return (C) : PostTask.
                 std::unique_ptr<MILPTask> t2 = std::make_unique<MILPTask>("2", blk, TaskGroup::C);
@@ -164,9 +164,10 @@ namespace qoala::analysis::reordering {
         // Resolve the callee.
         SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
         Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
-        auto calleeFunc = llvm::dyn_cast_or_null<FunctionOpInterface>(callee);
-        if (!calleeFunc)
+        if (!llvm::isa<FunctionOpInterface>(callee)) {
             return callOp.emitError("Callee is not a FunctionOpInterface"), failure();
+        }
+        auto calleeFunc = llvm::cast<FunctionOpInterface>(callee);
 
         bool foundReturn = false;
 
@@ -175,9 +176,7 @@ namespace qoala::analysis::reordering {
             // Create MILPOperation for every inlined op
             std::string subId = blkId + "::" + std::to_string(opIdx++);
             std::unique_ptr<MILPOperation> milpSub =
-                std::make_unique<MILPOperation>(subId,
-                                                blkType,
-                                                getOperationDuration(innerOp));
+                    std::make_unique<MILPOperation>(subId, blkType, getOperationDuration(innerOp));
             milpSub->setOperation(innerOp);
             MILPOperation *raw = blk->addOperation(std::move(milpSub));
             opToMilpOp[innerOp] = raw;
@@ -190,21 +189,20 @@ namespace qoala::analysis::reordering {
 
                 std::string nopId = blkId + "::" + std::to_string(opIdx++);
                 std::unique_ptr<MILPOperation> milpNop =
-                    std::make_unique<MILPOperation>(nopId,
-                                                    blkType,
-                                                    getOperationDuration(nop.getOperation()));
+                        std::make_unique<MILPOperation>(nopId, blkType, getOperationDuration(nop.getOperation()));
                 milpNop->setOperation(nop.getOperation());
                 MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
                 opToMilpOp[nop.getOperation()] = rawNop;
 
                 foundReturn = true;
-                return WalkResult::interrupt();   // stop the walk
+                return WalkResult::interrupt(); // stop the walk
             }
             return WalkResult::advance();
         });
 
-        if (!foundReturn)
+        if (!foundReturn) {
             return callOp.emitError("Callee does not end in netqasm::ReturnOp"), failure();
+        }
 
         return success();
     }
@@ -301,7 +299,7 @@ namespace qoala::analysis::reordering {
 
             // Walk through the actual instructions in the MLIR block
             bool isFirstOp = true;
-            for (Operation &op: *block) {
+            for (Operation &op : *block) {
                 if (isFirstOp) {
                     isFirstOp = false;
                     continue; // Skip BlkMeta
@@ -360,12 +358,12 @@ namespace qoala::analysis::reordering {
                 }
             };
             if (ArrayAttr a = blkMeta.getPredecessorsAttr()) {
-                for (llvm::StringRef s: a.getAsValueRange<StringAttr>()) {
+                for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
                     recordEdge(s);
                 }
             }
             if (ArrayAttr a = blkMeta.getDependenciesAttr()) {
-                for (llvm::StringRef s: a.getAsValueRange<StringAttr>()) {
+                for (llvm::StringRef s : a.getAsValueRange<StringAttr>()) {
                     recordEdge(s);
                 }
             }
@@ -398,23 +396,25 @@ namespace qoala::analysis::reordering {
 
         LLVM_DEBUG({
             llvm::dbgs() << "[MILP] Blocks and tasks:\n";
-            for (const auto &bp: blocks) {
+            for (const auto &bp : blocks) {
                 const auto *b = bp.get();
                 llvm::dbgs() << " - Block " << b->getId() << " (type=" << (int) b->getType() << ")\n";
-                for (const auto &tPtr: b->getTasks()) {
+                for (const auto &tPtr : b->getTasks()) {
                     const auto *t = tPtr.get();
                     llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << (int) t->getGroup() << "]\n";
-                    for (const auto *op: t->getOperations())
+                    for (const auto *op : t->getOperations()) {
                         llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
                                      << " , duration=" << op->getDuration() << "ns\n";
+                    }
                 }
             }
         });
 
         LLVM_DEBUG({
             llvm::dbgs() << "[MILP] Precedence edges:\n";
-            for (auto &e: precedences)
+            for (auto &e : precedences) {
                 llvm::dbgs() << "  " << e.first->getId() << " -> " << e.second->getId() << "\n";
+            }
         });
 
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
@@ -466,7 +466,7 @@ namespace qoala::analysis::reordering {
                 llvm::SmallVector<MemoryEffects::EffectInstance, 4> effects;
                 memOp.getEffects(effects);
 
-                for (MemoryEffects::EffectInstance &eff: effects) {
+                for (MemoryEffects::EffectInstance &eff : effects) {
                     Value v = eff.getValue();
                     if (!v) {
                         continue;
@@ -525,9 +525,9 @@ namespace qoala::analysis::reordering {
 
         LLVM_DEBUG({
             llvm::dbgs() << "[Qubit→Ops]\n";
-            for (auto &entry: qubitToOps) {
+            for (auto &entry : qubitToOps) {
                 llvm::dbgs() << " - Raw Qubit: " << entry.first << "\n";
-                for (auto *op: entry.second) {
+                for (auto *op : entry.second) {
                     llvm::dbgs() << "     * " << op->getName() << "\n";
                 }
             }
@@ -538,7 +538,7 @@ namespace qoala::analysis::reordering {
         // Construct MILPQubit objects
         // - Extract alloc & meas ops from qubit usage
         // - Create MILPQubit and attach relevant operations
-        for (const auto &entry: qubitToOps) {
+        for (const auto &entry : qubitToOps) {
             const std::vector<Operation *> &ops = entry.second;
 
             std::string id = "q" + std::to_string(qubitIndex++);
@@ -547,7 +547,7 @@ namespace qoala::analysis::reordering {
             MILPOperation *allocOp = nullptr;
             MILPOperation *measOp = nullptr;
 
-            for (Operation *op: ops) {
+            for (Operation *op : ops) {
                 if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
                     allocOp = opToMilpOp.count(op) ? opToMilpOp[op] : nullptr;
                 }
@@ -573,7 +573,7 @@ namespace qoala::analysis::reordering {
 
         LLVM_DEBUG({
             llvm::dbgs() << "[MILP] Constructed MILPQubits:\n";
-            for (const auto &q: qubits) {
+            for (const auto &q : qubits) {
                 llvm::dbgs() << " - " << q->getId() << ": alloc=";
                 llvm::dbgs() << (q->getAllocation() ? q->getAllocation()->getId() : "null") << ", meas=";
                 llvm::dbgs() << (q->getMeasurement() ? q->getMeasurement()->getId() : "null") << "\n";
@@ -611,8 +611,8 @@ namespace qoala::analysis::reordering {
 
     void MILPModelBuilder::createVariables() {
         int total = 0;
-        for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
-            for (const std::unique_ptr<MILPOperation> &op: blk->getOperations()) {
+        for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
+            for (const std::unique_ptr<MILPOperation> &op : blk->getOperations()) {
                 total += op->getDuration();
                 const std::string &id = op->getId();
                 if (!startVars_.count(id)) {
@@ -633,8 +633,8 @@ namespace qoala::analysis::reordering {
         //      start(o2) - start(o1) = duration(o1)
         // Which ensures operations within a task run in a chain without overlap.
 
-        for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
-            for (const std::unique_ptr<MILPTask> &t: blk->getTasks()) {
+        for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
+            for (const std::unique_ptr<MILPTask> &t : blk->getTasks()) {
                 const std::vector<MILPOperation *> &ops = t->getOperations();
                 for (size_t j = 0; j + 1 < ops.size(); ++j) {
                     const MILPOperation *o1 = ops[j];
@@ -659,7 +659,7 @@ namespace qoala::analysis::reordering {
         // This ensures B's operations begin only after A's last operation finishes.
         // Implemented using a linear inequality with a lower bound (right-hand side).
 
-        for (const auto &e: precedences_) {
+        for (const auto &e : precedences_) {
             const MILPBlock *pred = e.first;
             const MILPBlock *succ = e.second;
             const MILPOperation *predLast = pred->lastOp();
@@ -703,17 +703,20 @@ namespace qoala::analysis::reordering {
 
         // Build transitive closure of the precedence DAG (reachable pairs).
         Closure clos;
-        for (const auto &e: precedences_) {
+        for (const auto &e : precedences_) {
             clos.insert({e.first->getId(), e.second->getId()});
         }
 
         bool grown;
         do {
             grown = false;
-            for (const std::pair<std::string, std::string> &p: clos)
-                for (const std::pair<std::string, std::string> &q: clos)
-                    if (p.second == q.first && clos.insert({p.first, q.second}).second)
+            for (const std::pair<std::string, std::string> &p : clos) {
+                for (const std::pair<std::string, std::string> &q : clos) {
+                    if (p.second == q.first && clos.insert({p.first, q.second}).second) {
                         grown = true;
+                    }
+                }
+            }
         } while (grown);
 
         // Enumerate unordered block pairs that share the same task group.
@@ -745,14 +748,16 @@ namespace qoala::analysis::reordering {
                 const std::vector<std::unique_ptr<MILPTask>> &t2 = b2->getTasks();
                 const std::vector<int> idx =
                         (t1.size() == 3 && t2.size() == 3) ? std::vector<int>{0, 1, 2} : std::vector<int>{0};
-                for (int k: idx) {
+                for (int k : idx) {
                     const MILPOperation *o1 = t1[k]->getOperations().front();
                     const MILPOperation *o2 = t2[k]->getOperations().front();
                     int dur1 = 0, dur2 = 0;
-                    for (MILPOperation *op: t1[k]->getOperations())
+                    for (MILPOperation *op : t1[k]->getOperations()) {
                         dur1 += op->getDuration();
-                    for (MILPOperation *op: t2[k]->getOperations())
+                    }
+                    for (MILPOperation *op : t2[k]->getOperations()) {
                         dur2 += op->getDuration();
+                    }
 
                     // //  FCFS inequality 1: s(o2) - s(o1) + M z ≥ dur1+eps
                     {
@@ -794,7 +799,7 @@ namespace qoala::analysis::reordering {
         //      start(t2) ≥ start(t1) + dur(t1)
         //      start(t3) ≥ start(t2) + dur(t2)
 
-        for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
+        for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
             if (blk->getType() != OpType::QL && blk->getType() != OpType::QC) {
                 continue;
             }
@@ -811,10 +816,10 @@ namespace qoala::analysis::reordering {
             const MILPOperation *first3 = t3->getOperations().front();
 
             int dur1 = 0, dur2 = 0;
-            for (MILPOperation *op: t1->getOperations()) {
+            for (MILPOperation *op : t1->getOperations()) {
                 dur1 += op->getDuration();
             }
-            for (MILPOperation *op: t2->getOperations()) {
+            for (MILPOperation *op : t2->getOperations()) {
                 dur2 += op->getDuration();
             }
 
@@ -853,7 +858,7 @@ namespace qoala::analysis::reordering {
         // variables and have no influence on the result.
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
 
-        for (const std::shared_ptr<MILPQubit> &q: qubits_) {
+        for (const std::shared_ptr<MILPQubit> &q : qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
             if (!(alloc && meas)) {
@@ -887,9 +892,8 @@ namespace qoala::analysis::reordering {
         return val;
     }
 
-
     void MILPModelBuilder::cleanup() {
-        for (std::pair<const std::string, SCIP_VAR *> &entry: startVars_) {
+        for (std::pair<const std::string, SCIP_VAR *> &entry : startVars_) {
             SCIPreleaseVar(scip_, &entry.second);
         }
         startVars_.clear();
@@ -899,7 +903,6 @@ namespace qoala::analysis::reordering {
             scip_ = nullptr;
         }
     }
-
 
     SCIP_VAR *MILPModelBuilder::createVariable(const std::string &name, bool strictlyPositive) {
         double lb = strictlyPositive ? 1.0 : 0.0;
@@ -917,7 +920,7 @@ namespace qoala::analysis::reordering {
         std::vector<std::tuple<std::string, double, double>> blockTimes;
 
         // Collect start and end times for each block using operation timings from the MILP solution.
-        for (const auto &block: blocks_) {
+        for (const auto &block : blocks_) {
             const auto &ops = block->getOperations();
             if (ops.empty()) {
                 continue;
@@ -935,13 +938,13 @@ namespace qoala::analysis::reordering {
         std::sort(blockTimes.begin(), blockTimes.end(),
                   [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
 
-        for (const auto &[id, start, end]: blockTimes) {
+        for (const auto &[id, start, end] : blockTimes) {
             LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
         }
 
         // Extract the ordered block IDs into a list to be returned.
         std::vector<std::string> orderedBlockIds;
-        for (const auto &[id, _, __]: blockTimes) {
+        for (const auto &[id, _, __] : blockTimes) {
             orderedBlockIds.push_back(id);
         }
 
@@ -962,8 +965,8 @@ namespace qoala::analysis::reordering {
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
         // And identify any block containing a ReturnOp.
-        for (Block &blk: body) {
-            for (Operation &op: blk) {
+        for (Block &blk : body) {
+            for (Operation &op : blk) {
                 if (llvm::isa<qoalahost::ReturnOp>(op)) {
                     returnBlock = &blk;
                     break;
@@ -977,7 +980,7 @@ namespace qoala::analysis::reordering {
 
         // Move each block before the next insertion point; update insertion point after each move.
         Block *insertionPoint = &body.front();
-        for (const std::string &id: orderedIds) {
+        for (const std::string &id : orderedIds) {
             auto it = idToBlock.find(id);
             if (it == idToBlock.end()) {
                 return moduleOp.emitError("unknown block_id \"") << id << "\"", failure();
