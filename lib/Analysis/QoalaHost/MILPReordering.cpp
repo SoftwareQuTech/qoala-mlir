@@ -151,6 +151,62 @@ namespace qoala::analysis::reordering {
         return success();
     }
 
+    static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, OpType blkType,
+                                             int &opIdx, mlir::ModuleOp moduleOp, mlir::Block *callerBlock,
+                                             MILPBlock *blk,
+                                             std::unordered_map<mlir::Operation *, MILPOperation *> &opToMilpOp) {
+        // Inline the body of a qoalahost.call whose callee is a LocalRoutineOp or
+        // RequestRoutineOp.  Appends the inlined operations (and the synthetic
+        // qoalahost.nop) to `blk`, updates `opIdx`, and fills `opToMilpOp`.
+        // Returns failure() if anything is malformed (e.g. callee not found,
+        // callee does not end in netqasm.return, …).
+
+        // Resolve the callee.
+        SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
+        Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
+        auto calleeFunc = llvm::dyn_cast_or_null<FunctionOpInterface>(callee);
+        if (!calleeFunc)
+            return callOp.emitError("Callee is not a FunctionOpInterface"), failure();
+
+        bool foundReturn = false;
+
+        // Inline every op from the callee
+        for (Block &cb: calleeFunc->getRegion(0)) {
+            for (Operation &cOp: cb) {
+                std::string subId = blkId + "::" + std::to_string(opIdx++);
+                std::unique_ptr<MILPOperation> milpSub =
+                        std::make_unique<MILPOperation>(subId, blkType, getOperationDuration(&cOp));
+                milpSub->setOperation(&cOp);
+                MILPOperation *raw = blk->addOperation(std::move(milpSub));
+                opToMilpOp[&cOp] = raw;
+
+                if (llvm::isa<netqasm::ReturnOp>(cOp)) {
+                    // --- Insert qoalahost.nop after the call ---
+                    OpBuilder builder(moduleOp.getContext());
+                    builder.setInsertionPointToEnd(callerBlock);
+                    qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(cOp.getLoc());
+
+                    std::string nopId = blkId + "::" + std::to_string(opIdx++);
+                    std::unique_ptr<MILPOperation> milpNop =
+                            std::make_unique<MILPOperation>(nopId, blkType, getOperationDuration(nop.getOperation()));
+                    milpNop->setOperation(nop.getOperation());
+                    MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
+                    opToMilpOp[nop.getOperation()] = rawNop;
+
+                    foundReturn = true;
+                    break;
+                }
+            }
+            if (foundReturn)
+                break;
+        }
+
+        if (!foundReturn)
+            return callOp.emitError("Callee does not end in netqasm::ReturnOp"), failure();
+
+        return success();
+    }
+
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
                LogicalResult>
     buildMILPFromMLIR(ModuleOp moduleOp) {
@@ -268,53 +324,13 @@ namespace qoala::analysis::reordering {
                 // - Add a qoalahost.nop at the end to model post-task transition
                 if (blkType == OpType::QL || blkType == OpType::QC) {
                     if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-                        SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
-                        Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
-                        auto calleeFunc = llvm::dyn_cast_or_null<FunctionOpInterface>(callee);
-                        if (!calleeFunc) {
-                            emitError(op.getLoc(), "Callee is not a FunctionOpInterface");
+                        if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, moduleOp,
+                                                       block, // callerBlock
+                                                       blk, opToMilpOp))) {
                             status = failure();
                             return WalkResult::interrupt();
                         }
-
-                        bool foundReturn = false;
-
-                        // Inline all ops from callee body
-                        for (Block &cb: calleeFunc->getRegion(0)) {
-                            for (Operation &cOp: cb) {
-                                std::string subId = blkId + "::" + std::to_string(opIdx++);
-                                std::unique_ptr<MILPOperation> milpSub =
-                                        std::make_unique<MILPOperation>(subId, blkType, getOperationDuration(&cOp));
-                                milpSub->setOperation(&cOp);
-                                MILPOperation *raw = blk->addOperation(std::move(milpSub));
-                                opToMilpOp[&cOp] = raw;
-                                if (llvm::isa<netqasm::ReturnOp>(cOp)) {
-                                    // Insert qoalahost.NopOp in caller block & track to model PostTask
-                                    OpBuilder b(moduleOp.getContext());
-                                    b.setInsertionPointToEnd(block);
-                                    qoalahost::NopOp nop = b.create<qoalahost::NopOp>(cOp.getLoc());
-
-                                    std::string nopId = blkId + "::" + std::to_string(opIdx++);
-                                    std::unique_ptr<MILPOperation> milpNop = std::make_unique<MILPOperation>(
-                                            nopId, blkType, getOperationDuration(nop.getOperation()));
-                                    milpNop->setOperation(nop.getOperation());
-                                    MILPOperation *raw = blk->addOperation(std::move(milpNop));
-                                    opToMilpOp[nop.getOperation()] = raw;
-
-                                    foundReturn = true;
-                                    break;
-                                }
-                            }
-                            if (foundReturn) {
-                                break;
-                            }
-                        }
-                        if (!foundReturn) {
-                            emitError(op.getLoc(), "Callee does not end in netqasm::ReturnOp");
-                            status = failure();
-                            return WalkResult::interrupt();
-                        }
-                        break; // Only one call is handled per block
+                        break; // only one call per block
                     }
                 }
 

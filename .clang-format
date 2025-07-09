@@ -2,24 +2,15 @@
 Language: Cpp
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignOperands: true
 AlignTrailingComments: false
-AllowAllArgumentsOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: Empty
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortEnumsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: Yes
-BitFieldColonSpacing: Both
 BraceWrapping: 
   AfterCaseLabel: false
   AfterClass: false
-  AfterControlStatement: Never
+  AfterControlStatement: false
   AfterEnum: false
   AfterFunction: false
   AfterNamespace: false
@@ -35,10 +26,10 @@ BraceWrapping:
   SplitEmptyNamespace: true
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
-BreakStringLiterals: true
+BreakConstructorInitializersBeforeComma: false
 ColumnLimit: 120
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ContinuationIndentWidth: 8
-EmptyLineBeforeAccessModifier: Always
 IncludeCategories: 
   - Regex: '^<.*'
     Priority: 1
@@ -47,58 +38,21 @@ IncludeCategories:
   - Regex: '.*'
     Priority: 3
 IncludeIsMainRegex: '([-_](test|unittest))?$'
-IndentAccessModifiers: false
-IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentWidth: 4
-InsertBraces: true
 InsertNewlineAtEOF: true
-LineEnding: LF
 MacroBlockBegin: ''
 MacroBlockEnd: ''
-MaxEmptyLinesToKeep: 1
+MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
-PackConstructorInitializers: BinPack
-PointerAlignment: Right
-QualifierAlignment: Left
-ReferenceAlignment: Right
-ReflowComments: Always
-SeparateDefinitionBlocks: Always
-SortUsingDeclarations: LexicographicNumeric
+SortIncludes: false
 SpaceAfterCStyleCast: true
-SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: false
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCaseColon: false
-SpaceBeforeCtorInitializerColon: false
-SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: Custom
-SpaceBeforeParensOptions:
-  AfterControlStatements: true
-  AfterForeachMacros: true
-  AfterFunctionDeclarationName: false
-  AfterFunctionDefinitionName: false
-  AfterIfMacros: true
-  AfterOverloadedOperator: false
-  BeforeNonEmptyParentheses: false
-SpaceBeforeRangeBasedForLoopColon: true
-SpaceBeforeSquareBrackets: false
-SpaceInEmptyBlock: true
-SpacesInAngles: Never
-SpacesInContainerLiterals: true
-SpacesInLineCommentPrefix:
-  Minimum: 1
-  Maximum: -1
-SpacesInParens: Custom
-SpacesInParensOptions:
-  ExceptDoubleParentheses: true
-  InConditionalStatements: false
-  InCStyleCasts: false
-  InEmptyParentheses: false
-  Other: false
-SpacesInSquareBrackets: false
-Standard: c++17
-TabWidth:
-TableGenBreakInsideDAGArg: BreakElements
-TableGenBreakingDAGArgOperators: [ins, outs]
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInConditionalStatement: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+TabWidth: 4
 ...
