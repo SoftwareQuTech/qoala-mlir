@@ -240,8 +240,12 @@ namespace qoala::analysis::reordering {
             int opIdx = 0;
 
             // Walk through the actual instructions in the MLIR block
-            for (Block::iterator it = firstIt; it != block->end(); ++it) {
-                Operation *op = &*it;
+            bool isFirstOp = true;
+            for (Operation &op : *block) {
+                if (isFirstOp) {
+                    isFirstOp = false;
+                    continue; // Skip BlkMeta
+                }
 
                 // Stop early if we reach a return/nop_term in a classical block
                 if (blkType == OpType::CL && llvm::isa<qoalahost::NopTOp>(op)) {
@@ -250,10 +254,10 @@ namespace qoala::analysis::reordering {
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
-                MILPOperation *milpOp = new MILPOperation(opId, blkType, getOperationDuration(op));
-                milpOp->setOperation(op);
+                MILPOperation *milpOp = new MILPOperation(opId, blkType, getOperationDuration(&op));
+                milpOp->setOperation(&op);
                 blk->addOperation(milpOp);
-                opToMilpOp[op] = milpOp;
+                opToMilpOp[&op] = milpOp;
 
                 // Handle inlining for quantum-local or quantum-communication blocks
                 // - Inline body of the called routine
@@ -265,7 +269,7 @@ namespace qoala::analysis::reordering {
                         Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
                         auto calleeFunc = llvm::dyn_cast_or_null<FunctionOpInterface>(callee);
                         if (!calleeFunc) {
-                            emitError(op->getLoc(), "Callee is not a FunctionOpInterface");
+                            emitError(op.getLoc(), "Callee is not a FunctionOpInterface");
                             status = failure();
                             return WalkResult::interrupt();
                         }
@@ -302,7 +306,7 @@ namespace qoala::analysis::reordering {
                             }
                         }
                         if (!foundReturn) {
-                            emitError(op->getLoc(), "Callee does not end in netqasm::ReturnOp");
+                            emitError(op.getLoc(), "Callee does not end in netqasm::ReturnOp");
                             status = failure();
                             return WalkResult::interrupt();
                         }
