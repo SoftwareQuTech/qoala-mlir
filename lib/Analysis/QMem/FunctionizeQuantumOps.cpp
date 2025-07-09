@@ -27,8 +27,10 @@ namespace qoala::analysis {
         // Select the right functionization algorithm depending on the options
         functionize::ClassifierFnTy classifier;
         if (this->useSimpleFunctionize) {
+            LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
             classifier = functionize::simpleOpClassifier;
         } else {
+            LLVM_DEBUG(llvm::dbgs() << "Using normal functionzation\n");
             classifier = functionize::functionizeOpClassifier;
         }
 
@@ -40,6 +42,7 @@ namespace qoala::analysis {
             if (funcDecl.getSymName() == helpers::angle::angleConversionFunctionName) {
                 helpers::moveOperationToTop(module, funcDecl);
             }
+            WalkResult::advance();
         });
         module.walk([&](const qmem::RemoteOp remote) {
             helpers::moveOperationToTop(module, remote);

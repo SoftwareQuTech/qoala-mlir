@@ -69,7 +69,7 @@ namespace qoala::conversion {
         // Since the pass class operates on ModuleOp (templated parameter), this->getOperation
         // returns an object of the templated type (ModuleOp) -> dyn_cast not needed
         ModuleOp module = this->getOperation();
-        LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QoalaHost on module\n");
+        LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to NetQASM on module\n");
 
         ConversionTarget target(context);
         // We add the conversion pattern to the context
@@ -82,20 +82,20 @@ namespace qoala::conversion {
 
         // Lowering QMem to NetQASM expect to lower rotations. so we need to lower the
         // f32 rotations using the intermediate step
-        ConversionTarget f32LoweringTarget(context);
-        RewritePatternSet f32Patterns(&context);
-        configureF32LoweringTarget(f32LoweringTarget);
-        populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
+        // ConversionTarget f32LoweringTarget(context);
+        // RewritePatternSet f32Patterns(&context);
+        // configureF32LoweringTarget(f32LoweringTarget);
+        // populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
         if (!moduleContainsAngleConversionDeclaration(module)) {
             insertAngleConversionFunctionDeclaration(module);
         }
 
         // First, lower f32 rotations
-        LogicalResult f32LoweringResult = applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (failed(f32LoweringResult)) {
-            signalPassFailure();
-        }
+        // LogicalResult f32LoweringResult = applyPartialConversion(module, target, std::move(patterns));
+        // if (failed(f32LoweringResult)) {
+        //     signalPassFailure();
+        // }
 
         // Then, lower the rest
         LogicalResult result = applyPartialConversion(module, target, std::move(patterns));

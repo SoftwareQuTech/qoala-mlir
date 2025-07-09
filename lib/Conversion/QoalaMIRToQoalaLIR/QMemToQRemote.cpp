@@ -53,7 +53,7 @@ namespace qoala::conversion {
 
     void LowerQMemToQRemotePass::runOnOperation() {
         MLIRContext &context = this->getContext();
-        ModuleOp module = this->getOperation();
+        qmem::RemoteOp remoteOp = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "Lowering QMem to QRemote operations on module\n");
 
         ConversionTarget target(context);
@@ -65,8 +65,7 @@ namespace qoala::conversion {
         configureQMemToQRemoteTarget(target);
         populateQMemToQRemotePatterns(context, patterns, typeConverter);
 
-        LogicalResult result = applyPartialConversion(module, target, std::move(patterns));
-        if (failed(result)) {
+        if (failed(applyPartialConversion(remoteOp, target, std::move(patterns)))) {
             signalPassFailure();
         }
     }

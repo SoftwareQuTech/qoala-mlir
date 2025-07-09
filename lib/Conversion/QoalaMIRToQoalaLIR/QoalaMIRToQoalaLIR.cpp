@@ -39,7 +39,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
-        PassManager passManager = PassManager::on<ModuleOp>(&context);
+        OpPassManager passManager("builtin.module");
 
         helpers::NullTypeConverter typeConverter(&context);
 
@@ -161,21 +161,30 @@ namespace qoala::conversion {
 
         passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
 
+        // Stage 6: Lower the remote declarations
+        // LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        // LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering Remote declarations *\n");
+        // LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        // if (failed(applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns)))) {
+        //     signalPassFailure();
+        // }
+        OpPassManager &remotesPM = passManager.nest<qmem::RemoteOp>();
+        remotesPM.addPass(createLowerQMemToQRemote());
+
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
         passManager.printAsTextualPipeline(llvm::dbgs());
-        LLVM_DEBUG(llvm::dbgs() << "*******************************************:\n");
+        LLVM_DEBUG(llvm::dbgs() << "\n*******************************************\n");
 
-        if (failed(passManager.run(module))) {
+        if (failed(runPipeline(passManager, module))) {
             signalPassFailure();
         }
-
-        // Stage 6: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering Remote declarations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        if (failed(applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns)))) {
-            signalPassFailure();
-        }
+        // This is the limit of what can be isolated in standalone passes.
+        // Converting QMem to NetQASM and QoalaHost, and then adding blk_meta operations
+        // *NEEDS* to be done in a single pass, since between these transformations the IR
+        // is in an invalid state.
+        // According to the MLIR programmer manual, each pass *must* leave valid IR
+        // after running:
+        // https://mlir.llvm.org/getting_started/DeveloperGuide/#ir-should-be-valid-before-and-after-each-pass
 
         // Stage 7: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
@@ -192,6 +201,7 @@ namespace qoala::conversion {
         if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
             signalPassFailure();
         }
+
         // Stage 9: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Precedences *\n");

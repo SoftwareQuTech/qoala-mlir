@@ -20,8 +20,8 @@ namespace qoala::analysis {
     };
 
     void FoldConstantsPass::runOnOperation() {
-        Operation *op = this->getOperation();
-        if (failed(helpers::foldConstants(*op))) {
+        LLVM_DEBUG(llvm::dbgs() << "Running FoldConstantsPass...\n");
+        if (Operation *op = this->getOperation(); failed(helpers::foldConstants(*op))) {
             signalPassFailure();
         }
     }

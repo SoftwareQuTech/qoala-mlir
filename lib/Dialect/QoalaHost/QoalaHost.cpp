@@ -11,6 +11,8 @@ using namespace qoala::dialects;
 using namespace qoala::helpers;
 using namespace qoala::analysis::reordering;
 
+#define DEBUG_TYPE "qoala-host-helper"
+
 #include "Dialect/NetQASM/NetQASM.h"
 // include generated source code for operations
 #define GET_OP_CLASSES
