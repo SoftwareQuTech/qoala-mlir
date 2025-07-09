@@ -207,8 +207,7 @@ namespace qoala::analysis::reordering {
             }
 
             // Avoid processing the same MLIR block twice (only one BlkMeta per block is valid)
-            Block::iterator firstIt = std::next(block->begin());
-            if (firstIt == block->end()) {
+            if (block->empty()) {
                 emitError(blkMeta.getLoc(), "Block has no body after BlkMeta");
                 status = failure();
                 return WalkResult::interrupt();
@@ -226,6 +225,7 @@ namespace qoala::analysis::reordering {
                 return WalkResult::advance();
             }
 
+            Block::iterator firstIt = std::next(block->begin());
             Operation *firstOp = &*firstIt;
             OpType blkType = getBlockType(firstOp, moduleOp);
 
