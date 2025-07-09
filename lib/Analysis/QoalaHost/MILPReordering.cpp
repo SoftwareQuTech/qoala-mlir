@@ -221,11 +221,9 @@ namespace qoala::analysis::reordering {
             //   - These blocks typically have minimal performance impact
             //   - Optimizing their placement is unlikely to affect overall program performance
             // Thus, any CL block containing a ReturnOp is excluded from MILP modeling.
-            for (Operation &op: *block) {
-                if (llvm::isa<qoalahost::ReturnOp>(&op)) {
-                    LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
-                    return WalkResult::advance();
-                }
+            if (!block->getOps<qoalahost::ReturnOp>().empty()) {
+                LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
+                return WalkResult::advance();
             }
 
             Operation *firstOp = &*firstIt;
