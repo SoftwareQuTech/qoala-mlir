@@ -122,8 +122,9 @@ namespace qoala::analysis {
 
             int getDuration() const {
                 int dur = 0.0;
-                for (auto *op: operations_)
+                for (auto *op: operations_) {
                     dur += op->getDuration();
+                }
                 return dur;
             }
 

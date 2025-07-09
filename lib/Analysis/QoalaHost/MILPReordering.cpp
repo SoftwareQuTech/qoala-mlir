@@ -19,41 +19,50 @@ using namespace qoala::analysis;
 namespace qoala::analysis::reordering {
     int getOperationDuration(Operation *op) {
         // CallOp and NopOp are the Pre and Post tasks
-        if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op))
+        if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op)) {
             return qoalaOptHostInstrTime;
+        }
 
         // TODO - check in translation if the size of tensor decides the number of send ops.
         // After tensor lowering in #72.
-        if (isa<qoalahost::SendIntsOp>(op) || isa<qoalahost::SendFloatsOp>(op))
+        if (isa<qoalahost::SendIntsOp>(op) || isa<qoalahost::SendFloatsOp>(op)) {
             return qoalaOptHostInstrTime;
+        }
 
         // TODO - check in translation if the size of tensor decides the number of recv ops.
         // After tensor lowering in #72.
-        if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op))
-            return qoalaOptLatency + qoalaOptHostPeerLatency;
+        if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op)) {
+            return qoalaOptLatency + qoalaOptHostPeerLatency
+        };
 
         // Netqasm operations that are classical operations
-        if (isa<netqasm::QAllocOp>(op) || isa<netqasm::QFreeOp>(op))
-            return qoalaOptQNosInstrTime;
+        if (isa<netqasm::QAllocOp>(op) || isa<netqasm::QFreeOp>(op)) {
+            return qoalaOptQNosInstrTime
+        };
 
         // Each operand will be converted to one netqasm instruction in the iqoala file
-        if (isa<netqasm::ReturnOp>(op))
+        if (isa<netqasm::ReturnOp>(op)) {
             return op->getNumOperands() * qoalaOptQNosInstrTime;
+        }
 
         // Single qubit gate operations, qubit init and measure
         if (isa<netqasm::QInitOp>(op) || isa<netqasm::RotateXOp>(op) || isa<netqasm::RotateYOp>(op) ||
-            isa<netqasm::RotateZOp>(op) || isa<netqasm::HadamardOp>(op) || isa<netqasm::MeasureOp>(op))
+            isa<netqasm::RotateZOp>(op) || isa<netqasm::HadamardOp>(op) || isa<netqasm::MeasureOp>(op)) {
             return qoalaOptSingleGateDuration;
+        }
 
         // Two qubits gate oeprations
-        if (isa<netqasm::CnotOp>(op) || isa<netqasm::CzOp>(op) || isa<netqasm::CrotXOp>(op))
+        if (isa<netqasm::CnotOp>(op) || isa<netqasm::CzOp>(op) || isa<netqasm::CrotXOp>(op)) {
             return qoalaOptTwoGateDuration;
+        }
 
-        if (isa<netqasm::EprsOp>(op))
+        if (isa<netqasm::EprsOp>(op)) {
             return qoalaOptLinkDuration;
+        }
 
-        if (isa<netqasm::EprsMeasureOp>(op))
+        if (isa<netqasm::EprsMeasureOp>(op)) {
             return qoalaOptLinkDuration + qoalaOptSingleGateDuration;
+        }
 
         // Any other instructions are the ones in CL blocks
         return qoalaOptHostInstrTime;
@@ -69,13 +78,16 @@ namespace qoala::analysis::reordering {
         // Then check for call-based classification
         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
             SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
-            if (!symRef)
+            if (!symRef) {
                 return OpType::CL;
+            }
             Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-            if (llvm::isa<netqasm::RequestRoutineOp>(callee))
+            if (llvm::isa<netqasm::RequestRoutineOp>(callee)) {
                 return OpType::QC;
-            if (llvm::isa<netqasm::LocalRoutineOp>(callee))
+            }
+            if (llvm::isa<netqasm::LocalRoutineOp>(callee)) {
                 return OpType::QL;
+            }
         }
 
         // Default fallback
@@ -177,12 +189,14 @@ namespace qoala::analysis::reordering {
         // This walk processes each `qoalahost.BlkMeta` operation in the `mainFunc`
         // body exactly once (per MLIR block) to construct the high-level MILP structure.
         mainFunc.walk([&](qoalahost::BlkMeta blkMeta) {
-            if (failed(status))
+            if (failed(status)) {
                 return;
+            }
 
             Block *block = blkMeta->getBlock();
-            if (!visitedBlocks.insert(block).second)
+            if (!visitedBlocks.insert(block).second) {
                 return;
+            }
 
             // Avoid processing the same MLIR block twice (only one BlkMeta per block is valid)
             Block::iterator firstIt = std::next(block->begin());
@@ -199,7 +213,7 @@ namespace qoala::analysis::reordering {
             //   - These blocks typically have minimal performance impact
             //   - Optimizing their placement is unlikely to affect overall program performance
             // Thus, any CL block containing a ReturnOp is excluded from MILP modeling.
-            for (Operation &op : *block) {
+            for (Operation &op: *block) {
                 if (llvm::isa<qoalahost::ReturnOp>(&op)) {
                     LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
                     return;
@@ -224,8 +238,9 @@ namespace qoala::analysis::reordering {
                 Operation *op = &*it;
 
                 // Stop early if we reach a return/nop_term in a classical block
-                if (blkType == OpType::CL && llvm::isa<qoalahost::NopTOp>(op))
+                if (blkType == OpType::CL && llvm::isa<qoalahost::NopTOp>(op)) {
                     break;
+                }
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
@@ -276,8 +291,9 @@ namespace qoala::analysis::reordering {
                                     break;
                                 }
                             }
-                            if (foundReturn)
+                            if (foundReturn) {
                                 break;
+                            }
                         }
                         if (!foundReturn) {
                             emitError(op->getLoc(), "Callee does not end in netqasm::ReturnOp");
@@ -288,23 +304,27 @@ namespace qoala::analysis::reordering {
                 }
 
                 // CC blocks contain a single communication operation only
-                if (blkType == OpType::CC)
+                if (blkType == OpType::CC) {
                     break;
+                }
             }
 
-            if (failed(status))
+            if (failed(status)) {
                 return;
+            }
 
             // Record precedence edges from block attributes. For our optimization all types of precedences are
             // equivalent. The differenciation is needed for the translation step.
             auto recordEdge = [&](StringRef predId) {
-                if (predId.empty())
+                if (predId.empty()) {
                     return;
+                }
                 auto it = idToBlockMap.find(predId);
-                if (it != idToBlockMap.end())
+                if (it != idToBlockMap.end()) {
                     precedences.emplace_back(it->second, blk);
-                else
+                } else {
                     unresolvedEdges.emplace_back(predId.str(), blkId);
+                }
             };
             if (ArrayAttr a = blkMeta.getPredecessorsAttr()) {
                 for (llvm::StringRef s: a.getAsValueRange<StringAttr>()) {
@@ -332,8 +352,9 @@ namespace qoala::analysis::reordering {
             blocks.push_back(std::move(blkPtr));
         });
 
-        if (failed(status))
+        if (failed(status)) {
             return {blocks, qubits, precedences, failure()};
+        }
 
         // Fail if unresolved edges remain
         if (!unresolvedEdges.empty()) {
@@ -373,8 +394,9 @@ namespace qoala::analysis::reordering {
         auto resolve = [&](Value v) -> Value {
             llvm::SmallPtrSet<Value, 4> seen;
             while (resolvedQubitAlias.count(v)) {
-                if (!seen.insert(v).second)
+                if (!seen.insert(v).second) {
                     break;
+                }
                 v = resolvedQubitAlias[v];
             }
             return v;
@@ -385,13 +407,15 @@ namespace qoala::analysis::reordering {
         //  - Track any returned qubit (e.g. %0 = call @foo) that aliases a QAlloc
         mainFunc.walk([&](qoalahost::CallOp callOp) -> WalkResult {
             SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
-            if (!symRef)
+            if (!symRef) {
                 return WalkResult::advance();
+            }
 
             // Resolve callee definition from symbol table
             Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-            if (!callee || callee->getNumRegions() == 0)
+            if (!callee || callee->getNumRegions() == 0) {
                 return WalkResult::advance();
+            }
 
             Block &entry = callee->getRegion(0).front();
 
@@ -399,8 +423,9 @@ namespace qoala::analysis::reordering {
             llvm::DenseMap<Value, Value> argMap;
             ValueRange formalArgs = entry.getArguments();
             ValueRange actualArgs = callOp->getOperands();
-            for (size_t i = 0, e = std::min(formalArgs.size(), actualArgs.size()); i < e; ++i)
+            for (size_t i = 0, e = std::min(formalArgs.size(), actualArgs.size()); i < e; ++i) {
                 argMap[formalArgs[i]] = actualArgs[i];
+            }
 
             // Traverse the callee body and collect MemoryEffect ops (like qinit, epr, measure)
             entry.walk([&](MemoryEffectOpInterface memOp) {
@@ -409,13 +434,15 @@ namespace qoala::analysis::reordering {
 
                 for (MemoryEffects::EffectInstance &eff: effects) {
                     Value v = eff.getValue();
-                    if (!v)
+                    if (!v) {
                         continue;
+                    }
 
                     // Resolve value through argument mapping
                     Value resolved = argMap.lookup(v);
-                    if (!resolved)
+                    if (!resolved) {
                         resolved = v;
+                    }
 
                     // Canonicalize through aliases (if applicable)
                     Value canonical = resolve(resolved);
@@ -426,8 +453,9 @@ namespace qoala::analysis::reordering {
             });
 
             // If call has no result, skip alias tracking
-            if (callOp->getNumResults() == 0)
+            if (callOp->getNumResults() == 0) {
                 return WalkResult::advance();
+            }
 
             // Try to associate call results with returned QAlloc values
             bool foundReturn = false;
@@ -496,10 +524,12 @@ namespace qoala::analysis::reordering {
             }
 
             // Attach known alloc/meas to the qubit model object
-            if (allocOp)
+            if (allocOp) {
                 qubitPtr->setAllocation(allocOp);
-            if (measOp)
+            }
+            if (measOp) {
                 qubitPtr->setMeasurement(measOp);
+            }
 
             LLVM_DEBUG(llvm::dbgs() << "  [Qubit] " << id << ": alloc=" << (allocOp ? allocOp->getId() : "null")
                                     << ", meas=" << (measOp ? measOp->getId() : "null") << "\n");
@@ -520,17 +550,20 @@ namespace qoala::analysis::reordering {
     }
 
     bool MILPModelBuilder::initialize() {
-        if (SCIPcreate(&scip_) != SCIP_OKAY)
+        if (SCIPcreate(&scip_) != SCIP_OKAY) {
             return false;
-        if (SCIPincludeDefaultPlugins(scip_) != SCIP_OKAY)
+        }
+        if (SCIPincludeDefaultPlugins(scip_) != SCIP_OKAY) {
             return false;
+        }
 
         // Silence SCIP output
         SCIPsetMessagehdlrQuiet(scip_, TRUE);
 
         // Create the (still empty) problem before any variables are added.
-        if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY)
+        if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY) {
             return false;
+        }
         return true;
     }
 
@@ -548,8 +581,9 @@ namespace qoala::analysis::reordering {
             for (const MILPOperation *op: blk->getOperations()) {
                 total += op->getDuration();
                 const std::string &id = op->getId();
-                if (!startVars_.count(id))
+                if (!startVars_.count(id)) {
                     startVars_[id] = createVariable("s_" + id, /*strictlyPositive=*/false);
+                }
             }
         bigM_ = 2 * total;
         LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
@@ -630,8 +664,9 @@ namespace qoala::analysis::reordering {
 
         // Build transitive closure of the precedence DAG (reachable pairs).
         Closure clos;
-        for (const auto &e: precedences_)
+        for (const auto &e: precedences_) {
             clos.insert({e.first->getId(), e.second->getId()});
+        }
 
         bool grown;
         do {
@@ -650,12 +685,15 @@ namespace qoala::analysis::reordering {
                 const MILPBlock *b2 = blocks_[j].get();
 
                 // Skip if already ordered, have no tasks, or different groups.
-                if (reachable(b1, b2, clos) || reachable(b2, b1, clos))
+                if (reachable(b1, b2, clos) || reachable(b2, b1, clos)) {
                     continue;
-                if (b1->getTasks().empty() || b2->getTasks().empty())
+                }
+                if (b1->getTasks().empty() || b2->getTasks().empty()) {
                     continue;
-                if (b1->getTasks().front()->getGroup() != b2->getTasks().front()->getGroup())
+                }
+                if (b1->getTasks().front()->getGroup() != b2->getTasks().front()->getGroup()) {
                     continue;
+                }
 
                 // Binary selector z
                 SCIP_VAR *z;
@@ -718,11 +756,13 @@ namespace qoala::analysis::reordering {
         //      start(t3) ≥ start(t2) + dur(t2)
 
         for (const std::shared_ptr<MILPBlock> &blk: blocks_) {
-            if (blk->getType() != OpType::QL && blk->getType() != OpType::QC)
+            if (blk->getType() != OpType::QL && blk->getType() != OpType::QC) {
                 continue;
+            }
             const std::vector<std::unique_ptr<MILPTask>> &tasks = blk->getTasks();
-            if (tasks.size() != 3)
+            if (tasks.size() != 3) {
                 continue;
+            }
 
             const MILPTask *t1 = tasks[0].get();
             const MILPTask *t2 = tasks[1].get();
@@ -732,10 +772,12 @@ namespace qoala::analysis::reordering {
             const MILPOperation *first3 = t3->getOperations().front();
 
             int dur1 = 0, dur2 = 0;
-            for (MILPOperation *op: t1->getOperations())
+            for (MILPOperation *op: t1->getOperations()) {
                 dur1 += op->getDuration();
-            for (MILPOperation *op: t2->getOperations())
+            }
+            for (MILPOperation *op: t2->getOperations()) {
                 dur2 += op->getDuration();
+            }
 
             // t2 after t1
             {
@@ -775,8 +817,9 @@ namespace qoala::analysis::reordering {
         for (const std::shared_ptr<MILPQubit> &q: qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
-            if (!(alloc && meas))
+            if (!(alloc && meas)) {
                 continue;
+            }
 
             SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
             SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
@@ -807,8 +850,9 @@ namespace qoala::analysis::reordering {
 
 
     void MILPModelBuilder::cleanup() {
-        for (std::pair<const std::string, SCIP_VAR *> &entry: startVars_)
+        for (std::pair<const std::string, SCIP_VAR *> &entry: startVars_) {
             SCIPreleaseVar(scip_, &entry.second);
+        }
         startVars_.clear();
 
         if (scip_ != nullptr) {
@@ -836,8 +880,9 @@ namespace qoala::analysis::reordering {
         // Collect start and end times for each block using operation timings from the MILP solution.
         for (const auto &block: blocks_) {
             const auto &ops = block->getOperations();
-            if (ops.empty())
+            if (ops.empty()) {
                 continue;
+            }
 
             const reordering::MILPOperation *firstOp = ops.front();
             const reordering::MILPOperation *lastOp = ops.back();
@@ -878,8 +923,8 @@ namespace qoala::analysis::reordering {
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
         // And identify any block containing a ReturnOp.
-        for (Block &blk : body) {
-            for (Operation &op : blk) {
+        for (Block &blk: body) {
+            for (Operation &op: blk) {
                 if (llvm::isa<qoalahost::ReturnOp>(op)) {
                     returnBlock = &blk;
                     break;
@@ -893,20 +938,23 @@ namespace qoala::analysis::reordering {
 
         // Move each block before the next insertion point; update insertion point after each move.
         Block *insertionPoint = &body.front();
-        for (const std::string &id : orderedIds) {
+        for (const std::string &id: orderedIds) {
             auto it = idToBlock.find(id);
-            if (it == idToBlock.end())
+            if (it == idToBlock.end()) {
                 return moduleOp.emitError("unknown block_id \"") << id << "\"", failure();
+            }
 
             Block *blk = it->second;
-            if (blk != insertionPoint)
+            if (blk != insertionPoint) {
                 blk->moveBefore(insertionPoint);
+            }
             insertionPoint = blk->getNextNode();
         }
 
         // Ensure returnBlock (if present) is the final block in the function body
-        if (returnBlock && returnBlock->getNextNode() != nullptr)
-            returnBlock->moveBefore(nullptr); // Moves to the end of the block list
+        if (returnBlock && returnBlock->getNextNode() != nullptr) {
+            returnBlock->moveBefore(nullptr);
+        } // Moves to the end of the block list
 
         return success();
     }
