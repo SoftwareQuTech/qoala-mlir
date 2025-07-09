@@ -71,7 +71,16 @@ namespace qoala::analysis::reordering {
         return qoalaOptHostInstrTime;
     }
 
-    static OpType getBlockType(Operation *op, ModuleOp &moduleOp) {
+    static Operation *resolveCallee(qoalahost::CallOp callOp, const llvm::StringMap<Operation *> &routineMap) {
+        // Fast lookup of the callee routine for a qoalahost.call.
+        // Returns nullptr if the symbol is not in `routineMap`.
+        // `getCallee()` is cheaper than going through SymbolRefAttr plumbing.
+        StringRef symName = callOp.getCallee();
+        auto it = routineMap.find(symName);
+        return (it != routineMap.end()) ? it->second : nullptr;
+    }
+
+    static OpType getBlockType(Operation *op, llvm::StringMap<Operation *> routineMap) {
         // Infers the block type based on the given operation (typically the first
         // non BlkMeta operation in a block).
 
@@ -83,15 +92,15 @@ namespace qoala::analysis::reordering {
 
         // Then check for call-based classification
         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-            SymbolRefAttr symRef = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
-            if (!symRef) {
+            Operation *callee = resolveCallee(callOp, routineMap);
+            if (!callee) {
                 return OpType::CL;
             }
-            Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-            if (llvm::isa<netqasm::RequestRoutineOp>(callee)) {
+
+            if (isa<netqasm::RequestRoutineOp>(callee)) {
                 return OpType::QC;
             }
-            if (llvm::isa<netqasm::LocalRoutineOp>(callee)) {
+            if (isa<netqasm::LocalRoutineOp>(callee)) {
                 return OpType::QL;
             }
         }
@@ -152,19 +161,18 @@ namespace qoala::analysis::reordering {
     }
 
     static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, OpType blkType,
-                                             int &opIdx, mlir::ModuleOp moduleOp, mlir::Block *callerBlock,
-                                             MILPBlock *blk,
+                                             int &opIdx, const llvm::StringMap<Operation *> &routineMap,
+                                             mlir::Block *callerBlock, MILPBlock *blk,
                                              std::unordered_map<mlir::Operation *, MILPOperation *> &opToMilpOp) {
         // Inline the body of a qoalahost.call whose callee is a LocalRoutineOp or
         // RequestRoutineOp.  Appends the inlined operations (and the synthetic
         // qoalahost.nop) to `blk`, updates `opIdx`, and fills `opToMilpOp`.
         // Returns failure() if anything is malformed (e.g. callee not found,
-        // callee does not end in netqasm.return, …).
+        // callee does not end in netqasm.return).
 
         // Resolve the callee.
-        SymbolRefAttr sym = callOp.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>();
-        Operation *callee = sym ? SymbolTable::lookupNearestSymbolFrom(moduleOp, sym) : nullptr;
-        if (!llvm::isa<FunctionOpInterface>(callee)) {
+        Operation *callee = resolveCallee(callOp, routineMap);
+        if (!callee || !isa<FunctionOpInterface>(callee)) {
             return callOp.emitError("Callee is not a FunctionOpInterface"), failure();
         }
         auto calleeFunc = llvm::cast<FunctionOpInterface>(callee);
@@ -183,7 +191,7 @@ namespace qoala::analysis::reordering {
 
             // When we hit the netqasm.return, insert the synthetic nop
             if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
-                OpBuilder builder(moduleOp.getContext());
+                OpBuilder builder(callOp.getContext());
                 builder.setInsertionPointToEnd(callerBlock);
                 qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(innerOp->getLoc());
 
@@ -268,6 +276,15 @@ namespace qoala::analysis::reordering {
         llvm::DenseSet<Block *> visitedBlocks;
         LogicalResult status = success();
 
+        llvm::StringMap<Operation *> routineMap;
+        moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
+            if (auto localRoutine = llvm::dyn_cast<netqasm::LocalRoutineOp>(routine.getOperation())) {
+                routineMap.try_emplace(localRoutine.getSymName(), localRoutine.getOperation());
+            } else if (auto requestRoutine = llvm::dyn_cast<netqasm::RequestRoutineOp>(routine.getOperation())) {
+                routineMap.try_emplace(requestRoutine.getSymName(), requestRoutine.getOperation());
+            }
+        });
+
         // This walk processes each `qoalahost.BlkMeta` operation in the `mainFunc`
         // body exactly once (per MLIR block) to construct the high-level MILP structure.
         mainFunc.walk([&](qoalahost::BlkMeta blkMeta) -> WalkResult {
@@ -301,7 +318,7 @@ namespace qoala::analysis::reordering {
 
             Block::iterator firstIt = std::next(block->begin());
             Operation *firstOp = &*firstIt;
-            OpType blkType = getBlockType(firstOp, moduleOp);
+            OpType blkType = getBlockType(firstOp, routineMap);
 
             // Create new MILPBlock object and associate with block ID and type
             std::string blkId = blkMeta.getBlockId().str();
@@ -340,7 +357,7 @@ namespace qoala::analysis::reordering {
                 // - Add a qoalahost.nop at the end to model post-task transition
                 if (blkType == OpType::QL || blkType == OpType::QC) {
                     if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-                        if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, moduleOp,
+                        if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, routineMap,
                                                        block, // callerBlock
                                                        blk, opToMilpOp))) {
                             status = failure();
