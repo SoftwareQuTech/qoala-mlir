@@ -171,35 +171,37 @@ namespace qoala::analysis::reordering {
         bool foundReturn = false;
 
         // Inline every op from the callee
-        for (Block &cb: calleeFunc->getRegion(0)) {
-            for (Operation &cOp: cb) {
-                std::string subId = blkId + "::" + std::to_string(opIdx++);
-                std::unique_ptr<MILPOperation> milpSub =
-                        std::make_unique<MILPOperation>(subId, blkType, getOperationDuration(&cOp));
-                milpSub->setOperation(&cOp);
-                MILPOperation *raw = blk->addOperation(std::move(milpSub));
-                opToMilpOp[&cOp] = raw;
+        calleeFunc->getRegion(0).walk([&](Operation *innerOp) -> WalkResult {
+            // Create MILPOperation for every inlined op
+            std::string subId = blkId + "::" + std::to_string(opIdx++);
+            std::unique_ptr<MILPOperation> milpSub =
+                std::make_unique<MILPOperation>(subId,
+                                                blkType,
+                                                getOperationDuration(innerOp));
+            milpSub->setOperation(innerOp);
+            MILPOperation *raw = blk->addOperation(std::move(milpSub));
+            opToMilpOp[innerOp] = raw;
 
-                if (llvm::isa<netqasm::ReturnOp>(cOp)) {
-                    // --- Insert qoalahost.nop after the call ---
-                    OpBuilder builder(moduleOp.getContext());
-                    builder.setInsertionPointToEnd(callerBlock);
-                    qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(cOp.getLoc());
+            // When we hit the netqasm.return, insert the synthetic nop
+            if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
+                OpBuilder builder(moduleOp.getContext());
+                builder.setInsertionPointToEnd(callerBlock);
+                qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(innerOp->getLoc());
 
-                    std::string nopId = blkId + "::" + std::to_string(opIdx++);
-                    std::unique_ptr<MILPOperation> milpNop =
-                            std::make_unique<MILPOperation>(nopId, blkType, getOperationDuration(nop.getOperation()));
-                    milpNop->setOperation(nop.getOperation());
-                    MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
-                    opToMilpOp[nop.getOperation()] = rawNop;
+                std::string nopId = blkId + "::" + std::to_string(opIdx++);
+                std::unique_ptr<MILPOperation> milpNop =
+                    std::make_unique<MILPOperation>(nopId,
+                                                    blkType,
+                                                    getOperationDuration(nop.getOperation()));
+                milpNop->setOperation(nop.getOperation());
+                MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
+                opToMilpOp[nop.getOperation()] = rawNop;
 
-                    foundReturn = true;
-                    break;
-                }
+                foundReturn = true;
+                return WalkResult::interrupt();   // stop the walk
             }
-            if (foundReturn)
-                break;
-        }
+            return WalkResult::advance();
+        });
 
         if (!foundReturn)
             return callOp.emitError("Callee does not end in netqasm::ReturnOp"), failure();
