@@ -17,7 +17,10 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::reordering {
-    int getOperationDuration(Operation *op) {
+    static int getOperationDuration(Operation *op) {
+        // Returns the execution duration (in nanoseconds) of a given operation
+        // to be used in the MILP model.
+
         // CallOp and NopOp are the Pre and Post tasks
         if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op)) {
             return qoalaOptHostInstrTime;

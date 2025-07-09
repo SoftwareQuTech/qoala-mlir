@@ -262,13 +262,6 @@ namespace qoala::analysis {
         bool reachable(const MILPBlock *a, const MILPBlock *b, const Closure &C);
 
         /**
-         * Returns the execution duration (in nanoseconds) of a given operation
-         * to be used in the MILP model.
-         * @param op The operation whose duration is to be determined.
-         */
-        int getOperationDuration(mlir::Operation *op);
-
-        /**
          * Infers the block type based on the given operation (typically the first
          * non BlkMeta operation in a block).
          * @param op The operation to inspect.
