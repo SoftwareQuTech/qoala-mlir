@@ -26,36 +26,6 @@ namespace qoala::analysis::reordering {
         return routineMap.contains(symName) ? routineMap.at(callOp.getCallee()) : nullptr;
     }
 
-    // TODO - refactor as a method of MILPTask
-    static OpType getBlockType(Operation *op, llvm::StringMap<Operation *> routineMap) {
-        // Infers the block type based on the given operation (typically the first
-        // non BlkMeta operation in a block).
-
-        // First, handle communication ops (CC)
-        if (llvm::isa<qoalahost::SendIntsOp>(op) || llvm::isa<qoalahost::RecvIntsOp>(op) ||
-            llvm::isa<qoalahost::SendFloatsOp>(op) || llvm::isa<qoalahost::RecvFloatsOp>(op)) {
-            return OpType::CC;
-        }
-
-        // Then check for call-based classification
-        if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-            Operation *callee = resolveCallee(callOp, routineMap);
-            if (!callee) {
-                return OpType::CL;
-            }
-
-            if (isa<netqasm::RequestRoutineOp>(callee)) {
-                return OpType::QC;
-            }
-            if (isa<netqasm::LocalRoutineOp>(callee)) {
-                return OpType::QL;
-            }
-        }
-
-        // Default fallback
-        return OpType::CL;
-    }
-
     static LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
         // Creates the set of MILP tasks associated with a given block.
 
@@ -250,7 +220,15 @@ namespace qoala::analysis::reordering {
 
             Block::iterator firstIt = std::next(block->begin());
             Operation *firstOp = &*firstIt;
-            OpType blkType = getBlockType(firstOp, routineMap);
+            LLVM_DEBUG(llvm::dbgs() << *firstOp << "\n");
+            OpType blkType;
+            if (auto ifaceFirstOp = dyn_cast<helpers::QuantumOpInterface>(firstOp)) {
+                blkType = ifaceFirstOp.getBlockType(routineMap);
+            } else {
+                // This was a weird behavior; if the operation cannot be casted (e.g. null),
+                // we assume CL type
+                blkType = OpType::CL;
+            }
 
             // Create new MILPBlock object and associate with block ID and type
             std::string blkId = blkMeta.getBlockId().str();

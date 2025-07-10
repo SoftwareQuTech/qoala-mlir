@@ -183,23 +183,23 @@ int qoalahost::RecvFloatsOp::getDuration() {
     return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
 }
 
-OpType qoalahost::SendIntsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+OpType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return OpType::CC;
 }
 
-OpType qoalahost::RecvIntsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+OpType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return OpType::CC;
 }
 
-OpType qoalahost::SendFloatsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+OpType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return OpType::CC;
 }
 
-OpType qoalahost::RecvFloatsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+OpType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return OpType::CC;
 }
 
-OpType qoalahost::CallOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+OpType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     const StringRef symName = this->getCallee();
     Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
     if (!callee) {
