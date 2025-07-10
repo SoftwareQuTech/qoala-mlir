@@ -302,6 +302,24 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     block->setPrevComm(nullptr);
                 }
 
+                mlir::DictionaryAttr dictAttr = op.getDeadlinesAttr();
+                for (auto pair : dictAttr.getValue()) {
+                    std::string key = std::string(pair.getName().strref());
+                    Attribute valAttr = pair.getValue();
+
+                    auto intAttr = valAttr.dyn_cast<IntegerAttr>();
+                    if (!intAttr) {
+                        return failure();
+                    }
+
+                    if (auto predecessor = moduleTranslation->findIdPrecedence(key)) {
+                        int deadline = intAttr.getInt();
+                        block->addDeadline(predecessor.value(), deadline);
+                    } else {
+                        return failure();
+                    }
+                }
+
                 // We can safely add the new mapping between the dependency ID and the Block.
                 moduleTranslation->addIdPrecedence(op.getBlockId().str(), block);
                 return success();

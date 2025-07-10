@@ -5,11 +5,11 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK: ^b[[BLOCK0:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = }
+// CHECK: ^b[[BLOCK0:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
 // to create the entangled pair
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = ; deadlines = [] }
 // This call does not yield a result, because __qoala_wrapper1 request uses qubitID 1
 // to create the entangled pair
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]> = run_subroutine() : __qoala_wrapper1
@@ -66,13 +66,13 @@ module {
     // Note: there is an implicit "^bb0" not-rendered block declaration here
     // so this "call" operation is the one and only operation of the
     // first block of the main function
-    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0, %1, %2 = qoalahost.call @__qoala_wrapper0() : () -> (i32, i32, i32)
     ^bb1:
-      qoalahost.blk_meta  {block_id = "block_1", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
       %m0, %m1, %m2 = qoalahost.call @__qoala_wrapper1(%0, %1, %2) : (i32, i32, i32) -> (i1, i1, i1)
     ^bb2:
-      qoalahost.blk_meta  {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       qoalahost.return
   }
 }

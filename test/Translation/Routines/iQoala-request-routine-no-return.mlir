@@ -13,10 +13,10 @@ module {
     // Note: there is an implicit "^bb0" not-rendered block declaration here
     // so this "call" operation is the one and only operation of the
     // first block of the main function
-    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @__qoala_wrapper0() : () -> ()
     ^bb1:
-      qoalahost.blk_meta  {block_id = "block_1", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       qoalahost.return
   }
 }

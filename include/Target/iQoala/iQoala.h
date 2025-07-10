@@ -246,6 +246,8 @@ namespace qoala::iqoala {
         void setPrevEnt(Block *prevEnt) { this->prevEnt = prevEnt; }
         std::vector<Block *> getPredecessors() { return this->predecessors; }
 
+        void addDeadline(Block *blk, int deadline) { deadlines[blk] = deadline; }
+
     private:
         // type of the Block (CL, CC, QL, QC)
         BlockType type;
@@ -261,6 +263,7 @@ namespace qoala::iqoala {
         Block *prevComm;
         Block *prevEnt;
         std::vector<Block *> successors;
+        std::unordered_map<Block *, int> deadlines;
     };
 
     /* Sections of the iQoala program */

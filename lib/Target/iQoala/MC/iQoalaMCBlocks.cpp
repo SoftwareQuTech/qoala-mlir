@@ -78,9 +78,15 @@ namespace qoala::iqoala {
             prevEnt = prevEntBlk->name;
         }
 
+        std::unordered_map<std::string, int> deadlines;
+        for (const auto &pair: this->deadlines) {
+            deadlines[pair.first->name] = pair.second;
+        }
+        
         os << "^" << this->name << " { type = " << this->type << "; predecessors = ["
            << helpers::formatVector(predNames) << "]; dependencies = [" << helpers::formatVector(depNames)
-           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "}:\n";
+           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "; deadlines = ["
+           <<  helpers::formatUnorderedMap(deadlines) <<  "] }:\n";
         for (const assembly::QoalaHostMCInstr *instruction: this->instructions) {
             os << tabStr << *instruction << "\n";
         }
