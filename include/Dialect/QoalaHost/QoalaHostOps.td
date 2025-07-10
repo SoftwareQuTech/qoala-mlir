@@ -257,6 +257,17 @@ def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
     }];
 }
 
+def NopOp : QoalaHost_Op<"nop", [HasParent<"MainFuncOp">]> {
+    let summary = [{
+        QoalaHost "nop" operation. The difference with the NopTOp is that
+        this operation does not carry the "Terminator" trait, so it can be
+        placed in the middle of a block.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
 def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
   let arguments = (ins
     StrAttr:$block_id,

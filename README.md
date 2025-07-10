@@ -87,6 +87,12 @@ recompile the whole llvm project):
 sudo cmake --build . --target install
 ```
 
+## Install SCIP
+
+SCIP is the MILP solver used for some optimization passes. To install it, please follow [the instructions of the official repository](https://github.com/scipopt/scip/blob/master/INSTALL.md).
+
+> NOTE: the optimization passes were tested with v9.2.2, there is no guarantee that the API will not change, especially in a late **major** version.
+
 ## Build this repo
 
 This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has been installed to `/opt/mlir`
@@ -96,7 +102,7 @@ virtual environment created for LLVM.
 To build everything, run (see below to use `clang/LLVM` as the compiler toolchain)
 ```shell
 (llvm-venv)$ mkdir build && cd build
-(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/lib/cmake/mlir -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
+(llvm-venv)$ cmake -G Ninja .. -DMLIR_DIR=/opt/mlir/lib/cmake/mlir -DSCIP_DIR=/path/to/your/scip/lib/cmake/scip -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
 
@@ -109,6 +115,7 @@ To compile with `clang`, execute these commands (Please change the suffix `-17` 
                                 -DCMAKE_CXX_COMPILER=clang++-17 \
                                 -DCMAKE_LINKER=ld.ldd-17 \
                                 -DMLIR_DIR=/opt/mlir/lib/cmake/mlir \
+                                -DSCIP_DIR=/path/to/your/scip/lib/cmake/scip \
                                 -DPython3_EXECUTABLE=/path/to/your/venvs/llvm-venv/bin/python3
 (llvm-venv)$ cmake --build . 
 ```
