@@ -18,61 +18,6 @@ using namespace qoala::analysis;
 using namespace qoala::options;
 
 namespace qoala::analysis::reordering {
-    // TODO - refactor as a method of MILPOperation
-    static int getOperationDuration(Operation *op) {
-        // Returns the execution duration (in nanoseconds) of a given operation
-        // to be used in the MILP model.
-
-        // CallOp and NopOp are the Pre and Post tasks
-        if (isa<qoalahost::CallOp>(op) || isa<qoalahost::NopOp>(op)) {
-            return qoalaOptHostInstrTime;
-        }
-
-        // TODO - check in translation if the size of tensor decides the number of send ops.
-        // After tensor lowering in #72.
-        if (isa<qoalahost::SendIntsOp>(op) || isa<qoalahost::SendFloatsOp>(op)) {
-            return qoalaOptHostInstrTime;
-        }
-
-        // TODO - check in translation if the size of tensor decides the number of recv ops.
-        // After tensor lowering in #72.
-        if (isa<qoalahost::RecvIntsOp>(op) || isa<qoalahost::RecvFloatsOp>(op)) {
-            return qoalaOptLatency + qoalaOptHostPeerLatency;
-        };
-
-        // Netqasm operations that are classical operations
-        if (isa<netqasm::QAllocOp>(op) || isa<netqasm::QFreeOp>(op)) {
-            return qoalaOptQNosInstrTime;
-        };
-
-        // Each operand will be converted to one netqasm instruction in the iqoala file
-        if (isa<netqasm::ReturnOp>(op)) {
-            return op->getNumOperands() * qoalaOptQNosInstrTime;
-        }
-
-        // Single qubit gate operations, qubit init and measure
-        if (isa<netqasm::QInitOp>(op) || isa<netqasm::RotateXOp>(op) || isa<netqasm::RotateYOp>(op) ||
-            isa<netqasm::RotateZOp>(op) || isa<netqasm::HadamardOp>(op) || isa<netqasm::MeasureOp>(op)) {
-            return qoalaOptSingleGateDuration;
-        }
-
-        // Two qubits gate oeprations
-        if (isa<netqasm::CnotOp>(op) || isa<netqasm::CzOp>(op) || isa<netqasm::CrotXOp>(op)) {
-            return qoalaOptTwoGateDuration;
-        }
-
-        if (isa<netqasm::EprsOp>(op)) {
-            return qoalaOptLinkDuration;
-        }
-
-        if (isa<netqasm::EprsMeasureOp>(op)) {
-            return qoalaOptLinkDuration + qoalaOptSingleGateDuration;
-        }
-
-        // Any other instructions are the ones in CL blocks
-        return qoalaOptHostInstrTime;
-    }
-
     static Operation *resolveCallee(qoalahost::CallOp callOp, const llvm::StringMap<Operation *> &routineMap) {
         // Fast lookup of the callee routine for a qoalahost.call.
         // Returns nullptr if the symbol is not in `routineMap`.
@@ -182,35 +127,44 @@ namespace qoala::analysis::reordering {
         auto calleeFunc = llvm::cast<FunctionOpInterface>(callee);
 
         bool foundReturn = false;
+        bool foundOpWithoutDuration = false;
 
         // Inline every op from the callee
         calleeFunc->getRegion(0).walk([&](Operation *innerOp) -> WalkResult {
             // Create MILPOperation for every inlined op
             std::string subId = blkId + "::" + std::to_string(opIdx++);
-            std::unique_ptr<MILPOperation> milpSub =
-                    std::make_unique<MILPOperation>(subId, blkType, getOperationDuration(innerOp));
-            milpSub->setOperation(innerOp);
-            MILPOperation *raw = blk->addOperation(std::move(milpSub));
-            opToMilpOp[innerOp] = raw;
+            if (auto durationOp = dyn_cast<helpers::OpHasDurationInterface>(innerOp)) {
+                std::unique_ptr<MILPOperation> milpSub =
+                        std::make_unique<MILPOperation>(subId, blkType, durationOp.getDuration());
+                milpSub->setOperation(innerOp);
+                MILPOperation *raw = blk->addOperation(std::move(milpSub));
+                opToMilpOp[innerOp] = raw;
 
-            // When we hit the netqasm.return, insert the synthetic nop
-            if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
-                OpBuilder builder(callOp.getContext());
-                builder.setInsertionPointToEnd(callerBlock);
-                qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(innerOp->getLoc());
+                // When we hit the netqasm.return, insert the synthetic nop
+                if (llvm::isa<netqasm::ReturnOp>(innerOp)) {
+                    OpBuilder builder(callOp.getContext());
+                    builder.setInsertionPointToEnd(callerBlock);
+                    qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(innerOp->getLoc());
 
-                std::string nopId = blkId + "::" + std::to_string(opIdx++);
-                std::unique_ptr<MILPOperation> milpNop =
-                        std::make_unique<MILPOperation>(nopId, blkType, getOperationDuration(nop.getOperation()));
-                milpNop->setOperation(nop.getOperation());
-                MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
-                opToMilpOp[nop.getOperation()] = rawNop;
+                    std::string nopId = blkId + "::" + std::to_string(opIdx++);
+                    std::unique_ptr<MILPOperation> milpNop =
+                            std::make_unique<MILPOperation>(nopId, blkType, durationOp.getDuration());
+                    milpNop->setOperation(nop.getOperation());
+                    MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
+                    opToMilpOp[nop.getOperation()] = rawNop;
 
-                foundReturn = true;
-                return WalkResult::interrupt(); // stop the walk
+                    foundReturn = true;
+                    return WalkResult::interrupt(); // stop the walk
+                }
+                return WalkResult::advance();
             }
-            return WalkResult::advance();
+            foundOpWithoutDuration = true;
+            return WalkResult::interrupt();
         });
+
+        if (foundOpWithoutDuration) {
+            return callOp.emitError("Operation inside a callee without known duration"), failure();
+        }
 
         if (!foundReturn) {
             return callOp.emitError("Callee does not end in netqasm::ReturnOp"), failure();
@@ -324,25 +278,27 @@ namespace qoala::analysis::reordering {
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
-                std::unique_ptr<MILPOperation> milpOp =
-                        std::make_unique<MILPOperation>(opId, blkType, getOperationDuration(&op));
-                milpOp->setOperation(&op);
-                MILPOperation *raw = blk->addOperation(std::move(milpOp));
-                opToMilpOp[&op] = raw;
+                if (auto durationOp = dyn_cast<helpers::OpHasDurationInterface>(&op)) {
+                    std::unique_ptr<MILPOperation> milpOp =
+                            std::make_unique<MILPOperation>(opId, blkType, durationOp.getDuration());
+                    milpOp->setOperation(&op);
+                    MILPOperation *raw = blk->addOperation(std::move(milpOp));
+                    opToMilpOp[&op] = raw;
 
-                // Handle inlining for quantum-local or quantum-communication blocks
-                // - Inline body of the called routine
-                // - Track operations
-                // - Add a qoalahost.nop at the end to model post-task transition
-                if (blkType == OpType::QL || blkType == OpType::QC) {
-                    if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
-                        if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, routineMap,
-                                                       block, // callerBlock
-                                                       blk, opToMilpOp))) {
-                            status = failure();
-                            return WalkResult::interrupt();
+                    // Handle inlining for quantum-local or quantum-communication blocks
+                    // - Inline body of the called routine
+                    // - Track operations
+                    // - Add a qoalahost.nop at the end to model post-task transition
+                    if (blkType == OpType::QL || blkType == OpType::QC) {
+                        if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
+                            if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, routineMap,
+                                                           block, // callerBlock
+                                                           blk, opToMilpOp))) {
+                                status = failure();
+                                return WalkResult::interrupt();
+                            }
+                            break; // only one call per block
                         }
-                        break; // only one call per block
                     }
                 }
 
