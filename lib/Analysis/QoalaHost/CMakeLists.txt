@@ -4,6 +4,8 @@ add_mlir_dialect_library(MLIRQoalaHostAnalysis
     AddPrecedences.cpp
     BlockReordering.cpp
     MILPReordering.cpp
+    QMemoryEfficiency.cpp
+    Show.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QoalaHost
