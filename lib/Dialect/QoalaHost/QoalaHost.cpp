@@ -3,6 +3,7 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "Tools/QoalaOpt.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
@@ -155,6 +156,30 @@ LogicalResult qoalahost::CallOp::verify() {
         }
     }
     return success();
+}
+
+int qoalahost::CallOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::NopOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::SendIntsOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::SendFloatsOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::RecvIntsOp::getDuration() {
+    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
+}
+
+int qoalahost::RecvFloatsOp::getDuration() {
+    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
 }
 
 /* Helper functions from the QoalaHostDialect class */

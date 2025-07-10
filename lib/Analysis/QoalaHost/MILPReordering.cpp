@@ -15,6 +15,7 @@
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
+using namespace qoala::options;
 
 namespace qoala::analysis::reordering {
     // TODO - refactor as a method of MILPOperation
