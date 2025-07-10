@@ -209,7 +209,7 @@ namespace qoala::iqoala {
     class Block : public assembly::iQoalaMC {
     public:
         enum BlockType { CL, CC, QL, QC };
-        Block() : type(CL) {}
+        Block() : type(CL), prevComm(nullptr), prevEnt(nullptr) {}
         Block(const Block &b) = default;
         ~Block() override {
             for (const auto instruction: this->instructions) {
