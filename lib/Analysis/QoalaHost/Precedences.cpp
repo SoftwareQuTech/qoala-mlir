@@ -1,15 +1,14 @@
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
-#include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/Helpers/Helpers.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
+#include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
-#include "mlir/IR/BuiltinOps.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/BuiltinOps.h"
 
 #define DEBUG_TYPE "qoalahost-add-precedences-pass-internal"
-
 
 #if __cplusplus >= 202002L
 std::string blockIDFmt = "block_{}";
@@ -63,7 +62,7 @@ namespace qoala::analysis::precedences {
         // iterator
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        for (Block &block: mainFunc.getBody().getBlocks()) {
+        for (Block &block : mainFunc.getBody().getBlocks()) {
             blockIdMap.try_emplace(&block, helpers::formatString(blockIDFmt, idCounter++));
         }
 
@@ -130,10 +129,10 @@ namespace qoala::analysis::precedences {
                         LLVM_DEBUG(llvm::dbgs() << "[MemEffects] Inspecting callee: " << callee->getName() << " with "
                                                 << callee->getNumRegions() << " region(s)\n");
 
-                        for (Block &calleeBlock: calleeRegion.getBlocks()) {
+                        for (Block &calleeBlock : calleeRegion.getBlocks()) {
                             LLVM_DEBUG(llvm::dbgs() << "  [Block] In callee block @" << &calleeBlock << "\n");
 
-                            for (Operation &innerOp: calleeBlock.getOperations()) {
+                            for (Operation &innerOp : calleeBlock.getOperations()) {
                                 LLVM_DEBUG(llvm::dbgs() << "    [Op] " << innerOp.getName() << "\n");
 
                                 if (auto effectOp = dyn_cast<MemoryEffectOpInterface>(&innerOp)) {
@@ -142,7 +141,7 @@ namespace qoala::analysis::precedences {
                                     SmallVector<MemoryEffects::EffectInstance, 4> effects;
                                     effectOp.getEffects(effects);
 
-                                    for (const MemoryEffects::EffectInstance &eff: effects) {
+                                    for (const MemoryEffects::EffectInstance &eff : effects) {
                                         Value origVal = eff.getValue();
                                         Value resolvedVal = origVal;
 
@@ -179,7 +178,7 @@ namespace qoala::analysis::precedences {
             }
 
             // Track data dependencies
-            for (Value operand: op->getOperands()) {
+            for (Value operand : op->getOperands()) {
                 if (Operation *producer = operand.getDefiningOp()) {
                     Block *producerBlock = producer->getBlock();
                     if (producerBlock != consumerBlock && blockDeps[consumerBlock].insert(producerBlock).second) {
@@ -204,21 +203,22 @@ namespace qoala::analysis::precedences {
         //
         // When a conflict is detected, we record that `blockB` depends on `blockA` in `blockDeps`,
         // which will later be reflected in the `qoalahost.blk_meta` ops.
-        for (const std::pair<Block *, MemEffectInfo> &pairA: callSiteEffects) {
+        for (const std::pair<Block *, MemEffectInfo> &pairA : callSiteEffects) {
             Block *blockA = pairA.first;
             const MemEffectInfo &infoA = pairA.second;
 
-            for (const std::pair<Block *, MemEffectInfo> &pairB: callSiteEffects) {
+            for (const std::pair<Block *, MemEffectInfo> &pairB : callSiteEffects) {
                 Block *blockB = pairB.first;
                 const MemEffectInfo &infoB = pairB.second;
-                if (blockA == blockB)
+                if (blockA == blockB) {
                     continue;
+                }
 
                 LLVM_DEBUG(llvm::dbgs() << "[EffectConflict] Comparing effects between " << blockIdMap[blockA]
                                         << " and " << blockIdMap[blockB] << "\n");
 
-                for (const MemoryEffects::EffectInstance &effA: infoA.effects) {
-                    for (const MemoryEffects::EffectInstance &effB: infoB.effects) {
+                for (const MemoryEffects::EffectInstance &effA : infoA.effects) {
+                    for (const MemoryEffects::EffectInstance &effB : infoB.effects) {
                         if (!effA.getValue() || !effB.getValue()) {
                             LLVM_DEBUG(llvm::dbgs() << "  -> Skipping null value effect\n");
                             continue;
@@ -260,18 +260,19 @@ namespace qoala::analysis::precedences {
         }
 
         // === Transitive Reduction ===
-        for (std::pair<Block *, std::unordered_set<Block *>> &entry: blockDeps) {
+        for (std::pair<Block *, std::unordered_set<Block *>> &entry : blockDeps) {
             Block *block = entry.first;
             std::unordered_set<Block *> &deps = entry.second;
 
             std::unordered_set<Block *> toRemove;
 
-            for (Block *direct: deps) {
+            for (Block *direct : deps) {
                 llvm::DenseMap<Block *, std::unordered_set<Block *>>::iterator transitiveIt = blockDeps.find(direct);
-                if (transitiveIt == blockDeps.end())
+                if (transitiveIt == blockDeps.end()) {
                     continue;
+                }
 
-                for (Block *transitive: transitiveIt->second) {
+                for (Block *transitive : transitiveIt->second) {
                     if (deps.count(transitive)) {
                         LLVM_DEBUG(llvm::dbgs() << "[TransitiveReduction] Removing indirect dep: " << blockIdMap[block]
                                                 << " → " << blockIdMap[transitive] << " (already reachable via "
@@ -281,19 +282,19 @@ namespace qoala::analysis::precedences {
                 }
             }
 
-            for (Block *remove: toRemove) {
+            for (Block *remove : toRemove) {
                 deps.erase(remove);
             }
         }
 
-        for (Block &block: mainFunc.getBody().getBlocks()) {
+        for (Block &block : mainFunc.getBody().getBlocks()) {
             OpBuilder builder = OpBuilder::atBlockBegin(&block);
 
             auto blockIdAttr = builder.getStringAttr(blockIdMap[&block]);
 
             // Collect and sort (for determinism) data dependencies
             std::vector<StringRef> dataDepsId;
-            for (Block *pred: blockDeps[&block]) {
+            for (Block *pred : blockDeps[&block]) {
                 dataDepsId.emplace_back(blockIdMap[pred]);
             }
             std::sort(dataDepsId.begin(), dataDepsId.end());
@@ -301,7 +302,7 @@ namespace qoala::analysis::precedences {
 
             // Control flow predecessors
             std::vector<StringRef> predsIds;
-            for (Block *pred: block.getPredecessors()) {
+            for (Block *pred : block.getPredecessors()) {
                 predsIds.emplace_back(blockIdMap[pred]);
             }
             std::sort(predsIds.begin(), predsIds.end());
