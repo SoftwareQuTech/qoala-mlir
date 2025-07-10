@@ -22,7 +22,9 @@ namespace qoala::analysis {
 
     void FunctionizeQuantumOpsPass::runOnOperation() {
         ModuleOp module = this->getOperation();
-        LLVM_DEBUG(llvm::dbgs() << "Functionzing module\n");
+        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Functionizing quantum operations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "************************************\n");
 
         // Select the right functionization algorithm depending on the options
         functionize::ClassifierFnTy classifier;

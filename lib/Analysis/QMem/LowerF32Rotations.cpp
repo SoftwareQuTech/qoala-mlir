@@ -58,7 +58,9 @@ namespace qoala::analysis {
     void LowerF32RotationsPass::runOnOperation() {
         qmem::FuncOp mainFuncOp = this->getOperation();
         MLIRContext &context = this->getContext();
-        LLVM_DEBUG(llvm::dbgs() << "Lowering f32 rotation operations\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
 
         ConversionTarget f32LoweringTarget(context);
         configureF32LoweringTarget(f32LoweringTarget);

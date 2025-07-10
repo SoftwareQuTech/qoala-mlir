@@ -50,13 +50,9 @@ namespace qoala::conversion {
         // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
-        // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-        // LLVM_DEBUG(llvm::dbgs() << "* 1. Inserting builtin function declaration *\n");
-        // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         // Note: This is the way how we will handle "dynamic" f32 values in the future.
         // We will keep inserting this declaration and assuming it will be provided by the runtime in the future.
         if (!helpers::angle::moduleContainsAngleConversionDeclaration(module)) {
-            // helpers::angle::insertAngleConversionFunctionDeclaration(module);
             passManager.addPass(analysis::createAngleConversionDeclaration());
         }
 
@@ -70,77 +66,19 @@ namespace qoala::conversion {
             // propagate the constants inside the basic blocks of the  main function
             // We need this to try to compile the rotations and move them into local routines
             // when used in conjunction with branching instructions.
-
-            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-            // LLVM_DEBUG(llvm::dbgs() << "*** Before SCCP:\n");
-            // LLVM_DEBUG(llvm::dbgs() << module << "\n");
-            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-
-            // auto mainFuncs = module.getOps<qmem::FuncOp>();
-            // assert (!mainFuncs.empty());
-            // qmem::FuncOp mainFunc = *mainFuncs.begin();
-
             funcOpPassManager.addPass(createSCCPPass());
-            // if (failed(pm.run(mainFunc))) {
-            //     signalPassFailure();
-            // }
-
-            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
-            // LLVM_DEBUG(llvm::dbgs() << "*** After SCCP:\n");
-            // LLVM_DEBUG(llvm::dbgs() << module << "\n");
-            // LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
         }
 
         // Stage 2: Try to fold operations as much as possible, especially, constants
-        // LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        // LLVM_DEBUG(llvm::dbgs() << "* 2. Folding (constant) operations *\n");
-        // LLVM_DEBUG(llvm::dbgs() << "************************************\n");
-        // if (failed(helpers::foldConstants(module))) {
-        //     signalPassFailure();
-        // }
         funcOpPassManager.addPass(analysis::createFoldConstants());
 
         // Stage 3: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
-        // LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        // LLVM_DEBUG(llvm::dbgs() << "* 3. Lowering f32 rotations *\n");
-        // LLVM_DEBUG(llvm::dbgs() << "*****************************\n");
-        // if (failed(applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns)))) {
-        //     signalPassFailure();
-        // }
         funcOpPassManager.addPass(analysis::createConvertIntegerToFloatRotations());
 
         // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
-        // LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
-        // LLVM_DEBUG(llvm::dbgs() << "* 4. Removing unnecessary constants (Folding again) *\n");
-        // LLVM_DEBUG(llvm::dbgs() << "*****************************************************\n");
-        //
-        // if (failed(helpers::foldConstants(module))) {
-        //     signalPassFailure();
-        // }
         passManager.addPass(analysis::createFoldConstants());
 
         // Stage 5: Functionize
-        // LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
-        // LLVM_DEBUG(llvm::dbgs() << "* 5. Functionizing quantum operations *\n");
-        // LLVM_DEBUG(llvm::dbgs() << "***************************************\n");
-
-        // if (this->useSimpleFunctionize) {
-        //     LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
-        //     analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier,
-        //                                              this->maxOpsPerGroup);
-        // } else {
-        //     analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier,
-        //                                              this->maxOpsPerGroup);
-        // }
-        // Correct the positions of the remote and builtin declaration
-        // module.walk([&](func::FuncOp funcDecl) {
-        //     if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {
-        //         WalkResult::advance();
-        //     } else {
-        //         helpers::moveOperationToTop(module, funcDecl);
-        //     }
-        // });
-        // module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
 
         passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
 

@@ -169,33 +169,33 @@ namespace qoala::conversion {
         populateQMemToQRemotePatterns(context, qMemToQRemotePatterns, typeConverter);
 
         // Stage 6: Lower the remote declarations
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 6. Lowering Remote declarations *\n");
-        LLVM_DEBUG(llvm::dbgs() << "***********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering Remote declarations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
         if (failed(applyPartialConversion(module, qMemToQRemoteTarget, std::move(qMemToQRemotePatterns)))) {
             signalPassFailure();
         }
 
         // Stage 7: Convert QMem to QoalaHost
-        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 7. Lowering QMem to QoalaHost *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************\n");
         if (failed(applyPartialConversion(module, qMemToQoalaHostTarget, std::move(qMemToQoalaHostPatterns)))) {
             signalPassFailure();
         }
 
         // Stage 8: Convert QMem to QoalaHost
-        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 8. Lowering QMem to NetQASM *\n");
-        LLVM_DEBUG(llvm::dbgs() << "*******************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to NetQASM *\n");
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
             signalPassFailure();
         }
 
         // Stage 9: Add Block Precedences
-        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Precedences *\n");
-        LLVM_DEBUG(llvm::dbgs() << "********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
+        LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         if (failed(analysis::precedences::addPrecedences(module))) {
             signalPassFailure();
         }

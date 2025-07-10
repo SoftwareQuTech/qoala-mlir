@@ -20,7 +20,9 @@ namespace qoala::analysis {
     };
 
     void FoldConstantsPass::runOnOperation() {
-        LLVM_DEBUG(llvm::dbgs() << "Running FoldConstantsPass...\n");
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Removing unnecessary constants *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
         if (Operation *op = this->getOperation(); failed(helpers::foldConstants(*op))) {
             signalPassFailure();
         }

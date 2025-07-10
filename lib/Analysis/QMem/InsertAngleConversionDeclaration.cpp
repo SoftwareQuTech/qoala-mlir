@@ -27,7 +27,9 @@ namespace qoala::analysis {
 
     void InsertAngleConvertionDeclarationPass::runOnOperation() {
         ModuleOp module = this->getOperation();
-        LLVM_DEBUG(llvm::dbgs() << "Inserting builtin angle conversion function declaration\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Inserting builtin function declaration *\n");
+        LLVM_DEBUG(llvm::dbgs() << "******************************************\n");
         angle::insertAngleConversionFunctionDeclaration(module);
     }
 } /* namespace qoala::analysis */
