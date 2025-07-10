@@ -9,6 +9,7 @@
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
+using namespace qoala::analysis::reordering;
 
 #include "Dialect/NetQASM/NetQASM.h"
 // include generated source code for operations
@@ -180,6 +181,38 @@ int qoalahost::RecvIntsOp::getDuration() {
 
 int qoalahost::RecvFloatsOp::getDuration() {
     return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
+}
+
+OpType qoalahost::SendIntsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::RecvIntsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::SendFloatsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::RecvFloatsOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::CallOp::getBlockType(llvm::StringMap<Operation *> &routineMap) {
+    const StringRef symName = this->getCallee();
+    Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
+    if (!callee) {
+        return OpType::CL;
+    }
+
+    if (isa<netqasm::RequestRoutineOp>(callee)) {
+        return OpType::QC;
+    }
+    if (isa<netqasm::LocalRoutineOp>(callee)) {
+        return OpType::QL;
+    }
+    return OpType::CL;
 }
 
 /* Helper functions from the QoalaHostDialect class */

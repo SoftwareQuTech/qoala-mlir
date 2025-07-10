@@ -18,13 +18,12 @@ using namespace qoala::analysis;
 using namespace qoala::options;
 
 namespace qoala::analysis::reordering {
-    static Operation *resolveCallee(qoalahost::CallOp callOp, const llvm::StringMap<Operation *> &routineMap) {
+    inline Operation *resolveCallee(qoalahost::CallOp callOp, const llvm::StringMap<Operation *> &routineMap) {
         // Fast lookup of the callee routine for a qoalahost.call.
         // Returns nullptr if the symbol is not in `routineMap`.
         // `getCallee()` is cheaper than going through SymbolRefAttr plumbing.
-        StringRef symName = callOp.getCallee();
-        auto it = routineMap.find(symName);
-        return (it != routineMap.end()) ? it->second : nullptr;
+        const StringRef symName = callOp.getCallee();
+        return routineMap.contains(symName) ? routineMap.at(callOp.getCallee()) : nullptr;
     }
 
     // TODO - refactor as a method of MILPTask
@@ -133,7 +132,7 @@ namespace qoala::analysis::reordering {
         calleeFunc->getRegion(0).walk([&](Operation *innerOp) -> WalkResult {
             // Create MILPOperation for every inlined op
             std::string subId = blkId + "::" + std::to_string(opIdx++);
-            if (auto durationOp = dyn_cast<helpers::OpHasDurationInterface>(innerOp)) {
+            if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(innerOp)) {
                 std::unique_ptr<MILPOperation> milpSub =
                         std::make_unique<MILPOperation>(subId, blkType, durationOp.getDuration());
                 milpSub->setOperation(innerOp);
@@ -278,7 +277,7 @@ namespace qoala::analysis::reordering {
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
-                if (auto durationOp = dyn_cast<helpers::OpHasDurationInterface>(&op)) {
+                if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(&op)) {
                     std::unique_ptr<MILPOperation> milpOp =
                             std::make_unique<MILPOperation>(opId, blkType, durationOp.getDuration());
                     milpOp->setOperation(&op);

@@ -25,7 +25,7 @@ include "Analysis/Helpers/GenericInterfaces.td"
 
 
 class QoalaHost_Op<string mnemonic, list<Trait> traits = []> :
-    Op<QoalaHost_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<OpHasDurationInterface>]>;
+    Op<QoalaHost_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<QuantumOpInterface>]>;
 
 /* Func, Call and Return operations similar to the ones present un QNet */
 def MainFuncOp: QoalaHost_Op<"main_func", [
@@ -90,7 +90,7 @@ def MainFuncOp: QoalaHost_Op<"main_func", [
 def CallOp : QoalaHost_Op<"call",
      [CallOpInterface, MemRefsNormalizable,
       DeclareOpInterfaceMethods<SymbolUserOpInterface>, Terminator,
-      DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+      DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
     let summary = "call operation";
     let description = [{
         The `func.call` operation represents a direct call to a function that is
@@ -194,7 +194,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
-def SendIntsOp : UsingRemote_Op<"send_ints", [DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+def SendIntsOp : UsingRemote_Op<"send_ints", [
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -215,7 +216,7 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [DeclareOpInterfaceMethods<OpHasDur
  * block, so we can easily comply with the traits of the recv operation.
  */
 def RecvIntsOp : UsingRemote_Op<"recv_ints", [
-    Terminator, DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
     // TODO - This operation yields a tensor as a result. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
@@ -225,7 +226,8 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [
     }];
 }
 
-def SendFloatsOp : UsingRemote_Op<"send_floats", [DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+def SendFloatsOp : UsingRemote_Op<"send_floats", [
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -235,7 +237,7 @@ def SendFloatsOp : UsingRemote_Op<"send_floats", [DeclareOpInterfaceMethods<OpHa
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
-    Terminator, DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
     // TODO - This operation yields a tensor as a result. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
@@ -262,7 +264,7 @@ def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
 }
 
 def NopOp : QoalaHost_Op<"nop", [
-    HasParent<"MainFuncOp">, DeclareOpInterfaceMethods<OpHasDurationInterface, ["getDuration"]>]> {
+    HasParent<"MainFuncOp">, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>]> {
     let summary = [{
         QoalaHost "nop" operation. The difference with the NopTOp is that
         this operation does not carry the "Terminator" trait, so it can be
