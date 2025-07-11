@@ -83,16 +83,19 @@ namespace qoala::analysis {
     namespace qmemeff {
         class QoalaHostQMemoryEfficiency {
         public:
-            QoalaHostQMemoryEfficiency(mlir::Operation *op);
+            explicit QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
-            int getVirtualQubitCount() const { return virtualQubits; }
-            int getPhysicalQubitCount() const { return physicalQubits; }
+            [[nodiscard]]
+            uint32_t getVirtualQubitCount() const { return virtualQubits; }
+            [[nodiscard]]
+            uint32_t getPhysicalQubitCount() const { return physicalQubits; }
 
+            [[nodiscard]]
             float getEfficiency() const;
 
         private:
-            int virtualQubits = 0;
-            int physicalQubits = 0;
+            uint32_t virtualQubits = 0;
+            uint32_t physicalQubits = 0;
         };
     } // namespace qmemeff
 
