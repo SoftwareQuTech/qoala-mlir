@@ -23,47 +23,47 @@
 
 #include "Tools/QoalaOpt.h"
 
-bool qoalaOptUnoptimize = false;
+bool qoala::options::qoalaOptUnoptimize = false;
 static opt<bool, /*ExternalStorage=*/true> qoalaOptUnoptimizeOption(
         "qoala-opt-unoptimize",
         desc("Wether to run the passes to unoptimize the program. Useful to compare worst vs best "
              "case implementations of programs."),
-        ReallyHidden, location(qoalaOptUnoptimize));
+        ReallyHidden, location(qoala::options::qoalaOptUnoptimize));
 
-uint32_t qoalaOptSingleGateDuration = 10;
+uint32_t qoala::options::qoalaOptSingleGateDuration = 10;
 static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptSingleGateDurationOption("qoala-opt-single-gate-duration",
                                          desc("Time taken by a single gate operation."), NotHidden,
-                                         location(qoalaOptSingleGateDuration));
+                                         location(qoala::options::qoalaOptSingleGateDuration));
 
-uint32_t qoalaOptTwoGateDuration = 50;
+uint32_t qoala::options::qoalaOptTwoGateDuration = 50;
 static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptTwoGateDurationOption("qoala-opt-two-gate-duration", desc("Time taken by a double gate operation."),
-                                      NotHidden, location(qoalaOptTwoGateDuration));
+                                      NotHidden, location(qoala::options::qoalaOptTwoGateDuration));
 
-uint32_t qoalaOptLatency = 100;
+uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
                                                                      desc("Calssical communication latency."),
-                                                                     NotHidden, location(qoalaOptLatency));
+                                                                     NotHidden, location(qoala::options::qoalaOptLatency));
 
-uint32_t qoalaOptLinkDuration = 1000;
+uint32_t qoala::options::qoalaOptLinkDuration = 1000;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLinkDurationOption("qoala-opt-link-duration",
                                                                           desc("Time taken to generate entanglement."),
-                                                                          NotHidden, location(qoalaOptLinkDuration));
-uint32_t qoalaOptHostInstrTime = 1;
+                                                                          NotHidden, location(qoala::options::qoalaOptLinkDuration));
+uint32_t qoala::options::qoalaOptHostInstrTime = 1;
 static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptHostInstrTimeOption("qoala-opt-host-instr-time", desc("Time taken by a CL operation on the QNPU."),
-                                    NotHidden, location(qoalaOptHostInstrTime));
-uint32_t qoalaOptHostPeerLatency = 1;
+                                    NotHidden, location(qoala::options::qoalaOptHostInstrTime));
+uint32_t qoala::options::qoalaOptHostPeerLatency = 1;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptHostPeerLatencyOption(
         "qoala-opt-host-peer-latency",
         desc("Latency of treating a classical communication operation upon receiving a message3."), NotHidden,
-        location(qoalaOptHostPeerLatency));
-uint32_t qoalaOptQNosInstrTime = 1;
+        location(qoala::options::qoalaOptHostPeerLatency));
+uint32_t qoala::options::qoalaOptQNosInstrTime = 1;
 static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptQNosInstrTimeOption("qoala-opt-qnos-instr-time",
                                     desc("Time taken by a classical instruction executed on the QNPU."), NotHidden,
-                                    location(qoalaOptQNosInstrTime));
+                                    location(qoala::options::qoalaOptQNosInstrTime));
 
 
 int main(int argc, char **argv) {

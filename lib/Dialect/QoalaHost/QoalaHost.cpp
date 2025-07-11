@@ -3,11 +3,13 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "Tools/QoalaOpt.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
+using namespace qoala::analysis::reordering;
 
 #include "Dialect/NetQASM/NetQASM.h"
 // include generated source code for operations
@@ -155,6 +157,62 @@ LogicalResult qoalahost::CallOp::verify() {
         }
     }
     return success();
+}
+
+int qoalahost::CallOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::NopOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::SendIntsOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::SendFloatsOp::getDuration() {
+    return options::qoalaOptHostInstrTime;
+}
+
+int qoalahost::RecvIntsOp::getDuration() {
+    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
+}
+
+int qoalahost::RecvFloatsOp::getDuration() {
+    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
+}
+
+OpType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return OpType::CC;
+}
+
+OpType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    const StringRef symName = this->getCallee();
+    Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
+    if (!callee) {
+        return OpType::CL;
+    }
+
+    if (isa<netqasm::RequestRoutineOp>(callee)) {
+        return OpType::QC;
+    }
+    if (isa<netqasm::LocalRoutineOp>(callee)) {
+        return OpType::QL;
+    }
+    return OpType::CL;
 }
 
 /* Helper functions from the QoalaHostDialect class */

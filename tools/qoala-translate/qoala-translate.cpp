@@ -4,6 +4,20 @@
 
 using namespace mlir;
 
+/* Dummy declarations of these *unused* (in the translate tool) options
+ * so the linking of qoala-translate passes correctly.
+ */
+namespace qoala::options {
+    bool qoalaOptUnoptimize = false;
+    uint32_t qoalaOptSingleGateDuration = 0;
+    uint32_t qoalaOptTwoGateDuration = 0;
+    uint32_t qoalaOptLatency = 0;
+    uint32_t qoalaOptLinkDuration = 0;
+    uint32_t qoalaOptHostInstrTime = 0;
+    uint32_t qoalaOptHostPeerLatency = 0;
+    uint32_t qoalaOptQNosInstrTime = 0;
+}
+
 namespace qoala::translate {
     void registerToiQoalaTranslations();
 }

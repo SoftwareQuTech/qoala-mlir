@@ -2,6 +2,10 @@
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
+// include generated "dispatcher" of the operation interface
+#include "Analysis/Helpers/GenericInterfaces.h"
+#include "Analysis/Helpers/GenericInterfaces.cpp.inc"
+
 using namespace mlir;
 
 namespace qoala::helpers {

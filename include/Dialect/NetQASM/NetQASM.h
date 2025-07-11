@@ -19,6 +19,7 @@
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "Analysis/Helpers/NetQASMInterfaces.h"
+#include "Analysis/Helpers/GenericInterfaces.h"
 
 // Remotes will be lowered to declarations in the qremote dialect
 #include "Dialect/QRemote/QRemote.h"

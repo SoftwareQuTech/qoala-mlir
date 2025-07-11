@@ -10,6 +10,7 @@
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
+using namespace qoala::options;
 
 namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTREORDERBLOCKS

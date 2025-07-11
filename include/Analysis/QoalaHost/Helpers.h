@@ -1,5 +1,5 @@
-#ifndef HELPERS_H
-#define HELPERS_H
+#ifndef QOALAHOST_HELPERS_H
+#define QOALAHOST_HELPERS_H
 
 #include <set>
 #include "llvm/Support/Casting.h"
@@ -311,4 +311,4 @@ namespace qoala::analysis {
     } // namespace reordering
 } // namespace qoala::analysis
 
-#endif // HELPERS_H
+#endif // QOALAHOST_HELPERS_H
