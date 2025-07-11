@@ -22,13 +22,10 @@ namespace qoala::analysis::qmemeff {
         // By tracking the order of qalloc and measurement ops, one can compute how many physical qubits
         // will be active at most at the same time during a program execution.
         // Some programs may have efficiency 0, for example a program 
-        // where only one qubit is allocated and measured. 
-        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQMemoryEfficiencyPass\n");
-        auto module = dyn_cast<ModuleOp>(*op);
+        // where only one qubit is allocated and measured.
         // Locate main function
-        const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
-        assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        auto mainFunc = dyn_cast_or_null<qoalahost::MainFuncOp>(*op);
+        assert(mainFunc && "No main func? This is embarrassing...");
 
         // Measurements ops will increase a "buffer" of memory positions to be reused.
         int measured = 0;

@@ -1,4 +1,5 @@
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/QoalaHost/Passes.h"
 
 #define DEBUG_TYPE "qoalahost-show-analysis-pass-qmem-eff"
