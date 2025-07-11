@@ -131,6 +131,15 @@ def CallOp : QoalaHost_Op<"call",
     >];
 
     let extraClassDeclaration = [{
+        /// Gets the callee operation casted (if possible) to the given type
+        template<typename CalleeTy>
+        CalleeTy getCalleeOperation() {
+            return llvm::dyn_cast_or_null<CalleeTy>(this->getCalleeOperation());
+        }
+
+        /// Get the operation of the callee for this call.
+        mlir::Operation *getCalleeOperation();
+
         mlir::FunctionType getCalleeType();
 
         /// Get the argument operands to the called function.

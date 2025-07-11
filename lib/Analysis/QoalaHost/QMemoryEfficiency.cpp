@@ -2,6 +2,7 @@
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "mlir/IR/Operation.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 
@@ -37,13 +38,12 @@ namespace qoala::analysis::qmemeff {
 
         // TODO Current implementation does not take into account epr request callbacks.
         // In the future, add support for epr request callbacks if needed. See issue qoala-kanban-board#89.
-        mainFunc.walk([&](Operation *opInFunc) {
-            if (auto callOp = dyn_cast<qoalahost::CallOp>(opInFunc)) {
-                const Operation *callee = SymbolTable::lookupNearestSymbolFrom(callOp, callOp.getCalleeAttr());
-                if (auto routine = dyn_cast<FunctionOpInterface>(callee)) {
-                    routine.walk([&](Operation *calleeOp) {
-                        if (calleeOp && isa<netqasm::QAllocOp>(calleeOp)) {
-                            LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << *calleeOp << "\n");
+        mainFunc.walk([&](qoalahost::CallOp callOp) {
+            if (auto callee = callOp.getCalleeOperation<FunctionOpInterface>()) {
+                callee.walk([&] (Operation *opInCallee) {
+                    llvm::TypeSwitch<Operation *>(opInCallee)
+                        .Case([&](const netqasm::QAllocOp qallocOp) {
+                            LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << qallocOp << "\n");
                             // Increase virtual qubits for every qalloc op.
                             ++virtualQubits;
                             // Increase physical qubits only if the measured buffer equals 0.
@@ -52,17 +52,19 @@ namespace qoala::analysis::qmemeff {
                             } else {
                                 // Remember to decrease the measure buffer.
                                 --measured;
-                            }
-                        } else if (calleeOp && (isa<netqasm::MeasureOp>(calleeOp) || isa<netqasm::EprsMeasureOp>(
-                                                        calleeOp))) {
-                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << *calleeOp << "\n");
+                            }})
+                        .Case([&](const netqasm::MeasureOp measureOp) {
+                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
+                            // Each measure op will increase the measured buffer.
+                            ++measured;})
+                        .Case([&](const netqasm::EprsMeasureOp measureOp) {
+                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
                             // Each measure op will increase the measured buffer.
                             ++measured;
-                        }
-                    });
-                } else {
-                    llvm::errs() << "Callee is not a FunctionOpInterface!\n";
-                }
+                        });
+                });
+            } else {
+                llvm::errs() << "Callee is not a FunctionOpInterface!\n";
             }
         });
     }
@@ -73,7 +75,7 @@ namespace qoala::analysis::qmemeff {
             return 0.0f; // Or return 1.0f if you prefer to treat "no usage" as maximally efficient
         }
 
-        const float efficiency = 1.0f - static_cast<float>(physicalQubits) / virtualQubits;
+        const float efficiency = 1.0f - static_cast<float>(physicalQubits) / static_cast<float>(virtualQubits);
         return efficiency;
     }
 } // namespace qoala::analysis::qmemeff

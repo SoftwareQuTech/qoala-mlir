@@ -217,6 +217,11 @@ OpType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routi
     return OpType::CL;
 }
 
+Operation *qoalahost::CallOp::getCalleeOperation() {
+    const auto calleeName = this->getCalleeAttr().getAttr();
+    return SymbolTable::lookupNearestSymbolFrom(this->getOperation(), calleeName);;
+}
+
 /* Helper functions from the QoalaHostDialect class */
 bool qoalahost::QoalaHostDialect::opIsNotFromAllowedDialects(Operation &operation) {
     return !belongsToDialect<
