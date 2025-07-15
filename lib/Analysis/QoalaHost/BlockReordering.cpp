@@ -37,7 +37,7 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        reordering::MILPModelBuilder model;
+        reordering::MILPBlockOrderModel model;
         if (!model.initialize()) {
             moduleOp.emitError("Failed to initialize SCIP.");
             signalPassFailure();
