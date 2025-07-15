@@ -59,6 +59,25 @@ namespace qoala::analysis {
 
         if (this->withDeadlines) {
             reordering::BlockPrecedenceList precedences = createPrecedenceFromOrder(orderedBlockIds, idToBlockMap);
+
+            reordering::MILPBlockDeadlineModel model;
+            if (!model.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP.");
+                signalPassFailure();
+            }
+
+            model.setProblemData(blocks, qubits, precedences);
+            model.setProblemData(blocks, qubits, precedences);
+            model.createVariables();
+            model.addConstraints();
+            model.setObjective();
+
+            if (!model.optimize()) {
+                moduleOp.emitError("MILP solve failed.");
+                signalPassFailure();
+            }
+
+            model.cleanup();
         }
 
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);

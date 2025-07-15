@@ -230,12 +230,16 @@ namespace qoala::analysis {
             virtual ~MILPModelBuilder() = default;
 
             // Initialize SCIP and prepare internal state
-            virtual bool initialize() = 0;
+            virtual bool initialize();
 
             // Inject blocks, qubits and precedences
             virtual void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
                                         const std::vector<std::shared_ptr<MILPQubit>> &qubits,
-                                        const BlockPrecedenceList precedences) = 0;
+                                        const BlockPrecedenceList precedences) {
+                blocks_ = blocks;
+                qubits_ = qubits;
+                precedences_ = precedences;
+            };
 
             // Create all SCIP variables
             virtual void createVariables() = 0;
@@ -244,26 +248,30 @@ namespace qoala::analysis {
             virtual void addConstraints() = 0;
 
             // Optimize using SCIP
-            virtual bool optimize() = 0;
+            virtual bool optimize() { return (SCIPsolve(scip_) == SCIP_OKAY); };
 
             // Free SCIP variables and memory
-            virtual void cleanup() = 0;
+            virtual void cleanup();
 
             // Define the objective function (e.g., minimize total qubit lifetime)
             virtual void setObjective() = 0;
+
+            // Retrieve start time for a specific operation (by ID)
+            virtual double getOperationStartTime(const std::string &opId) const;
+
+        protected:
+            std::vector<std::shared_ptr<MILPBlock>> blocks_;
+            std::vector<std::shared_ptr<MILPQubit>> qubits_;
+            BlockPrecedenceList precedences_;
+            std::unordered_map<std::string, SCIP_VAR *> startVars_;
+            SCIP *scip_ = nullptr;
         };
 
         class MILPBlockOrderModel : public MILPModelBuilder {
         public:
-            MILPBlockOrderModel(): scip_(nullptr), bigM_(0) { }
+            MILPBlockOrderModel(): bigM_(0) { }
 
             ~MILPBlockOrderModel() override { cleanup(); }
-
-            bool initialize() override;
-
-            void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
-                                const std::vector<std::shared_ptr<MILPQubit>> &qubits,
-                                const BlockPrecedenceList precedences) override;
 
             void createVariables() override;
 
@@ -275,12 +283,7 @@ namespace qoala::analysis {
                 addIntraBlockSequencingConstraints();
             };
 
-            bool optimize() override;
-            void cleanup() override;
             void setObjective() override;
-
-            // Retrieve start time for a specific operation (by ID)
-            double getOperationStartTime(const std::string &opId) const;
 
             std::vector<std::string> getOrderedBlocks();
 
@@ -291,13 +294,34 @@ namespace qoala::analysis {
             void addFCFSTaskConstraints();
             void addIntraBlockSequencingConstraints();
 
-            // Model state
-            SCIP *scip_;
             int bigM_;
-            std::vector<std::shared_ptr<MILPBlock>> blocks_;
-            std::vector<std::shared_ptr<MILPQubit>> qubits_;
-            BlockPrecedenceList precedences_;
-            std::unordered_map<std::string, SCIP_VAR *> startVars_;
+        };
+
+        class MILPBlockDeadlineModel : public MILPModelBuilder {
+        public:
+            MILPBlockDeadlineModel() = default;
+            ~MILPBlockDeadlineModel() override = default;
+
+            void createVariables() override;
+
+            void addConstraints() {
+                addIntraTaskSequencingConstraints();
+                addIntraBlockSequencingConstraints();
+                addBlockPrecedenceConstraints();
+                addFCFSConsistencyConstraints();
+                addQubitLifetimeConstraints();
+            };
+
+            void setObjective() override;
+
+        private:
+            std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
+
+            void addIntraTaskSequencingConstraints();
+            void addIntraBlockSequencingConstraints();
+            void addBlockPrecedenceConstraints();
+            void addFCFSConsistencyConstraints();
+            void addQubitLifetimeConstraints();
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
