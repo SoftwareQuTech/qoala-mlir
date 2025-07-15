@@ -32,7 +32,7 @@ namespace qoala::analysis {
 
         ModuleOp moduleOp = this->getOperation();
 
-        auto [blocks, qubits, precedences, result] = reordering::buildMILPFromMLIR(moduleOp);
+        auto [blocks, qubits, precedences, idToBlockMap, result] = reordering::buildMILPFromMLIR(moduleOp);
         if (failed(result)) {
             signalPassFailure();
         }
@@ -56,6 +56,10 @@ namespace qoala::analysis {
         std::vector<std::string> orderedBlockIds = model.getOrderedBlocks();
 
         model.cleanup();
+
+        if (this->withDeadlines) {
+            reordering::BlockPrecedenceList precedences = createPrecedenceFromOrder(orderedBlockIds, idToBlockMap);
+        }
 
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
         if (failed(status)) {

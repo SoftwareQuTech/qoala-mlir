@@ -310,7 +310,7 @@ namespace qoala::analysis {
          *          and a LogicalResult indicating success or failure.
          */
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
-                   BlockPrecedenceList, mlir::LogicalResult>
+                   BlockPrecedenceList, llvm::StringMap<MILPBlock *>, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
 
         /**
@@ -329,6 +329,9 @@ namespace qoala::analysis {
             SCIPaddVar(scip, v);
             return v;
         }
+
+        BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
+                                                      const llvm::StringMap<MILPBlock *> &idToBlockMap);
     } // namespace reordering
 } // namespace qoala::analysis
 

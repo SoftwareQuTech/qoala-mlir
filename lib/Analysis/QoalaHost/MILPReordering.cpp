@@ -175,7 +175,8 @@ namespace qoala::analysis::reordering {
     }
 
     static std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
-                      BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, LogicalResult>
+                      BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>,
+                      llvm::StringMap<MILPBlock *>, LogicalResult>
     buildMilpBlocks(qoalahost::MainFuncOp mainFunc, const llvm::StringMap<Operation *> &routineMap) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         BlockPrecedenceList precedences;
@@ -318,7 +319,7 @@ namespace qoala::analysis::reordering {
             return WalkResult::advance();
         });
 
-        return {blocks, opToMilpOp, precedences, unresolvedEdges, status};
+        return {blocks, opToMilpOp, precedences, unresolvedEdges, idToBlockMap, status};
     }
 
     static std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
@@ -476,7 +477,7 @@ namespace qoala::analysis::reordering {
     }
 
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>, BlockPrecedenceList,
-               LogicalResult>
+               llvm::StringMap<MILPBlock *>, LogicalResult>
     buildMILPFromMLIR(ModuleOp moduleOp) {
         // Constructs an intermediate MILP model from a given QoalaHost IR module.
         // This function performs a multi-pass traversal over the input MLIR module to
@@ -506,21 +507,22 @@ namespace qoala::analysis::reordering {
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
-            return {{}, {}, {}, failure()};
+            return {{}, {}, {}, {}, failure()};
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
         llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
 
-        auto [blocks, opToMilpOp, precedences, unresolvedEdges, blocksStatus] = buildMilpBlocks(mainFunc, routineMap);
+        auto [blocks, opToMilpOp, precedences, unresolvedEdges, idToBlockMap, blocksStatus] =
+                buildMilpBlocks(mainFunc, routineMap);
         if (failed(blocksStatus)) {
-            return {{}, {}, {}, failure()};
+            return {{}, {}, {}, {}, failure()};
         }
 
         // Fail if unresolved edges remain
         if (!unresolvedEdges.empty()) {
             emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
-            return {{}, {}, {}, failure()};
+            return {{}, {}, {}, {}, failure()};
         }
 
         LLVM_DEBUG({
@@ -550,7 +552,7 @@ namespace qoala::analysis::reordering {
 
         auto [qubitToOps, collStatus] = collectQubitUsage(mainFunc, moduleOp);
         if (failed(collStatus)) {
-            return {{}, {}, {}, failure()};
+            return {{}, {}, {}, {}, failure()};
         }
 
         LLVM_DEBUG({
@@ -574,7 +576,7 @@ namespace qoala::analysis::reordering {
             }
         });
 
-        return {blocks, qubits, precedences, success()};
+        return {blocks, qubits, precedences, idToBlockMap, success()};
     }
 
     bool MILPBlockOrderModel::initialize() {
@@ -985,5 +987,28 @@ namespace qoala::analysis::reordering {
         } // Moves to the end of the block list
 
         return success();
+    }
+
+    BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
+                                                  const llvm::StringMap<MILPBlock *> &idToBlockMap) {
+
+        BlockPrecedenceList result;
+
+        for (size_t i = 0; i + 1 < orderedBlockIds.size(); ++i) {
+            llvm::StringRef fromId = orderedBlockIds[i];
+            llvm::StringRef toId = orderedBlockIds[i + 1];
+
+            auto fromIt = idToBlockMap.find(fromId);
+            auto toIt = idToBlockMap.find(toId);
+
+            if (fromIt == idToBlockMap.end() || toIt == idToBlockMap.end()) {
+                llvm::errs() << "Warning: Missing block in map for precedence: " << fromId << " or " << toId << "\n";
+                continue;
+            }
+
+            result.emplace_back(fromIt->second, toIt->second);
+        }
+
+        return result;
     }
 } // namespace qoala::analysis::reordering
