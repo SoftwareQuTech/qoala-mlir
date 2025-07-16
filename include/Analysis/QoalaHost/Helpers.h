@@ -259,7 +259,7 @@ namespace qoala::analysis {
             // Retrieve start time for a specific operation (by ID)
             virtual double getOperationStartTime(const std::string &opId) const;
 
-            virtual std::vector<std::string> getOrderedBlocks();
+            virtual std::vector<std::string> getOrderedBlocks() const;
 
             virtual bool checkSolverStatus(mlir::ModuleOp *op = nullptr);
 
@@ -316,6 +316,8 @@ namespace qoala::analysis {
 
             void setObjective() override;
 
+            std::pair<std::unordered_map<std::string, int>, std::string> computeBlockDeadlines() const;
+
         private:
             std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
 
@@ -350,6 +352,9 @@ namespace qoala::analysis {
 
         BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
                                                       const llvm::StringMap<MILPBlock *> &idToBlockMap);
+
+        void annotateBlockDeadlines(mlir::ModuleOp module, const std::unordered_map<std::string, int> &deadlines,
+                                    const std::string &refBlockId);
     } // namespace reordering
 } // namespace qoala::analysis
 

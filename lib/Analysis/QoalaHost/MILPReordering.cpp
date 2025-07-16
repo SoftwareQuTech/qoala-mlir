@@ -928,7 +928,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    std::vector<std::string> MILPModelBuilder::getOrderedBlocks() {
+    std::vector<std::string> MILPModelBuilder::getOrderedBlocks() const {
         // Returns a list of block IDs ordered by their start times as determined by the MILP solution.
         // This function computes the start and end time for each block based on the first and last operations
         // in the block, using the MILP solver's solution. The list of blocks is then sorted by their start times.
@@ -1220,4 +1220,107 @@ namespace qoala::analysis::reordering {
         }
     }
 
+    std::pair<std::unordered_map<std::string, int>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
+        std::unordered_map<std::string, int> deadlines;
+
+        std::vector<std::string> ordered = getOrderedBlocks();
+        if (ordered.empty()) {
+            return {deadlines, ""};
+        }
+
+        // Reference block is the first in the ordered list
+        const std::string &refBlockId = ordered.front();
+        const MILPBlock *refBlock = nullptr;
+
+        for (const auto &blk : blocks_) {
+            if (blk->getId() == refBlockId) {
+                refBlock = blk.get();
+                break;
+            }
+        }
+
+        if (!refBlock || refBlock->getOperations().empty()) {
+            return {deadlines, ""};
+        }
+
+        const auto &refOps = refBlock->getOperations();
+        const MILPOperation *lastRefOp = refOps.back().get();
+        double refEnd = getOperationStartTime(lastRefOp->getId()) + lastRefOp->getDuration();
+
+        int lastValidDeadline = 0; // Initial baseline
+
+        for (size_t i = 1; i < ordered.size(); ++i) {
+            const std::string &blkId = ordered[i];
+
+            const MILPBlock *blk = nullptr;
+            for (const auto &b : blocks_) {
+                if (b->getId() == blkId) {
+                    blk = b.get();
+                    break;
+                }
+            }
+
+            if (!blk || blk->getOperations().empty()) {
+                continue;
+            }
+
+            const auto *startOp = blk->getOperations().front().get();
+            double startTime = getOperationStartTime(startOp->getId());
+            int deadline = static_cast<int>(std::round(startTime - refEnd));
+
+            // Correct negative deadline by using last valid + 1
+            if (deadline < 0) {
+                deadline = lastValidDeadline + 1;
+            }
+
+            deadlines[blkId] = deadline;
+            lastValidDeadline = deadline;
+        }
+
+        LLVM_DEBUG({
+            llvm::dbgs() << "Reference block id: " << refBlockId << "\n";
+            for (const auto &[blkId, deadline] : deadlines) {
+                llvm::dbgs() << "[DeadlineModel] Deadline for block " << blkId << ": " << deadline << "\n";
+            }
+        });
+
+        return {deadlines, refBlockId};
+    }
+
+    void annotateBlockDeadlines(mlir::ModuleOp moduleOp, const std::unordered_map<std::string, int> &deadlines,
+                                const std::string &refBlockId) {
+        LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Annoatating BlkMeta operations...\n");
+
+        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        if (mainFuncs.empty()) {
+            emitError(moduleOp.getLoc(), "No main function found in module");
+            return;
+        }
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        mainFunc.walk([&](qoalahost::BlkMeta blkMeta) {
+            std::string blkId = blkMeta.getBlockId().str();
+
+            if (blkId == refBlockId) {
+                return; // No deadline for the reference block
+            }
+
+            auto it = deadlines.find(blkId);
+            if (it == deadlines.end()) {
+                LLVM_DEBUG(llvm::dbgs() << "[DeadlineModel] No deadline found for block " << blkId << "\n");
+                return;
+            }
+
+            int deadline = it->second;
+
+            LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Block ID: " << blkId << ", deadline: " << deadline << "\n");
+
+            auto ctx = blkMeta->getContext();
+            auto deadlineAttr = mlir::IntegerAttr::get(mlir::IntegerType::get(ctx, 64), deadline);
+            auto dictAttr = mlir::DictionaryAttr::get(
+                    ctx, {mlir::NamedAttribute(mlir::StringAttr::get(ctx, refBlockId), deadlineAttr)});
+            blkMeta.setDeadlinesAttr(dictAttr);
+
+            return;
+        });
+    }
 } // namespace qoala::analysis::reordering

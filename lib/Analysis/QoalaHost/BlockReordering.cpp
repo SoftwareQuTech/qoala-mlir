@@ -81,9 +81,11 @@ namespace qoala::analysis {
                 signalPassFailure();
             }
 
-            std::vector<std::string> deadlinesOrderedBlockIds = model.getOrderedBlocks();
+            auto [deadlines, refBlockId] = model.computeBlockDeadlines();
 
             model.cleanup();
+
+            reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
         }
 
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
