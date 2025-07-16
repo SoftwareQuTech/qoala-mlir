@@ -27,7 +27,7 @@ namespace qoala::analysis {
                                 << "ns, latency=" << qoalaOptLatency << "ns, link_duration=" << qoalaOptLinkDuration
                                 << "ns, host_instr_time=" << qoalaOptHostInstrTime << "ns, host_peer_latency="
                                 << qoalaOptHostPeerLatency << "ns, qnos_instr_time=" << qoalaOptQNosInstrTime
-                                << "ns, qubitf_lifetime=" << qoalaOptQubitLifetime
+                                << "ns, qubits_lifetime=" << qoalaOptQubitLifetime
                                 << "ns, with-deadlines=" << this->withDeadlines << "\n");
 
         ModuleOp moduleOp = this->getOperation();
@@ -58,7 +58,8 @@ namespace qoala::analysis {
         model.cleanup();
 
         if (this->withDeadlines) {
-            reordering::BlockPrecedenceList precedences = createPrecedenceFromOrder(orderedBlockIds, idToBlockMap);
+            reordering::BlockPrecedenceList deadlinesPrecedences =
+                    createPrecedenceFromOrder(orderedBlockIds, idToBlockMap);
 
             reordering::MILPBlockDeadlineModel model;
             if (!model.initialize()) {
@@ -66,8 +67,7 @@ namespace qoala::analysis {
                 signalPassFailure();
             }
 
-            model.setProblemData(blocks, qubits, precedences);
-            model.setProblemData(blocks, qubits, precedences);
+            model.setProblemData(blocks, qubits, deadlinesPrecedences);
             model.createVariables();
             model.addConstraints();
             model.setObjective();
@@ -76,6 +76,12 @@ namespace qoala::analysis {
                 moduleOp.emitError("MILP solve failed.");
                 signalPassFailure();
             }
+
+            if (!model.checkSolverStatus(&moduleOp)) {
+                signalPassFailure();
+            }
+
+            std::vector<std::string> deadlinesOrderedBlockIds = model.getOrderedBlocks();
 
             model.cleanup();
         }

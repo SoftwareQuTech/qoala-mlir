@@ -259,6 +259,10 @@ namespace qoala::analysis {
             // Retrieve start time for a specific operation (by ID)
             virtual double getOperationStartTime(const std::string &opId) const;
 
+            virtual std::vector<std::string> getOrderedBlocks();
+
+            virtual bool checkSolverStatus(mlir::ModuleOp *op = nullptr);
+
         protected:
             std::vector<std::shared_ptr<MILPBlock>> blocks_;
             std::vector<std::shared_ptr<MILPQubit>> qubits_;
@@ -285,8 +289,6 @@ namespace qoala::analysis {
 
             void setObjective() override;
 
-            std::vector<std::string> getOrderedBlocks();
-
         private:
             // Specific constraints
             void addIntraTaskOrderingConstraints();
@@ -304,7 +306,7 @@ namespace qoala::analysis {
 
             void createVariables() override;
 
-            void addConstraints() {
+            void addConstraints() override {
                 addIntraTaskSequencingConstraints();
                 addIntraBlockSequencingConstraints();
                 addBlockPrecedenceConstraints();
@@ -345,14 +347,6 @@ namespace qoala::analysis {
          */
         mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp,
                                                      const std::vector<std::string> &orderedBlockIds);
-
-        inline SCIP_VAR *createVariable(SCIP *scip, const std::string &name, bool strictlyPositive) {
-            double lb = strictlyPositive ? 1.0 : 0.0;
-            SCIP_VAR *v = nullptr;
-            SCIPcreateVarBasic(scip, &v, name.c_str(), lb, SCIPinfinity(scip), 0.0, SCIP_VARTYPE_INTEGER);
-            SCIPaddVar(scip, v);
-            return v;
-        }
 
         BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
                                                       const llvm::StringMap<MILPBlock *> &idToBlockMap);

@@ -117,7 +117,7 @@ namespace qoala::analysis::reordering {
 
                     std::string nopId = blkId + "::" + std::to_string(opIdx++);
                     std::unique_ptr<MILPOperation> milpNop =
-                            std::make_unique<MILPOperation>(nopId, blkType, durationOp.getDuration());
+                            std::make_unique<MILPOperation>(nopId, blkType, nop.getDuration());
                     milpNop->setOperation(nop.getOperation());
                     MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
                     opToMilpOp[nop.getOperation()] = rawNop;
@@ -579,6 +579,44 @@ namespace qoala::analysis::reordering {
         return {blocks, qubits, precedences, idToBlockMap, success()};
     }
 
+    static inline SCIP_VAR *createVariable(SCIP *scip, const std::string &name, bool strictlyPositive) {
+        double lb = strictlyPositive ? 1.0 : 0.0;
+        SCIP_VAR *v = nullptr;
+        SCIPcreateVarBasic(scip, &v, name.c_str(), lb, SCIPinfinity(scip), 0.0, SCIP_VARTYPE_INTEGER);
+        SCIPaddVar(scip, v);
+        return v;
+    }
+
+    bool MILPModelBuilder::checkSolverStatus(ModuleOp *op) {
+        SCIP_STATUS status = SCIPgetStatus(scip_);
+
+        switch (status) {
+            case SCIP_STATUS_OPTIMAL:
+                llvm::outs() << "[SCIP] Optimal solution found.\n";
+                return true;
+            case SCIP_STATUS_INFEASIBLE:
+                if (op) {
+                    op->emitError("MILP infeasible — check constraints.");
+                }
+                return false;
+            case SCIP_STATUS_UNBOUNDED:
+                if (op) {
+                    op->emitError("MILP problem is unbounded.");
+                }
+                return false;
+            case SCIP_STATUS_UNKNOWN:
+                if (op) {
+                    op->emitError("MILP solver status is unknown.");
+                }
+                return false;
+            default:
+                if (op) {
+                    op->emitError("MILP solver returned status code: " + llvm::Twine(status));
+                }
+                return false;
+        }
+    }
+
     bool MILPModelBuilder::initialize() {
         if (SCIPcreate(&scip_) != SCIP_OKAY) {
             return false;
@@ -890,7 +928,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    std::vector<std::string> MILPBlockOrderModel::getOrderedBlocks() {
+    std::vector<std::string> MILPModelBuilder::getOrderedBlocks() {
         // Returns a list of block IDs ordered by their start times as determined by the MILP solution.
         // This function computes the start and end time for each block based on the first and last operations
         // in the block, using the MILP solver's solution. The list of blocks is then sorted by their start times.
@@ -1068,9 +1106,11 @@ namespace qoala::analysis::reordering {
                 MILPOperation *first2 = t2->getOperations().front();
                 int dur1 = last1->getDuration();
 
-                SCIP_CONS *c;
                 std::string name = "intra_block_" + blk->getId() + "_" + std::to_string(i);
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur1, SCIPinfinity(scip_));
+                SCIP_CONS *c;
+
+                // Enforce strict equality: LHS == RHS == dur1
+                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur1, dur1);
                 SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[last1->getId()], -1.0);
                 SCIPaddCons(scip_, c);
@@ -1100,26 +1140,30 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addFCFSConsistencyConstraints() {
-        const size_t N = blocks_.size();
-        for (size_t i = 0; i + 1 < N; ++i) {
-            const auto &b1 = blocks_[i];
-            const auto &b2 = blocks_[i + 1];
-
+        for (const auto &[b1, b2] : precedences_) {
             const auto &t1 = b1->getTasks();
             const auto &t2 = b2->getTasks();
 
-            std::vector<int> indices =
-                    (t1.size() == 3 && t2.size() == 3) ? std::vector<int>{0, 1, 2} : std::vector<int>{0};
+            std::vector<size_t> indices =
+                    (t1.size() == 3 && t2.size() == 3) ? std::vector<size_t>{0, 1, 2} : std::vector<size_t>{0};
+
             for (int k : indices) {
+                if (k >= t1.size() || k >= t2.size()) {
+                    llvm::errs() << "Warning: FCFS index out of range in blocks " << b1->getId() << " or "
+                                 << b2->getId() << " at k=" << k << "\n";
+                    continue;
+                }
+
                 MILPOperation *o1 = t1[k]->getOperations().front();
                 MILPOperation *o2 = t2[k]->getOperations().front();
+
                 int dur = 0;
                 for (MILPOperation *op : t1[k]->getOperations()) {
                     dur += op->getDuration();
                 }
 
-                SCIP_CONS *c;
                 std::string name = "fcfs_" + b1->getId() + "_" + b2->getId() + "_" + std::to_string(k);
+                SCIP_CONS *c;
                 SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
                 SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -1132,26 +1176,47 @@ namespace qoala::analysis::reordering {
     void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
         for (const auto &q : qubits_) {
             const std::string &id = q->getId();
-            auto *alloc = q->getAllocation();
-            auto *meas = q->getMeasurement();
+            MILPOperation *alloc = q->getAllocation();
+            MILPOperation *meas = q->getMeasurement();
+
             if (!(alloc && meas)) {
+                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing alloc or meas operation.\n");
                 continue;
             }
 
+            // Durations of allocation and measurement
             int allocDur = alloc->getDuration();
             int measDur = meas->getDuration();
-
             int Lmax = qoalaOptQubitLifetime;
 
-            SCIP_CONS *c;
-            std::string name = "lifetime_" + id;
-            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_),
-                                      Lmax - allocDur);
-            SCIPaddCoefLinear(scip_, c, startVars_[meas->getId()], 1.0);
-            SCIPaddCoefLinear(scip_, c, startVars_[alloc->getId()], -1.0);
-            SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
-            SCIPaddCons(scip_, c);
-            SCIPreleaseCons(scip_, &c);
+            // Compute RHS based on definition:
+            // delta_q = Lmax - [(measStart + measDur) - (allocStart + allocDur)]
+            //        = Lmax - measDur + allocDur - (measStart - allocStart)
+            // So the constraint becomes:
+            // (measStart - allocStart) + delta_q <= Lmax - measDur + allocDur
+            int rhs = Lmax - measDur + allocDur;
+
+            // Lifetime constraint
+            {
+                SCIP_CONS *c;
+                std::string name = "lifetime_" + id;
+                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
+                SCIPaddCoefLinear(scip_, c, startVars_[meas->getId()], 1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_[alloc->getId()], -1.0);
+                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+
+            // Non-negativity constraint: delta_q >= 0
+            {
+                SCIP_CONS *c;
+                std::string name = "delta_nonneg_" + id;
+                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
+                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
         }
     }
 
