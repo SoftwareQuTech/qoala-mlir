@@ -36,14 +36,14 @@ namespace qoala::analysis::reordering {
         }
 
         switch (blk->getType()) {
-            case OpType::CC:
+            case BlockType::CC:
                 if (ops.size() != 1) {
                     emitError(loc) << "MILPBlock of type CC should contain exactly one operation, but got "
                                    << ops.size();
                     return failure();
                 }
                 break;
-            case OpType::CL: {
+            case BlockType::CL: {
                 std::unique_ptr<MILPTask> task = std::make_unique<MILPTask>("0", blk, TaskGroup::C);
                 for (const std::unique_ptr<MILPOperation> &op : ops) {
                     task->addOperation(op.get());
@@ -52,8 +52,8 @@ namespace qoala::analysis::reordering {
                 blk->addTask(std::move(task));
                 break;
             }
-            case OpType::QL:
-            case OpType::QC: {
+            case BlockType::QL:
+            case BlockType::QC: {
                 if (ops.size() < 3) {
                     emitError(loc) << "QL/QC block must contain at least 3 operations to form 3 tasks";
                     return failure();
@@ -78,7 +78,7 @@ namespace qoala::analysis::reordering {
         return success();
     }
 
-    static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, OpType blkType,
+    static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, BlockType blkType,
                                              int &opIdx, const llvm::StringMap<Operation *> &routineMap,
                                              mlir::Block *callerBlock, MILPBlock *blk,
                                              std::unordered_map<mlir::Operation *, MILPOperation *> &opToMilpOp) {
@@ -221,13 +221,13 @@ namespace qoala::analysis::reordering {
             Block::iterator firstIt = std::next(block->begin());
             Operation *firstOp = &*firstIt;
             LLVM_DEBUG(llvm::dbgs() << *firstOp << "\n");
-            OpType blkType;
+            BlockType blkType;
             if (auto ifaceFirstOp = dyn_cast<helpers::QuantumOpInterface>(firstOp)) {
                 blkType = ifaceFirstOp.getBlockType(routineMap);
             } else {
                 // This was a weird behavior; if the operation cannot be casted (e.g. null),
                 // we assume CL type
-                blkType = OpType::CL;
+                blkType = BlockType::CL;
             }
 
             // Create new MILPBlock object and associate with block ID and type
@@ -249,7 +249,7 @@ namespace qoala::analysis::reordering {
                 }
 
                 // Stop early if we reach a return/nop_term in a classical block
-                if (blkType == OpType::CL && llvm::isa<qoalahost::NopTOp>(op)) {
+                if (blkType == BlockType::CL && llvm::isa<qoalahost::NopTOp>(op)) {
                     break;
                 }
 
@@ -266,7 +266,7 @@ namespace qoala::analysis::reordering {
                     // - Inline body of the called routine
                     // - Track operations
                     // - Add a qoalahost.nop at the end to model post-task transition
-                    if (blkType == OpType::QL || blkType == OpType::QC) {
+                    if (blkType == BlockType::QL || blkType == BlockType::QC) {
                         if (auto callOp = llvm::dyn_cast<qoalahost::CallOp>(op)) {
                             if (failed(inlineCallIntoBlock(callOp, blkId, blkType, opIdx, routineMap,
                                                            block, // callerBlock
@@ -280,7 +280,7 @@ namespace qoala::analysis::reordering {
                 }
 
                 // CC blocks contain a single communication operation only
-                if (blkType == OpType::CC) {
+                if (blkType == BlockType::CC) {
                     break;
                 }
             }
@@ -825,7 +825,7 @@ namespace qoala::analysis::reordering {
         //      start(t3) ≥ start(t2) + dur(t2)
 
         for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
-            if (blk->getType() != OpType::QL && blk->getType() != OpType::QC) {
+            if (blk->getType() != BlockType::QL && blk->getType() != BlockType::QC) {
                 continue;
             }
             const std::vector<std::unique_ptr<MILPTask>> &tasks = blk->getTasks();

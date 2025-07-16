@@ -191,36 +191,36 @@ int qoalahost::RecvFloatsOp::getDuration() {
     return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
 }
 
-OpType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return OpType::CC;
+BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
 }
 
-OpType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return OpType::CC;
+BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
 }
 
-OpType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return OpType::CC;
+BlockType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
 }
 
-OpType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return OpType::CC;
+BlockType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
 }
 
-OpType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+BlockType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     const StringRef symName = this->getCallee();
     Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
     if (!callee) {
-        return OpType::CL;
+        return BlockType::CL;
     }
 
     if (isa<netqasm::RequestRoutineOp>(callee)) {
-        return OpType::QC;
+        return BlockType::QC;
     }
     if (isa<netqasm::LocalRoutineOp>(callee)) {
-        return OpType::QL;
+        return BlockType::QL;
     }
-    return OpType::CL;
+    return BlockType::CL;
 }
 
 /* Helper functions from the QoalaHostDialect class */
