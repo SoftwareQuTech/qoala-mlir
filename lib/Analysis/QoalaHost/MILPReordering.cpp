@@ -104,7 +104,7 @@ namespace qoala::analysis::reordering {
             std::string subId = blkId + "::" + std::to_string(opIdx++);
             if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(innerOp)) {
                 std::unique_ptr<MILPOperation> milpSub =
-                        std::make_unique<MILPOperation>(subId, blkType, durationOp.getDuration());
+                        std::make_unique<MILPOperation>(subId, durationOp.getDuration());
                 milpSub->setOperation(innerOp);
                 MILPOperation *raw = blk->addOperation(std::move(milpSub));
                 opToMilpOp[innerOp] = raw;
@@ -116,8 +116,7 @@ namespace qoala::analysis::reordering {
                     qoalahost::NopOp nop = builder.create<qoalahost::NopOp>(innerOp->getLoc());
 
                     std::string nopId = blkId + "::" + std::to_string(opIdx++);
-                    std::unique_ptr<MILPOperation> milpNop =
-                            std::make_unique<MILPOperation>(nopId, blkType, nop.getDuration());
+                    std::unique_ptr<MILPOperation> milpNop = std::make_unique<MILPOperation>(nopId, nop.getDuration());
                     milpNop->setOperation(nop.getOperation());
                     MILPOperation *rawNop = blk->addOperation(std::move(milpNop));
                     opToMilpOp[nop.getOperation()] = rawNop;
@@ -258,7 +257,7 @@ namespace qoala::analysis::reordering {
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
                 if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(&op)) {
                     std::unique_ptr<MILPOperation> milpOp =
-                            std::make_unique<MILPOperation>(opId, blkType, durationOp.getDuration());
+                            std::make_unique<MILPOperation>(opId, durationOp.getDuration());
                     milpOp->setOperation(&op);
                     MILPOperation *raw = blk->addOperation(std::move(milpOp));
                     opToMilpOp[&op] = raw;
