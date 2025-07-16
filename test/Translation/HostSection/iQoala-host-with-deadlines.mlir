@@ -57,10 +57,10 @@ module {
     %cst = arith.constant 0 : i1
     qoalahost.nop_term
   ^bb1:
-    qoalahost.blk_meta  {block_id = "block_1", deadlines = {"block_0" = 100 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_1", deadlines = {block_0 = 100 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", deadlines = {"block_0" = 500 : i64, "block_1" = 300 : i64}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_0 = 500 : i64, block_1 = 300 : i64}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
   ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
