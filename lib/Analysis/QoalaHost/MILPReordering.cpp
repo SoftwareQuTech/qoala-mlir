@@ -1047,6 +1047,13 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::createVariables() {
+        // Creates MILP variables for all operation start times and per-qubit lifetime slack.
+        // For each operation:
+        //    - Define start time variable s_op \in R (can be 0 or greater).
+        // For each qubit:
+        //    - Define delta_q \in R to model slack in its lifetime constraint.
+        // These variables will be used in constraints and objective.
+
         for (const auto &blk : blocks_) {
             for (const auto &op : blk->getOperations()) {
                 const std::string &id = op->getId();
@@ -1065,6 +1072,12 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::setObjective() {
+        // Sets the objective: minimize total lifetime slack across all qubits.
+        // For each qubit q:
+        //    - delta_q represents how much extra time (beyond physical limit) q's usage might be stretched.
+        //    - Objective is: min \sum_q delta_q
+        // This encourages schedules to stay within lifetime bounds or minimize violations.
+
         SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
         for (const auto &q : qubits_) {
             const std::string &id = q->getId();
@@ -1075,6 +1088,12 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addIntraTaskSequencingConstraints() {
+        // Enforces strict sequential execution of operations within each task.
+        // For each task and each consecutive operation pair (o1, o2):
+        //    - start(o2) = start(o1) + dur(o1)
+        // This is encoded as a linear equality constraint:
+        //    - start(o2) - start(o1) = dur(o1)
+
         for (const auto &blk : blocks_) {
             for (const auto &t : blk->getTasks()) {
                 const auto &ops = t->getOperations();
@@ -1096,6 +1115,12 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addIntraBlockSequencingConstraints() {
+        // Enforces strict execution order of tasks within each block.
+        // For each consecutive task pair (t1, t2) in a block:
+        //    - start(first_op(t2)) = start(last_op(t1)) + dur(last_op(t1))
+        // Ensures task2 starts exactly after task1 ends.
+        // Encoded as equality: start2 - start1 = dur
+
         for (const auto &blk : blocks_) {
             const auto &tasks = blk->getTasks();
             for (size_t i = 0; i + 1 < tasks.size(); ++i) {
@@ -1119,6 +1144,12 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addBlockPrecedenceConstraints() {
+        // Enforces global block-level precedence constraints.
+        // For each edge (pred -> succ) in the dependency graph:
+        //    - start(first_op(succ)) => start(last_op(pred)) + dur(last_op(pred))
+        // This guarantees causal order between blocks.
+        // Encoded as a linear inequality with a lower bound.
+
         for (const auto &e : precedences_) {
             const MILPBlock *pred = e.first;
             const MILPBlock *succ = e.second;
@@ -1139,6 +1170,13 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addFCFSConsistencyConstraints() {
+        // Adds First-Come-First-Served (FCFS) consistency constraints for blocks with known order.
+        // For each precedence pair (b1 -> b2), and for each task index k:
+        //    - Ensure: start(o2) => start(o1) + total_dur(t1[k])
+        //      where o1/o2 are first operations of tasks in position k of b1 and b2.
+        // Applied when both blocks are of matching quantum structure (3 tasks) or single-task classical blocks.
+        // This helps preserve expected temporal consistency when reordering blocks
+
         for (const auto &[b1, b2] : precedences_) {
             const auto &t1 = b1->getTasks();
             const auto &t2 = b2->getTasks();
@@ -1173,6 +1211,15 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
+        // Constrains each qubit's lifetime to stay within a configured bound (Lmax).
+        // For each qubit q with alloc and meas ops:
+        //    - Define: delta_q = extra slack needed to stay within Lmax
+        //    - Enforce:
+        //        (start(meas) - start(alloc)) + delta_q ≤ Lmax - measDur + allocDur
+        //      -> This models total usage span of the qubit.
+        //    - Also enforce: delta_q => 0 (non-negativity constraint)
+        // This ensures qubits are used only within feasible or near-feasible time windows.
+
         for (const auto &q : qubits_) {
             const std::string &id = q->getId();
             MILPOperation *alloc = q->getAllocation();
@@ -1188,11 +1235,6 @@ namespace qoala::analysis::reordering {
             int measDur = meas->getDuration();
             int Lmax = qoalaOptQubitLifetime;
 
-            // Compute RHS based on definition:
-            // delta_q = Lmax - [(measStart + measDur) - (allocStart + allocDur)]
-            //        = Lmax - measDur + allocDur - (measStart - allocStart)
-            // So the constraint becomes:
-            // (measStart - allocStart) + delta_q <= Lmax - measDur + allocDur
             int rhs = Lmax - measDur + allocDur;
 
             // Lifetime constraint
@@ -1220,6 +1262,31 @@ namespace qoala::analysis::reordering {
     }
 
     std::pair<std::unordered_map<std::string, int>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
+        // Computes relative deadlines for each block based on their actual scheduled start times.
+        // The deadlines represent how many time units after the end of the reference block each block should begin.
+        // Steps:
+        //   1. Retrieve the topologically ordered list of blocks.
+        //   2. Choose the *reference block* (first in the list), and calculate its end time.
+        //   3. For every other block:
+        //       - Calculate its start time relative to the reference block's end.
+        //       - If that would result in a negative deadline (i.e., block starts before the reference finishes),
+        //         assign a deadline just after the last valid one (to avoid non-monotonicity).
+        //   4. Return the mapping: block ID -> deadline offset, and the ID of the reference block.
+        // These deadlines are later used to annotate MLIR `BlkMeta` operations with scheduling guidance.
+        //
+        // NOTE: In cases where the final blocks in the schedule are purely classical
+        // (e.g., containing only Send or non-qubit operations), these blocks do
+        // not influence any qubit lifetimes. As a result, the MILP objective
+        // (which minimizes total qubit usage) does not constrain their timing.
+        // Consequently, such blocks may be scheduled at arbitrarily large times,
+        // To avoid this unbounded behavior, we currently assign fallback deadlines
+        // of the form:
+        //     deadline_b = deadline_{b-1} + 1
+        // for any block whose computed start time falls before the reference point.
+        // This is a heuristic workaround to enforce execution order and avoid
+        // timeline drift, especially in late, unconstrained blocks.
+        // This mechanism is temporary and should be reviewed or replaced in #93.
+
         std::unordered_map<std::string, int> deadlines;
 
         std::vector<std::string> ordered = getOrderedBlocks();
@@ -1288,6 +1355,17 @@ namespace qoala::analysis::reordering {
 
     void annotateBlockDeadlines(mlir::ModuleOp moduleOp, const std::unordered_map<std::string, int> &deadlines,
                                 const std::string &refBlockId) {
+        // Annotates MLIR `BlkMeta` operations with computed block deadlines.
+        // Parameters:
+        //   - moduleOp: the MLIR module containing the program
+        //   - deadlines: mapping from block ID to its relative deadline
+        //   - refBlockId: the reference block, which has no deadline
+        // For each `BlkMeta` in the main function:
+        //   - If it matches a known block ID and isn't the reference block:
+        //       - Add a new dictionary attribute: { refBlockId: deadline }
+        //         This indicates the number of time units after the reference block's completion
+        //         that this block is expected to begin.
+
         LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Annoatating BlkMeta operations...\n");
 
         auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();

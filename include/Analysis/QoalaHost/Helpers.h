@@ -346,9 +346,24 @@ namespace qoala::analysis {
         mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp,
                                                      const std::vector<std::string> &orderedBlockIds);
 
+        /**
+         * Creates a precedence list (as block pairs) from a specified linear order of block IDs.
+         * For each adjacent pair in the ordered list, creates a precedence edge (A -> B).
+         * @param orderedBlockIds Vector of block IDs in desired execution order.
+         * @param idToBlockMap Map from block IDs to MILPBlock pointers.
+         * @returns A list of block precedence edges as (source, target) pairs.
+         */
         BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
                                                       const llvm::StringMap<MILPBlock *> &idToBlockMap);
 
+        /**
+         * Annotates each `qoalahost.blk_meta` operation in the module with deadline information.
+         * Deadlines are relative to a reference block and stored in the `deadlines` attribute
+         * as a dictionary mapping block ID to an integer value.
+         * @param module The MLIR module containing blk_meta operations.
+         * @param deadlines Map from block ID to computed deadline (as int).
+         * @param refBlockId The block ID that serves as the reference (time 0).
+         */
         void annotateBlockDeadlines(mlir::ModuleOp module, const std::unordered_map<std::string, int> &deadlines,
                                     const std::string &refBlockId);
     } // namespace reordering
