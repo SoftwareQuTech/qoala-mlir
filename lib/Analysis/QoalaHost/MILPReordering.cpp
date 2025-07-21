@@ -1181,10 +1181,10 @@ namespace qoala::analysis::reordering {
             const auto &t1 = b1->getTasks();
             const auto &t2 = b2->getTasks();
 
-            std::vector<size_t> indices =
-                    (t1.size() == 3 && t2.size() == 3) ? std::vector<size_t>{0, 1, 2} : std::vector<size_t>{0};
+            std::vector<uint32_t> indices =
+                    (t1.size() == 3 && t2.size() == 3) ? std::vector<uint32_t>{0, 1, 2} : std::vector<uint32_t>{0};
 
-            for (int k : indices) {
+            for (uint32_t k : indices) {
                 if (k >= t1.size() || k >= t2.size()) {
                     llvm::errs() << "Warning: FCFS index out of range in blocks " << b1->getId() << " or "
                                  << b2->getId() << " at k=" << k << "\n";
