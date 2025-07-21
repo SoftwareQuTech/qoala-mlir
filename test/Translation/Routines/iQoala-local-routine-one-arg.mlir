@@ -5,9 +5,9 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META END
-// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = }
+// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
 
 //CHECK: SUBROUTINE __qoala_wrapper0
@@ -28,14 +28,14 @@ module {
     netqasm.return
   }
   qoalahost.main_func @test_local_routine_args() {
-    qoalahost.blk_meta  {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %cst = arith.constant 3 : i32
     qoalahost.nop_term
   ^bb1:
-    qoalahost.blk_meta  {block_id = "block_1", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @__qoala_wrapper0(%cst) : (i32) -> ()
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.return
   }
 }

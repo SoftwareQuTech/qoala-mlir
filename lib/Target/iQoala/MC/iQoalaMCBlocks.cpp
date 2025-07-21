@@ -57,12 +57,12 @@ namespace qoala::iqoala {
 
     void Block::print(raw_ostream &os) const {
         std::vector<std::string> predNames;
-        for (auto pred: this->predecessors) {
+        for (auto pred : this->predecessors) {
             predNames.push_back(pred->name);
         }
 
         std::vector<std::string> depNames;
-        for (auto dep: this->dependencies) {
+        for (auto dep : this->dependencies) {
             depNames.push_back(dep->name);
         }
 
@@ -78,10 +78,16 @@ namespace qoala::iqoala {
             prevEnt = prevEntBlk->name;
         }
 
+        std::unordered_map<std::string, int> deadlines;
+        for (const auto &pair : this->deadlines) {
+            deadlines[pair.first->name] = pair.second;
+        }
+
         os << "^" << this->name << " { type = " << this->type << "; predecessors = ["
            << helpers::formatVector(predNames) << "]; dependencies = [" << helpers::formatVector(depNames)
-           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "}:\n";
-        for (const assembly::QoalaHostMCInstr *instruction: this->instructions) {
+           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "; deadlines = ["
+           << helpers::formatUnorderedMap(deadlines) << "] }:\n";
+        for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }
     }

@@ -47,7 +47,7 @@ namespace qoala::analysis {
                                    const std::optional<OpCheck> extraCheck = std::nullopt) {
             auto mainFunction = llvm::dyn_cast<FuncOpTy>(&baseOp);
             assert(mainFunction && "Trying to isolate the operations on an operation "
-                    "that is not a qoalahost.main_func");
+                                   "that is not a qoalahost.main_func");
             mlir::SmallVector<mlir::Operation *> opsToIsolate;
 
             // To correctly isolate the op, we will simply "mark them", since modifying
@@ -86,6 +86,7 @@ namespace qoala::analysis {
             QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
             int getVirtualQubitCount() const { return virtualQubits; }
+
             int getPhysicalQubitCount() const { return physicalQubits; }
 
             float getEfficiency() const;
@@ -101,19 +102,16 @@ namespace qoala::analysis {
      * Used to analyze control/data dependencies and enable block reordering.
      */
     namespace reordering {
-        enum class OpType { CL, CC, QL, QC };
+        enum class BlockType { CL, CC, QL, QC };
 
         enum class TaskGroup { C, Q };
 
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(const std::string &id, OpType type, int duration): id_(id), type_(type), duration_(duration),
-                                                                             op_(nullptr) {}
+            MILPOperation(const std::string &id, int duration): id_(id), duration_(duration), op_(nullptr) { }
 
             const std::string &getId() const { return id_; }
-
-            OpType getType() const { return type_; }
 
             int getDuration() const { return duration_; }
 
@@ -123,7 +121,6 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
-            OpType type_;
             int duration_;
             mlir::Operation *op_;
         };
@@ -133,8 +130,8 @@ namespace qoala::analysis {
         // Class to represent a Task for the MILP model
         class MILPTask {
         public:
-            MILPTask(std::string id, MILPBlock *parent, const TaskGroup group): id_(id), parent_block_(parent),
-                group_(group) {}
+            MILPTask(std::string id, MILPBlock *parent, const TaskGroup group):
+                id_(id), parent_block_(parent), group_(group) { }
 
             const std::string &getId() const { return id_; }
 
@@ -164,11 +161,11 @@ namespace qoala::analysis {
         // Class to represent a block for the MILP model
         class MILPBlock {
         public:
-            MILPBlock(const std::string &id, OpType type): id_(id), type_(type), blk_(nullptr) {}
+            MILPBlock(const std::string &id, BlockType type): id_(id), type_(type), blk_(nullptr) { }
 
             const std::string &getId() const { return id_; }
 
-            OpType getType() const { return type_; }
+            BlockType getType() const { return type_; }
 
             MILPOperation *addOperation(std::unique_ptr<MILPOperation> op) {
                 MILPOperation *raw = op.get();
@@ -176,11 +173,11 @@ namespace qoala::analysis {
                 return raw;
             }
 
-            const std::vector<std::unique_ptr<MILPOperation> > &getOperations() const { return operations_; }
+            const std::vector<std::unique_ptr<MILPOperation>> &getOperations() const { return operations_; }
 
             void addTask(std::unique_ptr<MILPTask> task) { tasks_.push_back(std::move(task)); }
 
-            const std::vector<std::unique_ptr<MILPTask> > &getTasks() const { return tasks_; }
+            const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
 
             void setBlock(mlir::Block *block) { blk_ = block; }
 
@@ -192,16 +189,16 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
-            OpType type_;
-            std::vector<std::unique_ptr<MILPOperation> > operations_;
-            std::vector<std::unique_ptr<MILPTask> > tasks_;
+            BlockType type_;
+            std::vector<std::unique_ptr<MILPOperation>> operations_;
+            std::vector<std::unique_ptr<MILPTask>> tasks_;
             mlir::Block *blk_;
         };
 
         // Class to represent a qubit for the MILP model
         class MILPQubit {
         public:
-            MILPQubit(const std::string &id): id_(id), alloc_op_(nullptr), meas_op_(nullptr) {}
+            MILPQubit(const std::string &id): id_(id), alloc_op_(nullptr), meas_op_(nullptr) { }
 
             const std::string &getId() const { return id_; }
 
@@ -226,68 +223,108 @@ namespace qoala::analysis {
         // Encapsulates the SCIP MILP modeling process
         class MILPModelBuilder {
         public:
-            MILPModelBuilder(): scip_(nullptr) {}
+            virtual ~MILPModelBuilder() = default;
 
-            ~MILPModelBuilder() { cleanup(); }
+            // Initialize SCIP and prepare internal state
+            virtual bool initialize();
 
-            // Initialize SCIP and setup base model
-            bool initialize();
+            // Inject blocks, qubits and precedences
+            virtual void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
+                                        const std::vector<std::shared_ptr<MILPQubit>> &qubits,
+                                        const BlockPrecedenceList precedences) {
+                blocks_ = blocks;
+                qubits_ = qubits;
+                precedences_ = precedences;
+            };
 
-            // Inject blocks and qubits to be used in modeling
-            void setProblemData(const std::vector<std::shared_ptr<MILPBlock> > &blocks,
-                                const std::vector<std::shared_ptr<MILPQubit> > &qubits,
-                                const BlockPrecedenceList precedences);
+            // Create all SCIP variables
+            virtual void createVariables() = 0;
 
-            // Create SCIP variables for each operation
-            void createVariables();
+            // Add all model constraints
+            virtual void addConstraints() = 0;
 
-            // Add all constraints to the model
-            void addConstraints() {
+            // Optimize using SCIP
+            virtual bool optimize() { return (SCIPsolve(scip_) == SCIP_OKAY); };
+
+            // Free SCIP variables and memory
+            virtual void cleanup();
+
+            // Define the objective function (e.g., minimize total qubit lifetime)
+            virtual void setObjective() = 0;
+
+            // Retrieve start time for a specific operation (by ID)
+            virtual double getOperationStartTime(const std::string &opId) const;
+
+            virtual std::vector<std::string> getOrderedBlocks() const;
+
+            virtual bool checkSolverStatus(mlir::ModuleOp *op = nullptr);
+
+        protected:
+            std::vector<std::shared_ptr<MILPBlock>> blocks_;
+            std::vector<std::shared_ptr<MILPQubit>> qubits_;
+            BlockPrecedenceList precedences_;
+            std::unordered_map<std::string, SCIP_VAR *> startVars_;
+            SCIP *scip_ = nullptr;
+        };
+
+        class MILPBlockOrderModel : public MILPModelBuilder {
+        public:
+            MILPBlockOrderModel(): bigM_(0) { }
+
+            ~MILPBlockOrderModel() override { cleanup(); }
+
+            void createVariables() override;
+
+            void addConstraints() override {
                 // Call individual constraint-adding methods
                 addIntraTaskOrderingConstraints();
                 addBlockPrecedenceConstraints();
                 addFCFSTaskConstraints();
                 addIntraBlockSequencingConstraints();
-            }
+            };
 
-            // Add a single group of constraints (optional modular form)
-            void addIntraTaskOrderingConstraints();
-
-            void addBlockPrecedenceConstraints();
-
-            void addFCFSTaskConstraints();
-
-            void addIntraBlockSequencingConstraints();
-
-            // Define the objective function (e.g., minimize total qubit lifetime)
-            void setObjective();
-
-            // Run the solver
-            bool optimize();
-
-            // Retrieve start time for a specific operation (by ID)
-            double getOperationStartTime(const std::string &opId) const;
-
-            std::vector<std::string> getOrderedBlocks();
-
-            // Cleanup and destroy SCIP
-            void cleanup();
+            void setObjective() override;
 
         private:
-            SCIP *scip_; // main SCIP context
-            std::vector<std::shared_ptr<MILPBlock> > blocks_;
-            std::vector<std::shared_ptr<MILPQubit> > qubits_;
-            BlockPrecedenceList precedences_;
+            // Specific constraints
+            void addIntraTaskOrderingConstraints();
+            void addBlockPrecedenceConstraints();
+            void addFCFSTaskConstraints();
+            void addIntraBlockSequencingConstraints();
+
             int bigM_;
-
-            // Map from operation ID to SCIP variable
-            std::unordered_map<std::string, SCIP_VAR *> startVars_;
-
-            // Utility to create SCIP variable
-            SCIP_VAR *createVariable(const std::string &name, bool strictlyPositive);
         };
 
-        using Closure = std::set<std::pair<std::string, std::string> >;
+        class MILPBlockDeadlineModel : public MILPModelBuilder {
+        public:
+            MILPBlockDeadlineModel() = default;
+            ~MILPBlockDeadlineModel() override = default;
+
+            void createVariables() override;
+
+            void addConstraints() override {
+                addIntraTaskSequencingConstraints();
+                addIntraBlockSequencingConstraints();
+                addBlockPrecedenceConstraints();
+                addFCFSConsistencyConstraints();
+                addQubitLifetimeConstraints();
+            };
+
+            void setObjective() override;
+
+            std::pair<std::unordered_map<std::string, int>, std::string> computeBlockDeadlines() const;
+
+        private:
+            std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
+
+            void addIntraTaskSequencingConstraints();
+            void addIntraBlockSequencingConstraints();
+            void addBlockPrecedenceConstraints();
+            void addFCFSConsistencyConstraints();
+            void addQubitLifetimeConstraints();
+        };
+
+        using Closure = std::set<std::pair<std::string, std::string>>;
 
         /**
          * Constructs the MILP model from the given MLIR module. This includes building
@@ -296,8 +333,8 @@ namespace qoala::analysis {
          * @returns A tuple containing the constructed MILP blocks, qubits, precedence list,
          *          and a LogicalResult indicating success or failure.
          */
-        std::tuple<std::vector<std::shared_ptr<MILPBlock> >, std::vector<std::shared_ptr<MILPQubit> >,
-                   BlockPrecedenceList, mlir::LogicalResult>
+        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
+                   BlockPrecedenceList, llvm::StringMap<MILPBlock *>, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
 
         /**
@@ -308,6 +345,29 @@ namespace qoala::analysis {
          */
         mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp,
                                                      const std::vector<std::string> &orderedBlockIds);
+
+        /**
+         * Creates a precedence list (as block pairs) from a specified linear order of block IDs.
+         * For each adjacent pair in the ordered list, creates a precedence edge (A -> B).
+         * @param moduleOp The module to which the blocks belong to.
+         * @param orderedBlockIds Vector of block IDs in desired execution order.
+         * @param idToBlockMap Map from block IDs to MILPBlock pointers.
+         * @returns A list of block precedence edges as (source, target) pairs.
+         */
+        BlockPrecedenceList createPrecedenceFromOrder(mlir::ModuleOp *moduleOp,
+                                                      const std::vector<std::string> &orderedBlockIds,
+                                                      const llvm::StringMap<MILPBlock *> &idToBlockMap);
+
+        /**
+         * Annotates each `qoalahost.blk_meta` operation in the module with deadline information.
+         * Deadlines are relative to a reference block and stored in the `deadlines` attribute
+         * as a dictionary mapping block ID to an integer value.
+         * @param module The MLIR module containing blk_meta operations.
+         * @param deadlines Map from block ID to computed deadline (as int).
+         * @param refBlockId The block ID that serves as the reference (time 0).
+         */
+        void annotateBlockDeadlines(mlir::ModuleOp module, const std::unordered_map<std::string, int> &deadlines,
+                                    const std::string &refBlockId);
     } // namespace reordering
 } // namespace qoala::analysis
 

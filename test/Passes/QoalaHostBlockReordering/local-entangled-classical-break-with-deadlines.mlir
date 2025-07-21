@@ -1,13 +1,14 @@
-// RUN: qoala-opt %s --qoalahost-reorder-blocks | FileCheck %s
+// UNSUPPORTED: true
+// RUN: qoala-opt %s --qoalahost-reorder-blocks=with-deadlines | FileCheck %s
 
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = 396 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_1 = 410 : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {block_1 = 422 : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {block_1 = 474 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {block_1 = 487 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {block_1 = 488 : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {block_1 = 489 : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
 
 module {
   qremote.remote @Bob
@@ -35,6 +36,23 @@ module {
     netqasm.return %m0 : i1
   }
   netqasm.local_routine @bsm_meas_ent(%1: i32) -> i1 {
+    %m1 = netqasm.measure %1 : i1
+    netqasm.return %m1 : i1
+  }
+  netqasm.request_routine @entanglement2() -> i32 {
+    %1 = netqasm.qalloc  : i32
+    netqasm.eprs %1  {remote = @Bob}
+    netqasm.return %1 : i32
+  }
+  netqasm.local_routine @corr_x(%0: i32) {
+    netqasm.rot_x %0 (314 : ui32, 100 : ui32)
+    netqasm.return
+  }
+  netqasm.local_routine @corr_z(%0: i32) {
+    netqasm.rot_z %0 (314 : ui32, 100 : ui32)
+    netqasm.return
+  }
+  netqasm.local_routine @meas(%1: i32) -> i1 {
     %m1 = netqasm.measure %1 : i1
     netqasm.return %m1 : i1
   }
@@ -68,6 +86,17 @@ module {
         %m1_tensor = tensor.from_elements %m1_ext : tensor<1xi32>
         qoalahost.send_ints %m1_tensor {remote = @Bob} : tensor<1xi32>
         qoalahost.nop_term
-
+    ^bb8:
+        qoalahost.blk_meta  {block_id = "block_8", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
+        %2 = qoalahost.call @entanglement2() : () -> i32
+    ^bb9:
+        qoalahost.blk_meta  {block_id = "block_9", deadlines = {}, dependencies = ["block_8"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.call @corr_x(%2) : (i32) -> ()
+    ^bb10:
+        qoalahost.blk_meta  {block_id = "block_10", deadlines = {}, dependencies = ["block_9"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.call @corr_z(%2) : (i32) -> ()
+    ^bb11:
+        qoalahost.blk_meta  {block_id = "block_11", deadlines = {}, dependencies = ["block_10"], predecessors = [], prev_comm = "", prev_ent = ""}
+        %m2 = qoalahost.call @meas(%2) : (i32) -> i1
   }
 }

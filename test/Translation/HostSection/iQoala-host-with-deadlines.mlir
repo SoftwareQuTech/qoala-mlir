@@ -7,10 +7,10 @@
 // CHECK-NEXT: META END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 0
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [b0: 100] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
-// CHECK: ^b[[BLOCK2:.*]] { type = QL; predecessors = []; dependencies = [b1]; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK: ^b[[BLOCK2:.*]] { type = QL; predecessors = []; dependencies = [b1]; prev_comm = ; prev_ent = ; deadlines = [b0: 500, b1: 300] }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
 // CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper1
 // CHECK: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = [b0, b2]; prev_comm = ; prev_ent = ; deadlines = [] }
@@ -57,10 +57,10 @@ module {
     %cst = arith.constant 0 : i1
     qoalahost.nop_term
   ^bb1:
-    qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_1", deadlines = {block_0 = 100 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_0 = 500 : i64, block_1 = 300 : i64}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @__qoala_wrapper1(%0) : (i32) -> i1
   ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
