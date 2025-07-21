@@ -17,6 +17,7 @@ namespace qoala::options {
     extern uint32_t qoalaOptHostPeerLatency;
     extern uint32_t qoalaOptQNosInstrTime;
     extern uint32_t qoalaOptQubitLifetime;
+    extern bool qoalaOptGroupEntReqs;
 }
 
 #endif //QOALAOPT_H

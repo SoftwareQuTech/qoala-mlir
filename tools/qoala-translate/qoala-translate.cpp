@@ -17,6 +17,7 @@ namespace qoala::options {
     uint32_t qoalaOptHostPeerLatency = 0;
     uint32_t qoalaOptQNosInstrTime = 0;
     uint32_t qoalaOptQubitLifetime = 0;
+    bool qoalaOptGroupEntReqs = false;
 }
 
 namespace qoala::translate {
