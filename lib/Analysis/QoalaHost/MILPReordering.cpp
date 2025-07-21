@@ -1016,7 +1016,7 @@ namespace qoala::analysis::reordering {
         return success();
     }
 
-    BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
+    BlockPrecedenceList createPrecedenceFromOrder(ModuleOp *op, const std::vector<std::string> &orderedBlockIds,
                                                   const llvm::StringMap<MILPBlock *> &idToBlockMap) {
 
         BlockPrecedenceList result;
@@ -1029,7 +1029,7 @@ namespace qoala::analysis::reordering {
             const auto toIt = idToBlockMap.find(toId);
 
             if (fromIt == idToBlockMap.end() || toIt == idToBlockMap.end()) {
-                llvm::errs() << "Warning: Missing block in map for precedence: " << fromId << " or " << toId << "\n";
+                op->emitWarning() << "Warning: Missing block in map for precedence: " << fromId << " or " << toId;
                 continue;
             }
 

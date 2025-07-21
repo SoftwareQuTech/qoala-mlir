@@ -349,11 +349,13 @@ namespace qoala::analysis {
         /**
          * Creates a precedence list (as block pairs) from a specified linear order of block IDs.
          * For each adjacent pair in the ordered list, creates a precedence edge (A -> B).
+         * @param moduleOp The module to which the blocks belong to.
          * @param orderedBlockIds Vector of block IDs in desired execution order.
          * @param idToBlockMap Map from block IDs to MILPBlock pointers.
          * @returns A list of block precedence edges as (source, target) pairs.
          */
-        BlockPrecedenceList createPrecedenceFromOrder(const std::vector<std::string> &orderedBlockIds,
+        BlockPrecedenceList createPrecedenceFromOrder(mlir::ModuleOp *moduleOp,
+                                                      const std::vector<std::string> &orderedBlockIds,
                                                       const llvm::StringMap<MILPBlock *> &idToBlockMap);
 
         /**

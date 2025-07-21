@@ -59,7 +59,7 @@ namespace qoala::analysis {
 
         if (this->withDeadlines) {
             reordering::BlockPrecedenceList deadlinesPrecedences =
-                    createPrecedenceFromOrder(orderedBlockIds, idToBlockMap);
+                    createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
 
             reordering::MILPBlockDeadlineModel model;
             if (!model.initialize()) {
