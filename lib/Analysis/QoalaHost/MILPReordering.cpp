@@ -1025,8 +1025,8 @@ namespace qoala::analysis::reordering {
             llvm::StringRef fromId = orderedBlockIds[i];
             llvm::StringRef toId = orderedBlockIds[i + 1];
 
-            auto fromIt = idToBlockMap.find(fromId);
-            auto toIt = idToBlockMap.find(toId);
+            const auto fromIt = idToBlockMap.find(fromId);
+            const auto toIt = idToBlockMap.find(toId);
 
             if (fromIt == idToBlockMap.end() || toIt == idToBlockMap.end()) {
                 llvm::errs() << "Warning: Missing block in map for precedence: " << fromId << " or " << toId << "\n";
