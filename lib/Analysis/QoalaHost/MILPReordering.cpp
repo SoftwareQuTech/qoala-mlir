@@ -579,7 +579,7 @@ namespace qoala::analysis::reordering {
     }
 
     inline SCIP_VAR *createVariable(SCIP *scip, const std::string &name, bool strictlyPositive) {
-        double lb = strictlyPositive ? 1.0 : 0.0;
+        const double lb = strictlyPositive ? 1.0 : 0.0;
         SCIP_VAR *v = nullptr;
         SCIPcreateVarBasic(scip, &v, name.c_str(), lb, SCIPinfinity(scip), 0.0, SCIP_VARTYPE_INTEGER);
         SCIPaddVar(scip, v);
