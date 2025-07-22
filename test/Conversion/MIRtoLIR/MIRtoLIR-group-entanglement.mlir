@@ -23,6 +23,10 @@ module {
         %7 = qmem.qalloc : i32
         %8 = qmem.eprs_measure %7 {remote = @Bob} : i1
 
+        qmem.hadamard %0
+        qmem.hadamard %0
+        qmem.hadamard %0
+
         qmem.return
     }
 }
