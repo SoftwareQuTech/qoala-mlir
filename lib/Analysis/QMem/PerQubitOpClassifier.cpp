@@ -233,16 +233,19 @@ namespace qoala::analysis::functionize {
             llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsOpsByRemote,
             llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsMeasureOpsByRemote) {
 
+        // Handle EPRS operations grouped by remote
         for (const auto &[remoteName, ops] : eprsOpsByRemote) {
             LLVM_DEBUG(llvm::dbgs() << " Classifying eprs ops for remote = " << remoteName << "\n");
 
             std::vector<uint32_t> qubitIDs;
             std::vector<Operation *> qallocs;
 
+            // Collect the QAlloc operations and assign unique qubit IDs
             for (Operation *op : ops) {
                 auto eprsOp = cast<dialects::qmem::EprsOp>(op);
                 Operation *qallocOp = eprsOp.getQ().getDefiningOp();
 
+                // Assign ID only if not already assigned (avoids duplicate ID assignment)
                 if (!this->hasQubitID(qallocOp)) {
                     this->assignQubitIDForQAllocOp(qallocOp);
                 }
@@ -250,19 +253,26 @@ namespace qoala::analysis::functionize {
                 qallocs.push_back(qallocOp);
             }
 
+            // Create a new group for all EPRS ops sharing the same remote
             auto *group = this->addNewGroupForQalloc(qallocs[0], qubitIDs);
+            // Insert the qalloc and eprs ops into the group
             for (size_t i = 0; i < ops.size(); ++i) {
+                // The first qalloc is already handled during group creation, so skip it
                 if (i != 0) {
                     group->push_back(qallocs[i]);
                 }
                 group->push_back(ops[i]);
+
+                // Clean up: deregister the qalloc from the declared qubits map
                 auto qallocTyped = cast<dialects::qmem::QAllocOp>(qallocs[i]);
                 this->deregisterQallocOp(qallocTyped);
             }
 
+            // Commit the group so future ops won't merge into it
             this->commitCurrentGroup();
         }
 
+        // Handle EPRS Measure operations grouped by remote
         for (const auto &[remoteName, ops] : eprsMeasureOpsByRemote) {
             LLVM_DEBUG(llvm::dbgs() << " Classifying eprs measure ops for remote = " << remoteName << "\n");
 
@@ -310,21 +320,19 @@ namespace qoala::analysis::functionize {
         LLVM_DEBUG(llvm::dbgs() << "% grouping entanglement requests = " << qoala::options::qoalaOptGroupEntReqs
                                 << "\n");
 
-        for (Operation &op : mainFunction.getOps()) {
-            if (auto qallocOp = dyn_cast<dialects::qmem::QAllocOp>(&op)) {
-                // The op is a qalloc; we register the qalloc op to be grouped later
-                LLVM_DEBUG(llvm::dbgs() << " Classifying alloc op = " << op << "\n");
-                qubitGroupsMap.registerQallocOp(qallocOp);
-            }
+        for (dialects::qmem::QAllocOp qallocOp : mainFunction.getOps<dialects::qmem::QAllocOp>()) {
+            LLVM_DEBUG(llvm::dbgs() << " Classifying alloc op = " << *qallocOp << "\n");
+            qubitGroupsMap.registerQallocOp(qallocOp);
         }
+
         // Collect EPR ops by remote if grouping is enabled
         if (qoala::options::qoalaOptGroupEntReqs) {
-            for (Operation &op : mainFunction.getOps()) {
-                if (auto eprsOp = dyn_cast<dialects::qmem::EprsOp>(&op)) {
-                    eprsOpsByRemote[eprsOp.getRemote()].push_back(eprsOp.getOperation());
-                } else if (auto eprsMeasOp = dyn_cast<dialects::qmem::EprsMeasureOp>(&op)) {
-                    eprsMeasureOpsByRemote[eprsMeasOp.getRemote()].push_back(eprsMeasOp.getOperation());
-                }
+            for (dialects::qmem::EprsOp eprsOp : mainFunction.getOps<dialects::qmem::EprsOp>()) {
+                eprsOpsByRemote[eprsOp.getRemote()].push_back(eprsOp.getOperation());
+            }
+
+            for (dialects::qmem::EprsMeasureOp eprsMeasOp : mainFunction.getOps<dialects::qmem::EprsMeasureOp>()) {
+                eprsMeasureOpsByRemote[eprsMeasOp.getRemote()].push_back(eprsMeasOp.getOperation());
             }
 
             // Pre-group and commit all EPRS ops by remote before traversing other ops
@@ -384,13 +392,7 @@ namespace qoala::analysis::functionize {
                     });
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "here\n");
         // After iterating all the instructions, commit all the discovered groups
-        std::vector<qoala::analysis::functionize::QuantumOpsGroupTy> finalGroups = qubitGroupsMap.getAllFinalGroups();
-        LLVM_DEBUG(llvm::dbgs() << "Final group count = " << finalGroups.size() << "\n");
-        for (size_t i = 0; i < finalGroups.size(); ++i) {
-            LLVM_DEBUG(llvm::dbgs() << "Group[" << i << "] has " << finalGroups[i].size() << " ops\n");
-        }
-        return finalGroups;
+        return qubitGroupsMap.getAllFinalGroups();
     }
 } // namespace qoala::analysis::functionize
