@@ -64,8 +64,8 @@ namespace qoala::analysis::functionize {
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
 
-        void groupEprsByRemote(llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsOpsByRemote,
-                               llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsMeasureOpsByRemote);
+        void groupEprsByRemote(const llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>,
+                                                    std::vector<Operation *>> &opsByRemoteAndKind);
 
     private:
         [[nodiscard]]
@@ -229,26 +229,27 @@ namespace qoala::analysis::functionize {
         return eprsQubits;
     }
 
-    void PerQubitGrouper::groupEprsByRemote(
-            llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsOpsByRemote,
-            llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> &eprsMeasureOpsByRemote) {
+    void PerQubitGrouper::groupEprsByRemote(const llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>,
+                                                                 std::vector<Operation *>> &opsByRemoteAndKind) {
+        for (const auto &[key, ops] : opsByRemoteAndKind) {
+            const auto &[remoteName, kind] = key;
 
-        // Handle EPRS operations grouped by remote
-        for (const auto &[remoteName, ops] : eprsOpsByRemote) {
-            LLVM_DEBUG(llvm::dbgs() << " Classifying eprs ops for remote = " << remoteName << "\n");
+            LLVM_DEBUG(llvm::dbgs() << " Grouping entangle ops for remote = " << remoteName << ", kind = " << kind
+                                    << "\n");
 
             std::vector<uint32_t> qubitIDs;
             std::vector<Operation *> qallocs;
 
-            // Collect the QAlloc operations and assign unique qubit IDs
             for (Operation *op : ops) {
-                auto eprsOp = cast<dialects::qmem::EprsOp>(op);
-                Operation *qallocOp = eprsOp.getQ().getDefiningOp();
+                auto defineIface = dyn_cast<helpers::DefineQubitsInterface>(op);
+                assert(defineIface && "Expected entangle op to implement DefineQubitsInterface");
 
+                Operation *qallocOp = defineIface.getDefiningQubit().getDefiningOp();
                 // Assign ID only if not already assigned (avoids duplicate ID assignment)
                 if (!this->hasQubitID(qallocOp)) {
                     this->assignQubitIDForQAllocOp(qallocOp);
                 }
+
                 qubitIDs.push_back(this->getQubitIDForOperation(qallocOp));
                 qallocs.push_back(qallocOp);
             }
@@ -271,37 +272,6 @@ namespace qoala::analysis::functionize {
             // Commit the group so future ops won't merge into it
             this->commitCurrentGroup();
         }
-
-        // Handle EPRS Measure operations grouped by remote
-        for (const auto &[remoteName, ops] : eprsMeasureOpsByRemote) {
-            LLVM_DEBUG(llvm::dbgs() << " Classifying eprs measure ops for remote = " << remoteName << "\n");
-
-            std::vector<uint32_t> qubitIDs;
-            std::vector<Operation *> qallocs;
-
-            for (Operation *op : ops) {
-                auto eprsOp = cast<dialects::qmem::EprsMeasureOp>(op);
-                Operation *qallocOp = eprsOp.getQ().getDefiningOp();
-
-                if (!this->hasQubitID(qallocOp)) {
-                    this->assignQubitIDForQAllocOp(qallocOp);
-                }
-                qubitIDs.push_back(this->getQubitIDForOperation(qallocOp));
-                qallocs.push_back(qallocOp);
-            }
-
-            auto *group = this->addNewGroupForQalloc(qallocs[0], qubitIDs);
-            for (size_t i = 0; i < ops.size(); ++i) {
-                if (i != 0) {
-                    group->push_back(qallocs[i]);
-                }
-                group->push_back(ops[i]);
-                auto qallocTyped = cast<dialects::qmem::QAllocOp>(qallocs[i]);
-                this->deregisterQallocOp(qallocTyped);
-            }
-
-            this->commitCurrentGroup();
-        }
     }
 
     std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction,
@@ -310,8 +280,7 @@ namespace qoala::analysis::functionize {
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
         // If grouping by remote is enabled, track EprsOps and EprsMeasureOps by remote
-        llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> eprsOpsByRemote;
-        llvm::DenseMap<llvm::StringRef, std::vector<Operation *>> eprsMeasureOpsByRemote;
+        llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>, std::vector<Operation *>> entangleOpsGrouped;
 
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
         LLVM_DEBUG(llvm::dbgs() << "%      CLASSIFIER      %\n");
@@ -327,16 +296,16 @@ namespace qoala::analysis::functionize {
 
         // Collect EPR ops by remote if grouping is enabled
         if (qoala::options::qoalaOptGroupEntReqs) {
-            for (dialects::qmem::EprsOp eprsOp : mainFunction.getOps<dialects::qmem::EprsOp>()) {
-                eprsOpsByRemote[eprsOp.getRemote()].push_back(eprsOp.getOperation());
-            }
-
-            for (dialects::qmem::EprsMeasureOp eprsMeasOp : mainFunction.getOps<dialects::qmem::EprsMeasureOp>()) {
-                eprsMeasureOpsByRemote[eprsMeasOp.getRemote()].push_back(eprsMeasOp.getOperation());
-            }
+            mainFunction.walk([&](Operation *op) {
+                if (auto entOp = dyn_cast<qoala::helpers::EntangleInterface>(op)) {
+                    llvm::StringRef remote = entOp.getRemote();
+                    llvm::StringRef kind = op->getName().getStringRef();
+                    entangleOpsGrouped[{remote, kind}].push_back(op);
+                }
+            });
 
             // Pre-group and commit all EPRS ops by remote before traversing other ops
-            qubitGroupsMap.groupEprsByRemote(eprsOpsByRemote, eprsMeasureOpsByRemote);
+            qubitGroupsMap.groupEprsByRemote(entangleOpsGrouped);
         }
 
         // Iterate over all the operations of the main function
