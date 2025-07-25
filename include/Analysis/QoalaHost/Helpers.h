@@ -326,6 +326,8 @@ namespace qoala::analysis {
 
         using Closure = std::set<std::pair<std::string, std::string>>;
 
+        llvm::StringMap<mlir::Operation *> collectRoutineMap(mlir::ModuleOp moduleOp);
+
         /**
          * Constructs the MILP model from the given MLIR module. This includes building
          * MILP blocks, qubit usage, and block precedence constraints.
@@ -368,6 +370,8 @@ namespace qoala::analysis {
          */
         void annotateBlockDeadlines(mlir::ModuleOp module, const std::unordered_map<std::string, int> &deadlines,
                                     const std::string &refBlockId);
+
+        void groupEntanglementBlocksFirst(mlir::ModuleOp moduleOp);
     } // namespace reordering
 } // namespace qoala::analysis
 

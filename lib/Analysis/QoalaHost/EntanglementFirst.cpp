@@ -1,0 +1,55 @@
+#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QoalaHost/Helpers.h"
+#include "Dialect/NetQASM/NetQASM.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
+#include "llvm/Support/Debug.h"
+#include "mlir/IR/BuiltinOps.h"
+
+using namespace mlir;
+using namespace qoala::dialects;
+using namespace qoala::analysis;
+
+#define DEBUG_TYPE "qoalahost-entanglement-first"
+
+namespace qoala::analysis::reordering {
+    void groupEntanglementBlocksFirst(ModuleOp moduleOp) {
+
+        const auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
+
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        Region &body = mainFunc.getBody();
+
+        llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
+
+        llvm::SmallVector<Block *> entBlocks;
+        llvm::SmallVector<Block *> otherBlocks;
+
+        for (Block &blk : body) {
+            Operation *firstOp = &*blk.begin();
+            if (auto iface = llvm::dyn_cast<helpers::QuantumOpInterface>(firstOp)) {
+                if (iface.getBlockType(routineMap) == BlockType::QC) {
+                    entBlocks.push_back(&blk);
+                    continue;
+                }
+            }
+
+            otherBlocks.push_back(&blk);
+        }
+
+        // Move entanglement blocks to the beginning of the region
+        Block *insertBefore = &body.front();
+        for (Block *blk : entBlocks) {
+            if (blk != insertBefore) {
+                blk->moveBefore(insertBefore);
+            }
+            insertBefore = blk->getNextNode();
+        }
+
+        // Leave all other blocks as-is (or optionally sort them later)
+        LLVM_DEBUG({
+            llvm::dbgs() << "[Grouping] Moved " << entBlocks.size() << " entanglement blocks to the beginning\n";
+        });
+    }
+
+} // namespace qoala::analysis::reordering

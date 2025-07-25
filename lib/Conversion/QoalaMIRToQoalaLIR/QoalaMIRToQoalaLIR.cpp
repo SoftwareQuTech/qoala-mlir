@@ -1,15 +1,16 @@
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "llvm/Support/Debug.h"
+#include "mlir/Transforms/Passes.h"
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
+#include "Tools/QoalaOpt.h"
 
 #define DEBUG_TYPE "mir-to-lir"
 
@@ -69,8 +70,8 @@ namespace qoala::conversion {
         }
 
         if (this->useSCCP) {
-            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1 and 2 to propagate
-            // constants inside branching blocks. This will be needed when supporting branching
+            // We use this code switch to create an SCCP (Sparse Conditional Constant Propagation) pass between stages 1
+            // and 2 to propagate constants inside branching blocks. This will be needed when supporting branching
             // instructions inside the body of a NetQASM local routine (for example, when performing
             // a different rotation based on the value of an argument).
             // We create an SCCP pass to try to
@@ -83,7 +84,7 @@ namespace qoala::conversion {
             LLVM_DEBUG(llvm::dbgs() << "*********************************************\n");
 
             auto mainFuncs = module.getOps<qmem::FuncOp>();
-            assert (!mainFuncs.empty());
+            assert(!mainFuncs.empty());
             qmem::FuncOp mainFunc = *mainFuncs.begin();
 
             auto pm = PassManager::on<qmem::FuncOp>(&context);
@@ -130,9 +131,11 @@ namespace qoala::conversion {
 
         if (this->useSimpleFunctionize) {
             LLVM_DEBUG(llvm::dbgs() << "WARNING - Using simple functionization\n");
-            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier, this->maxOpsPerGroup);
+            analysis::functionize::functionizeModule(module, analysis::functionize::simpleOpClassifier,
+                                                     this->maxOpsPerGroup);
         } else {
-            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier, this->maxOpsPerGroup);
+            analysis::functionize::functionizeModule(module, analysis::functionize::functionizeOpClassifier,
+                                                     this->maxOpsPerGroup);
         }
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
@@ -144,9 +147,7 @@ namespace qoala::conversion {
         });
         std::vector<qmem::RemoteOp> remotes;
         // First collect all remote ops in order
-        module.walk([&](qmem::RemoteOp remote) {
-            remotes.push_back(remote);
-        });
+        module.walk([&](qmem::RemoteOp remote) { remotes.push_back(remote); });
         // Iterate in reverse to maintain final correct order
         for (auto it = remotes.rbegin(); it != remotes.rend(); ++it) {
             helpers::moveOperationToTop(module, *it);
@@ -175,9 +176,17 @@ namespace qoala::conversion {
         if (failed(applyPartialConversion(module, qMemToNetQASMTarget, std::move(qMemToNetQASMPatterns)))) {
             signalPassFailure();
         }
-        // Stage 9: Add Block Precedences
+
+        // Stage 9: Move Entanglement Blocks at the beginning
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 9. Moving Entanglement Blocks *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        if (qoala::options::qoalaOptGroupEntReqs) {
+            qoala::analysis::reordering::groupEntanglementBlocksFirst(module);
+        }
+        // Stage 10: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* 9. Adding Block Precedences *\n");
+        LLVM_DEBUG(llvm::dbgs() << "* 10. Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
         if (failed(analysis::precedences::addPrecedences(module))) {
             signalPassFailure();
