@@ -142,9 +142,15 @@ namespace qoala::conversion {
                 helpers::moveOperationToTop(module, funcDecl);
             }
         });
-        module.walk([&](const qmem::RemoteOp remote) {
-            helpers::moveOperationToTop(module, remote);
+        std::vector<qmem::RemoteOp> remotes;
+        // First collect all remote ops in order
+        module.walk([&](qmem::RemoteOp remote) {
+            remotes.push_back(remote);
         });
+        // Iterate in reverse to maintain final correct order
+        for (auto it = remotes.rbegin(); it != remotes.rend(); ++it) {
+            helpers::moveOperationToTop(module, *it);
+        }
 
         // Stage 6: Transform f32 operations to their i32 counterparts - This is done with an "intra-dialect" lowering
         LLVM_DEBUG(llvm::dbgs() << "***********************************\n");

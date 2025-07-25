@@ -4,8 +4,8 @@
 module {
     qmem.remote @Bob
     qmem.remote @Charlie
-    // CHECK: qremote.remote @[[REMOTECHARLIE:.*]]
     // CHECK: qremote.remote @[[REMOTEBOB:.*]]
+    // CHECK: qremote.remote @[[REMOTECHARLIE:.*]]
 
     // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
