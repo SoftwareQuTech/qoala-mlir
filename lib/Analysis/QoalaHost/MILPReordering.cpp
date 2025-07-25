@@ -913,6 +913,11 @@ namespace qoala::analysis::reordering {
         for (const std::shared_ptr<MILPQubit> &q : qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
+            // If a qubit is missing a measurement operation, we cannot meaningfully define
+            // its lifetime for optimization purposes (i.e., we can't compute the interval
+            // between allocation and measurement). In such cases, we exclude the qubit from
+            // the objective function. Proper handling of this situation (e.g., warning or fallback)
+            // is tracked under ticket #91.
             if (!(alloc && meas)) {
                 continue;
             }
