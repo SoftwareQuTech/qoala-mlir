@@ -1037,7 +1037,6 @@ namespace qoala::analysis::reordering {
                     if (auto meta = dyn_cast<qoalahost::BlkMeta>(op)) {
                         auto it = idToBlock.find(meta.getBlockId());
                         if (it != idToBlock.end()) {
-                            MILPBlock *milpBlk = nullptr;
                             if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
                                 if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
                                     Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
