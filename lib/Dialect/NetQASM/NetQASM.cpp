@@ -1,6 +1,6 @@
-#include "mlir/Interfaces/FunctionImplementation.h"
-#include "llvm/Support/raw_ostream.h"
 #include "Analysis/Helpers/Helpers.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/Interfaces/FunctionImplementation.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
 
@@ -18,57 +18,49 @@ using namespace qoala::helpers;
 
 /* Parse and print functions "ported" from func.func: parse, print and build */
 ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
-    auto buildFuncType =
-            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
-               function_interface_impl::VariadicFlag,
-               std::string &) { return builder.getFunctionType(argTypes, results); };
+    auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+                            function_interface_impl::VariadicFlag,
+                            std::string &) { return builder.getFunctionType(argTypes, results); };
 
-    return function_interface_impl::parseFunctionOp(
-            parser, result, /*allowVariadic=*/false,
-            getFunctionTypeAttrName(result.name), buildFuncType,
-            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+    return function_interface_impl::parseFunctionOp(parser, result, /*allowVariadic=*/false,
+                                                    getFunctionTypeAttrName(result.name), buildFuncType,
+                                                    getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
 void netqasm::LocalRoutineOp::print(OpAsmPrinter &p) {
-    function_interface_impl::printFunctionOp(
-            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
-            getArgAttrsAttrName(), getResAttrsAttrName());
+    function_interface_impl::printFunctionOp(p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+                                             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-void netqasm::LocalRoutineOp::build(OpBuilder &builder, OperationState &state, StringRef name,
-                                    FunctionType type, ArrayRef<NamedAttribute> attrs,
-                                    ArrayRef<DictionaryAttr> argAttrs) {
-    state.addAttribute(SymbolTable::getSymbolAttrName(),
-                       builder.getStringAttr(name));
+void netqasm::LocalRoutineOp::build(OpBuilder &builder, OperationState &state, StringRef name, FunctionType type,
+                                    ArrayRef<NamedAttribute> attrs, ArrayRef<DictionaryAttr> argAttrs) {
+    state.addAttribute(SymbolTable::getSymbolAttrName(), builder.getStringAttr(name));
     state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
     state.attributes.append(attrs.begin(), attrs.end());
     state.addRegion();
 
-    if (argAttrs.empty())
+    if (argAttrs.empty()) {
         return;
+    }
     assert(type.getNumInputs() == argAttrs.size());
-    function_interface_impl::addArgAndResultAttrs(
-        builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
-        getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
+    function_interface_impl::addArgAndResultAttrs(builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
+                                                  getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
 }
 
 /* Parse and print functions "ported" from func.func: parse and print */
 ParseResult netqasm::RequestRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
-    auto buildFuncType =
-            [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
-               function_interface_impl::VariadicFlag,
-               std::string &) { return builder.getFunctionType(argTypes, results); };
+    auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+                            function_interface_impl::VariadicFlag,
+                            std::string &) { return builder.getFunctionType(argTypes, results); };
 
-    return function_interface_impl::parseFunctionOp(
-            parser, result, /*allowVariadic=*/false,
-            getFunctionTypeAttrName(result.name), buildFuncType,
-            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+    return function_interface_impl::parseFunctionOp(parser, result, /*allowVariadic=*/false,
+                                                    getFunctionTypeAttrName(result.name), buildFuncType,
+                                                    getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
 void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
-    function_interface_impl::printFunctionOp(
-            p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
-            getArgAttrsAttrName(), getResAttrsAttrName());
+    function_interface_impl::printFunctionOp(p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+                                             getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
 Operation *netqasm::LocalRoutineOp::getReturnOperation() {
@@ -83,73 +75,43 @@ Operation *netqasm::RequestRoutineOp::getReturnOperation() {
     return *returnOps.begin();
 }
 
-MutableArrayRef<BlockArgument> netqasm::RequestRoutineOp::getArgsTypesList() {
-    return this->getArguments();
-}
+MutableArrayRef<BlockArgument> netqasm::RequestRoutineOp::getArgsTypesList() { return this->getArguments(); }
 
-MutableArrayRef<BlockArgument> netqasm::LocalRoutineOp::getArgsTypesList() {
-    return this->getArguments();
-}
+MutableArrayRef<BlockArgument> netqasm::LocalRoutineOp::getArgsTypesList() { return this->getArguments(); }
 
 /* Helper functions from the NetQASMDialect class */
 bool netqasm::NetQASMDialect::opIsNotFromAllowedDialects(Operation &operation) {
     return !belongsToDialect<
 #define GET_ALLOWED_DIALECTS
 #include "Dialect/NetQASM/NetQASM.h"
-    >(operation);
+            >(operation);
 }
 
-int netqasm::QAllocOp::getDuration() {
-    return options::qoalaOptQNosInstrTime;
-}
+int netqasm::QAllocOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-int netqasm::QFreeOp::getDuration() {
-    return options::qoalaOptQNosInstrTime;
-}
+int netqasm::QFreeOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-int netqasm::ReturnOp::getDuration() {
-    return this->getNumOperands() * options::qoalaOptQNosInstrTime;
-}
+int netqasm::ReturnOp::getDuration() { return this->getNumOperands() * options::qoalaOptQNosInstrTime; }
 
-int netqasm::QInitOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::QInitOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateXOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::RotateXOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateYOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::RotateYOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateZOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::HadamardOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::MeasureOp::getDuration() {
-    return options::qoalaOptSingleGateDuration;
-}
+int netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::CnotOp::getDuration() {
-    return options::qoalaOptTwoGateDuration;
-}
+int netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::CzOp::getDuration() {
-    return options::qoalaOptTwoGateDuration;
-}
+int netqasm::CzOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::CrotXOp::getDuration() {
-    return options::qoalaOptTwoGateDuration;
-}
+int netqasm::CrotXOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::EprsOp::getDuration() {
-    return options::qoalaOptLinkDuration;
-}
+int netqasm::EprsOp::getDuration() { return options::qoalaOptLinkDuration; }
 
 int netqasm::EprsMeasureOp::getDuration() {
     return options::qoalaOptLinkDuration + options::qoalaOptSingleGateDuration;
@@ -159,5 +121,5 @@ std::string netqasm::NetQASMDialect::getAllowedDialectNames() {
     return getDialectNamesList<
 #define GET_ALLOWED_DIALECTS
 #include "Dialect/NetQASM/NetQASM.h"
-    >();
+            >();
 }

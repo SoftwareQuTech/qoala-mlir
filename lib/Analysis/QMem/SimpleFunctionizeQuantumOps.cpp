@@ -1,9 +1,9 @@
-#include "Analysis/QMem/Conversion.h"
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QMem/Conversion.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
-#include "mlir/IR/BuiltinOps.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/BuiltinOps.h"
 
 using namespace mlir;
 using namespace qoala::dialects;
@@ -32,8 +32,6 @@ namespace qoala::analysis {
                 helpers::moveOperationToTop(module, funcDecl);
             }
         });
-        module.walk([&](const qmem::RemoteOp remote) {
-            helpers::moveOperationToTop(module, remote);
-        });
+        module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
     }
 } /* namespace qoala::analysis */

@@ -1315,7 +1315,7 @@ namespace qoala::analysis::reordering {
 
         int lastValidDeadline = 0; // Initial baseline
 
-        for(auto &blkId: ordered) {
+        for (auto &blkId : ordered) {
             const MILPBlock *blk = nullptr;
             for (const auto &b : blocks_) {
                 if (b->getId() == blkId) {

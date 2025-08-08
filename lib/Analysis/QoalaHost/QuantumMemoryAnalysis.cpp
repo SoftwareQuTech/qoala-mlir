@@ -1,6 +1,6 @@
 #include "Analysis/QoalaHost/Helpers.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/QoalaHost/Passes.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "qoalahost-show-analysis-pass-qmem-eff"
 
@@ -10,8 +10,7 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTQMEMEFFSHOWANALYSIS
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostQMemEffShowAnalysis
-            : public impl::QoalaHostQMemEffShowAnalysisBase<QoalaHostQMemEffShowAnalysis> {
+    class QoalaHostQMemEffShowAnalysis : public impl::QoalaHostQMemEffShowAnalysisBase<QoalaHostQMemEffShowAnalysis> {
         using QoalaHostQMemEffShowAnalysisBase::QoalaHostQMemEffShowAnalysisBase;
 
         void runOnOperation() override;

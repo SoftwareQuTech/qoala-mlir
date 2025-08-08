@@ -3,13 +3,13 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/NetQASM/Helpers.h"
 #include "Conversion/Helpers/Helpers.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
-#include "Target/iQoala/Module.h"
-#include "Target/iQoala/iQoala.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Target/iQoala/MC/Helpers.h"
+#include "Target/iQoala/Module.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
+#include "Target/iQoala/iQoala.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -39,6 +39,7 @@ namespace qoala::translate {
     }
 
     ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
+
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
     std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const std::string &key) {
@@ -47,8 +48,8 @@ namespace qoala::translate {
                        : std::nullopt;
     }
 
-    ModuleTranslation::ModuleTranslation(ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule) :
-        mlirModule(module), iQoalaModule(std::move(iQoalaModule)), ifaces(module->getContext()) {}
+    ModuleTranslation::ModuleTranslation(ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule):
+        mlirModule(module), iQoalaModule(std::move(iQoalaModule)), ifaces(module->getContext()) { }
 
     LogicalResult ModuleTranslation::convertOperation(Operation &op) {
         // This is the entry point of the translation of any operation.
@@ -62,7 +63,6 @@ namespace qoala::translate {
         }
         return opIface->convertOperation(&op, this);
     }
-
 
     void ModuleTranslation::ModuleStackFrame::mapValueInScope(const Value &value, iQoalaRegReference *regRef) {
         const auto result = this->valuesInScope.try_emplace(value, regRef);
@@ -250,7 +250,7 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::convertLocalRoutines() {
-        for (auto localRoutine: getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
+        for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
             if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
                 // Since this routine is intended to be provided by the runtime,
@@ -259,7 +259,7 @@ namespace qoala::translate {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 std::string routineName = localRoutine.getName().str();
-                for (auto arg: localRoutine.getArguments()) {
+                for (auto arg : localRoutine.getArguments()) {
                     // We need to load arguments
                     const uint32_t argNum = arg.getArgNumber();
                     if (netqasm::blockArgIsQubit(arg)) {
@@ -282,7 +282,7 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::convertRequestRoutines() const {
-        for (auto requestRoutine: getModuleBody(this->mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
+        for (auto requestRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<RequestRoutineOp>()) {
             // We make sure that the request routine returns something, either an i32 (an entangled qubit)
             // or an i1 (a measurement of an entangled qubit)
             FunctionType reqRoutineType = requestRoutine.getFunctionType();
@@ -299,7 +299,7 @@ namespace qoala::translate {
                 return failure();
             }
 
-            for (auto result: results) {
+            for (auto result : results) {
                 if (!(result.isInteger(1) || result.isInteger(32))) {
 #if __cplusplus >= 202002L
                     const std::string errorFmt = "request routine '{}' returns an invalid type";
@@ -315,7 +315,7 @@ namespace qoala::translate {
             auto *reqRoutine = RequestQuantumRoutine::createRequestRoutine(requestRoutine.getName());
 
             // We process the arguments of the request routine.
-            for (auto argument: requestRoutine.getArguments()) {
+            for (auto argument : requestRoutine.getArguments()) {
                 if (!argument.getUses().empty()) {
                     // Request routines do not support using the arguments
                     // We check that, if there are arguments, at least they are not used
@@ -368,7 +368,7 @@ namespace qoala::translate {
         // * We want to proceed using a strict order to translate operations:
 
         // First, the remote declarations
-        for (auto mainFunc: mlirModule.getOps<RemoteOp>()) {
+        for (auto mainFunc : mlirModule.getOps<RemoteOp>()) {
             if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
                 return nullptr;
             }
@@ -377,14 +377,14 @@ namespace qoala::translate {
                                 << *moduleTranslation.iQoalaModule << "\n********\n");
 
         // Second, the main function and recursively, all the called routines
-        for (auto mainFunc: mlirModule.getOps<MainFuncOp>()) {
+        for (auto mainFunc : mlirModule.getOps<MainFuncOp>()) {
             if (failed(moduleTranslation.convertOperation(*mainFunc.getOperation()))) {
                 return nullptr;
             }
         }
         // After translating the main function and the called routines, we need to resolve
         // all the instruction references within the local routines
-        for (const auto quantumRoutine: moduleTranslation.iQoalaModule->getLocalRoutines()) {
+        for (const auto quantumRoutine : moduleTranslation.iQoalaModule->getLocalRoutines()) {
             quantumRoutine->resolveInternalInstrRefs();
         }
         LLVM_DEBUG(llvm::dbgs() << "iQoala after main-func translation:\n"
@@ -401,7 +401,7 @@ namespace qoala::translate {
                                 << *moduleTranslation.iQoalaModule << "\n********\n");
 
         // Third, everything else... that has not been visited yet
-        for (Operation &op: getModuleBody(originalModule).getOperations()) {
+        for (Operation &op : getModuleBody(originalModule).getOperations()) {
             // If a local/request routine gets translated here, it means that it is not called
             // from the qoalahost section. Should we consider it as dead code and delete them?
             // Note: We filter out RemoteOps, since they were already translated before

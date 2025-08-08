@@ -1,9 +1,9 @@
-#include "mlir/IR/BuiltinDialect.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "QoalaHIRToQoalaMIR"
 
@@ -52,26 +52,11 @@ namespace qoala::conversion {
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
         hir::QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);
-        patterns.add<
-                hir::FuncOpLowering,
-                hir::ReturnOpLowering,
-                hir::EprsOpLowering,
-                hir::EprsMeasureOpLowering,
-                hir::NewQubitLowering,
-                hir::RemoteOpLowering,
-                hir::RecvIntsOpLowering,
-                hir::RecvFloatsOpLowering,
-                hir::SendIntsOpLowering,
-                hir::SendFloatsOpLowering,
-                hir::RotateXLowering,
-                hir::RotateYLowering,
-                hir::RotateZLowering,
-                hir::HadamardLowering,
-                hir::CNotLowering,
-                hir::CzLowering,
-                hir::CRotXLowering,
-                hir::MeasureLowering
-        >(typeConverter, &context);
+        patterns.add<hir::FuncOpLowering, hir::ReturnOpLowering, hir::EprsOpLowering, hir::EprsMeasureOpLowering,
+                     hir::NewQubitLowering, hir::RemoteOpLowering, hir::RecvIntsOpLowering, hir::RecvFloatsOpLowering,
+                     hir::SendIntsOpLowering, hir::SendFloatsOpLowering, hir::RotateXLowering, hir::RotateYLowering,
+                     hir::RotateZLowering, hir::HadamardLowering, hir::CNotLowering, hir::CzLowering,
+                     hir::CRotXLowering, hir::MeasureLowering>(typeConverter, &context);
 
         // We finally apply a **full** conversion, since we correctly defined all the
         // dialects that are "legal" in the target IR

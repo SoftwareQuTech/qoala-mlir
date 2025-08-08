@@ -1,7 +1,7 @@
 #include "Target/iQoala/iQoalaContext.h"
 
-#include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_os_ostream.h"
 
 #define DEBUG_TYPE "iqoala-context"
 
@@ -40,7 +40,6 @@ namespace qoala::iqoala {
         return lastAvailable;
     }
 
-
     iQoalaContext::iQoalaContext() {
         for (uint8_t i = 0; i < MAX_PHY_QUBITS; i++) {
             this->qubits[i] = false;
@@ -57,17 +56,16 @@ namespace qoala::iqoala {
         return 0xFF;
     }
 
-    void iQoalaContext::releaseQubit(const uint8_t reg) {
-        this->qubits[reg] = false;
-    }
+    void iQoalaContext::releaseQubit(const uint8_t reg) { this->qubits[reg] = false; }
 
     uint8_t iQoalaContext::allocateRegister(const assembly::iQoalaRegType type,
-        const std::optional<LocalQuantumRoutine *> &localQuantumRoutine) {
+                                            const std::optional<LocalQuantumRoutine *> &localQuantumRoutine) {
         uint8_t lastAvailable = 0xFF;
         switch (type) {
             case assembly::LOCAL:
                 lastAvailable = this->hostRegisters.size();
-                assert(!localQuantumRoutine.has_value() && "Trying to allocate a local registry for a Local quanutm routine.");
+                assert(!localQuantumRoutine.has_value() &&
+                       "Trying to allocate a local registry for a Local quanutm routine.");
                 assert(lastAvailable < 64 && "No Host register available");
                 LLVM_DEBUG(llvm::dbgs() << "Allocate Host Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
                 this->hostRegisters.push_back(lastAvailable);
@@ -82,19 +80,19 @@ namespace qoala::iqoala {
                 if (!this->routinesRegisters.contains(localQuantumRoutine.value())) {
                     this->routinesRegisters.try_emplace(localQuantumRoutine.value(), LocalRoutineRegisters{});
                 }
-                lastAvailable =this->routinesRegisters[localQuantumRoutine.value()].allocateMRegistry();
+                lastAvailable = this->routinesRegisters[localQuantumRoutine.value()].allocateMRegistry();
                 break;
             case assembly::Q:
                 if (!this->routinesRegisters.contains(localQuantumRoutine.value())) {
                     this->routinesRegisters.try_emplace(localQuantumRoutine.value(), LocalRoutineRegisters{});
                 }
-                lastAvailable =this->routinesRegisters[localQuantumRoutine.value()].allocateQRegistry();
+                lastAvailable = this->routinesRegisters[localQuantumRoutine.value()].allocateQRegistry();
                 break;
             case assembly::R:
                 if (!this->routinesRegisters.contains(localQuantumRoutine.value())) {
                     this->routinesRegisters.try_emplace(localQuantumRoutine.value(), LocalRoutineRegisters{});
                 }
-                lastAvailable =this->routinesRegisters[localQuantumRoutine.value()].allocateRRegistry();
+                lastAvailable = this->routinesRegisters[localQuantumRoutine.value()].allocateRRegistry();
                 break;
         }
         return lastAvailable;
@@ -124,11 +122,9 @@ namespace qoala::iqoala {
         return newSocketID;
     }
 
-    void iQoalaContext::markOperationAsVisited(Operation *operation) {
-        this->visitedOps.insert(operation);
-    }
+    void iQoalaContext::markOperationAsVisited(Operation *operation) { this->visitedOps.insert(operation); }
 
     bool iQoalaContext::isOperationVisited(const Operation *operation) const {
         return this->visitedOps.contains(operation);
     }
-};
+}; // namespace qoala::iqoala

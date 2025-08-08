@@ -1,5 +1,5 @@
-#include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
+#include "Target/iQoala/iQoala.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -43,9 +43,7 @@ namespace qoala::iqoala {
         this->instructions.push_back(instruction);
     }
 
-    void LocalQuantumRoutine::addArgument(const std::string &argName) {
-        this->params.push_back(argName);
-    }
+    void LocalQuantumRoutine::addArgument(const std::string &argName) { this->params.push_back(argName); }
 
     void LocalQuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
         this->QuantumRoutine::registerQubit(value, phyQubitNum);
@@ -63,13 +61,9 @@ namespace qoala::iqoala {
         return phyQubitNum;
     }
 
-    uint8_t LocalQuantumRoutine::getQubitNum(const Value &value) const {
-        return QuantumRoutine::getQubitNum(value);
-    }
+    uint8_t LocalQuantumRoutine::getQubitNum(const Value &value) const { return QuantumRoutine::getQubitNum(value); }
 
-    void LocalQuantumRoutine::addReturnValue(const std::string &valName) {
-        this->returns.push_back(valName);
-    }
+    void LocalQuantumRoutine::addReturnValue(const std::string &valName) { this->returns.push_back(valName); }
 
     void LocalQuantumRoutine::resolveInternalInstrRefs() const {
         DenseMap<Operation *, int32_t> operationToIndex;
@@ -93,7 +87,7 @@ namespace qoala::iqoala {
                 opPtr += 4 * i;
             }
             LLVM_DEBUG(llvm::dbgs() << "+++ Emplacing ptr: '" << opPtr << "', i = " << i
-                << ", opcode = " << instruction->getOpcode() << ", op = " << instruction <<"\n");
+                                    << ", opcode = " << instruction->getOpcode() << ", op = " << instruction << "\n");
             const auto result = operationToIndex.try_emplace(opPtr, i);
             (void) result;
             assert(result.second && "Resolve Instr Refs: Op index pointer already present!");
@@ -107,9 +101,10 @@ namespace qoala::iqoala {
 
         for (auto exprToResolve : expressionsToResolve) {
             assert(operationToIndex.contains(exprToResolve.second) &&
-                "Resolve Instr Refs: Instruction containing an InstrRef comes from an MLIR operation not present in NetQASM body!");
+                   "Resolve Instr Refs: Instruction containing an InstrRef comes from an MLIR operation not present in "
+                   "NetQASM body!");
             assert(operationToIndex.contains(exprToResolve.first->getTargetOp()) &&
-                "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
+                   "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
 
             const int32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
             const int32_t targetIndex = operationToIndex[exprToResolve.second];
@@ -122,13 +117,9 @@ namespace qoala::iqoala {
         // Nothing to do here
     }
 
-    void VirtualIDs::addArg(const uint32_t arg) {
-        this->args.push_back(arg);
-    }
+    void VirtualIDs::addArg(const uint32_t arg) { this->args.push_back(arg); }
 
-    void VirtualIDs::setType(const VirtualIDType type) {
-        this->type = type;
-    }
+    void VirtualIDs::setType(const VirtualIDType type) { this->type = type; }
 
     void VirtualIDs::resolve() {
         if (this->args.size() == 1) {
@@ -137,38 +128,29 @@ namespace qoala::iqoala {
         }
 
         for (uint32_t i = 1; i < this->args.size(); i++) {
-            if (this->args[i-1] + 1 != this->args[i]) {
+            if (this->args[i - 1] + 1 != this->args[i]) {
                 this->type = CUSTOM;
             }
         }
         this->type = INCREMENT;
     }
 
-
     void RequestQuantumRoutine::addEntangledQubitID(const uint32_t phyQubitID) {
         this->entangledQubitsIDs.push_back(phyQubitID);
     }
 
-    void RequestQuantumRoutine::addReturnValue(const std::string &valName) {
-        this->returns.push_back(valName);
-    }
+    void RequestQuantumRoutine::addReturnValue(const std::string &valName) { this->returns.push_back(valName); }
 
     void RequestQuantumRoutine::reportRemote(const std::string &remoteID, const uint8_t eprSocketID) {
         this->remoteID = remoteID;
         this->eprSocketID = eprSocketID;
     }
 
-    void RequestQuantumRoutine::changeReqTypeToMeasure() {
-        this->type = MEASURE_DIRECTLY;
-    }
+    void RequestQuantumRoutine::changeReqTypeToMeasure() { this->type = MEASURE_DIRECTLY; }
 
-    void RequestQuantumRoutine::changeReqTypeToRSP() {
-        this->type = RSP;
-    }
+    void RequestQuantumRoutine::changeReqTypeToRSP() { this->type = RSP; }
 
-    void RequestQuantumRoutine::addVirtualIDArg(const uint32_t virtualID) {
-        this->virtualIDs.addArg(virtualID);
-    }
+    void RequestQuantumRoutine::addVirtualIDArg(const uint32_t virtualID) { this->virtualIDs.addArg(virtualID); }
 
     void RequestQuantumRoutine::addArgument(const std::string &argName) {
         // TODO
@@ -200,7 +182,7 @@ namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
-                 os << "sequential";
+                os << "sequential";
                 break;
             case RequestQuantumRoutine::WAIT_ALL:
                 os << "wait_all";
@@ -212,10 +194,12 @@ namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const VirtualIDs &virtualIDs) {
         switch (virtualIDs.type) {
             case VirtualIDs::VirtualIDType::ALL:
-                os << "all " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
+                os << "all "
+                   << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::INCREMENT:
-                os << "increment " << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
+                os << "increment "
+                   << (virtualIDs.args.empty() ? 0 : *std::min_element(virtualIDs.args.begin(), virtualIDs.args.end()));
                 break;
             case VirtualIDs::VirtualIDType::CUSTOM:
                 os << "custom " << helpers::formatVector(virtualIDs.args);
@@ -238,7 +222,6 @@ namespace qoala::iqoala {
         }
         return os;
     }
-
 
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestRole requestRole) {
         switch (requestRole) {
@@ -280,4 +263,4 @@ namespace qoala::iqoala {
         os << "type: " << this->type << "\n";
         os << "role: " << this->requestRole << "\n";
     }
-}
+} // namespace qoala::iqoala

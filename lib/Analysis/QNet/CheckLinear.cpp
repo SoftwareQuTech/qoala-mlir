@@ -1,8 +1,8 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
-#include "llvm/Support/Debug.h"
 
 using namespace mlir;
 using namespace qoala::dialects::qnet;
@@ -17,8 +17,8 @@ namespace qoala::analysis {
     };
 
     bool isQuantumOp(mlir::Operation *op) {
-        return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp,
-                         CrotXOp, MeasureOp, EprsOp, EprsMeasureOp>(op);
+        return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp, MeasureOp, EprsOp,
+                         EprsMeasureOp>(op);
     }
 
     void QNetCheckLinearPass::runOnOperation() {
@@ -35,8 +35,7 @@ namespace qoala::analysis {
                             // More than 1 use.
                             for (auto &use : result.getUses()) {
                                 auto usingOp = use.getOwner();
-                                usingOp->emitOpError(
-                                    "quantum operation is used more than once\n");
+                                usingOp->emitOpError("quantum operation is used more than once\n");
                             }
                             signalPassFailure();
                         }

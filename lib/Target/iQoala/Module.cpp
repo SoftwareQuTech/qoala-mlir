@@ -8,9 +8,7 @@ using namespace mlir;
 namespace qoala::iqoala {
     std::string tabStr = "    ";
 
-    iQoalaContext *iQoalaModule::getiQoalaContext() const {
-        return this->iQoalaCtx;
-    }
+    iQoalaContext *iQoalaModule::getiQoalaContext() const { return this->iQoalaCtx; }
 
     void iQoalaModule::print(raw_ostream &os) const {
         // Call the "print" functions in the sections of the executable
@@ -20,8 +18,8 @@ namespace qoala::iqoala {
            << this->iQoalaProgram.requestSection << "\n";
     }
 
-    void iQoalaModule::addRemoteDeclaration(const StringRef &remoteName,
-        const bool classicalSocket, const bool eprsSocket) {
+    void iQoalaModule::addRemoteDeclaration(const StringRef &remoteName, const bool classicalSocket,
+                                            const bool eprsSocket) {
         const std::string temp = remoteName.str();
         this->iQoalaProgram.metaSection.addRemote(temp);
         // We will create the classical and EPRS socket for the remote if needed
@@ -51,6 +49,7 @@ namespace qoala::iqoala {
             return;
         }
     }
+
     QuantumRoutine *iQoalaModule::getRoutineByName(const StringRef name) const {
         if (const auto localRoutine = this->getLocalRoutineByName(name)) {
             return localRoutine;
@@ -92,16 +91,12 @@ namespace qoala::iqoala {
         return this->iQoalaProgram.metaSection.getParamNameForRemote(remoteName);
     }
 
-    Block *iQoalaModule::addHostBlock() {
-        return this->iQoalaProgram.hostSection.createNewBlock();
-    }
+    Block *iQoalaModule::addHostBlock() { return this->iQoalaProgram.hostSection.createNewBlock(); }
 
-    void iQoalaModule::deleteEmptyHostBlocks() {
-        this->iQoalaProgram.hostSection.deleteEmptyBlocks();
-    }
+    void iQoalaModule::deleteEmptyHostBlocks() { this->iQoalaProgram.hostSection.deleteEmptyBlocks(); }
 
     LogicalResult iQoalaModule::setQoalaHostBlockTypes() const {
         return this->iQoalaProgram.hostSection.setBlockTypes();
     }
 
-}
+} // namespace qoala::iqoala

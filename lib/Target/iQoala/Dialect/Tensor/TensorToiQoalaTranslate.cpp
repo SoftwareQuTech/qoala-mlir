@@ -1,6 +1,6 @@
-#include "mlir/IR/Operation.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/Operation.h"
 
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 
@@ -15,7 +15,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation) {
 }
 
 namespace qoala::translate {
-    LogicalResult TensorToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
+    LogicalResult TensorToiQoalaTranslation::convertOperation(Operation *op,
+                                                              ModuleTranslation *moduleTranslation) const {
         return translateNetQASMOperation(op);
     }
-}
+} // namespace qoala::translate

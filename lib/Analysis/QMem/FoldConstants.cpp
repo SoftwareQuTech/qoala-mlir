@@ -27,4 +27,4 @@ namespace qoala::analysis {
             signalPassFailure();
         }
     }
-}
+} // namespace qoala::analysis

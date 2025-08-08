@@ -22,7 +22,6 @@ using namespace qoala::analysis::reordering;
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/QoalaHost/QoalaHostTypes.cpp.inc"
 
-
 /* Parse and print functions "ported" from func.func: parse and print */
 ParseResult qoalahost::MainFuncOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
@@ -34,7 +33,6 @@ ParseResult qoalahost::MainFuncOp::parse(OpAsmParser &parser, OperationState &re
                                                     getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
-
 void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name, FunctionType type,
                                   ArrayRef<NamedAttribute> attrs, ArrayRef<DictionaryAttr> argAttrs) {
     state.addAttribute(mlir::SymbolTable::getSymbolAttrName(), builder.getStringAttr(name));
@@ -42,8 +40,9 @@ void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, Str
     state.attributes.append(attrs.begin(), attrs.end());
     state.addRegion();
 
-    if (argAttrs.empty())
+    if (argAttrs.empty()) {
         return;
+    }
     assert(type.getNumInputs() == argAttrs.size());
     function_interface_impl::addArgAndResultAttrs(builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
                                                   getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
@@ -56,7 +55,7 @@ void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
 
 /* Region verifiers for MainFuncOp */
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
-    for (Operation &operation: this->getBody().getOps()) {
+    for (Operation &operation : this->getBody().getOps()) {
         auto name = operation.getName().getStringRef().str();
         if (QoalaHostDialect::opIsNotFromAllowedDialects(operation)) {
             return this->emitOpError() << "'" << getOperationName() << "' "
@@ -71,7 +70,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // 2. The qoalahost.blk_meta operation is always the first one of its block
     // 3. A block block whose identifier is present in the blk_meta of another must be decalred before
     std::set<std::string> blkIds;
-    for (Block &block: getBody()) {
+    for (Block &block : getBody()) {
         auto blkMetas = block.getOps<BlkMeta>();
 
         auto it = blkMetas.begin();
@@ -94,12 +93,12 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
 
         // We also ensure that the blocks are defined is a sane order. A block can be a precedence of another one
         // iif it is declared first.
-        for (StringRef pred: op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
+        for (StringRef pred : op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
                 return op.emitOpError() << "contains a predecessor before its declaration.";
             }
         }
-        for (StringRef pred: op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
+        for (StringRef pred : op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
                 return op.emitOpError() << "contains a depdency before its declaration.";
             }
@@ -169,37 +168,21 @@ LogicalResult qoalahost::CallOp::verify() {
     return success();
 }
 
-int qoalahost::CallOp::getDuration() {
-    return options::qoalaOptHostInstrTime;
-}
+int qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::NopOp::getDuration() {
-    return options::qoalaOptHostInstrTime;
-}
+int qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::SendIntsOp::getDuration() {
-    return options::qoalaOptHostInstrTime;
-}
+int qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::SendFloatsOp::getDuration() {
-    return options::qoalaOptHostInstrTime;
-}
+int qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::RecvIntsOp::getDuration() {
-    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
-}
+int qoalahost::RecvIntsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-int qoalahost::RecvFloatsOp::getDuration() {
-    return options::qoalaOptLatency + options::qoalaOptHostPeerLatency;
-}
+int qoalahost::RecvFloatsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
 BlockType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return BlockType::CC;
@@ -227,7 +210,8 @@ BlockType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &ro
 
 Operation *qoalahost::CallOp::getCalleeOperation() {
     const auto calleeName = this->getCalleeAttr().getAttr();
-    return SymbolTable::lookupNearestSymbolFrom(this->getOperation(), calleeName);;
+    return SymbolTable::lookupNearestSymbolFrom(this->getOperation(), calleeName);
+    ;
 }
 
 /* Helper functions from the QoalaHostDialect class */

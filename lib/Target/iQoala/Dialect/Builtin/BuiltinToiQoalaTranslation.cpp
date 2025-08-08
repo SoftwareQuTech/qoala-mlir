@@ -1,5 +1,5 @@
-#include "mlir/IR/Operation.h"
 #include "Target/iQoala/Dialect/Builtin/BuiltinToiQoalaTranslation.h"
+#include "mlir/IR/Operation.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -22,4 +22,4 @@ namespace qoala::translate {
     LogicalResult BuiltinToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *) const {
         return translateBuiltinOperation(op);
     }
-}
+} // namespace qoala::translate

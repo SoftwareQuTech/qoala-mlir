@@ -1,6 +1,6 @@
-#include "Analysis/QMem/Conversion.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/Helpers/QMemInterfaces.h"
+#include "Analysis/QMem/Conversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -17,31 +17,20 @@ namespace qoala::analysis::functionize {
         return llvm::isa<
 #define GET_OP_LIST
 #include "Dialect/QMem/QMem.cpp.inc"
-        >(op);
+                >(op);
     }
 
     static bool qMemOpIsaBreakingPoint(const Operation &op) {
-        return llvm::isa<
-                dialects::qmem::RecvFloatsOp,
-                dialects::qmem::RecvIntsOp
-                >(op);
+        return llvm::isa<dialects::qmem::RecvFloatsOp, dialects::qmem::RecvIntsOp>(op);
     }
 
     static bool qMemOpIsEprs(const Operation &op) {
-        return llvm::isa<
-                dialects::qmem::EprsOp,
-                dialects::qmem::EprsMeasureOp
-                >(op);
+        return llvm::isa<dialects::qmem::EprsOp, dialects::qmem::EprsMeasureOp>(op);
     }
 
     static bool qMemOpShouldRemainInBody(const Operation &op) {
-        return llvm::isa<
-                dialects::qmem::SendIntsOp,
-                dialects::qmem::SendFloatsOp,
-                dialects::qmem::FuncOp,
-                dialects::qmem::ReturnOp,
-                dialects::qmem::RemoteOp
-                >(op);
+        return llvm::isa<dialects::qmem::SendIntsOp, dialects::qmem::SendFloatsOp, dialects::qmem::FuncOp,
+                         dialects::qmem::ReturnOp, dialects::qmem::RemoteOp>(op);
     }
 
     /**
@@ -66,7 +55,10 @@ namespace qoala::analysis::functionize {
     class PerQubitGrouper {
     public:
         PerQubitGrouper() = delete;
-        explicit PerQubitGrouper(const uint32_t maxOpsPerGroup) : maxOpsPerGroup(maxOpsPerGroup), activeGroup(std::nullopt) {}
+
+        explicit PerQubitGrouper(const uint32_t maxOpsPerGroup):
+            maxOpsPerGroup(maxOpsPerGroup), activeGroup(std::nullopt) { }
+
         ~PerQubitGrouper();
         void registerQallocOp(dialects::qmem::QAllocOp &qallocOp);
         void groupDefinitionWithQAlloc(helpers::DefineQubitsInterface &defOp);
@@ -74,6 +66,7 @@ namespace qoala::analysis::functionize {
         [[nodiscard]]
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
+
     private:
         [[nodiscard]]
         QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
@@ -87,6 +80,7 @@ namespace qoala::analysis::functionize {
         [[nodiscard]]
         uint32_t getQubitIDForOperation(Operation *qallocOp) const;
         static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
+
     private:
         uint32_t maxOpsPerGroup;
         // The currently handled qubits
@@ -96,14 +90,14 @@ namespace qoala::analysis::functionize {
         // To preserve the order of the quantum ops as they appear lexicographically
         // this class maintains references to the *single* current active group and its ID
         std::string activeGroupId;
-        std::optional<QuantumOpsGroupTy *>activeGroup;
+        std::optional<QuantumOpsGroupTy *> activeGroup;
         // Similar as simple functionize, we need to keep track of "declarations" of qubits
         // to group them with their definitions later.
         DenseMap<Value, dialects::qmem::QAllocOp> declaredQubits;
     };
 
     PerQubitGrouper::~PerQubitGrouper() {
-        for (const QuantumOpsGroupTy * group: commitedGroups) {
+        for (const QuantumOpsGroupTy *group : commitedGroups) {
             delete group;
         }
         if (this->activeGroup.has_value()) {
@@ -116,12 +110,14 @@ namespace qoala::analysis::functionize {
     }
 
     dialects::qmem::QAllocOp PerQubitGrouper::getQallocForQubit(const Value &qubitVal) {
-        assert(this->declaredQubits.contains(qubitVal) && "Per qubit grouper: trying to get the qalloc operation of an unknown qubit");
+        assert(this->declaredQubits.contains(qubitVal) &&
+               "Per qubit grouper: trying to get the qalloc operation of an unknown qubit");
         return this->declaredQubits[qubitVal];
     }
 
     void PerQubitGrouper::deregisterQallocOp(dialects::qmem::QAllocOp &qallocOp) {
-        assert(this->declaredQubits.contains(qallocOp.getQ()) && "Per qubit grouper: trying to deregister the qalloc operation of an unknown qubit");
+        assert(this->declaredQubits.contains(qallocOp.getQ()) &&
+               "Per qubit grouper: trying to deregister the qalloc operation of an unknown qubit");
         this->declaredQubits.erase(qallocOp.getQ());
     }
 
@@ -159,7 +155,6 @@ namespace qoala::analysis::functionize {
         }
         // We insert the operation in the group
         currentOpsGroup->push_back(op);
-
     }
 
     QuantumOpsGroupTy *PerQubitGrouper::addNewGroupForQalloc(Operation *qalloc, const std::vector<uint32_t> &qubits) {
@@ -215,7 +210,7 @@ namespace qoala::analysis::functionize {
         this->commitCurrentGroup();
         std::vector<QuantumOpsGroupTy> result;
         result.reserve(this->commitedGroups.size());
-        for (QuantumOpsGroupTy *group: this->commitedGroups) {
+        for (QuantumOpsGroupTy *group : this->commitedGroups) {
             result.push_back(std::move(*group));
         }
         return result;
@@ -232,7 +227,8 @@ namespace qoala::analysis::functionize {
         return eprsQubits;
     }
 
-    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction, const uint32_t maxOpsPerGroup) {
+    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction,
+                                                           const uint32_t maxOpsPerGroup) {
         PerQubitGrouper qubitGroupsMap(maxOpsPerGroup);
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
@@ -261,38 +257,38 @@ namespace qoala::analysis::functionize {
             assert(!involvedQubits.empty());
 
             llvm::TypeSwitch<Operation *>(&op)
-            .Case([&](dialects::qmem::QAllocOp qallocOp) {
-                // The op is a qalloc; we register the qalloc op to be grouped later
-                qubitGroupsMap.registerQallocOp(qallocOp);
-            })
-            .Case([&](dialects::qmem::InitOp &initOp) {
-                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(initOp.getOperation())) {
-                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
-                }
-            })
-            .Case([&](dialects::qmem::EprsOp &eprsOp) {
-                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
-                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
-                }
-                // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
-                if (qMemOpIsEprs(op)) {
-                    qubitGroupsMap.commitCurrentGroup();
-                }
-            })
-            .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
-                if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
-                    qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
-                }
-            })
-            .Default([&](Operation *otherOp ) {
-                // In the case of a non-qalloc, we need to attach the operation to the
-                // corresponding group. This call will make sure that the size of the current
-                // group does not exceed the configured threshold.
-                qubitGroupsMap.addOperationToGroup(otherOp, {involvedQubits});
-            });
+                    .Case([&](dialects::qmem::QAllocOp qallocOp) {
+                        // The op is a qalloc; we register the qalloc op to be grouped later
+                        qubitGroupsMap.registerQallocOp(qallocOp);
+                    })
+                    .Case([&](dialects::qmem::InitOp &initOp) {
+                        if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(initOp.getOperation())) {
+                            qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                        }
+                    })
+                    .Case([&](dialects::qmem::EprsOp &eprsOp) {
+                        if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                            qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                        }
+                        // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
+                        if (qMemOpIsEprs(op)) {
+                            qubitGroupsMap.commitCurrentGroup();
+                        }
+                    })
+                    .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
+                        if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                            qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                        }
+                    })
+                    .Default([&](Operation *otherOp) {
+                        // In the case of a non-qalloc, we need to attach the operation to the
+                        // corresponding group. This call will make sure that the size of the current
+                        // group does not exceed the configured threshold.
+                        qubitGroupsMap.addOperationToGroup(otherOp, {involvedQubits});
+                    });
         }
 
         // After iterating all the instructions, commit all the discovered groups
         return qubitGroupsMap.getAllFinalGroups();
     }
-}
+} // namespace qoala::analysis::functionize

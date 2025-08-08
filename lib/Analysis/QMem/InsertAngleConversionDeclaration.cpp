@@ -1,6 +1,6 @@
-#include "mlir/IR/BuiltinOps.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMem.h"
+#include "mlir/IR/BuiltinOps.h"
 
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
@@ -14,12 +14,12 @@ using namespace qoala::conversion;
 
 #define DEBUG_TYPE "f32-flattening"
 
-
 namespace qoala::analysis {
 #define GEN_PASS_DEF_ANGLECONVERSIONDECLARATION
 #include "Dialect/Helpers/HelperPasses.h.inc"
 
-    class InsertAngleConvertionDeclarationPass : public impl::AngleConversionDeclarationBase<InsertAngleConvertionDeclarationPass> {
+    class InsertAngleConvertionDeclarationPass
+        : public impl::AngleConversionDeclarationBase<InsertAngleConvertionDeclarationPass> {
     public:
         using AngleConversionDeclarationBase::AngleConversionDeclarationBase;
         void runOnOperation() override;

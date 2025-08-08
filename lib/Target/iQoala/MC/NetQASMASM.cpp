@@ -1,8 +1,8 @@
 #include <Dialect/NetQASM/NetQASM.cpp.inc>
 
 #include "Analysis/NetQASM/Helpers.h"
-#include "Target/iQoala/MC/iQoalaMC.h"
 #include "Dialect/Helpers/DialectHelpers.h"
+#include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/ModuleTranslation.h"
 
 #define DEBUG_TYPE "netqasm-mc"
@@ -12,17 +12,18 @@ using namespace mlir;
 namespace qoala::assembly {
     // Helper function to create instructions with the given opcode
     NetQASMMCInstr *NetQASMMCInstr::build(translate::ModuleTranslation *moduleTranslation, Operation *op,
-        const std::vector<Value> &resVals, const std::vector<iQoalaRegType> &resultRegTypes,
-        const OpCode opCode, SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
-        const bool appendInstruction, const bool mapResults
-        ) {
+                                          const std::vector<Value> &resVals,
+                                          const std::vector<iQoalaRegType> &resultRegTypes, const OpCode opCode,
+                                          SmallVector<iQoalaMCOperand *> &extraOperands, const bool useOpOperands,
+                                          const bool appendInstruction, const bool mapResults) {
         std::vector<iQoalaMCOperand *> mcOperands;
-        std::vector<iQoalaRegReference *>resRegRefs;
+        std::vector<iQoalaRegReference *> resRegRefs;
         const std::string localRoutineName = dialects::helpers::getParentLocalRoutineName(op);
         const auto localRoutine = moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
 
         for (const iQoalaRegType resultRegType : resultRegTypes) {
-            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(resultRegType, localRoutine);
+            const uint8_t regNumber = moduleTranslation->getQoalaModule()->getiQoalaContext()->allocateRegister(
+                    resultRegType, localRoutine);
             resRegRefs.push_back(iQoalaRegReference::createRegReference(resultRegType, regNumber));
         }
 
@@ -32,11 +33,13 @@ namespace qoala::assembly {
             mcOperands.push_back(resultRegOperand);
         }
 
-        // If the operation yielded a result, it is assumed that the first operand contains the register reference for it
+        // If the operation yielded a result, it is assumed that the first operand contains the register reference for
+        // it
         if (mapResults) {
             for (uint32_t i = 0; i < resVals.size(); ++i) {
-                assert(mcOperands[i]->getRegRef()->isQuantum() && "NetQASM Instruction Builder: trying to create an instruction"
-                                                                  "yielding a result on a non-quantum register.");
+                assert(mcOperands[i]->getRegRef()->isQuantum() &&
+                       "NetQASM Instruction Builder: trying to create an instruction"
+                       "yielding a result on a non-quantum register.");
                 moduleTranslation->mapValueToRegRef(resVals[i], mcOperands[i]->getRegRef());
             }
         }
@@ -69,7 +72,8 @@ namespace qoala::assembly {
                 break;
             case OP_JMP:
                 assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
-                assert(mcOperands[0]->isExpression() && "NetQASM 1 immediate instruction: operand 0 must be an immediate");
+                assert(mcOperands[0]->isExpression() &&
+                       "NetQASM 1 immediate instruction: operand 0 must be an immediate");
                 break;
             case OP_BEQ:
             case OP_BNE:
@@ -85,7 +89,9 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isRegister() || mcOperands[1]->isImmediate() && "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
+                assert(mcOperands[1]->isRegister() ||
+                       mcOperands[1]->isImmediate() &&
+                               "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
                 break;
             case OP_MEAS:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -100,7 +106,9 @@ namespace qoala::assembly {
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 is not a register.");
-                assert(mcOperands[1]->isImmediate() || mcOperands[1]->isPlaceHolder() && "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate or placeholder.");
+                assert(mcOperands[1]->isImmediate() ||
+                       mcOperands[1]->isPlaceHolder() &&
+                               "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate or placeholder.");
                 break;
             case OP_BEZ:
             case OP_BNZ:
@@ -118,8 +126,10 @@ namespace qoala::assembly {
             case OP_ROT_Z:
                 assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 2-imm instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isImmediate() && "NetQASM 1-reg, 2-imm instruction: operand 1 must be an immediate");
-                assert(mcOperands[2]->isImmediate() && "NetQASM 1-reg, 2-imm instruction: operand 2 must be an immediate");
+                assert(mcOperands[1]->isImmediate() &&
+                       "NetQASM 1-reg, 2-imm instruction: operand 1 must be an immediate");
+                assert(mcOperands[2]->isImmediate() &&
+                       "NetQASM 1-reg, 2-imm instruction: operand 2 must be an immediate");
                 break;
             default:
                 op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
@@ -230,7 +240,7 @@ namespace qoala::assembly {
                 this->printThreeFourRegsInstr("add", os);
                 break;
             case OP_SUB:
-               this->printThreeFourRegsInstr("sub", os);
+                this->printThreeFourRegsInstr("sub", os);
                 break;
             case OP_ADDM:
                 this->printThreeFourRegsInstr("addm", os, true);
@@ -248,7 +258,7 @@ namespace qoala::assembly {
                 break;
             case OP_REM:
                 this->printThreeFourRegsInstr("rem", os);
-            break;
+                break;
             // Quantum Gates
             // Single Qubit Gates
             case OP_X:
@@ -337,7 +347,8 @@ namespace qoala::assembly {
         this->printInstrInGenericForm(mnemonic, os);
     }
 
-    void NetQASMMCInstr::printThreeFourRegsInstr(const std::string &mnemonic, raw_ostream &os, const bool usesFourRegs) const {
+    void NetQASMMCInstr::printThreeFourRegsInstr(const std::string &mnemonic, raw_ostream &os,
+                                                 const bool usesFourRegs) const {
         uint8_t numOperands;
         if (usesFourRegs) {
             numOperands = 4;
@@ -373,7 +384,7 @@ namespace qoala::assembly {
                 break;
             default:
                 this->originalOp->emitOpError("Trying to print an instruction as a store/load which")
-                << "does not have a store or load OpCode\n";
+                        << "does not have a store or load OpCode\n";
         }
     }
-}
+} // namespace qoala::assembly

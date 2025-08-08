@@ -1,17 +1,17 @@
 add_mlir_dialect_library(MLIRQRemote
-    QRemote.cpp
-    QRemoteDialect.cpp
+        QRemote.cpp
+        QRemoteDialect.cpp
 
-    DEPENDS
-    MLIRQRemoteIncGen
+        DEPENDS
+        MLIRQRemoteIncGen
 
-    LINK_LIBS PUBLIC
-    MLIRIR
+        LINK_LIBS PUBLIC
+        MLIRIR
 
-    LINK_LIBS PRIVATE
-    MLIRAnalysis
-    MLIRIR
-    MLIRParser
-    MLIRSideEffectInterfaces
-    MLIRTransforms
+        LINK_LIBS PRIVATE
+        MLIRAnalysis
+        MLIRIR
+        MLIRParser
+        MLIRSideEffectInterfaces
+        MLIRTransforms
 )
