@@ -87,33 +87,33 @@ bool netqasm::NetQASMDialect::opIsNotFromAllowedDialects(Operation &operation) {
             >(operation);
 }
 
-int netqasm::QAllocOp::getDuration() { return options::qoalaOptQNosInstrTime; }
+uint32_t netqasm::QAllocOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-int netqasm::QFreeOp::getDuration() { return options::qoalaOptQNosInstrTime; }
+uint32_t netqasm::QFreeOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-int netqasm::ReturnOp::getDuration() { return this->getNumOperands() * options::qoalaOptQNosInstrTime; }
+uint32_t netqasm::ReturnOp::getDuration() { return this->getNumOperands() * options::qoalaOptQNosInstrTime; }
 
-int netqasm::QInitOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::QInitOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateXOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::RotateXOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateYOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::RotateYOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint32_t netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-int netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint32_t netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::CzOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint32_t netqasm::CzOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::CrotXOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint32_t netqasm::CrotXOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-int netqasm::EprsOp::getDuration() { return options::qoalaOptLinkDuration; }
+uint32_t netqasm::EprsOp::getDuration() { return options::qoalaOptLinkDuration; }
 
-int netqasm::EprsMeasureOp::getDuration() {
+uint32_t netqasm::EprsMeasureOp::getDuration() {
     return options::qoalaOptLinkDuration + options::qoalaOptSingleGateDuration;
 }
 

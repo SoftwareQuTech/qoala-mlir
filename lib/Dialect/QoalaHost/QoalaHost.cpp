@@ -168,17 +168,17 @@ LogicalResult qoalahost::CallOp::verify() {
     return success();
 }
 
-int qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-int qoalahost::RecvIntsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint32_t qoalahost::RecvIntsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-int qoalahost::RecvFloatsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint32_t qoalahost::RecvFloatsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
 BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
@@ -211,7 +211,6 @@ BlockType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &ro
 Operation *qoalahost::CallOp::getCalleeOperation() {
     const auto calleeName = this->getCalleeAttr().getAttr();
     return SymbolTable::lookupNearestSymbolFrom(this->getOperation(), calleeName);
-    ;
 }
 
 /* Helper functions from the QoalaHostDialect class */

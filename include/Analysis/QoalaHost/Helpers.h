@@ -124,7 +124,7 @@ namespace qoala::analysis {
             }
 
             [[nodiscard]]
-            int getDuration() const {
+            uint32_t getDuration() const {
                 return duration_;
             }
 
@@ -167,7 +167,7 @@ namespace qoala::analysis {
             }
 
             [[nodiscard]]
-            int getDuration() const {
+            uint32_t getDuration() const {
                 int dur = 0.0;
                 for (const auto *op : operations_) {
                     dur += op->getDuration();
