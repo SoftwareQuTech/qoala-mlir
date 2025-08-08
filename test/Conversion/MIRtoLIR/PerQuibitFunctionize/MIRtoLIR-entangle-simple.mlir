@@ -18,7 +18,7 @@ module {
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
-    // CHECK: qoalahost.blk_meta {block_id = "block_0", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
     qmem.eprs %0 {remote = @Bob}
@@ -29,13 +29,13 @@ module {
     %cst_1 = arith.constant 0.785398 : f32
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER1]](%[[REG_MAIN0]]) : (i32) -> i1
     qmem.rot_x %0, %cst_0
     %1 = qmem.measure %0 : i1
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK: qoalahost.return
     qmem.return
   }

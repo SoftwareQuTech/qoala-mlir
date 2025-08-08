@@ -267,6 +267,30 @@ namespace qoala::helpers {
     }
 
     /**
+     * Helper function that returns a string containing the "string" representation of each key-value pair in
+     * the given unordered_map, formatted as "key: value", and separated by commas. Both the key and the value types
+     * must support the "<<" operator.
+     *
+     * @tparam KeyTy Type of the keys in the map.
+     * @tparam ValueTy Type of the values in the map.
+     * @param map An std::unordered_map instance of <KeyTy, ValueTy>.
+     * @return A string with all key-value pairs printed as "key: value", separated with commas.
+     */
+    template <typename KeyTy, typename ValueTy>
+    std::string formatUnorderedMap(const std::unordered_map<KeyTy, ValueTy> &map) {
+        std::stringstream result;
+        for (const auto &pair : map) {
+            result << pair.first << ": " << pair.second << ", ";
+        }
+        std::string partialResult = result.str();
+        if (partialResult.empty()) {
+            return partialResult;
+        } else {
+            return partialResult.substr(0, partialResult.length() - 2);
+        }
+    }
+
+    /**
      * Helper function that returns a string containing the "string" representation of each member of
      * the given set, separated by a comma. To this end, the parametric type of the vector members
      * *must* implement the "<<" operator for the given type.

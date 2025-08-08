@@ -64,6 +64,11 @@ static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptQNosInstrTimeOption("qoala-opt-qnos-instr-time",
                                     desc("Time taken by a classical instruction executed on the QNPU."), NotHidden,
                                     location(qoala::options::qoalaOptQNosInstrTime));
+uint32_t qoala::options::qoalaOptQubitLifetime = 500;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptQubitLifetimeOption("qoala-opt-qubit-lifetime",
+                                    desc("Lifetime of a qubit."), NotHidden,
+                                    location(qoala::options::qoalaOptQubitLifetime));
 
 
 int main(int argc, char **argv) {

@@ -290,7 +290,8 @@ def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
     StrArrayAttr:$predecessors,
     StrArrayAttr: $dependencies,
     StrAttr: $prev_comm,
-    StrAttr: $prev_ent
+    StrAttr: $prev_ent,
+    DictionaryAttr: $deadlines
   );
 
   let summary = [{
