@@ -28,39 +28,38 @@ namespace qoala::analysis::qmemeff {
         assert(mainFunc && "No main func? This is embarrassing...");
 
         // Measurements ops will increase a "buffer" of memory positions to be reused.
-        int measured = 0;
+        uint32_t measured = 0;
 
         // Walk through the blocks in the main function and focus on qoalahost call ops,
         // then walk through each operation in the callee and search for qalloc and measure operations.
 
         // TODO Current implementation does not take into account epr request callbacks.
         // In the future, add support for epr request callbacks if needed. See issue qoala-kanban-board#89.
-        mainFunc.walk([&](qoalahost::CallOp callOp) {
-            if (auto callee = callOp.getCalleeOperation<FunctionOpInterface>()) {
-                callee.walk([&](Operation *opInCallee) {
-                    llvm::TypeSwitch<Operation *>(opInCallee)
-                            .Case([&](const netqasm::QAllocOp qallocOp) {
-                                LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << qallocOp << "\n");
-                                // Increase virtual qubits for every qalloc op.
-                                ++virtualQubits;
-                                // Increase physical qubits only if the measured buffer equals 0.
-                                if (measured == 0) {
-                                    ++physicalQubits;
-                                } else {
-                                    // Remember to decrease the measure buffer.
-                                    --measured;
-                                }
-                            })
-                            .Case([&](const netqasm::ifaces::MeasureOpIface measureOp) {
-                                LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
-                                // Each measure op will increase the measured buffer.
-                                ++measured;
-                            });
-                });
-            } else {
-                llvm::errs() << "Callee is not a FunctionOpInterface!\n";
-            }
-        });
+        const auto callOps = mainFunc.getOps<qoalahost::CallOp>();
+
+        for (auto callOp : callOps) {
+            auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
+            callee.walk([&](Operation *opInCallee) {
+                llvm::TypeSwitch<Operation *>(opInCallee)
+                        .Case([&](const netqasm::QAllocOp qallocOp) {
+                            LLVM_DEBUG(llvm::dbgs() << "Found QAllocOp: " << qallocOp << "\n");
+                            // Increase virtual qubits for every qalloc op.
+                            ++virtualQubits;
+                            // Increase physical qubits only if the measured buffer equals 0.
+                            if (measured == 0) {
+                                ++physicalQubits;
+                            } else {
+                                // Remember to decrease the measure buffer.
+                                --measured;
+                            }
+                        })
+                        .Case([&](const netqasm::ifaces::MeasureOpIface measureOp) {
+                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
+                            // Each measure op will increase the measured buffer.
+                            ++measured;
+                        });
+            });
+        }
     }
 
     float QoalaHostQMemoryEfficiency::getEfficiency() const {
