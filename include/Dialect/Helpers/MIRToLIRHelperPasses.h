@@ -12,6 +12,6 @@ namespace qoala::analysis {
 #define GEN_PASS_REGISTRATION
 #include "Dialect/Helpers/HelperPasses.h.inc"
 
-} // namespace mlir
+} // namespace qoala::analysis
 
 #endif // QMEM_PASSES_H_

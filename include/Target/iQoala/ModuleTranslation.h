@@ -1,15 +1,15 @@
 #ifndef MODULETRANSLATION_H
 #define MODULETRANSLATION_H
 
-#include <stack>
 #include <map>
+#include <stack>
 
-#include "mlir/IR/Operation.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/Support/LLVM.h"
 #include "Target/iQoala/Export.h"
-#include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
+#include "Target/iQoala/iQoala.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/Support/LLVM.h"
 
 namespace qoala::translate {
     class ModuleTranslation {
@@ -24,7 +24,8 @@ namespace qoala::translate {
         class ModuleStackFrame {
         public:
             ModuleStackFrame() = delete;
-            explicit ModuleStackFrame(mlir::Operation *op) : operation(op) {}
+
+            explicit ModuleStackFrame(mlir::Operation *op): operation(op) { }
 
             /* Methods for mapping values */
             void mapValueInScope(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
@@ -37,6 +38,7 @@ namespace qoala::translate {
             mlir::Operation *getOperation() const {
                 return this->operation;
             }
+
             [[nodiscard]]
             bool isModule() const;
             [[nodiscard]]
@@ -50,6 +52,7 @@ namespace qoala::translate {
             mlir::Operation *operation;
             mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> valuesInScope;
         };
+
         /**
          * This class represents the "stack" when translating the module
          * It contains reference of the translated frames (starting from the MainFuncOp)
@@ -114,6 +117,7 @@ namespace qoala::translate {
         iqoala::iQoalaModule *getQoalaModule() const;
 
         std::optional<iqoala::Block *> findIdPrecedence(const std::string &key);
+
         void addIdPrecedence(const std::string &key, iqoala::Block *block) {
             precedencesIdsToIQoalaBlocks[key] = block;
         }

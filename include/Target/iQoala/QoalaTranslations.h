@@ -3,12 +3,12 @@
 
 #include "mlir/IR/DialectRegistry.h"
 
-#include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
-#include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
-#include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Builtin/BuiltinToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/ControlFlow/ControlFlowToiQoalaTranslation.h"
+#include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
+#include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
+#include "Target/iQoala/Dialect/QoalaHost/QoalaHostToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Tensor/TensorToiQoalaTranslation.h"
 
 namespace qoala::translate {
@@ -26,6 +26,6 @@ namespace qoala::translate {
         TensorToiQoalaTranslation::registerInto(registry);
         ControlFlowToiQoalaTranslation::registerInto(registry);
     }
-}
+} // namespace qoala::translate
 
-#endif //QOALATRANSLATIONS_H
+#endif // QOALATRANSLATIONS_H

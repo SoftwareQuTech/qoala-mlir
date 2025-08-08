@@ -1,10 +1,10 @@
 #ifndef IQOLACONTEXT_H
 #define IQOLACONTEXT_H
 
-#include "Target/iQoala/iQoala.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
-#include "llvm/ADT/SmallVector.h"
+#include "Target/iQoala/iQoala.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallVector.h"
 
 #define MAX_PHY_QUBITS 16
 
@@ -15,12 +15,14 @@ namespace qoala::iqoala {
         uint8_t allocateCRegistry();
         uint8_t allocateMRegistry();
         uint8_t allocateQRegistry();
+
     private:
         llvm::SmallVector<uint8_t, 16> rRegisters;
         llvm::SmallVector<uint8_t, 16> cRegisters;
         llvm::SmallVector<uint8_t, 16> mRegisters;
         llvm::SmallVector<uint8_t, 16> qRegisters;
     };
+
     /**
      * This class represents the "context" of the iQoala programs
      * It holds any static state, and mappings (such as virtual-physical
@@ -32,7 +34,7 @@ namespace qoala::iqoala {
         ~iQoalaContext() = default;
 
         uint8_t allocateRegister(assembly::iQoalaRegType type,
-            const std::optional<LocalQuantumRoutine *> &localQuantumRoutine = std::nullopt);
+                                 const std::optional<LocalQuantumRoutine *> &localQuantumRoutine = std::nullopt);
         uint8_t allocateQubit();
         void releaseQubit(uint8_t reg);
         uint8_t allocateClassicalSocketForRemote(const std::string &remoteID);
@@ -55,5 +57,5 @@ namespace qoala::iqoala {
         // Set for keeping track of the visited (translated) operations of the module
         llvm::SmallPtrSet<mlir::Operation *, 32> visitedOps;
     };
-}
-#endif //IQOLACONTEXT_H
+} // namespace qoala::iqoala
+#endif // IQOLACONTEXT_H

@@ -86,9 +86,14 @@ namespace qoala::analysis {
             explicit QoalaHostQMemoryEfficiency(mlir::Operation *op);
 
             [[nodiscard]]
-            uint32_t getVirtualQubitCount() const { return virtualQubits; }
+            uint32_t getVirtualQubitCount() const {
+                return virtualQubits;
+            }
+
             [[nodiscard]]
-            uint32_t getPhysicalQubitCount() const { return physicalQubits; }
+            uint32_t getPhysicalQubitCount() const {
+                return physicalQubits;
+            }
 
             [[nodiscard]]
             float getEfficiency() const;
@@ -111,15 +116,24 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(const std::string &id, int duration): id_(id), duration_(duration), op_(nullptr) { }
+            MILPOperation(std::string id, const int duration): id_(std::move(id)), duration_(duration), op_(nullptr) { }
 
-            const std::string &getId() const { return id_; }
+            [[nodiscard]]
+            const std::string &getId() const {
+                return id_;
+            }
 
-            int getDuration() const { return duration_; }
+            [[nodiscard]]
+            int getDuration() const {
+                return duration_;
+            }
 
             void setOperation(mlir::Operation *op) { op_ = op; }
 
-            mlir::Operation *getOperation() const { return op_; }
+            [[nodiscard]]
+            mlir::Operation *getOperation() const {
+                return op_;
+            }
 
         private:
             std::string id_;
@@ -133,25 +147,38 @@ namespace qoala::analysis {
         class MILPTask {
         public:
             MILPTask(std::string id, MILPBlock *parent, const TaskGroup group):
-                id_(id), parent_block_(parent), group_(group) { }
+                id_(std::move(id)), parent_block_(parent), group_(group) { }
 
-            const std::string &getId() const { return id_; }
+            [[nodiscard]]
+            const std::string &getId() const {
+                return id_;
+            }
 
-            TaskGroup getGroup() const { return group_; }
+            [[nodiscard]]
+            TaskGroup getGroup() const {
+                return group_;
+            }
 
             void addOperation(MILPOperation *op) { operations_.push_back(op); }
 
-            const std::vector<MILPOperation *> &getOperations() const { return operations_; }
+            [[nodiscard]]
+            const std::vector<MILPOperation *> &getOperations() const {
+                return operations_;
+            }
 
+            [[nodiscard]]
             int getDuration() const {
                 int dur = 0.0;
-                for (auto *op : operations_) {
+                for (const auto *op : operations_) {
                     dur += op->getDuration();
                 }
                 return dur;
             }
 
-            MILPBlock *getParentBlock() const { return parent_block_; }
+            [[nodiscard]]
+            MILPBlock *getParentBlock() const {
+                return parent_block_;
+            }
 
         private:
             std::string id_;
@@ -163,11 +190,17 @@ namespace qoala::analysis {
         // Class to represent a block for the MILP model
         class MILPBlock {
         public:
-            MILPBlock(const std::string &id, BlockType type): id_(id), type_(type), blk_(nullptr) { }
+            MILPBlock(std::string id, const BlockType type): id_(std::move(id)), type_(type), blk_(nullptr) { }
 
-            const std::string &getId() const { return id_; }
+            [[nodiscard]]
+            const std::string &getId() const {
+                return id_;
+            }
 
-            BlockType getType() const { return type_; }
+            [[nodiscard]]
+            BlockType getType() const {
+                return type_;
+            }
 
             MILPOperation *addOperation(std::unique_ptr<MILPOperation> op) {
                 MILPOperation *raw = op.get();
@@ -175,19 +208,34 @@ namespace qoala::analysis {
                 return raw;
             }
 
-            const std::vector<std::unique_ptr<MILPOperation>> &getOperations() const { return operations_; }
+            [[nodiscard]]
+            const std::vector<std::unique_ptr<MILPOperation>> &getOperations() const {
+                return operations_;
+            }
 
             void addTask(std::unique_ptr<MILPTask> task) { tasks_.push_back(std::move(task)); }
 
-            const std::vector<std::unique_ptr<MILPTask>> &getTasks() const { return tasks_; }
+            [[nodiscard]]
+            const std::vector<std::unique_ptr<MILPTask>> &getTasks() const {
+                return tasks_;
+            }
 
             void setBlock(mlir::Block *block) { blk_ = block; }
 
-            mlir::Block *getBlock() const { return blk_; }
+            [[nodiscard]]
+            mlir::Block *getBlock() const {
+                return blk_;
+            }
 
-            const MILPOperation *firstOp() const { return operations_.front().get(); }
+            [[nodiscard]]
+            const MILPOperation *firstOp() const {
+                return operations_.front().get();
+            }
 
-            const MILPOperation *lastOp() const { return operations_.back().get(); }
+            [[nodiscard]]
+            const MILPOperation *lastOp() const {
+                return operations_.back().get();
+            }
 
         private:
             std::string id_;
@@ -200,17 +248,26 @@ namespace qoala::analysis {
         // Class to represent a qubit for the MILP model
         class MILPQubit {
         public:
-            MILPQubit(const std::string &id): id_(id), alloc_op_(nullptr), meas_op_(nullptr) { }
+            explicit MILPQubit(std::string id): id_(std::move(id)), alloc_op_(nullptr), meas_op_(nullptr) { }
 
-            const std::string &getId() const { return id_; }
+            [[nodiscard]]
+            const std::string &getId() const {
+                return id_;
+            }
 
             void setAllocation(MILPOperation *allocOp) { alloc_op_ = allocOp; }
 
             void setMeasurement(MILPOperation *measOp) { meas_op_ = measOp; }
 
-            MILPOperation *getAllocation() const { return alloc_op_; }
+            [[nodiscard]]
+            MILPOperation *getAllocation() const {
+                return alloc_op_;
+            }
 
-            MILPOperation *getMeasurement() const { return meas_op_; }
+            [[nodiscard]]
+            MILPOperation *getMeasurement() const {
+                return meas_op_;
+            }
 
         private:
             std::string id_;
@@ -233,7 +290,7 @@ namespace qoala::analysis {
             // Inject blocks, qubits and precedences
             virtual void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
                                         const std::vector<std::shared_ptr<MILPQubit>> &qubits,
-                                        const BlockPrecedenceList precedences) {
+                                        const BlockPrecedenceList &precedences) {
                 blocks_ = blocks;
                 qubits_ = qubits;
                 precedences_ = precedences;
@@ -290,9 +347,11 @@ namespace qoala::analysis {
         private:
             // Specific constraints
             void addIntraTaskOrderingConstraints();
+
             void addBlockPrecedenceConstraints();
 
             void addFCFSTaskConstraints();
+
             void addIntraBlockSequencingConstraints();
 
             int bigM_;
@@ -301,6 +360,7 @@ namespace qoala::analysis {
         class MILPBlockDeadlineModel : public MILPModelBuilder {
         public:
             MILPBlockDeadlineModel() = default;
+
             ~MILPBlockDeadlineModel() override = default;
 
             void createVariables() override;
@@ -321,9 +381,13 @@ namespace qoala::analysis {
             std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
 
             void addIntraTaskSequencingConstraints();
+
             void addIntraBlockSequencingConstraints();
+
             void addBlockPrecedenceConstraints();
+
             void addFCFSConsistencyConstraints();
+
             void addQubitLifetimeConstraints();
         };
 

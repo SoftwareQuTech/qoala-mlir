@@ -1,21 +1,23 @@
 #ifndef QOALA_MODULE_H
 #define QOALA_MODULE_H
 
-#include "Target/iQoala/iQoalaContext.h"
 #include "Target/iQoala/iQoala.h"
+#include "Target/iQoala/iQoalaContext.h"
 
 namespace qoala::iqoala {
-    class iQoalaModule : public helpers::PrintInterface{
+    class iQoalaModule : public helpers::PrintInterface {
     public:
-        iQoalaModule(const llvm::StringRef &name, iQoalaContext *context) : moduleName(name), iQoalaCtx(context) { }
+        iQoalaModule(const llvm::StringRef &name, iQoalaContext *context): moduleName(name), iQoalaCtx(context) { }
+
         ~iQoalaModule() override = default;
         void print(mlir::raw_ostream &os) const override;
 
         [[nodiscard]]
-        iQoalaContext *getiQoalaContext() const ;
+        iQoalaContext *getiQoalaContext() const;
 
         void setModuleName(mlir::StringRef newModuleName);
-        void addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true, bool eprsSocket = true);
+        void addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true,
+                                  bool eprsSocket = true);
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();
         void deleteEmptyHostBlocks();
@@ -48,8 +50,9 @@ namespace qoala::iqoala {
             NetQASMSection netQASMSection;
             RequestSection requestSection;
         } iQoalaProgram;
+
         iQoalaContext *iQoalaCtx;
     };
-}
+} // namespace qoala::iqoala
 
-#endif //QOALA_MODULE_H
+#endif // QOALA_MODULE_H

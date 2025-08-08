@@ -33,6 +33,7 @@ namespace qoala::analysis::netqasm {
         [[nodiscard]]
         mlir::BlockArgument getBlockArgForCallerValue(const mlir::Value &callerVal) const;
         void mapCallerArgToCalleeArgValue(const mlir::Value &callerVal, const mlir::BlockArgument &blockArg);
+
     private:
         mlir::DenseMap<mlir::Value, mlir::BlockArgument> callerArgsToCalleeArgMap;
         mlir::DenseMap<mlir::BlockArgument, mlir::Value> calleeArgsToCallerArgMap;
@@ -54,7 +55,7 @@ namespace qoala::analysis::netqasm {
      * @return A vector with all the MC instructions that load an argument
      */
     std::vector<assembly::iQoalaMCInstruction *> filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
-        assembly::NetQASMMCInstr::OpCode opCode);
-}
+                                                                               assembly::NetQASMMCInstr::OpCode opCode);
+} // namespace qoala::analysis::netqasm
 
-#endif //HELPERS_H
+#endif // HELPERS_H

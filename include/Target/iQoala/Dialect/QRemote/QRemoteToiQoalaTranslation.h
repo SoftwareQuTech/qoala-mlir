@@ -2,8 +2,8 @@
 #define QREMOTETOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/Support/LogicalResult.h"
 
 #include "Dialect/QRemote/QRemote.h"
 
@@ -18,6 +18,6 @@ namespace qoala::translate {
             registeriQoalaTranslation<dialects::qremote::QRemoteDialect, QRemoteToiQoalaTranslation>(registry);
         }
     };
-}
+} // namespace qoala::translate
 
-#endif //QREMOTETOIQOALATRANSLATION_H
+#endif // QREMOTETOIQOALATRANSLATION_H
