@@ -98,18 +98,4 @@ namespace qoala::analysis::netqasm {
         }
         return {};
     }
-
-    std::vector<assembly::iQoalaMCInstruction *>
-    filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
-                                  const assembly::NetQASMMCInstr::OpCode opCode) {
-        std::vector<assembly::iQoalaMCInstruction *> result;
-        if (isa<iqoala::LocalQuantumRoutine>(routine)) {
-            for (assembly::iQoalaMCInstruction *instruction : routine->getInstructions()) {
-                if (instruction->getOpcode() == opCode) {
-                    result.push_back(instruction);
-                }
-            }
-        }
-        return result;
-    }
 } // namespace qoala::analysis::netqasm

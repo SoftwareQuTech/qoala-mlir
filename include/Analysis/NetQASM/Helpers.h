@@ -47,15 +47,6 @@ namespace qoala::analysis::netqasm {
      * @return A map object that relates caller argument values and the BlockArgument values inside the called function.
      */
     ArgValueMap getRoutineArgValues(mlir::Operation *routine, const mlir::OperandRange &callOperands);
-
-    /**
-     * Returns a vector with all the instructions of the given opCode.
-     * @param routine The Quantum routine to analyze
-     * @param opCode The given OpCode to filter
-     * @return A vector with all the MC instructions that load an argument
-     */
-    std::vector<assembly::iQoalaMCInstruction *> filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
-                                                                               assembly::NetQASMMCInstr::OpCode opCode);
 } // namespace qoala::analysis::netqasm
 
 #endif // HELPERS_H

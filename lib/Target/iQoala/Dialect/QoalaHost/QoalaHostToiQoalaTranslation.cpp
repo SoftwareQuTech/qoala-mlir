@@ -81,6 +81,25 @@ static void replacePlaceholderMCOperands(const ModuleTranslation *moduleTranslat
     }
 }
 
+/**
+ * Returns a vector with all the instructions of the given opCode.
+ * @param routine The Quantum routine to analyze
+ * @param opCode The given OpCode to filter
+ * @return A vector with all the MC instructions that load an argument
+ */
+static std::vector<iQoalaMCInstruction *> filterInstructionsFromRoutine(const QuantumRoutine *routine,
+                                                                        const NetQASMMCInstr::OpCode opCode) {
+    std::vector<iQoalaMCInstruction *> result;
+    if (isa<LocalQuantumRoutine>(routine)) {
+        for (iQoalaMCInstruction *instruction : routine->getInstructions()) {
+            if (instruction->getOpcode() == opCode) {
+                result.push_back(instruction);
+            }
+        }
+    }
+    return result;
+}
+
 static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
@@ -116,8 +135,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         if (valueToQubitMap[valueAtCaller] != 0xFF) {
             // In this case, the argument is mapped to a qubit reference; search the corresponding set instruction
             // that "loads" the qubit reference
-            for (const iQoalaMCInstruction *setInstr :
-                 netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
+            for (const iQoalaMCInstruction *setInstr : filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
                 if (setInstr->getOperand(1)->getIntegerVal() == valueToQubitMap[valueAtCaller]) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, setInstr->getOperand(0)->getRegRef());
                     // Register the qubit for the "uses" and "keeps"
@@ -127,7 +145,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
         } else {
             // In this case, we can safely assume that the value is mapped to a classical value.
             for (const iQoalaMCInstruction *loadInstr :
-                 netqasm::filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD)) {
+                 filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD)) {
                 if (loadInstr->getOperand(1)->getIntegerVal() == argNum) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
                 }
