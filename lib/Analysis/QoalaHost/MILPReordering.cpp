@@ -586,7 +586,7 @@ namespace qoala::analysis::reordering {
         return v;
     }
 
-    bool MILPModelBuilder::checkSolverStatus(ModuleOp *op) {
+    bool MILPModelBuilder::checkSolverStatus(ModuleOp *op) const {
         SCIP_STATUS status = SCIPgetStatus(scip_);
 
         switch (status) {
@@ -916,8 +916,8 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPModelBuilder::cleanup() {
-        for (std::pair<const std::string, SCIP_VAR *> &entry : startVars_) {
-            SCIPreleaseVar(scip_, &entry.second);
+        for (auto &[id, var] : startVars_) {
+            SCIPreleaseVar(scip_, &var);
         }
         startVars_.clear();
 

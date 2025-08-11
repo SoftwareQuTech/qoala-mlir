@@ -285,12 +285,12 @@ namespace qoala::analysis {
             virtual ~MILPModelBuilder() = default;
 
             // Initialize SCIP and prepare internal state
-            virtual bool initialize();
+            bool initialize();
 
             // Inject blocks, qubits and precedences
-            virtual void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
-                                        const std::vector<std::shared_ptr<MILPQubit>> &qubits,
-                                        const BlockPrecedenceList &precedences) {
+            void setProblemData(const std::vector<std::shared_ptr<MILPBlock>> &blocks,
+                                const std::vector<std::shared_ptr<MILPQubit>> &qubits,
+                                const BlockPrecedenceList &precedences) {
                 blocks_ = blocks;
                 qubits_ = qubits;
                 precedences_ = precedences;
@@ -303,20 +303,20 @@ namespace qoala::analysis {
             virtual void addConstraints() = 0;
 
             // Optimize using SCIP
-            virtual bool optimize() { return (SCIPsolve(scip_) == SCIP_OKAY); };
+            bool optimize() const { return SCIPsolve(scip_) == SCIP_OKAY; }
 
             // Free SCIP variables and memory
-            virtual void cleanup();
+            void cleanup();
 
             // Define the objective function (e.g., minimize total qubit lifetime)
             virtual void setObjective() = 0;
 
             // Retrieve start time for a specific operation (by ID)
-            virtual double getOperationStartTime(const std::string &opId) const;
+            double getOperationStartTime(const std::string &opId) const;
 
-            virtual std::vector<std::string> getOrderedBlocks() const;
+            std::vector<std::string> getOrderedBlocks() const;
 
-            virtual bool checkSolverStatus(mlir::ModuleOp *op = nullptr);
+            bool checkSolverStatus(mlir::ModuleOp *op) const;
 
         protected:
             std::vector<std::shared_ptr<MILPBlock>> blocks_;
