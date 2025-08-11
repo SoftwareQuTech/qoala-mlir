@@ -7,15 +7,15 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     let description = [{
         Interface for NetQASM operations that contain a region.
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns the return operation of this routine
-        }], "::mlir::Operation *", "getReturnOperation"
+        }], "mlir::Operation *", "getReturnOperation"
         >,
         InterfaceMethod<[{
             Returns the an Array with the Types of the arguments of this routine
-        }], "::llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
+        }], "llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
         >
     ];
 }
