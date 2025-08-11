@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/NetQASM/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -21,6 +22,165 @@ using namespace qoala::dialects;
 using namespace qoala::analysis;
 
 namespace qoala::analysis::precedences {
+    // caller block → all memory effects from its callee
+    struct MemEffectInfo {
+        MemEffectInfo(Operation *op, std::vector<MemoryEffects::EffectInstance> effects):
+            calleeOp(op), effects(std::move(effects)) { }
+
+        MemEffectInfo(): calleeOp(nullptr), effects({}) { }
+
+        Operation *calleeOp;
+        std::vector<MemoryEffects::EffectInstance> effects;
+    };
+
+    static std::vector<MemoryEffects::EffectInstance> computeMemoryEffects(FunctionOpInterface &calleeRoutineOp,
+                                                                           qoalahost::CallOp &callOp) {
+        std::vector<MemoryEffects::EffectInstance> allEffects;
+        const netqasm::ArgValueMap valuesArgMap =
+                netqasm::getRoutineArgValues(calleeRoutineOp.getOperation(), callOp.getOperands());
+
+        LLVM_DEBUG(llvm::dbgs() << "[MemEffects] Inspecting callee: " << callOp->getName() << "\n");
+
+        for (auto &calleeBlock : calleeRoutineOp) {
+            LLVM_DEBUG(llvm::dbgs() << "  [Block] In callee block @" << &calleeBlock << "\n");
+
+            for (Operation &innerOp : calleeBlock.getOperations()) {
+                LLVM_DEBUG(llvm::dbgs() << "    [Op] " << innerOp.getName() << "\n");
+
+                if (auto effectOp = dyn_cast<MemoryEffectOpInterface>(&innerOp)) {
+                    LLVM_DEBUG(llvm::dbgs() << "      -> Implements MemoryEffectOpInterface\n");
+
+                    SmallVector<MemoryEffects::EffectInstance, 4> effects;
+                    effectOp.getEffects(effects);
+
+                    for (const MemoryEffects::EffectInstance &eff : effects) {
+                        Value origVal = eff.getValue();
+                        Value &resolvedVal = origVal;
+
+                        // If it's a block argument, resolve to actual caller operand
+                        if (auto blockArg = dyn_cast<BlockArgument>(origVal); blockArg && origVal) {
+                            resolvedVal = valuesArgMap.getCallerValueForArg(blockArg);
+                        }
+
+                        const MemoryEffects::Effect *kind = eff.getEffect();
+                        LLVM_DEBUG(llvm::dbgs() << "        -> Effect: "
+                                                << (isa<MemoryEffects::Read>(kind)       ? "Read"
+                                                    : isa<MemoryEffects::Write>(kind)    ? "Write"
+                                                    : isa<MemoryEffects::Allocate>(kind) ? "Allocate"
+                                                    : isa<MemoryEffects::Free>(kind)     ? "Free"
+                                                                                         : "Unknown")
+                                                << (resolvedVal ? " on value " : " on <null>")
+                                                << (resolvedVal ? resolvedVal : Value{}) << "\n");
+
+                        if (resolvedVal) {
+                            allEffects.emplace_back(eff.getEffect(), resolvedVal, eff.getResource());
+                        }
+                    }
+                } else {
+                    LLVM_DEBUG(llvm::dbgs() << "      -> Does NOT implement MemoryEffectOpInterface\n");
+                }
+            }
+        }
+
+        return allEffects;
+    }
+
+    static void resolveMemorySideEffects(llvm::DenseMap<Block *, MemEffectInfo> &callSiteEffects,
+                                         llvm::DenseMap<Block *, std::string> &blockIdMap,
+                                         llvm::DenseMap<Block *, std::unordered_set<Block *>> &blockDeps) {
+        // === Resolve memory side effect conflicts between call sites ===
+        //
+        // For each pair of distinct call sites (blockA and blockB), we check whether their
+        // respective callees perform memory effects (e.g., reads/writes) on the same buffer.
+        //
+        // If both operate on the same value, and at least one of them performs a write,
+        // this constitutes a memory conflict, and we must establish a precedence constraint.
+        //
+        // To avoid over-constraining the graph with unnecessary cycles, we only add a dependency
+        // if blockA's call appears lexically before blockB's call (i.e., as per the IR's order),
+        // thereby enforcing a consistent and deterministic ordering.
+        //
+        // When a conflict is detected, we record that `blockB` depends on `blockA` in `blockDeps`,
+        // which will later be reflected in the `qoalahost.blk_meta` ops.
+        for (const auto &[blockA, infoA] : callSiteEffects) {
+            for (const auto &[blockB, infoB] : callSiteEffects) {
+                if (blockA == blockB) {
+                    continue;
+                }
+
+                LLVM_DEBUG(llvm::dbgs() << "[EffectConflict] Comparing effects between " << blockIdMap[blockA]
+                                        << " and " << blockIdMap[blockB] << "\n");
+
+                for (const MemoryEffects::EffectInstance &effA : infoA.effects) {
+                    for (const MemoryEffects::EffectInstance &effB : infoB.effects) {
+                        if (!effA.getValue() || !effB.getValue()) {
+                            LLVM_DEBUG(llvm::dbgs() << "  -> Skipping null value effect\n");
+                            continue;
+                        }
+
+                        if (effA.getValue() != effB.getValue()) {
+                            LLVM_DEBUG(llvm::dbgs() << "  -> Skipping effects on different buffers: " << effA.getValue()
+                                                    << " vs " << effB.getValue() << "\n");
+                            continue;
+                        }
+
+                        MemoryEffects::Effect *aKind = effA.getEffect();
+                        MemoryEffects::Effect *bKind = effB.getEffect();
+
+                        const bool aIsWrite = isa<MemoryEffects::Write>(aKind);
+                        const bool bIsWrite = isa<MemoryEffects::Write>(bKind);
+
+                        LLVM_DEBUG(llvm::dbgs() << "  -> Shared buffer " << effA.getValue()
+                                                << " | A: " << (aIsWrite ? "Write" : "Read")
+                                                << " | B: " << (bIsWrite ? "Write" : "Read") << "\n");
+
+                        const bool conflict = aIsWrite || bIsWrite;
+
+                        // Enforce lexical ordering: blockA must come before blockB
+                        Operation *blockAOp = infoA.calleeOp;
+                        Operation *blockBOp = infoB.calleeOp;
+                        const bool isLexicalOrder = blockAOp->isBeforeInBlock(blockBOp);
+
+                        if (conflict && isLexicalOrder && blockDeps[blockB].insert(blockA).second) {
+                            LLVM_DEBUG(llvm::dbgs()
+                                       << "    ==> Dependency added: " << blockIdMap[blockB] << " (caller of "
+                                       << blockBOp->getName() << ") depends on " << blockIdMap[blockA] << " (caller of "
+                                       << blockAOp->getName() << ") due to conflict on buffer " << effA.getValue()
+                                       << " (lexical order enforced)\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    static void transitiveReduction(llvm::DenseMap<Block *, std::string> &blockIdMap,
+                                    llvm::DenseMap<Block *, std::unordered_set<Block *>> &blockDeps) {
+        // === Transitive Reduction ===
+        for (auto &[block, deps] : blockDeps) {
+            std::unordered_set<Block *> toRemove;
+
+            for (Block *direct : deps) {
+                if (!blockDeps.contains(direct)) {
+                    continue;
+                }
+
+                for (Block *transitive : blockDeps.at(direct)) {
+                    if (deps.count(transitive)) {
+                        LLVM_DEBUG(llvm::dbgs() << "[TransitiveReduction] Removing indirect dep: " << blockIdMap[block]
+                                                << " → " << blockIdMap[transitive] << " (already reachable via "
+                                                << blockIdMap[direct] << ")\n");
+                        toRemove.insert(transitive);
+                    }
+                }
+            }
+
+            for (Block *remove : toRemove) {
+                deps.erase(remove);
+            }
+        }
+    }
+
     LogicalResult addPrecedences(ModuleOp &moduleOp) {
         // This pass builds a block-level precedence graph within the `qoalahost.main_func` by
         // tracking dependencies that determine the required execution ordering between blocks.
@@ -48,7 +208,7 @@ namespace qoala::analysis::precedences {
                                    "Building Block Dependency Graph ===\n");
 
         // Block-level dependency graph: block -> set of blocks it depends on.
-        // Note: we use an `std::unordered_set` rather than `llvm::SmallPtrSet` becasue we cannot estimate the size of
+        // Note: we use an `std::unordered_set` rather than `llvm::SmallPtrSet` because we cannot estimate the size of
         // this set. Depending on the program it could grow large.
         llvm::DenseMap<Block *, std::unordered_set<Block *>> blockDeps;
 
@@ -62,7 +222,7 @@ namespace qoala::analysis::precedences {
         // iterator
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        for (Block &block : mainFunc.getBody().getBlocks()) {
+        for (Block &block : mainFunc) {
             blockIdMap.try_emplace(&block, helpers::formatString(blockIDFmt, idCounter++));
         }
 
@@ -71,23 +231,16 @@ namespace qoala::analysis::precedences {
         std::vector<Operation *> commOps;
         std::vector<Operation *> requestCallOps;
 
-        // caller block → all memory effects from its callee
-        struct MemEffectInfo {
-            Operation *calleeOp;
-            std::vector<MemoryEffects::EffectInstance> effects;
-        };
-
         llvm::DenseMap<Block *, MemEffectInfo> callSiteEffects;
 
-        mainFunc.walk([&](Operation *op) {
-            Block *consumerBlock = op->getBlock();
+        auto classicalCommOps = mainFunc.getOps<helpers::ClassicaCommInterface>();
+        for (auto classicalCommOp : classicalCommOps) {
+            commOps.push_back(classicalCommOp.getOperation());
+        }
 
-            // Track classical communication ops
-            if (isa<qoalahost::SendIntsOp, qoalahost::RecvIntsOp, qoalahost::SendFloatsOp, qoalahost::RecvFloatsOp>(
-                        op)) {
-                commOps.push_back(op);
-            }
-
+        mainFunc.walk([&](qoalahost::CallOp callOp) {
+            Block *consumerBlock = callOp->getBlock();
+            Operation *callee = callOp.getCalleeOperation();
             // Track request routine call ops and collect memory side effects from callees.
             //
             // For each `qoalahost.call`, we resolve the callee symbol to determine if it refers to
@@ -103,80 +256,26 @@ namespace qoala::analysis::precedences {
             //   expected number is small, direct resolution is more efficient and simple for now.
             // - Memory effects are aggregated per call site and later used to compute conflicts
             //   (e.g., Write–Write or Read–Write) that imply a block dependency.
-            if (auto callOp = dyn_cast<qoalahost::CallOp>(op)) {
-                if (auto symRef = callOp.getCalleeAttr().dyn_cast<SymbolRefAttr>()) {
-                    Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
 
-                    // Track request routine call ops
-                    if (callee && isa<netqasm::RequestRoutineOp>(callee)) {
-                        requestCallOps.push_back(op);
-                    }
-
-                    std::vector<MemoryEffects::EffectInstance> allEffects;
-
-                    if (callee && callee->getNumRegions() > 0) {
-                        Region &calleeRegion = callee->getRegion(0);
-                        Block &entryBlock = calleeRegion.front();
-
-                        // Map block argument index -> actual caller value
-                        llvm::DenseMap<Value, Value> argValueMap;
-                        Block::BlockArgListType formalArgs = entryBlock.getArguments();
-                        ValueRange actualArgs = callOp.getOperands();
-                        for (size_t i = 0; i < std::min(formalArgs.size(), actualArgs.size()); ++i) {
-                            argValueMap[formalArgs[i]] = actualArgs[i];
-                        }
-
-                        LLVM_DEBUG(llvm::dbgs() << "[MemEffects] Inspecting callee: " << callee->getName() << " with "
-                                                << callee->getNumRegions() << " region(s)\n");
-
-                        for (Block &calleeBlock : calleeRegion.getBlocks()) {
-                            LLVM_DEBUG(llvm::dbgs() << "  [Block] In callee block @" << &calleeBlock << "\n");
-
-                            for (Operation &innerOp : calleeBlock.getOperations()) {
-                                LLVM_DEBUG(llvm::dbgs() << "    [Op] " << innerOp.getName() << "\n");
-
-                                if (auto effectOp = dyn_cast<MemoryEffectOpInterface>(&innerOp)) {
-                                    LLVM_DEBUG(llvm::dbgs() << "      -> Implements MemoryEffectOpInterface\n");
-
-                                    SmallVector<MemoryEffects::EffectInstance, 4> effects;
-                                    effectOp.getEffects(effects);
-
-                                    for (const MemoryEffects::EffectInstance &eff : effects) {
-                                        Value origVal = eff.getValue();
-                                        Value resolvedVal = origVal;
-
-                                        // If it's a block argument, resolve to actual caller operand
-                                        if (origVal && argValueMap.count(origVal)) {
-                                            resolvedVal = argValueMap[origVal];
-                                        }
-
-                                        const MemoryEffects::Effect *kind = eff.getEffect();
-                                        LLVM_DEBUG(llvm::dbgs() << "        -> Effect: "
-                                                                << (isa<MemoryEffects::Read>(kind)       ? "Read"
-                                                                    : isa<MemoryEffects::Write>(kind)    ? "Write"
-                                                                    : isa<MemoryEffects::Allocate>(kind) ? "Allocate"
-                                                                    : isa<MemoryEffects::Free>(kind)     ? "Free"
-                                                                                                         : "Unknown")
-                                                                << (resolvedVal ? " on value " : " on <null>")
-                                                                << (resolvedVal ? resolvedVal : Value{}) << "\n");
-
-                                        if (resolvedVal) {
-                                            allEffects.emplace_back(
-                                                    const_cast<MemoryEffects::Effect *>(eff.getEffect()), resolvedVal,
-                                                    eff.getResource());
-                                        }
-                                    }
-                                } else {
-                                    LLVM_DEBUG(llvm::dbgs() << "      -> Does NOT implement MemoryEffectOpInterface\n");
-                                }
-                            }
-                        }
-                    }
-
-                    callSiteEffects[consumerBlock] = {callee, std::move(allEffects)};
-                }
+            assert(callee && "Module contains a call operation to a function without definition/declaration");
+            auto calleeRoutineOp = dyn_cast<FunctionOpInterface>(callee);
+            if (!calleeRoutineOp) {
+                callee->emitError("Called routine is not a NetQASM routine");
+                return WalkResult::interrupt();
             }
 
+            if (isa<dialects::netqasm::RequestRoutineOp>(callee)) {
+                requestCallOps.push_back(callOp.getOperation());
+            }
+
+            std::vector<MemoryEffects::EffectInstance> allEffects = computeMemoryEffects(calleeRoutineOp, callOp);
+
+            callSiteEffects[consumerBlock] = {callee, allEffects};
+            return WalkResult::advance();
+        });
+
+        mainFunc.walk([&](Operation *op) {
+            Block *consumerBlock = op->getBlock();
             // Track data dependencies
             for (Value operand : op->getOperands()) {
                 if (Operation *producer = operand.getDefiningOp()) {
@@ -189,105 +288,12 @@ namespace qoala::analysis::precedences {
             }
         });
 
-        // === Resolve memory side-effect conflicts between call sites ===
-        //
-        // For each pair of distinct call sites (blockA and blockB), we check whether their
-        // respective callees perform memory effects (e.g., reads/writes) on the same buffer.
-        //
-        // If both operate on the same value, and at least one of them performs a write,
-        // this constitutes a memory conflict, and we must establish a precedence constraint.
-        //
-        // To avoid over-constraining the graph with unnecessary cycles, we only add a dependency
-        // if blockA's call appears lexically before blockB's call (i.e., as per the IR's order),
-        // thereby enforcing a consistent and deterministic ordering.
-        //
-        // When a conflict is detected, we record that `blockB` depends on `blockA` in `blockDeps`,
-        // which will later be reflected in the `qoalahost.blk_meta` ops.
-        for (const std::pair<Block *, MemEffectInfo> &pairA : callSiteEffects) {
-            Block *blockA = pairA.first;
-            const MemEffectInfo &infoA = pairA.second;
+        resolveMemorySideEffects(callSiteEffects, blockIdMap, blockDeps);
 
-            for (const std::pair<Block *, MemEffectInfo> &pairB : callSiteEffects) {
-                Block *blockB = pairB.first;
-                const MemEffectInfo &infoB = pairB.second;
-                if (blockA == blockB) {
-                    continue;
-                }
+        transitiveReduction(blockIdMap, blockDeps);
 
-                LLVM_DEBUG(llvm::dbgs() << "[EffectConflict] Comparing effects between " << blockIdMap[blockA]
-                                        << " and " << blockIdMap[blockB] << "\n");
-
-                for (const MemoryEffects::EffectInstance &effA : infoA.effects) {
-                    for (const MemoryEffects::EffectInstance &effB : infoB.effects) {
-                        if (!effA.getValue() || !effB.getValue()) {
-                            LLVM_DEBUG(llvm::dbgs() << "  -> Skipping null value effect\n");
-                            continue;
-                        }
-
-                        if (effA.getValue() != effB.getValue()) {
-                            LLVM_DEBUG(llvm::dbgs() << "  -> Skipping effects on different buffers: " << effA.getValue()
-                                                    << " vs " << effB.getValue() << "\n");
-                            continue;
-                        }
-
-                        MemoryEffects::Effect *aKind = effA.getEffect();
-                        MemoryEffects::Effect *bKind = effB.getEffect();
-
-                        bool aIsWrite = isa<MemoryEffects::Write>(aKind);
-                        bool bIsWrite = isa<MemoryEffects::Write>(bKind);
-
-                        LLVM_DEBUG(llvm::dbgs() << "  -> Shared buffer " << effA.getValue()
-                                                << " | A: " << (aIsWrite ? "Write" : "Read")
-                                                << " | B: " << (bIsWrite ? "Write" : "Read") << "\n");
-
-                        bool conflict = aIsWrite || bIsWrite;
-
-                        // Enforce lexical ordering: blockA must come before blockB
-                        Operation *blockAOp = infoA.calleeOp;
-                        Operation *blockBOp = infoB.calleeOp;
-                        bool isLexicalOrder = blockAOp->isBeforeInBlock(blockBOp);
-
-                        if (conflict && isLexicalOrder && blockDeps[blockB].insert(blockA).second) {
-                            LLVM_DEBUG(llvm::dbgs()
-                                       << "    ==> Dependency added: " << blockIdMap[blockB] << " (caller of "
-                                       << infoB.calleeOp->getName() << ") depends on " << blockIdMap[blockA]
-                                       << " (caller of " << infoA.calleeOp->getName() << ") due to conflict on buffer "
-                                       << effA.getValue() << " (lexical order enforced)\n");
-                        }
-                    }
-                }
-            }
-        }
-
-        // === Transitive Reduction ===
-        for (std::pair<Block *, std::unordered_set<Block *>> &entry : blockDeps) {
-            Block *block = entry.first;
-            std::unordered_set<Block *> &deps = entry.second;
-
-            std::unordered_set<Block *> toRemove;
-
-            for (Block *direct : deps) {
-                llvm::DenseMap<Block *, std::unordered_set<Block *>>::iterator transitiveIt = blockDeps.find(direct);
-                if (transitiveIt == blockDeps.end()) {
-                    continue;
-                }
-
-                for (Block *transitive : transitiveIt->second) {
-                    if (deps.count(transitive)) {
-                        LLVM_DEBUG(llvm::dbgs() << "[TransitiveReduction] Removing indirect dep: " << blockIdMap[block]
-                                                << " → " << blockIdMap[transitive] << " (already reachable via "
-                                                << blockIdMap[direct] << ")\n");
-                        toRemove.insert(transitive);
-                    }
-                }
-            }
-
-            for (Block *remove : toRemove) {
-                deps.erase(remove);
-            }
-        }
-
-        for (Block &block : mainFunc.getBody().getBlocks()) {
+        // Compute the precedences data and add it to the block
+        for (Block &block : mainFunc) {
             OpBuilder builder = OpBuilder::atBlockBegin(&block);
 
             auto blockIdAttr = builder.getStringAttr(blockIdMap[&block]);
@@ -320,7 +326,7 @@ namespace qoala::analysis::precedences {
                 }
             }
 
-            // PRevious request call
+            // Previous request call
             StringAttr prevReqAttr = builder.getStringAttr("");
             for (size_t i = 1; i < requestCallOps.size(); ++i) {
                 if (requestCallOps[i]->getBlock() == &block) {
@@ -332,11 +338,12 @@ namespace qoala::analysis::precedences {
                 }
             }
 
-            mlir::DictionaryAttr emptyDictAttr = mlir::DictionaryAttr::get(builder.getContext());
+            // In the meantime, we don't have deadlines information
+            DictionaryAttr deadlinesAttr = DictionaryAttr::get(builder.getContext());
 
             // No existing BlkMeta, create a new one
             builder.create<qoalahost::BlkMeta>(block.front().getLoc(), blockIdAttr, predsAttr, dataDepsAttr,
-                                               prevCommAttr, prevReqAttr, emptyDictAttr);
+                                               prevCommAttr, prevReqAttr, deadlinesAttr);
 
             LLVM_DEBUG(llvm::dbgs() << "Inserted new BlkMeta in " << blockIdMap[&block] << " with predecessors "
                                     << predsAttr << " with dependencies " << dataDepsAttr << " with previous comm "
