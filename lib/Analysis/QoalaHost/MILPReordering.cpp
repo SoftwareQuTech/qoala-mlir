@@ -667,6 +667,7 @@ namespace qoala::analysis::reordering {
                     SCIP_CONS *c;
                     std::string name = "ord_" + o1->getId() + "_" + o2->getId();
                     int rhs = o1->getDuration();
+                    LLVM_DEBUG(llvm::dbgs() << "A...rhs = " << rhs << "\n");
                     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
                     SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                     SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -693,6 +694,7 @@ namespace qoala::analysis::reordering {
             SCIP_CONS *c;
             std::string name = "prec_" + pred->getId() + "_" + succ->getId();
             int lhs = predLast->getDuration();
+            LLVM_DEBUG(llvm::dbgs() << "B...lhs = " << lhs << "\n");
             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
             SCIPaddCoefLinear(scip_, c, startVars_[succFirst->getId()], 1.0);
             SCIPaddCoefLinear(scip_, c, startVars_[predLast->getId()], -1.0);
@@ -789,6 +791,7 @@ namespace qoala::analysis::reordering {
                         SCIP_CONS *c;
                         std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
                         int lhs = dur1 + eps;
+                        LLVM_DEBUG(llvm::dbgs() << "C...lhs = " << lhs << "\n");
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -801,6 +804,7 @@ namespace qoala::analysis::reordering {
                         SCIP_CONS *c;
                         std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
                         int lhs = dur2 + eps - bigM_;
+                        LLVM_DEBUG(llvm::dbgs() << "D...lhs = " << lhs << "\n");
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], -1.0);
@@ -852,6 +856,7 @@ namespace qoala::analysis::reordering {
             {
                 SCIP_CONS *c;
                 std::string n = "seq1_" + blk->getId();
+                LLVM_DEBUG(llvm::dbgs() << "E...dur1 = " << dur1 << "\n");
                 SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, dur1, dur1);
                 SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[t1->getOperations().front()->getId()], -1.0);
@@ -862,6 +867,7 @@ namespace qoala::analysis::reordering {
             {
                 SCIP_CONS *c;
                 std::string n = "seq2_" + blk->getId();
+                LLVM_DEBUG(llvm::dbgs() << "F...dur2 = " << dur1 << "\n");
                 SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, dur2, dur2);
                 SCIPaddCoefLinear(scip_, c, startVars_[first3->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], -1.0);
@@ -1104,6 +1110,7 @@ namespace qoala::analysis::reordering {
                     SCIP_CONS *c;
                     std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();
                     int rhs = o1->getDuration();
+                    LLVM_DEBUG(llvm::dbgs() << "G...rhs = " << rhs << "\n");
                     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
                     SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                     SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -1134,6 +1141,7 @@ namespace qoala::analysis::reordering {
                 SCIP_CONS *c;
 
                 // Enforce strict equality: LHS == RHS == dur1
+                LLVM_DEBUG(llvm::dbgs() << "I...dur1 = " << dur1 << "\n");
                 SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur1, dur1);
                 SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[last1->getId()], -1.0);
@@ -1161,6 +1169,7 @@ namespace qoala::analysis::reordering {
 
             SCIP_CONS *c;
             std::string name = "block_prec_" + pred->getId() + "_" + succ->getId();
+                LLVM_DEBUG(llvm::dbgs() << "J...dur = " << dur << "\n");
             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
             SCIPaddCoefLinear(scip_, c, startVars_[firstSucc->getId()], 1.0);
             SCIPaddCoefLinear(scip_, c, startVars_[lastPred->getId()], -1.0);
@@ -1201,6 +1210,7 @@ namespace qoala::analysis::reordering {
 
                 std::string name = "fcfs_" + b1->getId() + "_" + b2->getId() + "_" + std::to_string(k);
                 SCIP_CONS *c;
+                LLVM_DEBUG(llvm::dbgs() << "K...dur = " << dur << "\n");
                 SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
                 SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
@@ -1241,6 +1251,7 @@ namespace qoala::analysis::reordering {
             {
                 SCIP_CONS *c;
                 std::string name = "lifetime_" + id;
+                LLVM_DEBUG(llvm::dbgs() << "L...rhs = " << rhs << "\n");
                 SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
                 SCIPaddCoefLinear(scip_, c, startVars_[meas->getId()], 1.0);
                 SCIPaddCoefLinear(scip_, c, startVars_[alloc->getId()], -1.0);
