@@ -286,22 +286,22 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Otherwise, we can assume that something is wrong (a block can be defined before its predecessors),
                 // and we fail.
                 for (StringRef pred : op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
-                    if (auto predecessor = moduleTranslation->findIdPrecedence(pred.str())) {
+                    if (auto predecessor = moduleTranslation->findIdPrecedence(pred)) {
                         block->addPredecessor(predecessor.value());
                     } else {
                         return failure();
                     }
                 }
                 for (StringRef dep : op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
-                    if (auto dependency = moduleTranslation->findIdPrecedence(dep.str())) {
+                    if (auto dependency = moduleTranslation->findIdPrecedence(dep)) {
                         block->addDependency(dependency.value());
                     } else {
                         return failure();
                     }
                 }
-                std::string prevComm = op.getPrevCommAttr().getValue().str();
+                const StringRef prevComm = op.getPrevCommAttr().getValue();
                 if (!prevComm.empty()) {
-                    if (auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
+                    if (const auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
                         block->setPrevComm(blk.value());
                     } else {
                         return failure();
@@ -309,9 +309,9 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 } else {
                     block->setPrevComm(nullptr);
                 }
-                std::string prevEnt = op.getPrevEntAttr().getValue().str();
+                const StringRef prevEnt = op.getPrevEntAttr().getValue();
                 if (!prevEnt.empty()) {
-                    if (auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
+                    if (const auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
                         block->setPrevEnt(blk.value());
                     } else {
                         return failure();
@@ -320,9 +320,9 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     block->setPrevComm(nullptr);
                 }
 
-                mlir::DictionaryAttr dictAttr = op.getDeadlinesAttr();
+                const DictionaryAttr dictAttr = op.getDeadlinesAttr();
                 for (auto pair : dictAttr.getValue()) {
-                    std::string key = std::string(pair.getName().strref());
+                    const StringRef key = pair.getName().getValue();
                     Attribute valAttr = pair.getValue();
 
                     auto intAttr = valAttr.dyn_cast<IntegerAttr>();
@@ -331,7 +331,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
 
                     if (auto predecessor = moduleTranslation->findIdPrecedence(key)) {
-                        int deadline = intAttr.getInt();
+                        const uint32_t deadline = static_cast<uint32_t>(intAttr.getInt());
                         block->addDeadline(predecessor.value(), deadline);
                     } else {
                         return failure();
@@ -339,7 +339,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // We can safely add the new mapping between the dependency ID and the Block.
-                moduleTranslation->addIdPrecedence(op.getBlockId().str(), block);
+                moduleTranslation->addIdPrecedence(op.getBlockId(), block);
                 return success();
             })
             .Case([](const SendFloatsOp op) -> LogicalResult {

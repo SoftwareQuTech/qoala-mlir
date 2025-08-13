@@ -116,7 +116,7 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(std::string id, const int duration): id_(std::move(id)), duration_(duration), op_(nullptr) { }
+            MILPOperation(std::string id, const uint32_t duration): id_(std::move(id)), duration_(duration), op_(nullptr) { }
 
             [[nodiscard]]
             const std::string &getId() const {
@@ -137,7 +137,7 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
-            int duration_;
+            uint32_t duration_;
             mlir::Operation *op_;
         };
 
@@ -168,7 +168,7 @@ namespace qoala::analysis {
 
             [[nodiscard]]
             uint32_t getDuration() const {
-                int dur = 0.0;
+                uint32_t dur = 0;
                 for (const auto *op : operations_) {
                     dur += op->getDuration();
                 }
@@ -354,7 +354,7 @@ namespace qoala::analysis {
 
             void addIntraBlockSequencingConstraints();
 
-            int bigM_;
+            uint32_t bigM_;
         };
 
         class MILPBlockDeadlineModel : public MILPModelBuilder {
@@ -375,7 +375,7 @@ namespace qoala::analysis {
 
             void setObjective() override;
 
-            std::pair<std::unordered_map<std::string, int>, std::string> computeBlockDeadlines() const;
+            std::pair<std::unordered_map<std::string, uint32_t>, std::string> computeBlockDeadlines() const;
 
         private:
             std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
@@ -396,13 +396,13 @@ namespace qoala::analysis {
         /**
          * Constructs the MILP model from the given MLIR module. This includes building
          * MILP blocks, qubit usage, and block precedence constraints.
-         * @param module The MLIR module to analyze.
+         * @param moduleOp The MLIR module to analyze.
          * @returns A tuple containing the constructed MILP blocks, qubits, precedence list,
          *          and a LogicalResult indicating success or failure.
          */
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::vector<std::shared_ptr<MILPQubit>>,
                    BlockPrecedenceList, llvm::StringMap<MILPBlock *>, mlir::LogicalResult>
-        buildMILPFromMLIR(mlir::ModuleOp module);
+        buildMILPFromMLIR(mlir::ModuleOp &moduleOp);
 
         /**
          * Reorders the blocks in the given module based on the specified MILP solution order.
@@ -410,7 +410,7 @@ namespace qoala::analysis {
          * @param moduleOp The module whose blocks will be reordered.
          * @param orderedBlockIds A list of block IDs (as specified in BlkMeta) in the desired order.
          */
-        mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp moduleOp,
+        mlir::LogicalResult reorderBlocksByMilpOrder(mlir::ModuleOp &moduleOp,
                                                      const std::vector<std::string> &orderedBlockIds);
 
         /**
@@ -429,11 +429,11 @@ namespace qoala::analysis {
          * Annotates each `qoalahost.blk_meta` operation in the module with deadline information.
          * Deadlines are relative to a reference block and stored in the `deadlines` attribute
          * as a dictionary mapping block ID to an integer value.
-         * @param module The MLIR module containing blk_meta operations.
+         * @param moduleOp The MLIR module containing blk_meta operations.
          * @param deadlines Map from block ID to computed deadline (as int).
          * @param refBlockId The block ID that serves as the reference (time 0).
          */
-        void annotateBlockDeadlines(mlir::ModuleOp module, const std::unordered_map<std::string, int> &deadlines,
+        void annotateBlockDeadlines(mlir::ModuleOp &moduleOp, const std::unordered_map<std::string, uint32_t> &deadlines,
                                     const std::string &refBlockId);
     } // namespace reordering
 } // namespace qoala::analysis

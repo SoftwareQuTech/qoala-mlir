@@ -116,10 +116,10 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
-        std::optional<iqoala::Block *> findIdPrecedence(const std::string &key);
+        std::optional<iqoala::Block *> findIdPrecedence(const llvm::StringRef &key) const;
 
-        void addIdPrecedence(const std::string &key, iqoala::Block *block) {
-            precedencesIdsToIQoalaBlocks[key] = block;
+        void addIdPrecedence(const llvm::StringRef &key, iqoala::Block *block) {
+            this->precedencesIdsToIQoalaBlocks[key] = block;
         }
 
     protected:
@@ -151,7 +151,7 @@ namespace qoala::translate {
         mlir::DenseMap<assembly::iQoalaMCInstruction *, mlir::BlockArgument> mcArgsValsMap;
 
         // Map for tracking the precedence ID (added by the AddBlockPrecedences pass) and its Block
-        std::map<std::string, iqoala::Block *> precedencesIdsToIQoalaBlocks;
+        llvm::StringMap<iqoala::Block *> precedencesIdsToIQoalaBlocks;
     };
 } // namespace qoala::translate
 

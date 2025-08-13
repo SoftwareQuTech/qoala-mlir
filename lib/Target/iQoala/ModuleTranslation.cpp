@@ -42,10 +42,11 @@ namespace qoala::translate {
 
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
-    std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const std::string &key) {
-        return precedencesIdsToIQoalaBlocks.find(key) != precedencesIdsToIQoalaBlocks.end()
-                       ? std::optional(precedencesIdsToIQoalaBlocks[key])
-                       : std::nullopt;
+    std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const StringRef &key) const {
+        if (this->precedencesIdsToIQoalaBlocks.contains(key)) {
+            return std::optional(precedencesIdsToIQoalaBlocks.at(key));
+        }
+        return std::nullopt;
     }
 
     ModuleTranslation::ModuleTranslation(ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule):

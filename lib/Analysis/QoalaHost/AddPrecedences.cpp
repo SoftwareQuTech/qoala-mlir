@@ -2,7 +2,6 @@
 #include "Dialect/QoalaHost/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 
 #define DEBUG_TYPE "qoalahost-add-precedences-pass"
 
