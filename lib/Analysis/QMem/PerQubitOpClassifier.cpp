@@ -83,6 +83,9 @@ namespace qoala::analysis::functionize {
 
         bool hasQubitID(Operation *qallocOp) const { return qubitIds.count(qallocOp) > 0; }
 
+        std::pair<std::vector<uint32_t>, std::vector<Operation *>>
+        assignRemoteQubitIDsWithQalloc(std::vector<Operation *> ops);
+
     private:
         uint32_t maxOpsPerGroup;
         // The currently handled qubits
@@ -229,6 +232,30 @@ namespace qoala::analysis::functionize {
         return eprsQubits;
     }
 
+    std::pair<std::vector<uint32_t>, std::vector<Operation *>>
+    PerQubitGrouper::assignRemoteQubitIDsWithQalloc(std::vector<Operation *> ops) {
+        std::vector<uint32_t> qubitIDs;
+        std::vector<Operation *> qallocs;
+
+        for (Operation *op : ops) {
+            auto defineIface = dyn_cast<helpers::DefineQubitsInterface>(op);
+            assert(defineIface && "Expected entangle op to implement DefineQubitsInterface");
+
+            Operation *qallocOp = defineIface.getDefiningQubit().getDefiningOp();
+            // Assign ID only if not already assigned (avoids duplicate ID assignment)
+            uint32_t qubitID;
+            if (!this->hasQubitID(qallocOp)) {
+                qubitID = this->assignQubitIDForQAllocOp(qallocOp);
+            } else {
+                qubitID = this->getQubitIDForOperation(qallocOp);
+            }
+            qubitIDs.push_back(qubitID);
+            qallocs.push_back(qallocOp);
+        };
+
+        return {qubitIDs, qallocs};
+    }
+
     void PerQubitGrouper::groupEprsByRemote(const llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>,
                                                                  std::vector<Operation *>> &opsByRemoteAndKind) {
         for (const auto &[key, ops] : opsByRemoteAndKind) {
@@ -237,24 +264,7 @@ namespace qoala::analysis::functionize {
             LLVM_DEBUG(llvm::dbgs() << " Grouping entangle ops for remote = " << remoteName << ", kind = " << kind
                                     << "\n");
 
-            std::vector<uint32_t> qubitIDs;
-            std::vector<Operation *> qallocs;
-
-            for (Operation *op : ops) {
-                auto defineIface = dyn_cast<helpers::DefineQubitsInterface>(op);
-                assert(defineIface && "Expected entangle op to implement DefineQubitsInterface");
-
-                Operation *qallocOp = defineIface.getDefiningQubit().getDefiningOp();
-                // Assign ID only if not already assigned (avoids duplicate ID assignment)
-                uint32_t qubitID;
-                if (!this->hasQubitID(qallocOp)) {
-                    qubitID = this->assignQubitIDForQAllocOp(qallocOp);
-                } else {
-                    qubitID = this->getQubitIDForOperation(qallocOp);
-                }
-                qubitIDs.push_back(qubitID);
-                qallocs.push_back(qallocOp);
-            }
+            auto [qubitIDs, qallocs] = this->assignRemoteQubitIDsWithQalloc(ops);
 
             // Create a new group for all EPRS ops sharing the same remote
             auto *group = this->addNewGroupForQalloc(qallocs[0], qubitIDs);
