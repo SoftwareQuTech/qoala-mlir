@@ -1032,25 +1032,23 @@ namespace qoala::analysis::reordering {
         if (qoalaOptGroupEntReqs) {
             for (Block &blk : mainFunc) {
                 bool isQC = false;
-                for (Operation &op : blk) {
-                    if (auto meta = dyn_cast<qoalahost::BlkMeta>(op)) {
-                        auto it = idToBlock.find(meta.getBlockId());
-                        if (it != idToBlock.end()) {
-                            if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
-                                if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
-                                    Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                                    isQC = isa<netqasm::RequestRoutineOp>(callee);
-                                }
-                            }
-                            if (isQC) {
-                                blk.moveBefore(insertionPoint);
-                                alreadyMoved.insert(&blk);
-                                insertionPoint = blk.getNextNode();
-                            }
-                        }
-                        break;
+                blk.walk([&](qoalahost::BlkMeta meta) {
+                    auto it = idToBlock.find(meta.getBlockId());
+                    if (it == idToBlock.end()) {
+                        return;
                     }
-                }
+                    if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
+                        if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
+                            Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+                            isQC = isa<netqasm::RequestRoutineOp>(callee);
+                        }
+                    }
+                    if (isQC) {
+                        blk.moveBefore(insertionPoint);
+                        alreadyMoved.insert(&blk);
+                        insertionPoint = blk.getNextNode();
+                    }
+                });
             }
         }
 
