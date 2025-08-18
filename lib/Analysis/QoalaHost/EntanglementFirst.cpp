@@ -25,7 +25,7 @@ namespace qoala::analysis::reordering {
         llvm::SmallVector<Block *> entBlocks;
         llvm::SmallVector<Block *> otherBlocks;
 
-        for (Block &blk : body) {
+        for (auto &blk : mainFunc) {
             Operation *firstOp = &*blk.begin();
             if (auto iface = llvm::dyn_cast<helpers::QuantumOpInterface>(firstOp)) {
                 if (iface.getBlockType(routineMap) == BlockType::QC) {
