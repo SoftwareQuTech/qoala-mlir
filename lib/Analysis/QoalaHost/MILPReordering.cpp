@@ -1026,7 +1026,7 @@ namespace qoala::analysis::reordering {
         }
 
         // Move each block before the next insertion point; update insertion point after each move.
-        Block *insertionPoint = &body.front();
+        auto insertionPoint = &mainFunc.front();
         llvm::DenseSet<Block *> alreadyMoved;
 
         // Move all QC blocks to the top (in original order)
