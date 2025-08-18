@@ -246,11 +246,13 @@ namespace qoala::analysis::functionize {
 
                 Operation *qallocOp = defineIface.getDefiningQubit().getDefiningOp();
                 // Assign ID only if not already assigned (avoids duplicate ID assignment)
+                uint32_t qubitID;
                 if (!this->hasQubitID(qallocOp)) {
-                    this->assignQubitIDForQAllocOp(qallocOp);
+                    qubitID = this->assignQubitIDForQAllocOp(qallocOp);
+                } else {
+                    qubitID = this->getQubitIDForOperation(qallocOp);
                 }
-
-                qubitIDs.push_back(this->getQubitIDForOperation(qallocOp));
+                qubitIDs.push_back(qubitID);
                 qallocs.push_back(qallocOp);
             }
 
