@@ -1012,7 +1012,7 @@ namespace qoala::analysis::reordering {
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
         // And identify any block containing a ReturnOp.
-        for (Block &blk : body) {
+        for (Block &blk : mainFunc) {
             for (Operation &op : blk) {
                 if (llvm::isa<qoalahost::ReturnOp>(op)) {
                     returnBlock = &blk;
