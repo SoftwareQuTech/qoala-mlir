@@ -298,12 +298,10 @@ namespace qoala::analysis::functionize {
 
         // Collect EPR ops by remote if grouping is enabled
         if (qoala::options::qoalaOptGroupEntReqs) {
-            mainFunction.walk([&](Operation *op) {
-                if (auto entOp = dyn_cast<qoala::helpers::EntangleInterface>(op)) {
-                    llvm::StringRef remote = entOp.getRemote();
-                    llvm::StringRef kind = op->getName().getStringRef();
-                    entangleOpsGrouped[{remote, kind}].push_back(op);
-                }
+            mainFunction.walk([&](qoala::helpers::EntangleInterface op) {
+                llvm::StringRef remote = op.getRemote();
+                llvm::StringRef kind = op->getName().getStringRef();
+                entangleOpsGrouped[{remote, kind}].push_back(op.getOperation());
             });
 
             // Pre-group and commit all EPRS ops by remote before traversing other ops
