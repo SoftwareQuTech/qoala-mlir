@@ -1005,7 +1005,6 @@ namespace qoala::analysis::reordering {
             return failure();
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        auto &body = mainFunc.getBody();
 
         llvm::StringMap<Block *> idToBlock;
         Block *returnBlock = nullptr;
