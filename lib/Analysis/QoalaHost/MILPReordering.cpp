@@ -1033,8 +1033,7 @@ namespace qoala::analysis::reordering {
             for (Block &blk : mainFunc) {
                 bool isQC = false;
                 blk.walk([&](qoalahost::BlkMeta meta) {
-                    auto it = idToBlock.find(meta.getBlockId());
-                    if (it == idToBlock.end()) {
+                    if (!idToBlock.contains(meta.getBlockId())) {
                         return;
                     }
                     if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
