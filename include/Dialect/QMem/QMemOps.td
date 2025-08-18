@@ -119,7 +119,7 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
 
 /* The "eprs" operation will carry the "Entangle" trait */
 def EprsOp: UsingRemote_Op<"eprs", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>,
-                                        DeclareOpInterfaceMethods<EntangleInterface, ["getRemote"]>]> {
+                                        DeclareOpInterfaceMethods<EntangleInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict
