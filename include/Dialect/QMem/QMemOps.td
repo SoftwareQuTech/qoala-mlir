@@ -127,7 +127,7 @@ def EprsOp: UsingRemote_Op<"eprs", [Entangle, DeclareOpInterfaceMethods<DefineQu
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>,
-                                                    DeclareOpInterfaceMethods<EntangleInterface, ["getRemote"]>]> {
+                                                    DeclareOpInterfaceMethods<EntangleInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
