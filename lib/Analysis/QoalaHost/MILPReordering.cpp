@@ -1031,7 +1031,7 @@ namespace qoala::analysis::reordering {
 
         // Move all QC blocks to the top (in original order)
         if (qoalaOptGroupEntReqs) {
-            for (Block &blk : body) {
+            for (Block &blk : mainFunc) {
                 bool isQC = false;
                 for (Operation &op : blk) {
                     if (auto meta = dyn_cast<qoalahost::BlkMeta>(op)) {
