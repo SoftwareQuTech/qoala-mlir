@@ -1032,21 +1032,21 @@ namespace qoala::analysis::reordering {
         if (qoalaOptGroupEntReqs) {
             for (Block &blk : mainFunc) {
                 bool isQC = false;
-                blk.walk([&](qoalahost::BlkMeta meta) {
-                    if (!idToBlock.contains(meta.getBlockId())) {
-                        return;
-                    }
-                    if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
-                        if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
-                            Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                            isQC = isa<netqasm::RequestRoutineOp>(callee);
+                blk.walk([&](qoalahost::BlkMeta meta) -> WalkResult {
+                    if (idToBlock.contains(meta.getBlockId())) {
+                        if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
+                            if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
+                                Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
+                                isQC = isa<netqasm::RequestRoutineOp>(callee);
+                            }
+                        }
+                        if (isQC) {
+                            blk.moveBefore(insertionPoint);
+                            alreadyMoved.insert(&blk);
+                            insertionPoint = blk.getNextNode();
                         }
                     }
-                    if (isQC) {
-                        blk.moveBefore(insertionPoint);
-                        alreadyMoved.insert(&blk);
-                        insertionPoint = blk.getNextNode();
-                    }
+                    return WalkResult::interrupt();
                 });
             }
         }
