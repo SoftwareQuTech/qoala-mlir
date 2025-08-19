@@ -1,4 +1,5 @@
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -1035,10 +1036,8 @@ namespace qoala::analysis::reordering {
                 blk.walk([&](qoalahost::BlkMeta meta) -> WalkResult {
                     if (idToBlock.contains(meta.getBlockId())) {
                         if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
-                            if (auto symRef = call.getCalleeAttr().dyn_cast_or_null<SymbolRefAttr>()) {
-                                Operation *callee = SymbolTable::lookupNearestSymbolFrom(moduleOp, symRef);
-                                isQC = isa<netqasm::RequestRoutineOp>(callee);
-                            }
+                            isQC = dialects::helpers::hasRequestRoutineWithName(&moduleOp,
+                                                                                call.getCalleeAttr().getValue());
                         }
                         if (isQC) {
                             blk.moveBefore(insertionPoint);
