@@ -222,17 +222,14 @@ namespace qoala::analysis::reordering {
             // we require all blocks that perform entanglement (i.e., netqasm.request_routine)
             // to execute at the start of the program. These blocks are excluded from MILP modeling
             // to prevent reordering. Here, we skip any such block (QC type) during MILP block creation.
-            if (qoalaOptGroupEntReqs) {
-                auto it = std::next(block->begin()); // skip BlkMeta
-                if (it != block->end()) {
-                    Operation *firstOp = &*it;
+            if (qoalaOptGroupEntReqs && block->getOperations().size() > 1) {
+                const auto *firstNonBlkMetaOp = block->begin()->getNextNode();
 
-                    if (auto iface = dyn_cast<helpers::QuantumOpInterface>(firstOp)) {
-                        if (iface.getBlockType(routineMap) == BlockType::QC) {
-                            LLVM_DEBUG(llvm::dbgs() << "Skipping entanglement block (QC) due to grouping: "
-                                                    << blkMeta.getBlockId() << "\n");
-                            return WalkResult::advance();
-                        }
+                if (auto iface = dyn_cast<helpers::QuantumOpInterface>(firstNonBlkMetaOp)) {
+                    if (iface.getBlockType(routineMap) == BlockType::QC) {
+                        LLVM_DEBUG(llvm::dbgs() << "Skipping entanglement block (QC) due to grouping: "
+                                                << blkMeta.getBlockId() << "\n");
+                        return WalkResult::advance();
                     }
                 }
             }
