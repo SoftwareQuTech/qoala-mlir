@@ -70,6 +70,12 @@ static opt<uint32_t, /*ExternalStorage=*/true>
                                     desc("Lifetime of a qubit."), NotHidden,
                                     location(qoala::options::qoalaOptQubitLifetime));
 
+bool qoala::options::qoalaOptGroupEntReqs = false;
+static opt<bool, /*ExternalStorage=*/true>
+        qoalaOptGroupEntReqsOption("qoala-opt-group-ent-reqs",
+                                    desc("Whether to group entanglement requests or not."), NotHidden,
+                                    location(qoala::options::qoalaOptGroupEntReqs));
+
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;

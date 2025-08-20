@@ -1,4 +1,5 @@
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -157,7 +158,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    static llvm::StringMap<Operation *> collectRoutineMap(ModuleOp moduleOp) {
+    llvm::StringMap<Operation *> collectRoutineMap(ModuleOp moduleOp) {
         llvm::StringMap<Operation *> routineMap;
 
         moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
@@ -216,6 +217,21 @@ namespace qoala::analysis::reordering {
             if (!block->getOps<qoalahost::ReturnOp>().empty()) {
                 LLVM_DEBUG(llvm::dbgs() << "Skipping block with ReturnOp: " << blkMeta.getBlockId() << "\n");
                 return WalkResult::advance();
+            }
+            // If entanglement requests are grouped (qoalaOptGroupEntReqs = true),
+            // we require all blocks that perform entanglement (i.e., netqasm.request_routine)
+            // to execute at the start of the program. These blocks are excluded from MILP modeling
+            // to prevent reordering. Here, we skip any such block (QC type) during MILP block creation.
+            if (qoalaOptGroupEntReqs && block->getOperations().size() > 1) {
+                const auto *firstNonBlkMetaOp = block->begin()->getNextNode();
+
+                if (auto iface = dyn_cast<helpers::QuantumOpInterface>(firstNonBlkMetaOp)) {
+                    if (iface.getBlockType(routineMap) == BlockType::QC) {
+                        LLVM_DEBUG(llvm::dbgs() << "Skipping entanglement block (QC) due to grouping: "
+                                                << blkMeta.getBlockId() << "\n");
+                        return WalkResult::advance();
+                    }
+                }
             }
 
             Block::iterator firstIt = std::next(block->begin());
@@ -520,8 +536,17 @@ namespace qoala::analysis::reordering {
 
         // Fail if unresolved edges remain
         if (!unresolvedEdges.empty()) {
-            emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
-            return {{}, {}, {}, {}, failure()};
+            if (!qoalaOptGroupEntReqs) {
+                emitError(moduleOp.getLoc(), "Unresolved precedence edges detected");
+                return {{}, {}, {}, {}, failure()};
+            }
+            // If entanglement request blocks are grouped at the beginning (qoalaOptGroupEntReqs=true),
+            // we intentionally skip including those blocks in the MILP model. As a result, any
+            // precedence edges that reference those omitted blocks will appear unresolved here.
+            // This is expected and not an error in this context. The Qoala verifier will later
+            // ensure the overall IR consistency.
+            emitWarning(moduleOp.getLoc(),
+                        "Unresolved precedence edges detected. Might be because of entanglement grouping");
         }
 
         LLVM_DEBUG({
@@ -886,6 +911,11 @@ namespace qoala::analysis::reordering {
         for (const std::shared_ptr<MILPQubit> &q : qubits_) {
             const MILPOperation *alloc = q->getAllocation();
             const MILPOperation *meas = q->getMeasurement();
+            // If a qubit is missing a measurement operation, we cannot meaningfully define
+            // its lifetime for optimization purposes (i.e., we can't compute the interval
+            // between allocation and measurement). In such cases, we exclude the qubit from
+            // the objective function. Proper handling of this situation (e.g., warning or fallback)
+            // is tracked under ticket #91.
             if (!(alloc && meas)) {
                 continue;
             }
@@ -973,14 +1003,13 @@ namespace qoala::analysis::reordering {
             return failure();
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        auto &body = mainFunc.getBody();
 
         llvm::StringMap<Block *> idToBlock;
         Block *returnBlock = nullptr;
 
         // Reorder the blocks in-place in the function body based on the MILP-provided order.
         // And identify any block containing a ReturnOp.
-        for (Block &blk : body) {
+        for (Block &blk : mainFunc) {
             for (Operation &op : blk) {
                 if (llvm::isa<qoalahost::ReturnOp>(op)) {
                     returnBlock = &blk;
@@ -994,7 +1023,31 @@ namespace qoala::analysis::reordering {
         }
 
         // Move each block before the next insertion point; update insertion point after each move.
-        Block *insertionPoint = &body.front();
+        auto insertionPoint = &mainFunc.front();
+        llvm::DenseSet<Block *> alreadyMoved;
+
+        // Move all QC blocks to the top (in original order)
+        if (qoalaOptGroupEntReqs) {
+            for (Block &blk : mainFunc) {
+                bool isQC = false;
+                blk.walk([&](qoalahost::BlkMeta meta) -> WalkResult {
+                    if (idToBlock.contains(meta.getBlockId())) {
+                        if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
+                            isQC = dialects::helpers::hasRequestRoutineWithName(&moduleOp,
+                                                                                call.getCalleeAttr().getValue());
+                        }
+                        if (isQC) {
+                            blk.moveBefore(insertionPoint);
+                            alreadyMoved.insert(&blk);
+                            insertionPoint = blk.getNextNode();
+                        }
+                    }
+                    return WalkResult::interrupt();
+                });
+            }
+        }
+
+        // Move MILP-ordered blocks (excluding already moved)
         for (const std::string &id : orderedIds) {
             auto it = idToBlock.find(id);
             if (it == idToBlock.end()) {
@@ -1002,10 +1055,10 @@ namespace qoala::analysis::reordering {
             }
 
             Block *blk = it->second;
-            if (blk != insertionPoint) {
+            if (!alreadyMoved.contains(blk)) {
                 blk->moveBefore(insertionPoint);
+                insertionPoint = blk->getNextNode();
             }
-            insertionPoint = blk->getNextNode();
         }
 
         // Ensure returnBlock (if present) is the final block in the function body
@@ -1315,7 +1368,7 @@ namespace qoala::analysis::reordering {
 
         int lastValidDeadline = 0; // Initial baseline
 
-        for(auto &blkId: ordered) {
+        for (auto &blkId : ordered) {
             const MILPBlock *blk = nullptr;
             for (const auto &b : blocks_) {
                 if (b->getId() == blkId) {
