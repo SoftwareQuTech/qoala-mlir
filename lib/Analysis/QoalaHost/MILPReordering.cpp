@@ -1100,13 +1100,14 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::createVariables() {
-        // Creates MILP variables for all operation start times and per-qubit lifetime slack.
-        // For each operation:
-        //    - Define start time variable s_op \in R (can be 0 or greater).
-        // For each qubit:
-        //    - Define delta_q \in R to model slack in its lifetime constraint.
-        // These variables will be used in constraints and objective.
+        // Variables created here:
+        //   - s_op (start time for each operation)
+        //   - g_min (scalar ≥ 0): the minimum inter-block gap to maximize
+        //   - G_pred_to_succ (≥ 0 for each consecutive pair in known order)
+        // Assumption: `precedences_` define a single chain. We do not reconstruct
+        // a separate order; we directly iterate over `precedences_` to create the gap vars.
 
+        // Create start time variables for all operations
         for (const auto &blk : blocks_) {
             for (const auto &op : blk->getOperations()) {
                 const std::string &id = op->getId();
@@ -1116,27 +1117,25 @@ namespace qoala::analysis::reordering {
             }
         }
 
-        for (const auto &q : qubits_) {
-            const std::string &qid = q->getId();
-            if (!deltaVars_.count(qid)) {
-                deltaVars_[qid] = createVariable(scip_, "delta_" + qid, /*strictlyPositive=*/false);
-            }
+        // g_min
+        gminVar_ = createVariable(scip_, "g_min", /*strictlyPositive=*/false);
+
+        // Create gap variables G for each precedence edge (pred -> succ)
+        gapVars_.clear();
+        for (const auto &e : precedences_) {
+            const MILPBlock *pred = e.first;
+            const MILPBlock *succ = e.second;
+            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+            gapVars_[gname] = createVariable(scip_, gname, /*strictlyPositive=*/false);
         }
     }
 
     void MILPBlockDeadlineModel::setObjective() {
-        // Sets the objective: minimize total lifetime slack across all qubits.
-        // For each qubit q:
-        //    - delta_q represents how much extra time (beyond physical limit) q's usage might be stretched.
-        //    - Objective is: min \sum_q delta_q
-        // This encourages schedules to stay within lifetime bounds or minimize violations.
+        // Sets the objective: maximize the minimum inter-block gap g_min.
 
-        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
-        for (const auto &q : qubits_) {
-            const std::string &id = q->getId();
-            if (deltaVars_.count(id)) {
-                SCIPchgVarObj(scip_, deltaVars_[id], 1.0);
-            }
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MAXIMIZE);
+        if (gminVar_) {
+            SCIPchgVarObj(scip_, gminVar_, 1.0);
         }
     }
 
@@ -1263,55 +1262,130 @@ namespace qoala::analysis::reordering {
         }
     }
 
+    void MILPBlockDeadlineModel::addInterBlockGapConstraints() {
+        // Enforces gap definitions and min-gap floor for each precedence edge:
+        //   - Define gap:
+        //       G_pred_to_succ = start(first(succ)) - start(last(pred)) - dur(last(pred))
+        //   - Enforce minimum gap:
+        //       G_pred_to_succ >= g_min
+        // Gap variables have LB >= 0 by construction.
+
+        for (const auto &e : precedences_) {
+            const MILPBlock *pred = e.first;
+            const MILPBlock *succ = e.second;
+
+            const MILPOperation *lastPred = pred->lastOp();
+            const MILPOperation *firstSucc = succ->firstOp();
+            if (!(lastPred && firstSucc)) {
+                continue;
+            }
+
+            const int durLastPred = lastPred->getDuration();
+            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+            SCIP_VAR *G = gapVars_.at(gname);
+
+            // Gap definition:  G - s(firstSucc) + s(lastPred) = -durLastPred
+            {
+                SCIP_CONS *c;
+                std::string cname = "gap_def_" + pred->getId() + "_" + succ->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, -durLastPred, -durLastPred);
+                SCIPaddCoefLinear(scip_, c, G, 1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_.at(firstSucc->getId()), -1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_.at(lastPred->getId()), 1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+
+            // Minimum gap:  G - g_min >= 0
+            {
+                SCIP_CONS *c;
+                std::string cname = "gap_ge_gmin_" + pred->getId() + "_" + succ->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
+                SCIPaddCoefLinear(scip_, c, G, 1.0);
+                SCIPaddCoefLinear(scip_, c, gminVar_, -1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+        }
+    }
+
+    void MILPBlockDeadlineModel::addProgramHorizonConstraint() {
+        // Constrains the program to finish before a global time horizon M.
+        // We enforce: end(tail block) <= M
+        // -> s(lastOp(tail)) + dur(lastOp) <= M.
+        // The tail is the unique block that never appears as a predecessor in `precedences_`.
+        // Assumptions:
+        // - The precedences define a chain, thus the tail exists,
+        // - The MILPBlocks are well formed, thus there is at least one (non blk_meta) op per block.
+
+        // Find tail: appears only as succ, never as pred
+        llvm::DenseSet<const MILPBlock *> preds, succs;
+        for (const auto &e : precedences_) {
+            preds.insert(e.first);
+            succs.insert(e.second);
+        }
+        const MILPBlock *tail = nullptr;
+        for (const MILPBlock *cand : succs) {
+            if (!preds.contains(cand)) {
+                tail = cand;
+                break;
+            }
+        }
+
+        const MILPOperation *lastOp = tail->lastOp();
+        const double M = computeHorizonM();
+        const double ubOnStart = M - static_cast<double>(lastOp->getDuration());
+
+        SCIP_CONS *c;
+        std::string name = "program_horizon";
+        // s(lastOp) <= M - dur(lastOp)
+        SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), ubOnStart);
+        SCIPaddCoefLinear(scip_, c, startVars_.at(lastOp->getId()), 1.0);
+        SCIPaddCons(scip_, c);
+        SCIPreleaseCons(scip_, &c);
+    }
+
     void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
-        // Constrains each qubit's lifetime to stay within a configured bound (Lmax).
-        // For each qubit q with alloc and meas ops:
-        //    - Define: delta_q = extra slack needed to stay within Lmax
-        //    - Enforce:
-        //        (start(meas) - start(alloc)) + delta_q ≤ Lmax - measDur + allocDur
-        //      -> This models total usage span of the qubit.
-        //    - Also enforce: delta_q => 0 (non-negativity constraint)
-        // This ensures qubits are used only within feasible or near-feasible time windows.
+        // Constrains each qubit's lifetime to stay within Lmax (feasibility only).
+        // For each qubit q with alloc and meas:
+        //   (s_meas + dur_meas) - (s_alloc + dur_alloc) ≤ Lmax
+        // -> s_meas - s_alloc <= Lmax - dur_meas + dur_alloc
 
         for (const auto &q : qubits_) {
             const std::string &id = q->getId();
             MILPOperation *alloc = q->getAllocation();
             MILPOperation *meas = q->getMeasurement();
 
-            if (!(alloc && meas)) {
-                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing alloc or meas operation.\n");
+            if (!meas) {
+                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing meas operation.\n");
                 continue;
             }
 
-            // Durations of allocation and measurement
-            int allocDur = alloc->getDuration();
-            int measDur = meas->getDuration();
-            int Lmax = qoalaOptQubitLifetime;
+            const int allocDur = alloc->getDuration();
+            const int measDur = meas->getDuration();
+            const int Lmax = qoalaOptQubitLifetime;
 
-            int rhs = Lmax - measDur + allocDur;
+            const int rhs = Lmax - measDur + allocDur;
 
-            // Lifetime constraint
-            {
-                SCIP_CONS *c;
-                std::string name = "lifetime_" + id;
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
-                SCIPaddCoefLinear(scip_, c, startVars_[meas->getId()], 1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_[alloc->getId()], -1.0);
-                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
+            SCIP_CONS *c;
+            std::string name = "lifetime_" + id;
+            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
+            SCIPaddCons(scip_, c);
+            SCIPreleaseCons(scip_, &c);
+        }
+    }
 
-            // Non-negativity constraint: delta_q >= 0
-            {
-                SCIP_CONS *c;
-                std::string name = "delta_nonneg_" + id;
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
-                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
+    double MILPBlockDeadlineModel::computeHorizonM() const {
+        // Computes a conservative global time bound M = 2 * sum_{ops} duration(op).
+        long long sumDur = 0;
+        for (const auto &blk : blocks_) {
+            for (const auto &op : blk->getOperations()) {
+                sumDur += op->getDuration();
             }
         }
+        return 2.0 * static_cast<double>(sumDur);
     }
 
     std::pair<std::unordered_map<std::string, int>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
