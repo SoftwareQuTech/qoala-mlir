@@ -705,7 +705,7 @@ namespace qoala::analysis::reordering {
     void MILPBlockOrderModel::addBlockPrecedenceConstraints() {
         // Adds precedence constraints between blocks based on their dependency edges.
         // If block A must precede block B, we enforce:
-        //      start(firstOp(B)) ≥ start(lastOp(A)) + duration(lastOp(A))
+        //      start(firstOp(B)) >= start(lastOp(A)) + duration(lastOp(A))
         // This ensures B's operations begin only after A's last operation finishes.
         // Implemented using a linear inequality with a lower bound (right-hand side).
 
@@ -809,27 +809,30 @@ namespace qoala::analysis::reordering {
                         dur2 += op->getDuration();
                     }
 
-                    // //  FCFS inequality 1: s(o2) - s(o1) + M z ≥ dur1+eps
+                    // FCFS inequality 1 (b1 before b2 when z=0):
+                    // s(o2) - s(o1) - M*z >= dur1 + eps - M
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
-                        int lhs = dur1 + eps;
+                        const int lhs = dur1 + eps - bigM_;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
-                        SCIPaddCoefLinear(scip_, c, z, bigM_);
+                        SCIPaddCoefLinear(scip_, c, z, -static_cast<SCIP_Real>(bigM_));
                         SCIPaddCons(scip_, c);
                         SCIPreleaseCons(scip_, &c);
                     }
-                    // FCFS inequality 2: s(o1) - s(o2) - M z ≥ dur2+eps - M
+
+                    // FCFS inequality 2 (b2 before b1 when z=1):
+                    // s(o1) - s(o2) + M*z >= dur2 + eps
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
-                        int lhs = dur2 + eps - bigM_;
+                        const int lhs = dur2 + eps;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], -1.0);
-                        SCIPaddCoefLinear(scip_, c, z, -bigM_);
+                        SCIPaddCoefLinear(scip_, c, z, static_cast<SCIP_Real>(bigM_));
                         SCIPaddCons(scip_, c);
                         SCIPreleaseCons(scip_, &c);
                     }
@@ -846,8 +849,8 @@ namespace qoala::analysis::reordering {
         //  - Task2 must start *after* Task1 finishes
         //  - Task3 must start *after* Task2 finishes
         // These are encoded as inequality constraints:
-        //      start(t2) ≥ start(t1) + dur(t1)
-        //      start(t3) ≥ start(t2) + dur(t2)
+        //      start(t2) >= start(t1) + dur(t1)
+        //      start(t3) >= start(t2) + dur(t2)
 
         for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
             if (blk->getType() != BlockType::QL && blk->getType() != BlockType::QC) {
@@ -1102,8 +1105,8 @@ namespace qoala::analysis::reordering {
     void MILPBlockDeadlineModel::createVariables() {
         // Variables created here:
         //   - s_op (start time for each operation)
-        //   - g_min (scalar ≥ 0): the minimum inter-block gap to maximize
-        //   - G_pred_to_succ (≥ 0 for each consecutive pair in known order)
+        //   - g_min (scalar >= 0): the minimum inter-block gap to maximize
+        //   - G_pred_to_succ (>= 0 for each consecutive pair in known order)
         // Assumption: `precedences_` define a single chain. We do not reconstruct
         // a separate order; we directly iterate over `precedences_` to create the gap vars.
 
