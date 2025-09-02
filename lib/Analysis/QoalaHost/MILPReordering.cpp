@@ -1351,7 +1351,7 @@ namespace qoala::analysis::reordering {
     void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
         // Constrains each qubit's lifetime to stay within Lmax (feasibility only).
         // For each qubit q with alloc and meas:
-        //   (s_meas + dur_meas) - (s_alloc + dur_alloc) ≤ Lmax
+        //   (s_meas + dur_meas) - (s_alloc + dur_alloc) <= Lmax
         // -> s_meas - s_alloc <= Lmax - dur_meas + dur_alloc
 
         for (const auto &q : qubits_) {
