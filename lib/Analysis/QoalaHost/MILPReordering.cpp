@@ -1431,19 +1431,6 @@ namespace qoala::analysis::reordering {
         //         assign a deadline just after the last valid one (to avoid non-monotonicity).
         //   4. Return the mapping: block ID -> deadline offset, and the ID of the reference block.
         // These deadlines are later used to annotate MLIR `BlkMeta` operations with scheduling guidance.
-        //
-        // NOTE: In cases where the final blocks in the schedule are purely classical
-        // (e.g., containing only Send or non-qubit operations), these blocks do
-        // not influence any qubit lifetimes. As a result, the MILP objective
-        // (which minimizes total qubit usage) does not constrain their timing.
-        // Consequently, such blocks may be scheduled at arbitrarily large times,
-        // To avoid this unbounded behavior, we currently assign fallback deadlines
-        // of the form:
-        //     deadline_b = deadline_{b-1} + 1
-        // for any block whose computed start time falls before the reference point.
-        // This is a heuristic workaround to enforce execution order and avoid
-        // timeline drift, especially in late, unconstrained blocks.
-        // This mechanism is temporary and should be reviewed or replaced in #93.
 
         std::unordered_map<std::string, int> deadlines;
 
