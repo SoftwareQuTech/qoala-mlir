@@ -1336,8 +1336,8 @@ namespace qoala::analysis::reordering {
         }
 
         const MILPOperation *lastOp = tail->lastOp();
-        const double M = getProgramHorizon();
-        const double ubOnStart = M - static_cast<double>(lastOp->getDuration());
+        const double H = getProgramHorizon();
+        const double ubOnStart = H - static_cast<double>(lastOp->getDuration());
 
         SCIP_CONS *c;
         std::string name = "program_horizon";
