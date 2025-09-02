@@ -328,7 +328,7 @@ namespace qoala::analysis {
             void addInterBlockGapConstraints();
             void addProgramHorizonConstraint();
 
-            double computeHorizonM() const;
+            double getProgramHorizon() const;
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;

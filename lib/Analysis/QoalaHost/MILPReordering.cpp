@@ -1336,7 +1336,7 @@ namespace qoala::analysis::reordering {
         }
 
         const MILPOperation *lastOp = tail->lastOp();
-        const double M = computeHorizonM();
+        const double M = getProgramHorizon();
         const double ubOnStart = M - static_cast<double>(lastOp->getDuration());
 
         SCIP_CONS *c;
@@ -1380,15 +1380,43 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    double MILPBlockDeadlineModel::computeHorizonM() const {
-        // Computes a conservative global time bound M = 2 * sum_{ops} duration(op).
+    double MILPBlockDeadlineModel::getProgramHorizon() const {
+        // Model: Determine a conservative global time bound M for the program.
+        // Default: M_default = 2 * sum_{ops} duration(op).
+        // If a positive qoalaOptProgramHorizon is provided:
+        //   - If qoalaOptProgramHorizon < sumDur, emit a warning and use the default (too tight).
+        //   - Else, accept and use qoalaOptProgramHorizon.
+        // Otherwise, use the default.
+
+        // Sum of all operation durations
         long long sumDur = 0;
         for (const auto &blk : blocks_) {
             for (const auto &op : blk->getOperations()) {
                 sumDur += op->getDuration();
             }
         }
-        return 2.0 * static_cast<double>(sumDur);
+
+        const double sumDurD = static_cast<double>(sumDur);
+        const double defaultH = 2.0 * sumDurD; // conservative default
+        const double userHorizon = static_cast<double>(qoalaOptProgramHorizon);
+
+        // If user provided a positive horizon, validate and use it (or fall back with warning)
+        if (qoalaOptProgramHorizon > 0) {
+            if (userHorizon < sumDurD) {
+                // emit warning that the inputted horizon is too low and that we are going to default
+                llvm::errs() << "[Deadlines] Provided program horizon (" << userHorizon
+                             << ") is smaller than the aggregate duration lower bound (" << sumDurD
+                             << "). Falling back to default horizon (" << defaultH << ").\n";
+                return defaultH;
+            }
+            // use qoalaOptProgramHorizon
+            LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Using user-provided program horizon: " << userHorizon << "\n");
+            return userHorizon;
+        }
+
+        // default
+        LLVM_DEBUG(llvm::dbgs() << "[Deadline] Using default program horizon (2 * sumDur): " << defaultH << "\n");
+        return defaultH;
     }
 
     std::pair<std::unordered_map<std::string, int>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
