@@ -1387,7 +1387,7 @@ namespace qoala::analysis::reordering {
         // Otherwise, use the default.
 
         // Sum of all operation durations
-        long long sumDur = 0;
+        int64_t sumDur = 0;
         for (const auto &blk : blocks_) {
             for (const auto &op : blk->getOperations()) {
                 sumDur += op->getDuration();
