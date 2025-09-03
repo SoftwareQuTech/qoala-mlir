@@ -42,4 +42,20 @@ def DefineQubitsInterface : OpInterface<"DefineQubitsInterface"> {
         >
     ];
 }
+
+def EntangleInterface : OpInterface<"EntangleInterface"> {
+    let description = [{
+        Interface for Operations that have the Entangle trait in Qmem.
+    }];
+    let cppNamespace = "::qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Returns the remote of the Eprs operation.
+        }], "llvm::StringRef", "getRemote", (ins), /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{
+            return this->getRemote();
+        }]
+        >
+    ];
+}
 #endif // QMEM_IFACE_TD

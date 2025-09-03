@@ -41,11 +41,18 @@ namespace qoala::analysis {
 
         // Correct the positions of the remote and builtin declaration
         module.walk([&](func::FuncOp funcDecl) {
-            if (funcDecl.getSymName() == helpers::angle::angleConversionFunctionName) {
+            if (funcDecl.getSymName() != helpers::angle::angleConversionFunctionName) {
+                WalkResult::advance();
+            } else {
                 helpers::moveOperationToTop(module, funcDecl);
             }
-            WalkResult::advance();
         });
-        module.walk([&](const qmem::RemoteOp remote) { helpers::moveOperationToTop(module, remote); });
+        std::vector<qmem::RemoteOp> remotes;
+        // First collect all remote ops in order
+        module.walk([&](const qmem::RemoteOp remote) { remotes.push_back(remote); });
+        // Iterate in reverse to maintain final correct order
+        for (auto it = remotes.rbegin(); it != remotes.rend(); ++it) {
+            helpers::moveOperationToTop(module, *it);
+        }
     }
 } /* namespace qoala::analysis */

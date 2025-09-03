@@ -1,6 +1,7 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/Helpers/QMemInterfaces.h"
 #include "Analysis/QMem/Conversion.h"
+#include "Tools/QoalaOpt.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -22,10 +23,6 @@ namespace qoala::analysis::functionize {
 
     static bool qMemOpIsaBreakingPoint(const Operation &op) {
         return llvm::isa<dialects::qmem::RecvFloatsOp, dialects::qmem::RecvIntsOp>(op);
-    }
-
-    static bool qMemOpIsEprs(const Operation &op) {
-        return llvm::isa<dialects::qmem::EprsOp, dialects::qmem::EprsMeasureOp>(op);
     }
 
     static bool qMemOpShouldRemainInBody(const Operation &op) {
@@ -67,6 +64,9 @@ namespace qoala::analysis::functionize {
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
 
+        void groupEprsByRemote(const llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>,
+                                                    std::vector<Operation *>> &opsByRemoteAndKind);
+
     private:
         [[nodiscard]]
         QuantumOpsGroupTy *getGroupForQubits(const std::vector<Operation *> &operations);
@@ -80,6 +80,11 @@ namespace qoala::analysis::functionize {
         [[nodiscard]]
         uint32_t getQubitIDForOperation(Operation *qallocOp) const;
         static std::string getGroupNameForIDs(const std::vector<uint32_t> &qubitIDs);
+
+        bool hasQubitID(Operation *qallocOp) const { return qubitIds.count(qallocOp) > 0; }
+
+        std::pair<std::vector<uint32_t>, std::vector<Operation *>>
+        assignRemoteQubitIDsWithQalloc(std::vector<Operation *> ops);
 
     private:
         uint32_t maxOpsPerGroup;
@@ -227,15 +232,92 @@ namespace qoala::analysis::functionize {
         return eprsQubits;
     }
 
+    std::pair<std::vector<uint32_t>, std::vector<Operation *>>
+    PerQubitGrouper::assignRemoteQubitIDsWithQalloc(std::vector<Operation *> ops) {
+        std::vector<uint32_t> qubitIDs;
+        std::vector<Operation *> qallocs;
+
+        for (Operation *op : ops) {
+            auto defineIface = dyn_cast<helpers::DefineQubitsInterface>(op);
+            assert(defineIface && "Expected entangle op to implement DefineQubitsInterface");
+
+            Operation *qallocOp = defineIface.getDefiningQubit().getDefiningOp();
+            // Assign ID only if not already assigned (avoids duplicate ID assignment)
+            uint32_t qubitID;
+            if (!this->hasQubitID(qallocOp)) {
+                qubitID = this->assignQubitIDForQAllocOp(qallocOp);
+            } else {
+                qubitID = this->getQubitIDForOperation(qallocOp);
+            }
+            qubitIDs.push_back(qubitID);
+            qallocs.push_back(qallocOp);
+        };
+
+        return {qubitIDs, qallocs};
+    }
+
+    void PerQubitGrouper::groupEprsByRemote(const llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>,
+                                                                 std::vector<Operation *>> &opsByRemoteAndKind) {
+        for (const auto &[key, ops] : opsByRemoteAndKind) {
+            const auto &[remoteName, kind] = key;
+
+            LLVM_DEBUG(llvm::dbgs() << " Grouping entangle ops for remote = " << remoteName << ", kind = " << kind
+                                    << "\n");
+
+            auto [qubitIDs, qallocs] = this->assignRemoteQubitIDsWithQalloc(ops);
+
+            // Create a new group for all EPRS ops sharing the same remote
+            auto *group = this->addNewGroupForQalloc(qallocs[0], qubitIDs);
+            // Insert the qalloc and eprs ops into the group
+            for (size_t i = 0; i < ops.size(); ++i) {
+                // The first qalloc is already handled during group creation, so skip it
+                if (i != 0) {
+                    group->push_back(qallocs[i]);
+                }
+                group->push_back(ops[i]);
+
+                // Clean up: deregister the qalloc from the declared qubits map
+                auto qallocTyped = cast<dialects::qmem::QAllocOp>(qallocs[i]);
+                this->deregisterQallocOp(qallocTyped);
+            }
+
+            // Commit the group so future ops won't merge into it
+            this->commitCurrentGroup();
+        }
+    }
+
     std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction,
                                                            const uint32_t maxOpsPerGroup) {
         PerQubitGrouper qubitGroupsMap(maxOpsPerGroup);
         std::set<Operation *> eprsQubits = getEprsQubitOps(mainFunction);
 
+        // If grouping by remote is enabled, track EprsOps and EprsMeasureOps by remote
+        llvm::DenseMap<std::pair<llvm::StringRef, llvm::StringRef>, std::vector<Operation *>> entangleOpsGrouped;
+
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
         LLVM_DEBUG(llvm::dbgs() << "%      CLASSIFIER      %\n");
         LLVM_DEBUG(llvm::dbgs() << "%%%%%%%%%%%%%%%%%%%%%%%%\n");
         LLVM_DEBUG(llvm::dbgs() << "% using maxOps = " << maxOpsPerGroup << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "% grouping entanglement requests = " << qoala::options::qoalaOptGroupEntReqs
+                                << "\n");
+
+        for (dialects::qmem::QAllocOp qallocOp : mainFunction.getOps<dialects::qmem::QAllocOp>()) {
+            LLVM_DEBUG(llvm::dbgs() << " Classifying alloc op = " << *qallocOp << "\n");
+            qubitGroupsMap.registerQallocOp(qallocOp);
+        }
+
+        // Collect EPR ops by remote if grouping is enabled
+        if (qoala::options::qoalaOptGroupEntReqs) {
+            mainFunction.walk([&](qoala::helpers::EntangleInterface op) {
+                llvm::StringRef remote = op.getRemote();
+                llvm::StringRef kind = op->getName().getStringRef();
+                entangleOpsGrouped[{remote, kind}].push_back(op.getOperation());
+            });
+
+            // Pre-group and commit all EPRS ops by remote before traversing other ops
+            qubitGroupsMap.groupEprsByRemote(entangleOpsGrouped);
+        }
+
         // Iterate over all the operations of the main function
         for (Operation &op : mainFunction.getOps()) {
             LLVM_DEBUG(llvm::dbgs() << " Classifying op = " << op << "\n");
@@ -257,27 +339,28 @@ namespace qoala::analysis::functionize {
             assert(!involvedQubits.empty());
 
             llvm::TypeSwitch<Operation *>(&op)
-                    .Case([&](dialects::qmem::QAllocOp qallocOp) {
-                        // The op is a qalloc; we register the qalloc op to be grouped later
-                        qubitGroupsMap.registerQallocOp(qallocOp);
-                    })
+                    .Case([&](dialects::qmem::QAllocOp qallocOp) {})
                     .Case([&](dialects::qmem::InitOp &initOp) {
                         if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(initOp.getOperation())) {
                             qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
                         }
                     })
                     .Case([&](dialects::qmem::EprsOp &eprsOp) {
-                        if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
-                            qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
-                        }
-                        // If the operation is EPRS, it also acts as a barrier, so we commit current active groups.
-                        if (qMemOpIsEprs(op)) {
+                        // If grouping was enabled, these were already committed earlier
+                        if (!qoala::options::qoalaOptGroupEntReqs) {
+                            if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                                qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                            }
                             qubitGroupsMap.commitCurrentGroup();
                         }
                     })
                     .Case([&](dialects::qmem::EprsMeasureOp &eprsOp) {
-                        if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
-                            qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                        // If grouping was enabled, these were already committed earlier
+                        if (!qoala::options::qoalaOptGroupEntReqs) {
+                            if (auto definingOp = dyn_cast<helpers::DefineQubitsInterface>(eprsOp.getOperation())) {
+                                qubitGroupsMap.groupDefinitionWithQAlloc(definingOp);
+                            }
+                            qubitGroupsMap.commitCurrentGroup();
                         }
                     })
                     .Default([&](Operation *otherOp) {

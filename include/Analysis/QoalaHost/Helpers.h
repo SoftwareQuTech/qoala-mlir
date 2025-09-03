@@ -394,6 +394,15 @@ namespace qoala::analysis {
         using Closure = std::set<std::pair<std::string, std::string>>;
 
         /**
+         * Collects all NetQASM routines defined in the module and returns a map
+         * from their symbol names to their corresponding operations.
+         * This includes both `netqasm.local_routine` and `netqasm.request_routine`.
+         * @param moduleOp The module from which to extract routines.
+         * @returns A map from routine name (as string) to its defining operation.
+         */
+        llvm::StringMap<mlir::Operation *> collectRoutineMap(mlir::ModuleOp &moduleOp);
+
+        /**
          * Constructs the MILP model from the given MLIR module. This includes building
          * MILP blocks, qubit usage, and block precedence constraints.
          * @param moduleOp The MLIR module to analyze.
@@ -435,6 +444,16 @@ namespace qoala::analysis {
          */
         void annotateBlockDeadlines(mlir::ModuleOp &moduleOp, const std::unordered_map<std::string, uint32_t> &deadlines,
                                     const std::string &refBlockId);
+
+        /**
+         * Moves all blocks containing entanglement request routines
+         * (i.e., calls to `netqasm.request_routine`) to the beginning of
+         * the `qoalahost.main_func`. This is done to ensure these blocks are
+         * scheduled before others. The reordering is done before `blk_meta`
+         * operations are inserted.
+         * @param moduleOp The module whose main function will be reordered.
+         */
+        void groupEntanglementBlocksFirst(mlir::ModuleOp moduleOp);
     } // namespace reordering
 } // namespace qoala::analysis
 

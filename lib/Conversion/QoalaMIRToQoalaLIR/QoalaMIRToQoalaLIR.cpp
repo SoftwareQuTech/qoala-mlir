@@ -93,7 +93,7 @@ namespace qoala::conversion {
         passManager.addPass(createLowerQMemToLowerDialects());
 
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
-        passManager.printAsTextualPipeline(llvm::dbgs());
+        LLVM_DEBUG(passManager.printAsTextualPipeline(llvm::dbgs()));
         LLVM_DEBUG(llvm::dbgs() << "\n*******************************************\n");
 
         if (failed(runPipeline(passManager, module))) {
