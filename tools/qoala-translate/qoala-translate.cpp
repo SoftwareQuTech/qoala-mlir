@@ -18,6 +18,7 @@ namespace qoala::options {
     uint32_t qoalaOptQNosInstrTime = 0;
     uint32_t qoalaOptQubitLifetime = 0;
     bool qoalaOptGroupEntReqs = false;
+    uint32_t qoalaOptProgramHorizon = 0;
 } // namespace qoala::options
 
 namespace qoala::translate {

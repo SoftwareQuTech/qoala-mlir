@@ -17,6 +17,7 @@ namespace qoala::options {
     extern uint32_t qoalaOptQNosInstrTime;
     extern uint32_t qoalaOptQubitLifetime;
     extern bool qoalaOptGroupEntReqs;
+    extern uint32_t qoalaOptProgramHorizon;
 } // namespace qoala::options
 
 #endif // QOALAOPT_H

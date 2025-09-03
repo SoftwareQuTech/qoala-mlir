@@ -43,9 +43,7 @@ static opt<uint32_t, /*ExternalStorage=*/true>
 
 uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
-                                                                     desc("Calssical communication latency."),
-                                                                     NotHidden,
-                                                                     location(qoala::options::qoalaOptLatency));
+                                                                     NotHidden, location(qoala::options::qoalaOptLatency));
 
 uint32_t qoala::options::qoalaOptLinkDuration = 1000;
 static opt<uint32_t, /*ExternalStorage=*/true>
@@ -74,6 +72,12 @@ bool qoala::options::qoalaOptGroupEntReqs = false;
 static opt<bool, /*ExternalStorage=*/true>
         qoalaOptGroupEntReqsOption("qoala-opt-group-ent-reqs", desc("Whether to group entanglement requests or not."),
                                    NotHidden, location(qoala::options::qoalaOptGroupEntReqs));
+
+uint32_t qoala::options::qoalaOptProgramHorizon = 0;
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptProgramHorizonOption("qoala-opt-program-horizon",
+                                     desc("Program horizon i.e, the maximum time the program should take to execute."),
+                                     NotHidden, location(qoala::options::qoalaOptProgramHorizon));
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;
