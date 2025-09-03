@@ -308,6 +308,8 @@ namespace qoala::analysis {
                 addBlockPrecedenceConstraints();
                 addFCFSConsistencyConstraints();
                 addQubitLifetimeConstraints();
+                addInterBlockGapConstraints();
+                addProgramHorizonConstraint();
             };
 
             void setObjective() override;
@@ -315,13 +317,18 @@ namespace qoala::analysis {
             std::pair<std::unordered_map<std::string, int>, std::string> computeBlockDeadlines() const;
 
         private:
-            std::unordered_map<std::string, SCIP_VAR *> deltaVars_;
+            std::unordered_map<std::string, SCIP_VAR *> gapVars_;
+            SCIP_VAR *gminVar_ = nullptr;
 
             void addIntraTaskSequencingConstraints();
             void addIntraBlockSequencingConstraints();
             void addBlockPrecedenceConstraints();
             void addFCFSConsistencyConstraints();
             void addQubitLifetimeConstraints();
+            void addInterBlockGapConstraints();
+            void addProgramHorizonConstraint();
+
+            double getProgramHorizon() const;
         };
 
         using Closure = std::set<std::pair<std::string, std::string>>;

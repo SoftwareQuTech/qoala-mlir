@@ -705,7 +705,7 @@ namespace qoala::analysis::reordering {
     void MILPBlockOrderModel::addBlockPrecedenceConstraints() {
         // Adds precedence constraints between blocks based on their dependency edges.
         // If block A must precede block B, we enforce:
-        //      start(firstOp(B)) ≥ start(lastOp(A)) + duration(lastOp(A))
+        //      start(firstOp(B)) >= start(lastOp(A)) + duration(lastOp(A))
         // This ensures B's operations begin only after A's last operation finishes.
         // Implemented using a linear inequality with a lower bound (right-hand side).
 
@@ -809,27 +809,30 @@ namespace qoala::analysis::reordering {
                         dur2 += op->getDuration();
                     }
 
-                    // //  FCFS inequality 1: s(o2) - s(o1) + M z ≥ dur1+eps
+                    // FCFS inequality 1 (b1 before b2 when z=0):
+                    // s(o2) - s(o1) - M*z >= dur1 + eps - M
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs1_" + zname + "_" + std::to_string(k);
-                        int lhs = dur1 + eps;
+                        const int lhs = dur1 + eps - bigM_;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
-                        SCIPaddCoefLinear(scip_, c, z, bigM_);
+                        SCIPaddCoefLinear(scip_, c, z, -static_cast<SCIP_Real>(bigM_));
                         SCIPaddCons(scip_, c);
                         SCIPreleaseCons(scip_, &c);
                     }
-                    // FCFS inequality 2: s(o1) - s(o2) - M z ≥ dur2+eps - M
+
+                    // FCFS inequality 2 (b2 before b1 when z=1):
+                    // s(o1) - s(o2) + M*z >= dur2 + eps
                     {
                         SCIP_CONS *c;
                         std::string n = "fcfs2_" + zname + "_" + std::to_string(k);
-                        int lhs = dur2 + eps - bigM_;
+                        const int lhs = dur2 + eps;
                         SCIPcreateConsBasicLinear(scip_, &c, n.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
                         SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], 1.0);
                         SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], -1.0);
-                        SCIPaddCoefLinear(scip_, c, z, -bigM_);
+                        SCIPaddCoefLinear(scip_, c, z, static_cast<SCIP_Real>(bigM_));
                         SCIPaddCons(scip_, c);
                         SCIPreleaseCons(scip_, &c);
                     }
@@ -846,8 +849,8 @@ namespace qoala::analysis::reordering {
         //  - Task2 must start *after* Task1 finishes
         //  - Task3 must start *after* Task2 finishes
         // These are encoded as inequality constraints:
-        //      start(t2) ≥ start(t1) + dur(t1)
-        //      start(t3) ≥ start(t2) + dur(t2)
+        //      start(t2) >= start(t1) + dur(t1)
+        //      start(t3) >= start(t2) + dur(t2)
 
         for (const std::shared_ptr<MILPBlock> &blk : blocks_) {
             if (blk->getType() != BlockType::QL && blk->getType() != BlockType::QC) {
@@ -1100,13 +1103,14 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::createVariables() {
-        // Creates MILP variables for all operation start times and per-qubit lifetime slack.
-        // For each operation:
-        //    - Define start time variable s_op \in R (can be 0 or greater).
-        // For each qubit:
-        //    - Define delta_q \in R to model slack in its lifetime constraint.
-        // These variables will be used in constraints and objective.
+        // Variables created here:
+        //   - s_op (start time for each operation)
+        //   - g_min (scalar >= 0): the minimum inter-block gap to maximize
+        //   - G_pred_to_succ (>= 0 for each consecutive pair in known order)
+        // Assumption: `precedences_` define a single chain. We do not reconstruct
+        // a separate order; we directly iterate over `precedences_` to create the gap vars.
 
+        // Create start time variables for all operations
         for (const auto &blk : blocks_) {
             for (const auto &op : blk->getOperations()) {
                 const std::string &id = op->getId();
@@ -1116,27 +1120,23 @@ namespace qoala::analysis::reordering {
             }
         }
 
-        for (const auto &q : qubits_) {
-            const std::string &qid = q->getId();
-            if (!deltaVars_.count(qid)) {
-                deltaVars_[qid] = createVariable(scip_, "delta_" + qid, /*strictlyPositive=*/false);
-            }
+        // g_min
+        gminVar_ = createVariable(scip_, "g_min", /*strictlyPositive=*/false);
+
+        // Create gap variables G for each precedence edge (pred -> succ)
+        gapVars_.clear();
+        for (const auto &[pred, succ] : precedences_) {
+            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+            gapVars_[gname] = createVariable(scip_, gname, /*strictlyPositive=*/false);
         }
     }
 
     void MILPBlockDeadlineModel::setObjective() {
-        // Sets the objective: minimize total lifetime slack across all qubits.
-        // For each qubit q:
-        //    - delta_q represents how much extra time (beyond physical limit) q's usage might be stretched.
-        //    - Objective is: min \sum_q delta_q
-        // This encourages schedules to stay within lifetime bounds or minimize violations.
+        // Sets the objective: maximize the minimum inter-block gap g_min.
 
-        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
-        for (const auto &q : qubits_) {
-            const std::string &id = q->getId();
-            if (deltaVars_.count(id)) {
-                SCIPchgVarObj(scip_, deltaVars_[id], 1.0);
-            }
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MAXIMIZE);
+        if (gminVar_) {
+            SCIPchgVarObj(scip_, gminVar_, 1.0);
         }
     }
 
@@ -1263,55 +1263,158 @@ namespace qoala::analysis::reordering {
         }
     }
 
+    void MILPBlockDeadlineModel::addInterBlockGapConstraints() {
+        // Enforces gap definitions and min-gap floor for each precedence edge:
+        //   - Define gap:
+        //       G_pred_to_succ = start(first(succ)) - start(last(pred)) - dur(last(pred))
+        //   - Enforce minimum gap:
+        //       G_pred_to_succ >= g_min
+        // Gap variables have LB >= 0 by construction.
+
+        for (const auto &[pred, succ] : precedences_) {
+
+            const MILPOperation *lastPred = pred->lastOp();
+            const MILPOperation *firstSucc = succ->firstOp();
+            if (!(lastPred && firstSucc)) {
+                continue;
+            }
+
+            const int durLastPred = lastPred->getDuration();
+            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+            SCIP_VAR *G = gapVars_.at(gname);
+
+            // Gap definition:  G - s(firstSucc) + s(lastPred) = -durLastPred
+            {
+                SCIP_CONS *c;
+                std::string cname = "gap_def_" + pred->getId() + "_" + succ->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, -durLastPred, -durLastPred);
+                SCIPaddCoefLinear(scip_, c, G, 1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_.at(firstSucc->getId()), -1.0);
+                SCIPaddCoefLinear(scip_, c, startVars_.at(lastPred->getId()), 1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+
+            // Minimum gap:  G - g_min >= 0
+            {
+                SCIP_CONS *c;
+                std::string cname = "gap_ge_gmin_" + pred->getId() + "_" + succ->getId();
+                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
+                SCIPaddCoefLinear(scip_, c, G, 1.0);
+                SCIPaddCoefLinear(scip_, c, gminVar_, -1.0);
+                SCIPaddCons(scip_, c);
+                SCIPreleaseCons(scip_, &c);
+            }
+        }
+    }
+
+    void MILPBlockDeadlineModel::addProgramHorizonConstraint() {
+        // Constrains the program to finish before a global time horizon M.
+        // We enforce: end(tail block) <= M
+        // -> s(lastOp(tail)) + dur(lastOp) <= M.
+        // The tail is the unique block that never appears as a predecessor in `precedences_`.
+        // Assumptions:
+        // - The precedences define a chain, thus the tail exists,
+        // - The MILPBlocks are well formed, thus there is at least one (non blk_meta) op per block.
+
+        // Find tail: appears only as succ, never as pred
+        llvm::DenseSet<const MILPBlock *> preds, succs;
+        for (const auto &[first, second] : precedences_) {
+            preds.insert(first);
+            succs.insert(second);
+        }
+        const MILPBlock *tail = nullptr;
+        for (const MILPBlock *cand : succs) {
+            if (!preds.contains(cand)) {
+                tail = cand;
+                break;
+            }
+        }
+
+        assert(tail && "[Deadlines][Horizon] Invariant violated: no tail block found from precedences");
+
+        const MILPOperation *lastOp = tail->lastOp();
+        const double H = getProgramHorizon();
+        const double ubOnStart = H - static_cast<double>(lastOp->getDuration());
+
+        SCIP_CONS *c;
+        std::string name = "program_horizon";
+        // s(lastOp) <= M - dur(lastOp)
+        SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), ubOnStart);
+        SCIPaddCoefLinear(scip_, c, startVars_.at(lastOp->getId()), 1.0);
+        SCIPaddCons(scip_, c);
+        SCIPreleaseCons(scip_, &c);
+    }
+
     void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
-        // Constrains each qubit's lifetime to stay within a configured bound (Lmax).
-        // For each qubit q with alloc and meas ops:
-        //    - Define: delta_q = extra slack needed to stay within Lmax
-        //    - Enforce:
-        //        (start(meas) - start(alloc)) + delta_q ≤ Lmax - measDur + allocDur
-        //      -> This models total usage span of the qubit.
-        //    - Also enforce: delta_q => 0 (non-negativity constraint)
-        // This ensures qubits are used only within feasible or near-feasible time windows.
+        // Constrains each qubit's lifetime to stay within Lmax (feasibility only).
+        // For each qubit q with alloc and meas:
+        //   (s_meas + dur_meas) - (s_alloc + dur_alloc) <= Lmax
+        // -> s_meas - s_alloc <= Lmax - dur_meas + dur_alloc
 
         for (const auto &q : qubits_) {
             const std::string &id = q->getId();
             MILPOperation *alloc = q->getAllocation();
             MILPOperation *meas = q->getMeasurement();
 
-            if (!(alloc && meas)) {
-                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing alloc or meas operation.\n");
+            if (!meas) {
+                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing meas operation.\n");
                 continue;
             }
 
-            // Durations of allocation and measurement
-            int allocDur = alloc->getDuration();
-            int measDur = meas->getDuration();
-            int Lmax = qoalaOptQubitLifetime;
+            const int allocDur = alloc->getDuration();
+            const int measDur = meas->getDuration();
+            const int Lmax = qoalaOptQubitLifetime;
 
-            int rhs = Lmax - measDur + allocDur;
+            const int rhs = Lmax - measDur + allocDur;
 
-            // Lifetime constraint
-            {
-                SCIP_CONS *c;
-                std::string name = "lifetime_" + id;
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
-                SCIPaddCoefLinear(scip_, c, startVars_[meas->getId()], 1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_[alloc->getId()], -1.0);
-                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
+            SCIP_CONS *c;
+            std::string name = "lifetime_" + id;
+            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
+            SCIPaddCons(scip_, c);
+            SCIPreleaseCons(scip_, &c);
+        }
+    }
 
-            // Non-negativity constraint: delta_q >= 0
-            {
-                SCIP_CONS *c;
-                std::string name = "delta_nonneg_" + id;
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
-                SCIPaddCoefLinear(scip_, c, deltaVars_[id], 1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
+    double MILPBlockDeadlineModel::getProgramHorizon() const {
+        // Model: Determine a conservative global time bound M for the program.
+        // Default: M_default = 2 * sum_{ops} duration(op).
+        // If a positive qoalaOptProgramHorizon is provided:
+        //   - If qoalaOptProgramHorizon < sumDur, emit a warning and use the default (too tight).
+        //   - Else, accept and use qoalaOptProgramHorizon.
+        // Otherwise, use the default.
+
+        // Sum of all operation durations
+        int64_t sumDur = 0;
+        for (const auto &blk : blocks_) {
+            for (const auto &op : blk->getOperations()) {
+                sumDur += op->getDuration();
             }
         }
+
+        const double sumDurD = static_cast<double>(sumDur);
+        const double defaultH = 2.0 * sumDurD; // conservative default
+        const double userHorizon = static_cast<double>(qoalaOptProgramHorizon);
+
+        // If user provided a positive horizon, validate and use it (or fall back with warning)
+        if (qoalaOptProgramHorizon > 0) {
+            if (userHorizon < sumDurD) {
+                // emit warning that the inputted horizon is too low and that we are going to default
+                llvm::errs() << "[Deadlines] Provided program horizon (" << userHorizon
+                             << ") is smaller than the aggregate duration lower bound (" << sumDurD
+                             << "). Falling back to default horizon (" << defaultH << ").\n";
+                return defaultH;
+            }
+            // use qoalaOptProgramHorizon
+            LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Using user-provided program horizon: " << userHorizon << "\n");
+            return userHorizon;
+        }
+
+        // default
+        LLVM_DEBUG(llvm::dbgs() << "[Deadline] Using default program horizon (2 * sumDur): " << defaultH << "\n");
+        return defaultH;
     }
 
     std::pair<std::unordered_map<std::string, int>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
@@ -1326,19 +1429,6 @@ namespace qoala::analysis::reordering {
         //         assign a deadline just after the last valid one (to avoid non-monotonicity).
         //   4. Return the mapping: block ID -> deadline offset, and the ID of the reference block.
         // These deadlines are later used to annotate MLIR `BlkMeta` operations with scheduling guidance.
-        //
-        // NOTE: In cases where the final blocks in the schedule are purely classical
-        // (e.g., containing only Send or non-qubit operations), these blocks do
-        // not influence any qubit lifetimes. As a result, the MILP objective
-        // (which minimizes total qubit usage) does not constrain their timing.
-        // Consequently, such blocks may be scheduled at arbitrarily large times,
-        // To avoid this unbounded behavior, we currently assign fallback deadlines
-        // of the form:
-        //     deadline_b = deadline_{b-1} + 1
-        // for any block whose computed start time falls before the reference point.
-        // This is a heuristic workaround to enforce execution order and avoid
-        // timeline drift, especially in late, unconstrained blocks.
-        // This mechanism is temporary and should be reviewed or replaced in #93.
 
         std::unordered_map<std::string, int> deadlines;
 
