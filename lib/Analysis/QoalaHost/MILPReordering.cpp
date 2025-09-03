@@ -1125,9 +1125,7 @@ namespace qoala::analysis::reordering {
 
         // Create gap variables G for each precedence edge (pred -> succ)
         gapVars_.clear();
-        for (const auto &e : precedences_) {
-            const MILPBlock *pred = e.first;
-            const MILPBlock *succ = e.second;
+        for (const auto &[pred, succ] : precedences_) {
             const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
             gapVars_[gname] = createVariable(scip_, gname, /*strictlyPositive=*/false);
         }
