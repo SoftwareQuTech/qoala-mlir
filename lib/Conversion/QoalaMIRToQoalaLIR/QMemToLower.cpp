@@ -137,6 +137,14 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
+        // Stage 9: Move Entanglement Blocks at the beginning
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Moving Entanglement Blocks *\n");
+        LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
+        if (options::qoalaOptGroupEntReqs) {
+            analysis::reordering::groupEntanglementBlocksFirst(module);
+        }
+
         // Stage 9: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
