@@ -1,6 +1,8 @@
 #ifndef QOALAOPT_H
 #define QOALAOPT_H
 
+#include <cstdint>
+
 // Declarations for the extra options of the "qoala-opt" tool
 // These extern declarations allow accessing the CLI values declared in qoala-opt.cpp
 

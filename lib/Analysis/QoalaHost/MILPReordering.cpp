@@ -175,7 +175,7 @@ namespace qoala::analysis::reordering {
     static std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
                       BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>,
                       llvm::StringMap<MILPBlock *>, LogicalResult>
-    buildMilpBlocks(qoalahost::MainFuncOp mainFunc, const llvm::StringMap<Operation *> &routineMap) {
+    buildMilpBlocks(qoalahost::MainFuncOp &mainFunc, const llvm::StringMap<Operation *> &routineMap) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         BlockPrecedenceList precedences;
 
@@ -333,7 +333,7 @@ namespace qoala::analysis::reordering {
     }
 
     static std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
-    collectQubitUsage(qoalahost::MainFuncOp mainFunc, ModuleOp &moduleOp) {
+    collectQubitUsage(qoalahost::MainFuncOp &mainFunc, ModuleOp &moduleOp) {
         // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
         llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
         // Maps result of call to actual QAlloc op it aliases (transitive resolution)
@@ -1052,12 +1052,11 @@ namespace qoala::analysis::reordering {
 
         // Move MILP-ordered blocks (excluding already moved)
         for (const std::string &id : orderedBlockIds) {
-            auto it = idToBlock.find(id);
-            if (it == idToBlock.end()) {
+            if (!idToBlock.contains(id)) {
                 return moduleOp.emitError("unknown block_id \"") << id << "\"", failure();
             }
 
-            Block *blk = it->second;
+            Block *blk = idToBlock.at(id);
             if (!alreadyMoved.contains(blk)) {
                 blk->moveBefore(insertionPoint);
                 insertionPoint = blk->getNextNode();
@@ -1081,15 +1080,12 @@ namespace qoala::analysis::reordering {
             StringRef fromId = orderedBlockIds[i];
             StringRef toId = orderedBlockIds[i + 1];
 
-            const auto fromIt = idToBlockMap.find(fromId);
-            const auto toIt = idToBlockMap.find(toId);
-
-            if (fromIt == idToBlockMap.end() || toIt == idToBlockMap.end()) {
+            if (!idToBlockMap.contains(fromId) || !idToBlockMap.contains(toId)) {
                 moduleOp->emitWarning() << "Warning: Missing block in map for precedence: " << fromId << " or " << toId;
                 continue;
             }
 
-            result.emplace_back(fromIt->second, toIt->second);
+            result.emplace_back(idToBlockMap.at(fromId), idToBlockMap.at(toId));
         }
 
         LLVM_DEBUG({
@@ -1154,8 +1150,8 @@ namespace qoala::analysis::reordering {
             for (const auto &t : blk->getTasks()) {
                 const auto &ops = t->getOperations();
                 for (size_t i = 0; i + 1 < ops.size(); ++i) {
-                    auto *o1 = ops[i];
-                    auto *o2 = ops[i + 1];
+                    auto const *o1 = ops[i];
+                    auto const *o2 = ops[i + 1];
 
                     SCIP_CONS *c;
                     std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();

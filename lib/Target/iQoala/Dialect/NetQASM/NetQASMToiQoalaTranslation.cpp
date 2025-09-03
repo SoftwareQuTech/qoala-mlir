@@ -21,6 +21,7 @@ using namespace qoala::translate;
 using namespace qoala::dialects;
 using namespace qoala::iqoala;
 using namespace qoala::dialects::netqasm;
+using namespace qoala::dialects::helpers;
 
 #if __cplusplus >= 202002L
 /* When using C++20 or newer standard, the format must be "python-style" */
@@ -111,9 +112,9 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
     // This is the main "dispatcher" for translating operations belonging to NetQASM dialect
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case([&](QAllocOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
+                if (operationIsInsideRequestRoutineFunc(operation)) {
                     // We need to report to the RequestRoutine object that we are creating 1 entangled pair
-                    const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+                    const std::string reqRoutineName = getParentRequestRoutineName(operation);
                     RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
                     const uint32_t phyQubitID = context->allocateQubit();
                     LLVM_DEBUG(llvm::dbgs() << "!!!!!!!!!!!!! Allocated qubit: " << phyQubitID << "\n");
@@ -131,7 +132,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
 
                 // Register the allocated qubit in the "uses" and (preemptively) in the "keep" section
                 // of the local routine header
-                const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(operation);
+                const std::string localRoutineName = getParentLocalRoutineName(operation);
                 LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
                 assert(quantumRoutine && "NetQASM call: unknown local routine!");
 
@@ -143,7 +144,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
             })
             .Case([&](QFreeOp op) -> LogicalResult {
                 // For the free operations, we simply register the qubit as not kept
-                const std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(operation);
+                const std::string localRoutineName = getParentLocalRoutineName(operation);
                 LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
                 assert(quantumRoutine && "NetQASM qfree: unknown local routine!");
 
@@ -169,13 +170,13 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 return convertRoutineOp(op, moduleTranslation);
             })
             .Case([&](ReturnOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
+                if (operationIsInsideRequestRoutineFunc(operation)) {
                     // We don't need to check the validity of the return operation
                     // we will simply assume that it was validated in the lowering conversion passes
                     // Being this said we will test the first return type. If it is i1, then we
                     // are returning the measurement of a qubit, hence the type of the request operation
                     // must be changed to "create_measure"
-                    const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+                    const std::string reqRoutineName = getParentRequestRoutineName(operation);
                     RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
                     if (operation->getOperandTypes()[0].isInteger(1)) {
                         reqRoutine->changeReqTypeToMeasure();
@@ -220,13 +221,12 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 return failure();
             })
             .Case([&](MeasureOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideRequestRoutineFunc(operation)) {
+                if (operationIsInsideRequestRoutineFunc(operation)) {
                     // Nothing to do here: we simply measure the qubit whose result will be returned later
                     return success();
                 }
                 // Since measurements release the qubit, we need to register the qubit as not kept
-                const std::string localRoutineName =
-                        qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
+                const std::string localRoutineName = getParentLocalRoutineName(op.getOperation());
                 LocalQuantumRoutine *quantumRoutine = module->getLocalRoutineByName(localRoutineName);
                 assert(quantumRoutine && "NetQASM measure: unknown local routine!");
 
@@ -237,7 +237,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 return instruction ? success() : failure();
             })
             .Case([&](EprsOp op) -> LogicalResult {
-                const std::string reqRoutineName = qoala::dialects::helpers::getParentRequestRoutineName(operation);
+                const std::string reqRoutineName = getParentRequestRoutineName(operation);
                 RequestQuantumRoutine *reqRoutine = module->getRequestRoutineByName(reqRoutineName);
                 // Mark the allocated qubit as entangled
                 reqRoutine->addEntangledQubitID(reqRoutine->getQubitNum(op.getQ()));
