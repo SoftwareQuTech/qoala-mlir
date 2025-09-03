@@ -1319,9 +1319,9 @@ namespace qoala::analysis::reordering {
 
         // Find tail: appears only as succ, never as pred
         llvm::DenseSet<const MILPBlock *> preds, succs;
-        for (const auto &e : precedences_) {
-            preds.insert(e.first);
-            succs.insert(e.second);
+        for (const auto &[first, second] : precedences_) {
+            preds.insert(first);
+            succs.insert(second);
         }
         const MILPBlock *tail = nullptr;
         for (const MILPBlock *cand : succs) {
