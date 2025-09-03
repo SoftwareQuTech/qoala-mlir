@@ -1331,6 +1331,8 @@ namespace qoala::analysis::reordering {
             }
         }
 
+        assert(tail && "[Deadlines][Horizon] Invariant violated: no tail block found from precedences");
+
         const MILPOperation *lastOp = tail->lastOp();
         const double H = getProgramHorizon();
         const double ubOnStart = H - static_cast<double>(lastOp->getDuration());
