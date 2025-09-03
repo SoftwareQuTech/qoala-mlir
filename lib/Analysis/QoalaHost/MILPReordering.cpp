@@ -1271,9 +1271,7 @@ namespace qoala::analysis::reordering {
         //       G_pred_to_succ >= g_min
         // Gap variables have LB >= 0 by construction.
 
-        for (const auto &e : precedences_) {
-            const MILPBlock *pred = e.first;
-            const MILPBlock *succ = e.second;
+        for (const auto &[pred, succ] : precedences_) {
 
             const MILPOperation *lastPred = pred->lastOp();
             const MILPOperation *firstSucc = succ->firstOp();
