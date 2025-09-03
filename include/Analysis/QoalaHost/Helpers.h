@@ -116,7 +116,8 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(std::string id, const uint32_t duration): id_(std::move(id)), duration_(duration), op_(nullptr) { }
+            MILPOperation(std::string id, const uint32_t duration):
+                id_(std::move(id)), duration_(duration), op_(nullptr) { }
 
             [[nodiscard]]
             const std::string &getId() const {
@@ -442,7 +443,8 @@ namespace qoala::analysis {
          * @param deadlines Map from block ID to computed deadline (as int).
          * @param refBlockId The block ID that serves as the reference (time 0).
          */
-        void annotateBlockDeadlines(mlir::ModuleOp &moduleOp, const std::unordered_map<std::string, uint32_t> &deadlines,
+        void annotateBlockDeadlines(mlir::ModuleOp &moduleOp,
+                                    const std::unordered_map<std::string, uint32_t> &deadlines,
                                     const std::string &refBlockId);
 
         /**

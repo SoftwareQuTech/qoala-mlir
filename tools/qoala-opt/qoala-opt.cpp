@@ -1,9 +1,9 @@
+#include "llvm/Support/CommandLine.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
-#include "llvm/Support/CommandLine.h"
 
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
@@ -15,8 +15,8 @@
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
 
 #include "Dialect/NetQASM/NetQASMDialect.h"
-#include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "Dialect/QRemote/QRemoteDialect.h"
+#include "Dialect/QoalaHost/QoalaHostDialect.h"
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
@@ -44,12 +44,13 @@ static opt<uint32_t, /*ExternalStorage=*/true>
 uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
                                                                      desc("Calssical communication latency."),
-                                                                     NotHidden, location(qoala::options::qoalaOptLatency));
+                                                                     NotHidden,
+                                                                     location(qoala::options::qoalaOptLatency));
 
 uint32_t qoala::options::qoalaOptLinkDuration = 1000;
-static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLinkDurationOption("qoala-opt-link-duration",
-                                                                          desc("Time taken to generate entanglement."),
-                                                                          NotHidden, location(qoala::options::qoalaOptLinkDuration));
+static opt<uint32_t, /*ExternalStorage=*/true>
+        qoalaOptLinkDurationOption("qoala-opt-link-duration", desc("Time taken to generate entanglement."), NotHidden,
+                                   location(qoala::options::qoalaOptLinkDuration));
 uint32_t qoala::options::qoalaOptHostInstrTime = 1;
 static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptHostInstrTimeOption("qoala-opt-host-instr-time", desc("Time taken by a CL operation on the QNPU."),
@@ -66,16 +67,13 @@ static opt<uint32_t, /*ExternalStorage=*/true>
                                     location(qoala::options::qoalaOptQNosInstrTime));
 uint32_t qoala::options::qoalaOptQubitLifetime = 500;
 static opt<uint32_t, /*ExternalStorage=*/true>
-        qoalaOptQubitLifetimeOption("qoala-opt-qubit-lifetime",
-                                    desc("Lifetime of a qubit."), NotHidden,
+        qoalaOptQubitLifetimeOption("qoala-opt-qubit-lifetime", desc("Lifetime of a qubit."), NotHidden,
                                     location(qoala::options::qoalaOptQubitLifetime));
 
 bool qoala::options::qoalaOptGroupEntReqs = false;
 static opt<bool, /*ExternalStorage=*/true>
-        qoalaOptGroupEntReqsOption("qoala-opt-group-ent-reqs",
-                                    desc("Whether to group entanglement requests or not."), NotHidden,
-                                    location(qoala::options::qoalaOptGroupEntReqs));
-
+        qoalaOptGroupEntReqsOption("qoala-opt-group-ent-reqs", desc("Whether to group entanglement requests or not."),
+                                   NotHidden, location(qoala::options::qoalaOptGroupEntReqs));
 
 int main(int argc, char **argv) {
     mlir::DialectRegistry registry;

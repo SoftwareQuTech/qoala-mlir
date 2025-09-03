@@ -18,6 +18,7 @@ namespace qoala::analysis::functionize {
         return llvm::isa<
 #define GET_OP_LIST
 #include "Dialect/QMem/QMem.cpp.inc"
+
                 >(op);
     }
 
@@ -64,8 +65,8 @@ namespace qoala::analysis::functionize {
         std::vector<QuantumOpsGroupTy> getAllFinalGroups();
         void commitCurrentGroup();
 
-        void groupEprsByRemote(const llvm::DenseMap<std::pair<StringRef, StringRef>,
-                                                    std::vector<Operation *>> &opsByRemoteAndKind);
+        void groupEprsByRemote(
+                const llvm::DenseMap<std::pair<StringRef, StringRef>, std::vector<Operation *>> &opsByRemoteAndKind);
 
     private:
         [[nodiscard]]
@@ -256,8 +257,8 @@ namespace qoala::analysis::functionize {
         return {qubitIDs, qallocs};
     }
 
-    void PerQubitGrouper::groupEprsByRemote(const llvm::DenseMap<std::pair<StringRef, StringRef>,
-                                                                 std::vector<Operation *>> &opsByRemoteAndKind) {
+    void PerQubitGrouper::groupEprsByRemote(
+            const llvm::DenseMap<std::pair<StringRef, StringRef>, std::vector<Operation *>> &opsByRemoteAndKind) {
         for (const auto &[key, ops] : opsByRemoteAndKind) {
             const auto &[remoteName, kind] = key;
 

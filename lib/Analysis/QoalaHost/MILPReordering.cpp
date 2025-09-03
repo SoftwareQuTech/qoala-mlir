@@ -80,8 +80,8 @@ namespace qoala::analysis::reordering {
     }
 
     static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, uint32_t &opIdx,
-                                             const llvm::StringMap<Operation *> &routineMap,
-                                             Block *callerBlock, MILPBlock *blk,
+                                             const llvm::StringMap<Operation *> &routineMap, Block *callerBlock,
+                                             MILPBlock *blk,
                                              std::unordered_map<Operation *, MILPOperation *> &opToMilpOp) {
         // Inline the body of a qoalahost.call whose callee is a LocalRoutineOp or
         // RequestRoutineOp.  Appends the inlined operations (and the synthetic
@@ -378,7 +378,7 @@ namespace qoala::analysis::reordering {
             for (size_t i = 0, e = std::min(formalArgs.size(), actualArgs.size()); i < e; ++i) {
                 argMap[formalArgs[i]] = actualArgs[i];
             }
-            //netqasm::ArgValueMap argMap = netqasm::getRoutineArgValues(callee, callOp.getOperands());
+            // netqasm::ArgValueMap argMap = netqasm::getRoutineArgValues(callee, callOp.getOperands());
 
             // Traverse the callee body and collect MemoryEffect ops (like qinit, epr, measure)
             callee->walk([&](MemoryEffectOpInterface memOp) {
@@ -454,7 +454,7 @@ namespace qoala::analysis::reordering {
         // - Extract alloc & meas ops from qubit usage
         // - Create MILPQubit and attach relevant operations
         for (const auto &[qubitVal, ops] : qubitToOps) {
-            //const std::vector<Operation *> &ops = entry.second;
+            // const std::vector<Operation *> &ops = entry.second;
 
             std::string id = "q" + std::to_string(qubitIndex++);
             auto qubitPtr = std::make_shared<MILPQubit>(id);
@@ -553,7 +553,8 @@ namespace qoala::analysis::reordering {
                 llvm::dbgs() << " - Block " << b->getId() << " (type=" << static_cast<int>(b->getType()) << ")\n";
                 for (const auto &tPtr : b->getTasks()) {
                     const auto *t = tPtr.get();
-                    llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << static_cast<int>(t->getGroup()) << "]\n";
+                    llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << static_cast<int>(t->getGroup())
+                                 << "]\n";
                     for (const auto *op : t->getOperations()) {
                         llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
                                      << " , duration=" << op->getDuration() << "ns\n";
@@ -1150,8 +1151,8 @@ namespace qoala::analysis::reordering {
             for (const auto &t : blk->getTasks()) {
                 const auto &ops = t->getOperations();
                 for (size_t i = 0; i + 1 < ops.size(); ++i) {
-                    auto const *o1 = ops[i];
-                    auto const *o2 = ops[i + 1];
+                    const auto *o1 = ops[i];
+                    const auto *o2 = ops[i + 1];
 
                     SCIP_CONS *c;
                     std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();
@@ -1315,7 +1316,8 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    std::pair<std::unordered_map<std::string, uint32_t>, std::string> MILPBlockDeadlineModel::computeBlockDeadlines() const {
+    std::pair<std::unordered_map<std::string, uint32_t>, std::string>
+    MILPBlockDeadlineModel::computeBlockDeadlines() const {
         // Computes relative deadlines for each block based on their actual scheduled start times.
         // The deadlines represent how many time units after the end of the reference block each block should begin.
         // Steps:
@@ -1446,8 +1448,8 @@ namespace qoala::analysis::reordering {
 
             const auto ctx = blkMeta->getContext();
             const auto deadlineAttr = IntegerAttr::get(IntegerType::get(ctx, 64), deadline);
-            const auto dictAttr = DictionaryAttr::get(
-                    ctx, {NamedAttribute(StringAttr::get(ctx, refBlockId), deadlineAttr)});
+            const auto dictAttr =
+                    DictionaryAttr::get(ctx, {NamedAttribute(StringAttr::get(ctx, refBlockId), deadlineAttr)});
             blkMeta.setDeadlinesAttr(dictAttr);
         });
     }
