@@ -12,3 +12,6 @@ test/**/.lit_test_times.txt
 # created wheel files
 **/dist/
 **.whl
+
+# clang format check output
+clang-format.patch

@@ -1,0 +1,27 @@
+stages:
+  - lint
+
+clang-format:check:
+  stage: lint
+  image: ubuntu:24.04
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    # Ensure the script checks for the same major version we install below
+    CLANG_FORMAT_REQUIRED_MAJOR: "18"
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends clang-format-18 git findutils
+    # Provide an unversioned 'clang-format' that points to v18
+    - update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+    - clang-format --version
+    - chmod +x scripts/check-clang-format.sh
+  rules:
+    # Run only for merge requests targeting master
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  script:
+    - ./scripts/check-clang-format.sh
+  artifacts:
+    when: always
+    paths:
+      - clang-format.patch
+    expire_in: 1 week
