@@ -47,7 +47,7 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
 // invalid in between any of the single transformations performed.
 //===----------------------------------------------------------------------===//
 
-def LowerQMemToLowerDialects : Pass<"lower-qmem-to-lower", "mlir::ModuleOp"> {
+def LowerQMemToLowerDialects : Pass<"lower-qmem-to-lower-dialects", "mlir::ModuleOp"> {
     let summary = "Lower all the instances of qmem operations that can be lowered to lower dialects";
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects
     // to create valid MLIR at the end of this pass.

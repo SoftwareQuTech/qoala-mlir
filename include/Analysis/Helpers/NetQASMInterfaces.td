@@ -43,7 +43,7 @@ def DualGateOp : OpInterface<"DualGateOp"> {
 
 def EntangledQubitOp : OpInterface<"EntangledQubitOp"> {
     let description = [{
-        Interface for NetQASM operations acting on two gates.
+        Interface for NetQASM operations generating EPRs.
     }];
     let cppNamespace = "qoala::dialects::netqasm::ifaces";
 }
