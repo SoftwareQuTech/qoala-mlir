@@ -7,16 +7,44 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     let description = [{
         Interface for NetQASM operations that contain a region.
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns the return operation of this routine
-        }], "::mlir::Operation *", "getReturnOperation"
+        }], "mlir::Operation *", "getReturnOperation"
         >,
         InterfaceMethod<[{
             Returns the an Array with the Types of the arguments of this routine
-        }], "::llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
+        }], "llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
         >
     ];
+}
+
+def MeasOp : OpInterface<"MeasOp"> {
+    let description = [{
+        Interface for NetQASM measure operations.
+    }];
+    let cppNamespace = "qoala::dialects::netqasm::ifaces";
+}
+
+def SingleQubitOp : OpInterface<"SingleQubitOp"> {
+    let description = [{
+        Interface for NetQASM operations acting on a single gate.
+    }];
+    let cppNamespace = "qoala::dialects::netqasm::ifaces";
+}
+
+def DualQubitOp : OpInterface<"DualQubitOp"> {
+    let description = [{
+        Interface for NetQASM operations acting on two gates.
+    }];
+    let cppNamespace = "qoala::dialects::netqasm::ifaces";
+}
+
+def EntangledQubitOp : OpInterface<"EntangledQubitOp"> {
+    let description = [{
+        Interface for NetQASM operations generating EPRs.
+    }];
+    let cppNamespace = "qoala::dialects::netqasm::ifaces";
 }
 #endif // QMEM_IFACE_TD

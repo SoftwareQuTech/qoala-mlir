@@ -131,6 +131,15 @@ def CallOp : QoalaHost_Op<"call",
     >];
 
     let extraClassDeclaration = [{
+        /// Gets the callee operation casted (if possible) to the given type
+        template<typename CalleeTy>
+        CalleeTy getCalleeOperation() {
+            return llvm::dyn_cast_or_null<CalleeTy>(this->getCalleeOperation());
+        }
+
+        /// Get the operation of the callee for this call.
+        mlir::Operation *getCalleeOperation();
+
         mlir::FunctionType getCalleeType();
 
         /// Get the argument operands to the called function.
@@ -195,7 +204,8 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
 }
 
 def SendIntsOp : UsingRemote_Op<"send_ints", [
-    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -216,7 +226,8 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [
  * block, so we can easily comply with the traits of the recv operation.
  */
 def RecvIntsOp : UsingRemote_Op<"recv_ints", [
-    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
     // TODO - This operation yields a tensor as a result. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
@@ -227,7 +238,8 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [
 }
 
 def SendFloatsOp : UsingRemote_Op<"send_floats", [
-    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -237,7 +249,8 @@ def SendFloatsOp : UsingRemote_Op<"send_floats", [
 }
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
-    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>]> {
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
     // TODO - This operation yields a tensor as a result. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);

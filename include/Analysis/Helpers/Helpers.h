@@ -7,16 +7,20 @@
 #include <format>
 #endif
 
-#include "mlir/IR/Operation.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/IR/Operation.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/FoldUtils.h"
 
 #include <set>
 #include <vector>
+
+namespace qoala::dialects::qmem {
+    // Forward declaration
+    class FuncOp;
+} // namespace qoala::dialects::qmem
 
 namespace qoala::helpers {
     // This templated function is inspired by the implementation of llvm::isa<>()
@@ -71,13 +75,13 @@ namespace qoala::helpers {
     template<typename DialectOne, typename DialectTwo, typename... RestDialects>
     std::string getDialectNamesList() {
         std::string result;
-        result += "'" + DialectOne::getDialectNamespace().str() + "', "
-                  + getDialectNamesList<DialectTwo, RestDialects...>();
+        result += "'" + DialectOne::getDialectNamespace().str() + "', " +
+                  getDialectNamesList<DialectTwo, RestDialects...>();
         return result;
     }
 
     /* Helper functions to expose the conversion patterns from QMemToQoalaHost
-     * and QMemtoNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
+     * and QMemToNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
      * WARNING: The definitions of these functions are in the respective CPP files,
      * so they can be used both in the general MIR to LIR wrapper but also in the
      * passes they belong to.
@@ -87,10 +91,10 @@ namespace qoala::helpers {
      * Configures the given ConversionTarget object to specify the valid state of the IR after
      * applying the QMem to QoalaHost dialect conversion.
      * @param target The ConversionTarget object to configure
+     * @param intRotsAreLegal Whether the integer rotations are considered legal in the target or not.
+     * @param floatRotsAreLegal Whether the float rotations are considered legal in the target or not.
      */
-    void configureQMemToQoalaHostTarget(mlir::ConversionTarget &target,
-                                        bool intRotsAreLegal,
-                                        bool floatRotsAreLegal);
+    void configureQMemToQoalaHostTarget(mlir::ConversionTarget &target, bool intRotsAreLegal, bool floatRotsAreLegal);
 
     /**
      * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
@@ -99,8 +103,7 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToQoalaHostPatterns(mlir::MLIRContext &context,
-                                         mlir::RewritePatternSet &patterns,
+    void populateQMemToQoalaHostPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
                                          mlir::TypeConverter &typeConverter);
 
     /**
@@ -117,8 +120,7 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToNetQASMPatterns(mlir::MLIRContext &context,
-                                       mlir::RewritePatternSet &patterns,
+    void populateQMemToNetQASMPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
                                        mlir::TypeConverter &typeConverter);
 
     /**
@@ -135,8 +137,7 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemF32ToInt32RotPatterns(mlir::MLIRContext &context,
-                                           mlir::RewritePatternSet &patterns,
+    void populateQMemF32ToInt32RotPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
                                            mlir::TypeConverter &typeConverter);
 
     /**
@@ -153,8 +154,7 @@ namespace qoala::helpers {
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
      */
-    void populateQMemToQRemotePatterns(mlir::MLIRContext &context,
-                                       mlir::RewritePatternSet &patterns,
+    void populateQMemToQRemotePatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
                                        mlir::TypeConverter &typeConverter);
 
     /**
@@ -200,10 +200,10 @@ namespace qoala::helpers {
      * @return A string with the tokens replaced with the given values
      */
     template<typename... Args>
-    std::string formatString(const std::string &fmt, Args&&... args) {
+    std::string formatString(const std::string &fmt, Args &&...args) {
         /* When using C++20 or later standard, we can make use of the "format" header,
          * and easily format the string */
-#if  __cplusplus >= 202002L
+#if __cplusplus >= 202002L
         return std::vformat(std::string_view(fmt), std::make_format_args(args...));
 #else
         /* In older versions of the standard, we need to default to the good'ol C-way
@@ -247,7 +247,7 @@ namespace qoala::helpers {
      * @param vector An std::vector instance of `PrintableTy` type.
      * @return A string with all the members printed, separated with commas.
      */
-    template <typename PrintableTy>
+    template<typename PrintableTy>
     std::string formatVector(const std::vector<PrintableTy> &vector) {
         std::stringstream result;
         for (const PrintableTy &member : vector) {
@@ -270,7 +270,7 @@ namespace qoala::helpers {
      * @param map An std::unordered_map instance of <KeyTy, ValueTy>.
      * @return A string with all key-value pairs printed as "key: value", separated with commas.
      */
-    template <typename KeyTy, typename ValueTy>
+    template<typename KeyTy, typename ValueTy>
     std::string formatUnorderedMap(const std::unordered_map<KeyTy, ValueTy> &map) {
         std::stringstream result;
         for (const auto &pair : map) {
@@ -292,7 +292,7 @@ namespace qoala::helpers {
      * @param vector An std::vector instance of `PrintableTy` type.
      * @return A string with all the members printed, separated with commas.
      */
-    template <typename PrintableTy>
+    template<typename PrintableTy>
     std::string formatSet(const std::set<PrintableTy> &vector) {
         std::stringstream result;
         for (const PrintableTy &member : vector) {
@@ -306,14 +306,56 @@ namespace qoala::helpers {
     }
 
     /**
+     * Small class that keeps that of all the constants that are marked for removal
+     * It implements methods from RewriterBase::Listener to keep track of the folder instructions
+     * and instructions that can be safely removed after folding.
+     */
+    class FolderTracker : public mlir::RewriterBase::Listener {
+        // All constants in the operation post folding.
+        std::vector<mlir::Operation *> existingConstants;
+
+    public:
+        std::vector<mlir::Operation *> getExistingConstants() { return existingConstants; }
+
+        void notifyOperationInserted(mlir::Operation *op) override { existingConstants.push_back(op); }
+
+        void notifyOperationRemoved(mlir::Operation *op) override {
+            if (const auto it = llvm::find(existingConstants, op); it != existingConstants.end()) {
+                existingConstants.erase(it);
+            }
+        }
+    };
+
+    /**
      * Simple analysis method that folds instructions statically if it is possible.
      * This is used for folding constants (arith.constants declared statically, operated
      * and then used within the same scope) and remove them to simplify any further analysis.
-     * @param module The module to analyze for constant folding
+     * @param op The operation to analyze for constant folding
      * @return Weather the analysis succeeded or failed
      */
-    mlir::LogicalResult foldConstants(mlir::ModuleOp &module);
-}
+    template<typename OpTy>
+    mlir::LogicalResult foldConstants(OpTy &op) {
+        std::vector<mlir::Operation *> ops;
+        FolderTracker folderTracker;
+        mlir::OperationFolder folderHelper(op.getContext(), /*listener=*/&folderTracker);
+
+        // We just walk over all the instructions, discovering them for potential folding
+        op.template walk<mlir::WalkOrder::PreOrder>([&](mlir::Operation *operation) { ops.push_back(operation); });
+
+        // Visit the discovered ops in reverse order, so we don't break data dependencies
+        for (mlir::Operation *operation : llvm::reverse(ops)) {
+            (void) folderHelper.tryToFold(operation);
+        }
+
+        // Finally, remove all orphaned constants after folding them
+        for (const auto cst : folderTracker.getExistingConstants()) {
+            if (cst->use_empty()) {
+                cst->erase();
+            }
+        }
+        return mlir::success();
+    }
+} // namespace qoala::helpers
 
 namespace qoala::translate {
     /**
@@ -325,9 +367,8 @@ namespace qoala::translate {
     template<typename DialectTy, typename TranslationTy>
     void registeriQoalaTranslation(mlir::DialectRegistry &registry) {
         registry.insert<DialectTy>();
-        registry.addExtension(+[](mlir::MLIRContext *ctx, DialectTy *dialect) {
-            dialect->template addInterfaces<TranslationTy>();
-        });
+        registry.addExtension(
+                +[](mlir::MLIRContext *ctx, DialectTy *dialect) { dialect->template addInterfaces<TranslationTy>(); });
     }
-}
-#endif //QOALA_ANALYSIS_MLIR_HELPERS_H
+} // namespace qoala::translate
+#endif // QOALA_ANALYSIS_MLIR_HELPERS_H

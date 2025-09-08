@@ -1,13 +1,13 @@
 #ifndef QNET_TO_QMEM_PATTERNS
 #define QNET_TO_QMEM_PATTERNS
-#include "Dialect/QNet/QNet.h"
-#include "Dialect/QMem/QMem.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Dialect/QMem/QMem.h"
+#include "Dialect/QNet/QNet.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::conversion::hir {
     class QoalaHIRToQoalaMIRTypeConverter : public mlir::TypeConverter {
-      public:
+    public:
         explicit QoalaHIRToQoalaMIRTypeConverter(mlir::MLIRContext *ctx);
     };
 
@@ -40,7 +40,8 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class EprsMeasureOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::EprsMeasureOp, dialects::qmem::EprsMeasureOp> {
+    class EprsMeasureOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::EprsMeasureOp, dialects::qmem::EprsMeasureOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -58,7 +59,9 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RemoteOp op, dialects::qnet::RemoteOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
-    class SendIntsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::SendIntsOp, dialects::qmem::SendIntsOp> {
+
+    class SendIntsOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::SendIntsOp, dialects::qmem::SendIntsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -66,7 +69,9 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::SendIntsOp op, dialects::qnet::SendIntsOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvIntsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RecvIntsOp, dialects::qmem::RecvIntsOp> {
+
+    class RecvIntsOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RecvIntsOp, dialects::qmem::RecvIntsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -74,7 +79,9 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RecvIntsOp op, dialects::qnet::RecvIntsOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
-    class SendFloatsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::SendFloatsOp, dialects::qmem::SendFloatsOp> {
+
+    class SendFloatsOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::SendFloatsOp, dialects::qmem::SendFloatsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -82,7 +89,9 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::SendFloatsOp op, dialects::qnet::SendFloatsOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
-    class RecvFloatsOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RecvFloatsOp, dialects::qmem::RecvFloatsOp> {
+
+    class RecvFloatsOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RecvFloatsOp, dialects::qmem::RecvFloatsOp> {
     public:
         // Constructor simply refers to the parent
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -90,6 +99,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RecvFloatsOp op, dialects::qnet::RecvFloatsOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class NewQubitLowering : public helpers::OpLoweringTemplate<dialects::qnet::NewQubitOp, dialects::qmem::QAllocOp> {
     public:
         // Constructor simply refers to the parent
@@ -98,6 +108,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::NewQubitOp op, dialects::qnet::NewQubitOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class RotateXLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotXOp, dialects::qmem::RotateXOp> {
     public:
         // Constructor simply matches the super class
@@ -107,6 +118,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RotXOp op, dialects::qnet::RotXOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class RotateYLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotYOp, dialects::qmem::RotateYOp> {
     public:
         // Constructor simply matches the super class
@@ -116,6 +128,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RotYOp op, dialects::qnet::RotYOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class RotateZLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotZOp, dialects::qmem::RotateZOp> {
     public:
         // Constructor simply matches the super class
@@ -125,6 +138,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::RotZOp op, dialects::qnet::RotZOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class MeasureLowering : public helpers::OpLoweringTemplate<dialects::qnet::MeasureOp, dialects::qmem::MeasureOp> {
     public:
         // Constructor simply matches the super class
@@ -134,7 +148,9 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::MeasureOp op, dialects::qnet::MeasureOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
-    class HadamardLowering : public helpers::OpLoweringTemplate<dialects::qnet::HadamardOp, dialects::qmem::HadamardOp> {
+
+    class HadamardLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::HadamardOp, dialects::qmem::HadamardOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -143,6 +159,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::HadamardOp op, dialects::qnet::HadamardOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class CNotLowering : public helpers::OpLoweringTemplate<dialects::qnet::CnotOp, dialects::qmem::CnotOp> {
     public:
         // Constructor simply matches the super class
@@ -152,6 +169,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::CnotOp op, dialects::qnet::CnotOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class CzLowering : public helpers::OpLoweringTemplate<dialects::qnet::CzOp, dialects::qmem::CzOp> {
     public:
         // Constructor simply matches the super class
@@ -161,6 +179,7 @@ namespace qoala::conversion::hir {
         createNewOpAndValues(dialects::qnet::CzOp op, dialects::qnet::CzOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
+
     class CRotXLowering : public helpers::OpLoweringTemplate<dialects::qnet::CrotXOp, dialects::qmem::CrotXOp> {
     public:
         // Constructor simply matches the super class

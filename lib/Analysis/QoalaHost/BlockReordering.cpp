@@ -37,53 +37,53 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        reordering::MILPBlockOrderModel model;
-        if (!model.initialize()) {
+        reordering::MILPBlockOrderModel blockOrderModel;
+        if (!blockOrderModel.initialize()) {
             moduleOp.emitError("Failed to initialize SCIP.");
             signalPassFailure();
         }
 
-        model.setProblemData(blocks, qubits, precedences);
-        model.createVariables();
-        model.addConstraints();
-        model.setObjective();
+        blockOrderModel.setProblemData(blocks, qubits, precedences);
+        blockOrderModel.createVariables();
+        blockOrderModel.addConstraints();
+        blockOrderModel.setObjective();
 
-        if (!model.optimize()) {
+        if (!blockOrderModel.optimize()) {
             moduleOp.emitError("MILP solve failed.");
             signalPassFailure();
         }
 
-        std::vector<std::string> orderedBlockIds = model.getOrderedBlocks();
+        std::vector<std::string> orderedBlockIds = blockOrderModel.getOrderedBlocks();
 
-        model.cleanup();
+        blockOrderModel.cleanup();
 
         if (this->withDeadlines) {
             reordering::BlockPrecedenceList deadlinesPrecedences =
                     createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
 
-            reordering::MILPBlockDeadlineModel model;
-            if (!model.initialize()) {
+            reordering::MILPBlockDeadlineModel deadlineModel;
+            if (!deadlineModel.initialize()) {
                 moduleOp.emitError("Failed to initialize SCIP.");
                 signalPassFailure();
             }
 
-            model.setProblemData(blocks, qubits, deadlinesPrecedences);
-            model.createVariables();
-            model.addConstraints();
-            model.setObjective();
+            deadlineModel.setProblemData(blocks, qubits, deadlinesPrecedences);
+            deadlineModel.createVariables();
+            deadlineModel.addConstraints();
+            deadlineModel.setObjective();
 
-            if (!model.optimize()) {
+            if (!deadlineModel.optimize()) {
                 moduleOp.emitError("MILP solve failed.");
                 signalPassFailure();
             }
 
-            if (!model.checkSolverStatus(&moduleOp)) {
+            if (!deadlineModel.checkSolverStatus(&moduleOp)) {
                 signalPassFailure();
             }
 
-            auto [deadlines, refBlockId] = model.computeBlockDeadlines();
+            auto [deadlines, refBlockId] = deadlineModel.computeBlockDeadlines();
 
-            model.cleanup();
+            deadlineModel.cleanup();
 
             reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
         }

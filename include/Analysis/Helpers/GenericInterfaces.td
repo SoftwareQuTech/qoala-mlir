@@ -7,11 +7,11 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
     let description = [{
         Interface for NetQASM and QoalaHost operations to have common methods.
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns the duration of this operation.
-        }], "int", "getDuration", (ins), /*methodBody=*/[{}],
+        }], "uint32_t", "getDuration", (ins), /*methodBody=*/[{}],
         /*defaultImplementation=*/[{
             return qoala::options::qoalaOptHostInstrTime;
         }]
@@ -26,5 +26,12 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
         }]
         >
     ];
+}
+
+def ClassicaCommInterface : OpInterface<"ClassicaCommInterface"> {
+    let description = [{
+        Interface for QoalaHost operations representing classical communication.
+    }];
+    let cppNamespace = "qoala::helpers";
 }
 #endif // GENERIC_IFACES_TD

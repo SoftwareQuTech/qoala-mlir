@@ -242,9 +242,9 @@ namespace qoala::iqoala {
             }
         }
 
-        void setType(const BlockType type) { this->type = type; }
+        void setType(const BlockType newType) { this->type = newType; }
 
-        void setName(const std::string &name) { this->name = name; }
+        void setName(const std::string &newName) { this->name = newName; }
 
         [[nodiscard]]
         std::string getName() const {
@@ -275,13 +275,13 @@ namespace qoala::iqoala {
 
         void addDependency(Block *dep) { this->dependencies.push_back(dep); }
 
-        void setPrevComm(Block *prevComm) { this->prevComm = prevComm; }
+        void setPrevComm(Block *newPrevComm) { this->prevComm = newPrevComm; }
 
-        void setPrevEnt(Block *prevEnt) { this->prevEnt = prevEnt; }
+        void setPrevEnt(Block *newPrevEnt) { this->prevEnt = newPrevEnt; }
 
         std::vector<Block *> getPredecessors() { return this->predecessors; }
 
-        void addDeadline(Block *blk, int deadline) { deadlines[blk] = deadline; }
+        void addDeadline(Block *blk, const uint32_t deadline) { this->deadlines[blk] = deadline; }
 
     private:
         // type of the Block (CL, CC, QL, QC)

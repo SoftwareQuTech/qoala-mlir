@@ -18,12 +18,11 @@ namespace qoala::analysis::reordering {
         assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
 
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        Region &body = mainFunc.getBody();
 
-        llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
+        const llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
 
-        llvm::SmallVector<Block *> entBlocks;
-        llvm::SmallVector<Block *> otherBlocks;
+        SmallVector<Block *> entBlocks;
+        SmallVector<Block *> otherBlocks;
 
         for (auto &blk : mainFunc) {
             Operation *firstOp = &*blk.begin();
@@ -38,7 +37,7 @@ namespace qoala::analysis::reordering {
         }
 
         // Move entanglement blocks to the beginning of the region
-        Block *insertBefore = &body.front();
+        Block *insertBefore = &mainFunc.getBlocks().front();
         for (Block *blk : entBlocks) {
             if (blk != insertBefore) {
                 blk->moveBefore(insertBefore);
@@ -47,9 +46,8 @@ namespace qoala::analysis::reordering {
         }
 
         // Leave all other blocks as-is (or optionally sort them later)
-        LLVM_DEBUG({
-            llvm::dbgs() << "[Grouping] Moved " << entBlocks.size() << " entanglement blocks to the beginning\n";
-        });
+        LLVM_DEBUG(llvm::dbgs() << "[Grouping] Moved " << entBlocks.size()
+                                << " entanglement blocks to the beginning\n");
     }
 
 } // namespace qoala::analysis::reordering

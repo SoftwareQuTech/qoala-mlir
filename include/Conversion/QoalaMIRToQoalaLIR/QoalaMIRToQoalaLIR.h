@@ -3,14 +3,14 @@
 #include "mlir/Pass/Pass.h"
 
 // In the Lowering pass, we rely on both QMem and QoalaHost dialects
-#include "Dialect/QMem/QMem.h"
-#include "Dialect/QMem/QMemDialect.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
-#include "Dialect/QoalaHost/QoalaHostDialect.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/NetQASM/NetQASMDialect.h"
+#include "Dialect/QMem/QMem.h"
+#include "Dialect/QMem/QMemDialect.h"
 #include "Dialect/QRemote/QRemote.h"
 #include "Dialect/QRemote/QRemoteDialect.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
+#include "Dialect/QoalaHost/QoalaHostDialect.h"
 
 namespace qoala::conversion {
 #define GEN_PASS_DECL

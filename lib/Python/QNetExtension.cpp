@@ -17,18 +17,13 @@ static void registerQNetTypes(py::module &m) {
      * python bindings to declare "get" methods that allow creating the type without casting it
      * from another type.
      */
-    auto qubitType = mlir_type_subclass(m, "QubitType",
-                                        mlirTypeIsAQubitType, mlirQubitTypeGetTypeID);
+    auto qubitType = mlir_type_subclass(m, "QubitType", mlirTypeIsAQubitType, mlirQubitTypeGetTypeID);
     /**
      * As a "workaround" of the "can-only-create-from-cast" problem, we declare a new function in
      * the class: "get", which receives the MlirContext object (qnet.ir.Context in python) and spawns
      * an instance of the type from it. This should suffice for out purposes.
      */
-    qubitType.def_staticmethod(
-            "get",
-            [](MlirContext context) {
-                return mlirQubitTypeGet(context);
-            });
+    qubitType.def_staticmethod("get", [](MlirContext context) { return mlirQubitTypeGet(context); });
 }
 
 // This file will be compiled as the "_qnetTypes" python module, so we need
@@ -39,15 +34,15 @@ PYBIND11_MODULE(_qnetTypes, m) {
 
     // Registration of the QNet dialect under the "qir_types" module
     qnetTypesM.def(
-        // We define a "register_dialect" function under the "qir_types" module
-        "register_dialect",
-        [](MlirContext context, bool load) {
-            MlirDialectHandle handle = mlirGetDialectHandle__qnet__();
-            mlirDialectHandleRegisterDialect(handle, context);
-            if (load) {
-                mlirDialectHandleLoadDialect(handle, context);
-            }
-        },
-        py::arg("context") = py::none(), py::arg("load") = true);
+            // We define a "register_dialect" function under the "qir_types" module
+            "register_dialect",
+            [](MlirContext context, bool load) {
+                MlirDialectHandle handle = mlirGetDialectHandle__qnet__();
+                mlirDialectHandleRegisterDialect(handle, context);
+                if (load) {
+                    mlirDialectHandleLoadDialect(handle, context);
+                }
+            },
+            py::arg("context") = py::none(), py::arg("load") = true);
     registerQNetTypes(qnetTypesM);
 }

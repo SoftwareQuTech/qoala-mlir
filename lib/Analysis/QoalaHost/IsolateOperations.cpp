@@ -63,4 +63,4 @@ namespace qoala::analysis::isolate {
         // lower operations that were in the original block (including the original
         // terminator) will end up in bottomBlock
     }
-}
+} // namespace qoala::analysis::isolate

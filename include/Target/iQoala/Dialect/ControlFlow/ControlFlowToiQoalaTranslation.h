@@ -17,5 +17,5 @@ namespace qoala::translate {
             registeriQoalaTranslation<mlir::cf::ControlFlowDialect, ControlFlowToiQoalaTranslation>(registry);
         }
     };
-}
-#endif //CFTOIQOALATRANSLATION_H
+} // namespace qoala::translate
+#endif // CFTOIQOALATRANSLATION_H

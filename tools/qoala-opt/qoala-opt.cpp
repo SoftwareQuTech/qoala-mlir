@@ -8,7 +8,7 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNetDialect.h"
 
-#include "Dialect/QMem/Passes.h"
+#include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMemDialect.h"
 
 #include "Dialect/QoalaHost/Passes.h"
@@ -43,9 +43,7 @@ static opt<uint32_t, /*ExternalStorage=*/true>
 
 uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
-                                                                     desc("Calssical communication latency."),
-                                                                     NotHidden,
-                                                                     location(qoala::options::qoalaOptLatency));
+                                                                     NotHidden, location(qoala::options::qoalaOptLatency));
 
 uint32_t qoala::options::qoalaOptLinkDuration = 1000;
 static opt<uint32_t, /*ExternalStorage=*/true>
@@ -96,7 +94,7 @@ int main(int argc, char **argv) {
     mlir::registerAllPasses();
     // And also the passes from QMem, QNet and QoalaHost
     qoala::analysis::registerQNetPasses();
-    qoala::analysis::registerQMemPasses();
+    qoala::analysis::registerMIRToLIRHelpersPasses();
     qoala::analysis::registerQoalaHostPasses();
     // And the pass that lowers Qoala HIR to MIR (conversion from QNet to QMem dialect)
     qoala::conversion::registerQoalaHIRToQoalaMIRPasses();

@@ -3,4 +3,4 @@
 
 #include "Analysis/Helpers/QMemInterfaces.h.inc"
 
-#endif //QOALA_MLIR_QMEMINTERFACES_H
+#endif // QOALA_MLIR_QMEMINTERFACES_H

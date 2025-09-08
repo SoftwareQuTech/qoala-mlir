@@ -1,12 +1,9 @@
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
-#include "mlir/Support/LLVM.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "Dialect/QMem/Passes.h"
+#include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMem.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/Transforms/DialectConversion.h"
 
-#include "Analysis/QMem/Conversion.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
@@ -25,43 +22,34 @@ namespace qoala::helpers {
         // When converting F32 to I32 rotations, configure that after conversion all QMem operations are valid
         target.addLegalDialect<qmem::QMemDialect>();
         // ... EXCEPT for the ones we want to convert
-        target.addIllegalOp<
-                qmem::RotateXOp,
-                qmem::RotateYOp,
-                qmem::RotateZOp,
-                qmem::CrotXOp
-        >();
+        target.addIllegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
         // Call ops ARE ALSO allowed in this conversion
         target.addLegalOp<func::CallOp>();
     }
 
-
-    void populateQMemF32ToInt32RotPatterns(
-            MLIRContext &context, RewritePatternSet &patterns,
-            TypeConverter &typeConverter) {
-        patterns.add<
-                mir::RotateXLowering,
-                mir::RotateYLowering,
-                mir::RotateZLowering,
-                mir::CRotXLowering
-        >(typeConverter, &context);
+    void populateQMemF32ToInt32RotPatterns(MLIRContext &context, RewritePatternSet &patterns,
+                                           TypeConverter &typeConverter) {
+        patterns.add<mir::RotateXLowering, mir::RotateYLowering, mir::RotateZLowering, mir::CRotXLowering>(
+                typeConverter, &context);
     }
-}
+} // namespace qoala::helpers
 
 namespace qoala::analysis {
-#define GEN_PASS_DEF_QMEMCONVERTINTEGERTOFLOATROTATIONS
-#include "Dialect/QMem/Passes.h.inc"
+#define GEN_PASS_DEF_CONVERTINTEGERTOFLOATROTATIONS
+#include "Dialect/Helpers/HelperPasses.h.inc"
 
-    class LowerF32RotationsPass : public impl::QMemConvertIntegerToFloatRotationsBase<LowerF32RotationsPass> {
+    class LowerF32RotationsPass : public impl::ConvertIntegerToFloatRotationsBase<LowerF32RotationsPass> {
     public:
-        using QMemConvertIntegerToFloatRotationsBase::QMemConvertIntegerToFloatRotationsBase;
+        using ConvertIntegerToFloatRotationsBase::ConvertIntegerToFloatRotationsBase;
         void runOnOperation() override;
     };
 
     void LowerF32RotationsPass::runOnOperation() {
-        ModuleOp module = this->getOperation();
+        qmem::FuncOp mainFuncOp = this->getOperation();
         MLIRContext &context = this->getContext();
-        LLVM_DEBUG(llvm::dbgs() << "Lowering f32 rotation operations\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Lowering f32 rotations *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**************************\n");
 
         ConversionTarget f32LoweringTarget(context);
         configureF32LoweringTarget(f32LoweringTarget);
@@ -70,8 +58,7 @@ namespace qoala::analysis {
         NullTypeConverter typeConverter(&context);
         populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
 
-        LogicalResult f32ConversionResult = applyPartialConversion(module, f32LoweringTarget, std::move(f32Patterns));
-        if (failed(f32ConversionResult)) {
+        if (failed(applyPartialConversion(mainFuncOp, f32LoweringTarget, std::move(f32Patterns)))) {
             signalPassFailure();
         }
     }

@@ -1,7 +1,7 @@
-#include "llvm/ADT/SmallSet.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
 #include "Dialect/QMem/Traits.h"
+#include "llvm/ADT/SmallSet.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -17,7 +17,7 @@ namespace qoala::analysis::functionize {
     // Identifier to make the names of the new function definitions unique
     static uint32_t identifier = 0;
     // Format of the qoala_wrapper function.
-#if  __cplusplus >= 202002L
+#if __cplusplus >= 202002L
     /* When using C++20 or newer standard, the format must be "python-style" */
     static const std::string qoalaWrapperFormat = "__qoala_wrapper{}";
 #else
@@ -36,11 +36,11 @@ namespace qoala::analysis::functionize {
         std::vector<Type> resultTypes;
         llvm::SetVector<Value> argumentValues;
         llvm::SetVector<Value> resultValues;
-        llvm::DenseMap <Value, uint32_t> externalArgsIdxMap;
+        llvm::DenseMap<Value, uint32_t> externalArgsIdxMap;
 
         for (Operation *quantumOp : quantumOps) {
             OperandRange opOperands = quantumOp->getOperands();
-            for (Value opOperand: opOperands) {
+            for (Value opOperand : opOperands) {
                 // We check if the operation defining the current value is not within the same quantumOpsGroup
                 // and if the current value was not discovered as an external value already.
                 if (!quantumOps.contains(opOperand.getDefiningOp()) && !argumentValues.contains(opOperand)) {
@@ -67,8 +67,9 @@ namespace qoala::analysis::functionize {
                 } else {
                     // If any of the result usages is not in the quantumOps (and that index is not on
                     // the already marked for return), then it needs to be returned
-                    for (OpOperand &usage: opResult.getUses()) {
-                        if (!quantumOps.contains(usage.getOwner()) && returnIndexesForOp.find(resultIndex) == returnIndexesForOp.end()) {
+                    for (OpOperand &usage : opResult.getUses()) {
+                        if (!quantumOps.contains(usage.getOwner()) &&
+                            returnIndexesForOp.find(resultIndex) == returnIndexesForOp.end()) {
                             // We discovered an external result of the group
                             resultValues.insert(opResult);
                             resultTypes.push_back(opResult.getType());
@@ -86,12 +87,14 @@ namespace qoala::analysis::functionize {
     }
 
     static void mapOriginalResultsInClonedOp(const ResultRange &originalResults, Operation *clonedOp,
-        const SetVector<Value> &externalResults, llvm::MapVector<OpResult, OpResult> &externalResultsMap,
-        DenseMap<Value, Value> &internalResultMap) {
+                                             const SetVector<Value> &externalResults,
+                                             llvm::MapVector<OpResult, OpResult> &externalResultsMap,
+                                             DenseMap<Value, Value> &internalResultMap) {
         for (OpResult originalResult : originalResults) {
             OpResult correspondingNewResult = clonedOp->getResult(originalResult.getResultNumber());
             if (externalResults.contains(originalResult)) {
-                /* External usage of the result: Map the result of the old op to the corresponding results of the cloned op */
+                /* External usage of the result: Map the result of the old op to the corresponding results of the cloned
+                 * op */
                 externalResultsMap.insert(std::pair{originalResult, correspondingNewResult});
             }
             /* The result can _ALSO_ be used within the same closure of ops: map the old and new value  */
@@ -100,8 +103,10 @@ namespace qoala::analysis::functionize {
     }
 
     static void mapOriginalOperandsInClonedOp(const OperandRange &originalOpOperands,
-        DenseMap<Value, uint32_t> &externalArgValsIdxMap, const SetVector<Value> &externalArguments,
-        std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc, DenseMap<Value, Value> internalResultMap) {
+                                              DenseMap<Value, uint32_t> &externalArgValsIdxMap,
+                                              const SetVector<Value> &externalArguments,
+                                              std::vector<Value> &clonedOpOperands, func::FuncOp &newFunc,
+                                              DenseMap<Value, Value> internalResultMap) {
         for (Value operandValue : originalOpOperands) {
             if (externalArguments.contains(operandValue)) {
                 /* Use of an external operand (argument): use the argument of the new function as operand */
@@ -113,8 +118,7 @@ namespace qoala::analysis::functionize {
         }
     }
 
-    void createNewFunctionWithOperations(FunctionizeData &data,
-                                         OpBuilder &opBuilder, StringRef funcName,
+    void createNewFunctionWithOperations(FunctionizeData &data, OpBuilder &opBuilder, StringRef funcName,
                                          const Location &loc, SetVector<Operation *> &quantumOpsGroup) {
         std::vector<Operation *> clonedOperations;
         llvm::MapVector<OpResult, OpResult> externalResultsMap;
@@ -151,13 +155,12 @@ namespace qoala::analysis::functionize {
 
                 /* Process the operands of the old op */
                 std::vector<Value> clonedOpOperands;
-                mapOriginalOperandsInClonedOp(originalQuantumOp->getOperands(),
-                                              data.externalArgValsIdxMap, data.externalArgsVals,
-                                              clonedOpOperands, newFunc, internalResultMap);
+                mapOriginalOperandsInClonedOp(originalQuantumOp->getOperands(), data.externalArgValsIdxMap,
+                                              data.externalArgsVals, clonedOpOperands, newFunc, internalResultMap);
 
                 /* Process the results of the old op */
-                mapOriginalResultsInClonedOp(originalQuantumOp->getResults(), clonedOp,
-                                             data.externalResVals, externalResultsMap, internalResultMap);
+                mapOriginalResultsInClonedOp(originalQuantumOp->getResults(), clonedOp, data.externalResVals,
+                                             externalResultsMap, internalResultMap);
 
                 // Then, we need to set the operands of the cloned operation
                 clonedOp->setOperands(clonedOpOperands);
@@ -191,8 +194,7 @@ namespace qoala::analysis::functionize {
                 functionResults.push_back(functionResult);
             }
             // Create the "return" for the new operation
-            auto returnOp = opBuilder.create<func::ReturnOp>(newFunc.getLoc(),
-                                                              functionResults);
+            auto returnOp = opBuilder.create<func::ReturnOp>(newFunc.getLoc(), functionResults);
             LLVM_DEBUG(llvm::dbgs() << "New Function:\n" << newFunc << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << (functionHasEPRSOp ? "Yes" : "No") << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Return op:\n - " << returnOp << "\n");
@@ -226,9 +228,7 @@ namespace qoala::analysis::functionize {
             // We create a new function that will contain all the operations in its body (+ a return statement)
             SetVector<Operation *> operations;
             operations.insert(quantumOpsGroup.begin(), quantumOpsGroup.end());
-            createNewFunctionWithOperations(
-                    data, opBuilder, newFuncName, topLocation, operations
-            );
+            createNewFunctionWithOperations(data, opBuilder, newFuncName, topLocation, operations);
             // Search for the symbol (func.func object) that we just inserted
             auto insertedSymbol = module.lookupSymbol<func::FuncOp>(data.newFunction.getNameAttr());
 
@@ -237,10 +237,8 @@ namespace qoala::analysis::functionize {
             // IMPORTANT: We insert the call operation _AFTER_ the last operation of the group.
             // By placing it there, we are sure that all data dependencies are fulfilled.
             opBuilder.setInsertionPointAfter(*quantumOpsGroup.rbegin());
-            auto callOp = opBuilder.create<func::CallOp>(
-                    quantumOpsGroup[0]->getLoc(), insertedSymbol,
-                    /*args=*/data.externalArgsVals.getArrayRef()
-                    );
+            auto callOp = opBuilder.create<func::CallOp>(quantumOpsGroup[0]->getLoc(), insertedSymbol,
+                                                         /*args=*/data.externalArgsVals.getArrayRef());
             // We set an attribute on the function, so we can recognize it later
             callOp->setAttr("functionized", opBuilder.getBoolAttr(true));
 
@@ -264,4 +262,4 @@ namespace qoala::analysis::functionize {
             }
         }
     }
-}
+} // namespace qoala::analysis::functionize

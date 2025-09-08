@@ -5,12 +5,18 @@
 
 namespace qoala::assembly {
     iQoalaRegType iQoalaRegReference::getType() const { return this->type; }
+
     uint32_t iQoalaRegReference::getNum() const { return this->num; }
+
     uint32_t iQoalaRegReference::getQubitID() const { return this->qubitID; }
+
     void iQoalaRegReference::setQubitID(const uint32_t qubitID) { this->qubitID = qubitID; }
+
     bool iQoalaRegReference::representsAQubit() const { return this->qubitID != 0xFF; }
+
     bool iQoalaRegReference::isLocal() const { return this->type == LOCAL; }
-    bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/return this->type >= 1; }
+
+    bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/ return this->type >= 1; }
 
     /* Builders */
     iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegType type, const uint32_t num) {
@@ -19,6 +25,7 @@ namespace qoala::assembly {
         regReference->num = num;
         return regReference;
     }
+
     iQoalaRegReference *iQoalaRegReference::createRegReference(const iQoalaRegReference *regRef) {
         const auto regReference = new iQoalaRegReference();
         regReference->type = regRef->type;
@@ -26,13 +33,9 @@ namespace qoala::assembly {
         return regReference;
     }
 
-    iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) {
-        return new iQoalaMCExpr(symName);
-    }
+    iQoalaMCExpr *iQoalaMCExpr::createSymbolRef(const std::string &symName) { return new iQoalaMCExpr(symName); }
 
-    iQoalaMCExpr *iQoalaMCExpr::createInstructionRef(mlir::Operation *mlirOp) {
-        return new iQoalaMCExpr(mlirOp);
-    }
+    iQoalaMCExpr *iQoalaMCExpr::createInstructionRef(mlir::Operation *mlirOp) { return new iQoalaMCExpr(mlirOp); }
 
     iQoalaMCOperand *iQoalaMCOperand::createPlaceholderOperand() {
         // This creates a placeholder operand. Needs to be replaced later
@@ -106,15 +109,21 @@ namespace qoala::assembly {
             this->symbolName.~basic_string();
         }
     }
+
     bool iQoalaMCExpr::isValid() const { return this->kind != INVALID; }
+
     bool iQoalaMCExpr::isSymbolRef() const { return this->kind == SYMBOL_REFERENCE; }
+
     bool iQoalaMCExpr::isInstructionRef() const { return this->kind == INSTRUCTION_REFERENCE; }
+
     mlir::Operation *iQoalaMCExpr::getTargetOp() const {
         assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to get the target of a non-InstrRef expression.");
         return this->instructionRef.targetOp;
     }
+
     void iQoalaMCExpr::resolveDisplacement(const int32_t displacement) {
-        assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to resolve the displacement of a non-InstrRef expression.");
+        assert(this->isInstructionRef() &&
+               "iQoalaMCExpr: Attempting to resolve the displacement of a non-InstrRef expression.");
         this->instructionRef.displacement = displacement;
         this->instructionRef.isResolved = true;
     }
@@ -122,20 +131,28 @@ namespace qoala::assembly {
     void iQoalaMCOperand::setInst(iQoalaMCInstruction *inst) { this->inst = inst; }
 
     bool iQoalaMCOperand::isValid() const { return this->kind != INVALID; }
+
     bool iQoalaMCOperand::isPlaceHolder() const { return this->kind == PLACEHOLDER; }
+
     bool iQoalaMCOperand::isImmediate() const { return this->kind == IMMEDIATE_I32 || this->kind == IMMEDIATE_F32; }
+
     bool iQoalaMCOperand::isRegister() const { return this->kind == REGISTER; }
+
     bool iQoalaMCOperand::isLocalRegister() const { return this->kind == LOCAL_REGISTER; }
+
     bool iQoalaMCOperand::isExpression() const { return this->kind == EXPRESSION; }
 
     void iQoalaMCInstruction::setOpcode(const uint32_t newOpCode) { this->opCode = newOpCode; }
+
     uint32_t iQoalaMCInstruction::getOpcode() const { return this->opCode; }
+
     mlir::Operation *iQoalaMCInstruction::getOriginalOp() const { return this->originalOp; }
 
     iQoalaMCOperand *iQoalaMCInstruction::getOperand(const uint32_t i) const { return this->operands[i]; }
-    std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return this->operands; };
-    uint32_t iQoalaMCInstruction::getNumOperands() const { return this->operands.size(); }
 
+    std::vector<iQoalaMCOperand *> iQoalaMCInstruction::getOperands() const { return this->operands; };
+
+    uint32_t iQoalaMCInstruction::getNumOperands() const { return this->operands.size(); }
 
     bool iQoalaMCInstruction::hasPlaceholderOperand() const {
         for (const iQoalaMCOperand *operand : this->operands) {
@@ -156,7 +173,7 @@ namespace qoala::assembly {
     }
 
     void iQoalaMCExpr::print(mlir::raw_ostream &os) const {
-        switch(this->kind) {
+        switch (this->kind) {
             case INVALID:
                 assert(false && "Expression is of invalid kind.\n");
             case SYMBOL_REFERENCE:
@@ -193,7 +210,7 @@ namespace qoala::assembly {
     }
 
     void iQoalaMCOperand::print(llvm::raw_ostream &os) const {
-        switch(this->kind) {
+        switch (this->kind) {
             case INVALID:
                 assert(false && "Op code for operand is unknown.\n");
             case PLACEHOLDER:
@@ -243,11 +260,12 @@ namespace qoala::assembly {
         instr.print(os);
         return os;
     }
+
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCOperand &operand) {
         operand.print(os);
         return os;
-
     }
+
     mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const iQoalaMCExpr &expr) {
         expr.print(os);
         return os;
@@ -257,4 +275,4 @@ namespace qoala::assembly {
         regRef.print(os);
         return os;
     }
-}
+} // namespace qoala::assembly

@@ -2,8 +2,8 @@
 #define BUILTINTOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/BuiltinDialect.h"
+#include "mlir/Support/LogicalResult.h"
 
 namespace qoala::translate {
     class BuiltinToiQoalaTranslation : public QoalaTranslationDialectInterface {
@@ -16,6 +16,6 @@ namespace qoala::translate {
             registeriQoalaTranslation<mlir::BuiltinDialect, BuiltinToiQoalaTranslation>(registry);
         }
     };
-}
+} // namespace qoala::translate
 
-#endif //BUILTINTOIQOALATRANSLATION_H
+#endif // BUILTINTOIQOALATRANSLATION_H
