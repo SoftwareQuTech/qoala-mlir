@@ -20,21 +20,21 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     ];
 }
 
-def MeasureOpIface : OpInterface<"MeasureOpIface"> {
+def MeasOp : OpInterface<"MeasOp"> {
     let description = [{
         Interface for NetQASM measure operations.
     }];
     let cppNamespace = "qoala::dialects::netqasm::ifaces";
 }
 
-def SingleGateOp : OpInterface<"SingleGateOp"> {
+def SingleQubitOp : OpInterface<"SingleQubitOp"> {
     let description = [{
         Interface for NetQASM operations acting on a single gate.
     }];
     let cppNamespace = "qoala::dialects::netqasm::ifaces";
 }
 
-def DualGateOp : OpInterface<"DualGateOp"> {
+def DualQubitOp : OpInterface<"DualQubitOp"> {
     let description = [{
         Interface for NetQASM operations acting on two gates.
     }];

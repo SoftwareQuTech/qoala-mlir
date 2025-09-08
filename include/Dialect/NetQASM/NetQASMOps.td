@@ -191,7 +191,7 @@ def ReturnOp: NetQASM_Op<"return", [Pure, ParentOneOf<["LocalRoutineOp", "Reques
 }
 
 def RotateXOp : NetQASM_Op<"rot_x",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
         AnyI32Attr:$nVal,
@@ -209,7 +209,7 @@ def RotateXOp : NetQASM_Op<"rot_x",
 }
 
 def RotateYOp : NetQASM_Op<"rot_y",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
         AnyI32Attr:$nVal,
@@ -227,7 +227,7 @@ def RotateYOp : NetQASM_Op<"rot_y",
 }
 
 def RotateZOp : NetQASM_Op<"rot_z",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit", [MemWrite]>:$q,
         AnyI32Attr:$nVal,
@@ -245,7 +245,7 @@ def RotateZOp : NetQASM_Op<"rot_z",
 }
 
 def HadamardOp : NetQASM_Op<"hadamard",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
     let assemblyFormat = [{
         operands attr-dict
@@ -253,7 +253,7 @@ def HadamardOp : NetQASM_Op<"hadamard",
 }
 
 def CnotOp : NetQASM_Op<"cnot",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit1", [MemWrite]>:$q1,
         Arg<I32, "qubit2", [MemWrite]>:$q2
@@ -264,7 +264,7 @@ def CnotOp : NetQASM_Op<"cnot",
 }
 
 def CzOp : NetQASM_Op<"cz",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit1", [MemWrite]>:$q1,
         Arg<I32, "qubit2", [MemWrite]>:$q2
@@ -275,7 +275,7 @@ def CzOp : NetQASM_Op<"cz",
 }
 
 def CrotXOp : NetQASM_Op<"crot_x",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualGateOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubit1", [MemWrite]>:$q1,
         Arg<I32, "qubit2", [MemWrite]>:$q2,
@@ -294,8 +294,8 @@ def CrotXOp : NetQASM_Op<"crot_x",
 }
 
 def MeasureOp : NetQASM_Op<"measure",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>,
-     DeclareOpInterfaceMethods<MeasureOpIface>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>,
+     DeclareOpInterfaceMethods<MeasOp>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
@@ -305,7 +305,7 @@ def MeasureOp : NetQASM_Op<"measure",
 
 
 def EprsOp: UsingRemote_Op<"eprs",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>,
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>,
      DeclareOpInterfaceMethods<EntangledQubitOp>]> {
     let arguments = (
         ins Arg<I32, "qubits", [MemWrite]>:$q,
@@ -317,8 +317,8 @@ def EprsOp: UsingRemote_Op<"eprs",
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure",
-    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleGateOp>,
-     DeclareOpInterfaceMethods<MeasureOpIface>, DeclareOpInterfaceMethods<EntangledQubitOp>]> {
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>,
+     DeclareOpInterfaceMethods<MeasOp>, DeclareOpInterfaceMethods<EntangledQubitOp>]> {
     let arguments = (
       ins Arg<I32, "qubits", [MemWrite]>:$q,
       FlatSymbolRefAttr:$remote

@@ -53,7 +53,7 @@ namespace qoala::analysis::qmemeff {
                                 --measured;
                             }
                         })
-                        .Case([&](const netqasm::ifaces::MeasureOpIface measureOp) {
+                        .Case([&](const netqasm::ifaces::MeasOp measureOp) {
                             LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
                             // Each measure op will increase the measured buffer.
                             ++measured;

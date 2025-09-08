@@ -1,7 +1,7 @@
 add_mlir_conversion_library(MLIRMIRToLIRPass
         QoalaMIRToQoalaLIR.cpp
         QoalaMIRToQoalaLIRPatterns.cpp
-        QMemToLower.cpp
+        QMemToLowerDialects.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/QMem
