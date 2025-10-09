@@ -305,6 +305,7 @@ namespace qoala::analysis::qbitlife {
                              std::unordered_map<std::string, int>& qubitLifeTimes) {
         
         if (!taskIndex.has_value()) {
+            taskTime = globalTime;
             return false;
         }
 
