@@ -97,6 +97,34 @@ namespace qoala::analysis {
         };
     } // namespace qmemeff
 
+    namespace qbitlife {
+
+        class Task {
+            public:
+                std::string name;
+                int time;
+
+                Task(std::string n="", int t=-1): name(n), time(t) {}
+
+                void reset() { this->name=""; this->time=-1; }
+        };
+
+        class QoalaHostQubitLifeTime {
+        public:
+            QoalaHostQubitLifeTime(mlir::Operation *op);
+
+            std::unordered_map<std::string, int> getLifeTimes() const;
+        
+        private:
+            // A map from qubits IDs to their init and measure tasks IDs.
+            std::unordered_map<std::string, std::vector<std::string>> qubitsInitMeas;
+
+            std::unordered_map<std::string, int> qubitLifeTimes;
+
+        };
+
+    } // namespace qbitlife
+
     /**
      * Build MILP-compatible block representations from the main function.
      * Used to analyze control/data dependencies and enable block reordering.

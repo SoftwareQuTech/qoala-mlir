@@ -16,9 +16,16 @@ def QoalaHostReorderBlocks : Pass<"qoalahost-reorder-blocks", "mlir::ModuleOp"> 
     let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
 
-def QoalaHostQMemEffShowAnalysis: Pass<"qoalahost-show-analysis-qmem-eff", "mlir::ModuleOp"> {
-    let summary = "Show the quantum memory efficiency analysis computed in LIR.";
-    let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
+def QoalaHostShowAnalysis : Pass<"qoalahost-show-analysis", "mlir::ModuleOp"> {
+  let summary = "Runs and shows the results of specified analyses";
+
+  let options = [
+    Option<"showQMemEff", "show-qmem-eff", "bool", /*default=*/"false",
+           "Run and show QMem Efficiency Analysis.">,
+    Option<"showQubitLife", "show-qubit-life", "bool", /*default=*/"false",
+           "Run and show Qubit Lifetime Analysis.">
+  ];
+  let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
 }
 
 #endif // QOALAHOST_PASSES
