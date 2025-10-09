@@ -15,6 +15,16 @@ using namespace qoala::dialects;
 namespace qoala::analysis::qbitlife {
 
     QoalaHostQubitLifeTime::QoalaHostQubitLifeTime(Operation *op) {
+        /**
+         * Compute qubit life times.
+         * Use predecences between block given by reordering pass.
+         * Quantum tasks are split around initialization and measurement operations.
+         * Given information about execution time of each operation inside tasks, 
+         * estimate the parallel scheduling of cpu and qpu tasks, keeping track of the 
+         * execution time. The qubits lifetimes can then be computed from the time
+         * at which their initialization task was scheduled and the time at wich their 
+         * measurement time is scheduled.
+         */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifeTimePass\n");
         auto module = dyn_cast<ModuleOp>(*op);
         auto [blocks, qubits, precedences, _, __] = reordering::buildMILPFromMLIR(module);
@@ -27,24 +37,8 @@ namespace qoala::analysis::qbitlife {
         std::unordered_map<std::string, std::string> qubitMeas;
         std::unordered_map<std::string, std::vector<reordering::MILPBlock*>> blockDependences;
 
-        qubitInits.reserve(qubits.size());
-        qubitMeas.reserve(qubits.size());
-        qubitsInitMeas.reserve(qubits.size());
-
-        for (const auto &q : qubits) {
-            qubitInits.emplace(q->getAllocation()->getId(), q->getId());
-            qubitMeas.emplace(q->getMeasurement()->getId(), q->getId());
-            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << q->getId() 
-                        << "' initialized in '" << q->getAllocation()->getId() 
-                        << "' and measured in '" << q->getMeasurement()->getId() << "'.\n");
-        }
-
-        for (auto &e : precedences) {
-            if (blockDependences.find(e.second->getId()) == blockDependences.end()) {
-                blockDependences.insert({e.second->getId(), {}});
-            }
-            blockDependences.at(e.second->getId()).push_back(e.first);
-        }
+        buildQubitMaps(qubits, qubitInits, qubitMeas, qubitsInitMeas);
+        buildBlockDependencies(precedences, blockDependences);
 
         bool interBlockPred = false;
 
@@ -137,129 +131,253 @@ namespace qoala::analysis::qbitlife {
         * We can also estimate total execution time at the end.
         */
 
-        Task lastCpuTask = Task();
-        Task lastQpuTask = Task();
-        std::optional<int> nextCpuTask;
-        std::optional<int> nextQpuTask;
-
+        Task lastCpuTask;
+        Task lastQpuTask;
+        
         int cpuTime = 0;
         int qpuTime = 0;
-        int time = 0;
+        int globalTime = 0;
         
         qubitLifeTimes.reserve(qubits.size());
 
-        do {
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Starting Task Scheduling ===\n");
 
-            bool available = true;
-            for (size_t i = 0; i < qpuTasks.size(); i++) {
-                const auto& qTask = qpuTasks[i];
-                const auto& deps = taskDependences[qTask.name];
-                for (size_t dep_idx = 0; dep_idx < deps.size() && available; ++dep_idx) {
-                    available = (taskDependences.find(deps[dep_idx]) == taskDependences.end());
-                }
+        while (!cpuTasks.empty() || !qpuTasks.empty()) {
+            
+            // Find available tasks
+            auto nextQpuTaskIdx = findNextAvailableTask(qpuTasks, taskDependences);
+            auto nextCpuTaskIdx = findNextAvailableTask(cpuTasks, taskDependences);
 
-                if (available) {
-                    nextQpuTask = i;
-                    break;
-                }
-                available = true;
-            }
+            // Compute global time increment
+            int timeIncrement = computeNextTimeIncrement(
+                cpuTasks, qpuTasks, nextCpuTaskIdx, nextQpuTaskIdx, 
+                cpuTime, qpuTime, globalTime);
+            
+            globalTime += timeIncrement;
+            LLVM_DEBUG(llvm::dbgs() << "Global Time: " << globalTime << "\n");
 
-            available = true;
+            // Schedule qpu task if ready
+            scheduleTaskIfReady(qpuTasks, nextQpuTaskIdx, qpuTime, globalTime, 
+                               lastQpuTask, taskDependences, qubitInits, qubitMeas, 
+                               qubitLifeTimes);
 
-            for (size_t i = 0; i < cpuTasks.size(); i++) {
-                const auto& cTask = cpuTasks[i];
-                const auto& deps = taskDependences[cTask.name];
-                for (size_t dep_idx = 0; dep_idx < deps.size() && available; ++dep_idx) {
-                    available = (taskDependences.find(deps[dep_idx]) == taskDependences.end());
-                }
-
-                if (available) {
-                    nextCpuTask = i;
-                    break;
-                }
-                available = true;
-            }
-
-            if (!nextQpuTask && !cpuTasks.empty()) {
-                lastQpuTask = cpuTasks[*nextCpuTask];
-            }
-
-            if (!nextCpuTask && !qpuTasks.empty()) {
-                lastCpuTask = qpuTasks[*nextQpuTask];
-            }
-
-            if (!nextCpuTask || !nextQpuTask) {
-                if (!nextCpuTask) {
-                    time += qpuTasks[*nextQpuTask].time-time+qpuTime;
-                    cpuTime = time;
-                } else {
-                    time += cpuTasks[*nextCpuTask].time-time+cpuTime;
-                    qpuTime = time;
-                }
-            } else {
-                time += std::min(qpuTasks[*nextQpuTask].time-time+qpuTime, cpuTasks[*nextCpuTask].time-time+cpuTime);
-            }
-
-            if (nextQpuTask && time-qpuTime >= qpuTasks[*nextQpuTask].time) {
-                auto qTask = qpuTasks[*nextQpuTask];
-                LLVM_DEBUG(llvm::dbgs() << "Found Next Quantum Task: " << qTask.name << "\n");
-                for (auto dep: taskDependences.at(qTask.name)) {
-                    if (dep == lastQpuTask.name) {
-                        lastQpuTask.reset();
-                    }
-                }
-                lastQpuTask = qpuTasks[*nextQpuTask];
-                qpuTasks.erase(qpuTasks.begin() + *nextQpuTask);
-                taskDependences.erase(qTask.name);
-
-                qpuTime = time;
-
-                auto initIt = qubitInits.find(qTask.name);
-                
-                if (initIt != qubitInits.end()) {
-                    qubitLifeTimes.emplace(initIt->second, time-qTask.time);
-                } else {
-                    auto measIt = qubitMeas.find(qTask.name);
-                    if (measIt != qubitMeas.end()) {
-                        qubitLifeTimes.at(measIt->second) = time - qubitLifeTimes.at(measIt->second);
-                    }
-                }
-
-            }
-
-            if (nextCpuTask && time-cpuTime >= cpuTasks[*nextCpuTask].time) {
-                auto cTask = cpuTasks[*nextCpuTask];
-                LLVM_DEBUG(llvm::dbgs() << "Found Next Classical Task: " << cTask.name << "\n");
-                for (auto dep: taskDependences.at(cTask.name)) {
-                    if (dep == lastCpuTask.name) {
-                        lastCpuTask.reset();
-                    }
-                }
-
-                lastCpuTask = cpuTasks[*nextCpuTask];
-                cpuTasks.erase(cpuTasks.begin() + *nextCpuTask);
-                taskDependences.erase(cTask.name);
-
-                cpuTime = time;
-            }
-
-            LLVM_DEBUG(llvm::dbgs() << "TIME: " << time << "\n");
-
-            available = true;
-            nextCpuTask.reset();
-            nextQpuTask.reset();
+            // Schedule cpu task if ready
+            scheduleTaskIfReady(cpuTasks, nextCpuTaskIdx, cpuTime, globalTime, 
+                               lastCpuTask, taskDependences, qubitInits, qubitMeas, 
+                               qubitLifeTimes);
         }
-        while (!cpuTasks.empty() || !qpuTasks.empty());
-        
-        LLVM_DEBUG(llvm::dbgs() << "Life Times:\n");
-        for (const auto& [qubit, lifeTime] : qubitLifeTimes) {
-            LLVM_DEBUG(llvm::dbgs() << qubit << ": " << lifeTime << "\n");
+
+        LLVM_DEBUG(llvm::dbgs() << "\n=== Qubit Lifetimes ===\n");
+        for (const auto& [qubitId, lifetime] : qubitLifeTimes) {
+            LLVM_DEBUG(llvm::dbgs() << qubitId << ": " << lifetime << "\n");
         }
-        LLVM_DEBUG(llvm::dbgs() << "Execution Time: " << time << ".\n");
+        LLVM_DEBUG(llvm::dbgs() << "\nTotal Execution Time: " << globalTime << "\n");
 
     }
 
+    void QoalaHostQubitLifeTime::buildQubitMaps(const std::vector<std::shared_ptr<reordering::MILPQubit>>& qubits,
+                        std::unordered_map<std::string, std::string>& qubitInits,
+                        std::unordered_map<std::string, std::string>& qubitMeas,
+                        std::unordered_map<std::string, std::vector<std::string>>& qubitsInitMeas) {
+        
+        qubitInits.reserve(qubits.size());
+        qubitMeas.reserve(qubits.size());
+        qubitsInitMeas.reserve(qubits.size());
+
+        for (const auto& qubit : qubits) {
+            const std::string& qubitId = qubit->getId();
+            const std::string& allocId = qubit->getAllocation()->getId();
+            const std::string& measId = qubit->getMeasurement()->getId();
+            
+            qubitInits.emplace(allocId, qubitId);
+            qubitMeas.emplace(measId, qubitId);
+            
+            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId 
+                       << "' initialized in '" << allocId 
+                       << "' and measured in '" << measId << "'.\n");
+        }
+    }
+
+    void QoalaHostQubitLifeTime::buildBlockDependencies(const std::vector<std::pair<reordering::MILPBlock*, 
+                                                             reordering::MILPBlock*>>& precedences,
+                                 std::unordered_map<std::string, std::vector<reordering::MILPBlock*>>& blockDependences) {
+        
+        for (const auto& [predecessor, successor] : precedences) {
+            blockDependences[successor->getId()].push_back(predecessor);
+        }
+    }
+
+    /**
+     * Verify if a task is available for scheduling.
+     * A task is available if all its dependences have already been schduled.
+     */
+    bool QoalaHostQubitLifeTime::isTaskAvailable(const std::string& taskName, 
+                         const std::unordered_map<std::string, std::vector<std::string>>& taskDependences) {
+        auto it = taskDependences.find(taskName);
+        // Maybe this check is not needed
+        if (it == taskDependences.end()) {
+            return false;
+        }
+        
+        const auto& dependencies = it->second;
+        return std::all_of(dependencies.begin(), dependencies.end(), 
+            [&taskDependences](const std::string& dep) { 
+                return taskDependences.find(dep) == taskDependences.end(); 
+            });
+    }
+
+    /**
+     * Find next task available to be scheduled ina list of tasks.
+     * Return the index of the available task, or std::nullopt if no task is available.
+     */
+    std::optional<size_t> QoalaHostQubitLifeTime::findNextAvailableTask(
+        const std::vector<Task>& tasks,
+        const std::unordered_map<std::string, std::vector<std::string>>& taskDependences) {
+        
+        for (size_t i = 0; i < tasks.size(); ++i) {
+            if (isTaskAvailable(tasks[i].name, taskDependences)) {
+                return i;
+            }
+        }
+        return std::nullopt;
+    }
+
+    // Remove dependences on the scheduled task.
+    void QoalaHostQubitLifeTime::cleanupTaskDependencies(const Task& scheduledTask,
+                                  Task& lastTaskOfSameType,
+                                  std::unordered_map<std::string, std::vector<std::string>>& taskDependences) {
+        auto it = taskDependences.find(scheduledTask.name);
+        if (it != taskDependences.end()) {
+            for (const auto& dep : it->second) {
+                if (dep == lastTaskOfSameType.name) {
+                    lastTaskOfSameType.reset();
+                }
+            }
+        }
+    }
+
+    /**
+     * Update qubit life times based on scheduled task type.
+     * - If task is an init task, set the start time
+     * - If task is a measurement task, compute the life time
+     */
+    void QoalaHostQubitLifeTime::updateQubitLifetime(const Task& scheduledTask,
+                             int currentTime,
+                             const std::unordered_map<std::string, std::string>& qubitInits,
+                             const std::unordered_map<std::string, std::string>& qubitMeas,
+                             std::unordered_map<std::string, int>& qubitLifeTimes) {
+        
+        // Check fi ti si an init task
+        auto initIt = qubitInits.find(scheduledTask.name);
+        if (initIt != qubitInits.end()) {
+            qubitLifeTimes.emplace(initIt->second, currentTime - scheduledTask.time);
+            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << initIt->second 
+                       << "' initialized at time " << (currentTime - scheduledTask.time) << "\n");
+            return;
+        }
+        
+        // Check if it is a measurement task
+        auto measIt = qubitMeas.find(scheduledTask.name);
+        if (measIt != qubitMeas.end()) {
+            auto lifetimeIt = qubitLifeTimes.find(measIt->second);
+            if (lifetimeIt != qubitLifeTimes.end()) {
+                int initTime = lifetimeIt->second;
+                lifetimeIt->second = currentTime - initTime;
+                LLVM_DEBUG(llvm::dbgs() << "Qubit '" << measIt->second 
+                           << "' measured at time " << currentTime 
+                           << ", lifetime: " << lifetimeIt->second << "\n");
+            }
+        }
+    }
+
+    /**
+     * Schedule a task if ready, removing it form the available tasks, and update related data.
+     * Return true if the task has been scheduled.
+     */
+    bool QoalaHostQubitLifeTime::scheduleTaskIfReady(std::vector<Task>& tasks,
+                             std::optional<size_t> taskIndex,
+                             int& taskTime,
+                             int globalTime,
+                             Task& lastTaskOfType,
+                             std::unordered_map<std::string, std::vector<std::string>>& taskDependences,
+                             const std::unordered_map<std::string, std::string>& qubitInits,
+                             const std::unordered_map<std::string, std::string>& qubitMeas,
+                             std::unordered_map<std::string, int>& qubitLifeTimes) {
+        
+        if (!taskIndex.has_value()) {
+            return false;
+        }
+
+        const Task& task = tasks[*taskIndex];
+        
+        /**
+         * A task is ready and can be scheduled only if
+         * its execution time would not increase the time
+         * of its task type beyond the global time.
+         */
+        if (globalTime - taskTime < task.time) {
+            return false;
+        }
+
+        LLVM_DEBUG(llvm::dbgs() << "Scheduling Task: " 
+                   << task.name << " at time " << globalTime << "\n");
+
+        // Cleanup dependences
+        cleanupTaskDependencies(task, lastTaskOfType, taskDependences);
+        
+        // Update qubit lifetime if needed
+        updateQubitLifetime(task, globalTime, qubitInits, qubitMeas, qubitLifeTimes);
+        
+        // Update the state
+        lastTaskOfType = task;
+        taskTime = globalTime;
+        
+        // Remove the task
+        taskDependences.erase(task.name);
+        tasks.erase(tasks.begin() + *taskIndex);
+        
+        return true;
+    }
+
+    /**
+     * Compute the next global time increment.
+     */
+    int QoalaHostQubitLifeTime::computeNextTimeIncrement(const std::vector<Task>& cpuTasks,
+                                    const std::vector<Task>& qpuTasks,
+                                    std::optional<size_t> nextCpuTaskIdx,
+                                    std::optional<size_t> nextQpuTaskIdx,
+                                    int cpuTime,
+                                    int qpuTime,
+                                    int currentTime) {
+        
+        bool hasCpuTask = nextCpuTaskIdx.has_value() && nextCpuTaskIdx < cpuTasks.size();
+        bool hasQpuTask = nextQpuTaskIdx.has_value() && nextQpuTaskIdx < qpuTasks.size();
+        
+        if (!hasCpuTask && !hasQpuTask) {
+            return 0;
+        }
+        
+        if (!hasCpuTask) {
+            return qpuTasks[*nextQpuTaskIdx].time - (currentTime - qpuTime);
+        }
+        
+        if (!hasQpuTask) {
+            return cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);
+        }
+        
+        /**
+         * If both cpu and qpu tasks are found, select the one with the shortes execution time
+         * This enables to keep track of parallel cpu and qpu tasks execution,
+         * where first the shorter cpu tasks are scheduled, up until no other cpu tasks are avialable
+         * or the globel time is enough to fit in the qpu tasks (now in scheduled in parallel with all
+         * the already scheduled cpu tasks).
+         */
+        int cpuIncrement = cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);
+        int qpuIncrement = qpuTasks[*nextQpuTaskIdx].time - (currentTime - qpuTime);
+        return std::min(cpuIncrement, qpuIncrement);
+    }
+
+    // Return computed qubit life times.
     std::unordered_map<std::string, int> QoalaHostQubitLifeTime::getLifeTimes() const {
         return this->qubitLifeTimes;
     }
