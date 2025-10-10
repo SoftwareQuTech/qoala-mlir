@@ -402,6 +402,17 @@ namespace qoala::analysis {
             void buildBlockDependencies(const std::vector<std::pair<analysis::reordering::MILPBlock*, 
                                                                     analysis::reordering::MILPBlock*>>& precedences,
                                         std::unordered_map<std::string, std::vector<analysis::reordering::MILPBlock*>>& blockDependences);
+            
+            void processBlock(const reordering::MILPBlock* block, 
+                            const std::unordered_map<std::string, 
+                                                std::vector<reordering::MILPBlock*>>& blockDependences,
+                            std::unordered_map<std::string, 
+                                            std::vector<std::string>>& taskDependences,
+                            std::vector<Task>& qpuTasks,
+                            std::vector<Task>& cpuTasks,
+                            const std::unordered_map<std::string, std::string>& qubitInits,
+                            const std::unordered_map<std::string, std::string>& qubitMeas,
+                            std::unordered_map<std::string, std::vector<std::string>>& qubitInitsMeas);
 
             bool isTaskAvailable(const std::string& taskName, 
                                 const std::unordered_map<std::string, std::vector<std::string>>& taskDependences);

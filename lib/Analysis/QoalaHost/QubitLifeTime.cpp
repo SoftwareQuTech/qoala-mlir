@@ -18,12 +18,12 @@ namespace qoala::analysis::qbitlife {
         /**
          * Compute qubit life times.
          * Use predecences between block given by reordering pass.
-         * Quantum tasks are split around initialization and measurement operations.
+         * Qpu tasks are split around initialization and measurement operations.
          * Given information about execution time of each operation inside tasks, 
          * estimate the parallel scheduling of cpu and qpu tasks, keeping track of the 
          * execution time. The qubits lifetimes can then be computed from the time
          * at which their initialization task was scheduled and the time at wich their 
-         * measurement time is scheduled.
+         * measurement task is scheduled.
          */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifeTimePass\n");
         auto module = dyn_cast<ModuleOp>(*op);
@@ -40,77 +40,8 @@ namespace qoala::analysis::qbitlife {
         buildQubitMaps(qubits, qubitInits, qubitMeas, qubitsInitMeas);
         buildBlockDependencies(precedences, blockDependences);
 
-        bool interBlockPred = false;
-
         for (const auto &bp : blocks) {
-            const auto *b = bp.get();
-            std::string intraBlockPred = "";
-            std::string last;
-
-            auto depIt = blockDependences.find(b->getId());
-            interBlockPred = (depIt != blockDependences.end());
-            LLVM_DEBUG(llvm::dbgs() << "Block '" << b->getId() << "' has inter block dependency: " << interBlockPred << "\n");
-
-            for (const auto &tPtr : b->getTasks()) {
-                const auto *t = tPtr.get();
-                
-                int taskTime = 0;
-
-                for (const auto *op : t->getOperations()) {       
-                    taskTime += op->getDuration();
-
-                    const std::string& opId = op->getId();
-                    auto initIt = qubitInits.find(opId);
-                    auto measIt = qubitMeas.find(opId);
-
-                    if (initIt != qubitInits.end() || measIt != qubitMeas.end()) {
-                        qpuTasks.emplace_back(Task(opId, taskTime));
-                        taskDependences.try_emplace({opId, {}});
-
-                        if (initIt != qubitInits.end()) {
-                            qubitsInitMeas.emplace(initIt->second, std::vector<std::string>{opId});
-                        } else {
-                            qubitsInitMeas.at(measIt->second).push_back(opId);
-                        }
-
-                        LLVM_DEBUG(llvm::dbgs() << "Added Task '" << opId << "' with execution time: " << taskTime << ".\n");
-                        
-                        taskTime = 0;
-
-                        if (!intraBlockPred.empty()) {
-                            LLVM_DEBUG(llvm::dbgs() << "Task has intra block dependency with '" << intraBlockPred << "'.\n");
-                            taskDependences.at(opId).push_back(intraBlockPred);
-
-                        }
-                        intraBlockPred = opId;
-                    }
-                    last = op->getId();
-                }
-                if (taskTime != 0) {
-                    if (t->getGroup() == analysis::reordering::TaskGroup::Q) {
-                        qpuTasks.emplace_back(Task(last, taskTime));
-                    } else {
-                        cpuTasks.emplace_back(Task(last, taskTime));
-                    }
-                    taskDependences.insert({last, {}});
-                    LLVM_DEBUG(llvm::dbgs() << "Added Task '" << last << "' with execution time: " << taskTime << ".\n");
-                    taskTime = 0;
-                    if (!intraBlockPred.empty()) {
-                        LLVM_DEBUG(llvm::dbgs() << "Task has intra block dependency with '" << intraBlockPred << "'.\n");
-                        taskDependences.at(last).push_back(intraBlockPred);
-                    }
-                    intraBlockPred = last;
-                }
-            }
-            if (interBlockPred == true) {
-                for (auto const&temp: depIt->second) {
-                    auto lastBlockTask = temp->getTasks().back()->getOperations().back()->getId();
-                    auto currentBlockTask = b->getTasks().front()->getOperations().front()->getId();
-                    LLVM_DEBUG(llvm::dbgs() << "Task " << currentBlockTask << " has inter block dependency with '" << lastBlockTask << "'.\n");
-                    taskDependences.at(currentBlockTask).push_back(lastBlockTask);
-                }
-                interBlockPred = false;
-            }
+            processBlock(bp.get(), blockDependences, taskDependences, qpuTasks, cpuTasks, qubitInits, qubitMeas, qubitsInitMeas);
         }
 
         /** 
@@ -173,6 +104,89 @@ namespace qoala::analysis::qbitlife {
         }
         LLVM_DEBUG(llvm::dbgs() << "\nTotal Execution Time: " << globalTime << "\n");
 
+    }
+
+    /**
+     * Process a block and separate qpu and cpu tasks.
+     * Track dependences betwenn tasks.
+     * Register qubit initialization and measurement tasks.
+     */
+    void QoalaHostQubitLifeTime::processBlock(const reordering::MILPBlock* block,
+                                            const std::unordered_map<std::string, std::vector<reordering::MILPBlock*>>& blockDependences,
+                                            std::unordered_map<std::string, std::vector<std::string>>& taskDependences,
+                                            std::vector<Task>& qpuTasks,
+                                            std::vector<Task>& cpuTasks,
+                                            const std::unordered_map<std::string, std::string>& qubitInits,
+                                            const std::unordered_map<std::string, std::string>& qubitMeas,
+                                            std::unordered_map<std::string, std::vector<std::string>>& qubitInitsMeas) {
+        
+        std::string intraBlockPred;
+        std::string last;
+
+        auto depIt = blockDependences.find(block->getId());
+        bool interBlockPred = (depIt != blockDependences.end());
+
+        LLVM_DEBUG(llvm::dbgs() << "Block '" << block->getId() << "' has inter block dependency: " << interBlockPred << "\n");
+
+        for (const auto &tPtr : block->getTasks()) {
+            const auto *t = tPtr.get();
+            
+            int taskTime = 0;
+
+            for (const auto *op : t->getOperations()) {       
+                taskTime += op->getDuration();
+
+                const std::string& opId = op->getId();
+                auto initIt = qubitInits.find(opId);
+                auto measIt = qubitMeas.find(opId);
+
+                if (initIt != qubitInits.end() || measIt != qubitMeas.end()) {
+                    qpuTasks.emplace_back(Task(opId, taskTime));
+                    taskDependences.try_emplace({opId, {}});
+
+                    if (initIt != qubitInits.end()) {
+                        qubitsInitMeas.emplace(initIt->second, std::vector<std::string>{opId});
+                    } else {
+                        qubitsInitMeas.at(measIt->second).push_back(opId);
+                    }
+
+                    LLVM_DEBUG(llvm::dbgs() << "Added Task '" << opId << "' with execution time: " << taskTime << ".\n");
+                    
+                    taskTime = 0;
+
+                    if (!intraBlockPred.empty()) {
+                        LLVM_DEBUG(llvm::dbgs() << "Task has intra block dependency with '" << intraBlockPred << "'.\n");
+                        taskDependences.at(opId).push_back(intraBlockPred);
+
+                    }
+                    intraBlockPred = opId;
+                }
+                last = op->getId();
+            }
+            if (taskTime != 0) {
+                if (t->getGroup() == analysis::reordering::TaskGroup::Q) {
+                    qpuTasks.emplace_back(Task(last, taskTime));
+                } else {
+                    cpuTasks.emplace_back(Task(last, taskTime));
+                }
+                taskDependences.insert({last, {}});
+                LLVM_DEBUG(llvm::dbgs() << "Added Task '" << last << "' with execution time: " << taskTime << ".\n");
+                taskTime = 0;
+                if (!intraBlockPred.empty()) {
+                    LLVM_DEBUG(llvm::dbgs() << "Task has intra block dependency with '" << intraBlockPred << "'.\n");
+                    taskDependences.at(last).push_back(intraBlockPred);
+                }
+                intraBlockPred = last;
+            }
+        }
+        if (interBlockPred == true) {
+            for (auto const&temp: depIt->second) {
+                auto lastBlockTask = temp->getTasks().back()->getOperations().back()->getId();
+                auto currentBlockTask = block->getTasks().front()->getOperations().front()->getId();
+                LLVM_DEBUG(llvm::dbgs() << "Task " << currentBlockTask << " has inter block dependency with '" << lastBlockTask << "'.\n");
+                taskDependences.at(currentBlockTask).push_back(lastBlockTask);
+            }
+        }
     }
 
     void QoalaHostQubitLifeTime::buildQubitMaps(const std::vector<std::shared_ptr<reordering::MILPQubit>>& qubits,
