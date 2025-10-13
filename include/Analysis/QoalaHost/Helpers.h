@@ -373,13 +373,16 @@ namespace qoala::analysis {
     namespace qbitlife {
 
         class Task {
-            public:
-                std::string name;
-                int time;
+        public:
+            std::string name;
+            int time;
 
-                Task(std::string n="", int t=-1): name(n), time(t) {}
+            Task(std::string n = "", int t = -1): name(n), time(t) { }
 
-                void reset() { this->name=""; this->time=-1; }
+            void reset() {
+                this->name = "";
+                this->time = -1;
+            }
         };
 
         class QoalaHostQubitLifeTime {
@@ -387,68 +390,57 @@ namespace qoala::analysis {
             QoalaHostQubitLifeTime(mlir::Operation *op);
 
             std::unordered_map<std::string, int> getLifeTimes() const;
-        
+
         private:
             // A map from qubits IDs to their init and measure tasks IDs.
             std::unordered_map<std::string, std::vector<std::string>> qubitsInitMeas;
 
             std::unordered_map<std::string, int> qubitLifeTimes;
 
-            void buildQubitMaps(const std::vector<std::shared_ptr<analysis::reordering::MILPQubit>>& qubits,
-                                std::unordered_map<std::string, std::string>& qubitInits,
-                                std::unordered_map<std::string, std::string>& qubitMeas,
-                                std::unordered_map<std::string, std::vector<std::string>>& qubitsInitMeas);
+            void buildQubitMaps(const std::vector<std::shared_ptr<analysis::reordering::MILPQubit>> &qubits,
+                                std::unordered_map<std::string, std::string> &qubitInits,
+                                std::unordered_map<std::string, std::string> &qubitMeas,
+                                std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas);
 
-            void buildBlockDependencies(const std::vector<std::pair<analysis::reordering::MILPBlock*, 
-                                                                    analysis::reordering::MILPBlock*>>& precedences,
-                                        std::unordered_map<std::string, std::vector<analysis::reordering::MILPBlock*>>& blockDependences);
-            
-            void processBlock(const reordering::MILPBlock* block, 
-                            const std::unordered_map<std::string, 
-                                                std::vector<reordering::MILPBlock*>>& blockDependences,
-                            std::unordered_map<std::string, 
-                                            std::vector<std::string>>& taskDependences,
-                            std::vector<Task>& qpuTasks,
-                            std::vector<Task>& cpuTasks,
-                            const std::unordered_map<std::string, std::string>& qubitInits,
-                            const std::unordered_map<std::string, std::string>& qubitMeas,
-                            std::unordered_map<std::string, std::vector<std::string>>& qubitInitsMeas);
+            void buildBlockDependencies(
+                    const std::vector<std::pair<analysis::reordering::MILPBlock *, analysis::reordering::MILPBlock *>>
+                            &precedences,
+                    std::unordered_map<std::string, std::vector<analysis::reordering::MILPBlock *>> &blockDependences);
 
-            bool isTaskAvailable(const std::string& taskName, 
-                                const std::unordered_map<std::string, std::vector<std::string>>& taskDependences);
-            
-            std::optional<size_t> findNextAvailableTask(const std::vector<Task>& tasks, 
-                                                        const std::unordered_map<std::string, std::vector<std::string>>& taskDependences);
-            
+            void
+            processBlock(const reordering::MILPBlock *block,
+                         const std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> &blockDependences,
+                         std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
+                         std::vector<Task> &qpuTasks, std::vector<Task> &cpuTasks,
+                         const std::unordered_map<std::string, std::string> &qubitInits,
+                         const std::unordered_map<std::string, std::string> &qubitMeas,
+                         std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas);
 
-            void cleanupTaskDependencies(const Task& scheduledTask,
-                                  Task& lastTaskOfSameType,
-                                  std::unordered_map<std::string, std::vector<std::string>>& taskDependences);
-            
-            void updateQubitLifetime(const Task& scheduledTask,
-                             int currentTime,
-                             const std::unordered_map<std::string, std::string>& qubitInits,
-                             const std::unordered_map<std::string, std::string>& qubitMeas,
-                             std::unordered_map<std::string, int>& qubitLifeTimes);
+            bool isTaskAvailable(const std::string &taskName,
+                                 const std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
 
-            bool scheduleTaskIfReady(std::vector<Task>& tasks,
-                             std::optional<size_t> taskIndex,
-                             int& taskTime,
-                             int globalTime,
-                             Task& lastTaskOfType,
-                             std::unordered_map<std::string, std::vector<std::string>>& taskDependences,
-                             const std::unordered_map<std::string, std::string>& qubitInits,
-                             const std::unordered_map<std::string, std::string>& qubitMeas,
-                             std::unordered_map<std::string, int>& qubitLifeTimes);
+            std::optional<size_t>
+            findNextAvailableTask(const std::vector<Task> &tasks,
+                                  const std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
 
-            int computeNextTimeIncrement(const std::vector<Task>& cpuTasks,
-                                    const std::vector<Task>& qpuTasks,
-                                    std::optional<size_t> nextCpuTaskIdx,
-                                    std::optional<size_t> nextQpuTaskIdx,
-                                    int cpuTime,
-                                    int qpuTime,
-                                    int currentTime);
+            void cleanupTaskDependencies(const Task &scheduledTask, Task &lastTaskOfSameType,
+                                         std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
 
+            void updateQubitLifetime(const Task &scheduledTask, int currentTime,
+                                     const std::unordered_map<std::string, std::string> &qubitInits,
+                                     const std::unordered_map<std::string, std::string> &qubitMeas,
+                                     std::unordered_map<std::string, int> &qubitLifeTimes);
+
+            bool scheduleTaskIfReady(std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime,
+                                     int globalTime, Task &lastTaskOfType,
+                                     std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
+                                     const std::unordered_map<std::string, std::string> &qubitInits,
+                                     const std::unordered_map<std::string, std::string> &qubitMeas,
+                                     std::unordered_map<std::string, int> &qubitLifeTimes);
+
+            int computeNextTimeIncrement(const std::vector<Task> &cpuTasks, const std::vector<Task> &qpuTasks,
+                                         std::optional<size_t> nextCpuTaskIdx, std::optional<size_t> nextQpuTaskIdx,
+                                         int cpuTime, int qpuTime, int currentTime);
         };
 
     } // namespace qbitlife
