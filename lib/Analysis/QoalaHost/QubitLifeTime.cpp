@@ -62,9 +62,6 @@ namespace qoala::analysis::qbitlife {
          * We can also estimate total execution time at the end.
          */
 
-        Task lastCpuTask;
-        Task lastQpuTask;
-
         int cpuTime = 0;
         int qpuTime = 0;
         int globalTime = 0;
@@ -87,13 +84,15 @@ namespace qoala::analysis::qbitlife {
             LLVM_DEBUG(llvm::dbgs() << "Global Time: " << globalTime << "\n");
 
             // Schedule qpu task if ready
-            scheduleTaskIfReady(qpuTasks, nextQpuTaskIdx, qpuTime, globalTime, lastQpuTask, taskDependences, qubitInits,
-                                qubitMeas, qubitLifeTimes);
+            scheduleTaskIfReady(qpuTasks, nextQpuTaskIdx, qpuTime, globalTime, taskDependences, qubitInits, qubitMeas,
+                                qubitLifeTimes);
 
             // Schedule cpu task if ready
-            scheduleTaskIfReady(cpuTasks, nextCpuTaskIdx, cpuTime, globalTime, lastCpuTask, taskDependences, qubitInits,
-                                qubitMeas, qubitLifeTimes);
+            scheduleTaskIfReady(cpuTasks, nextCpuTaskIdx, cpuTime, globalTime, taskDependences, qubitInits, qubitMeas,
+                                qubitLifeTimes);
         }
+
+        // TODO check for not measured qubits
 
         LLVM_DEBUG(llvm::dbgs() << "\n=== Qubit Lifetimes ===\n");
         for (const auto &[qubitId, lifetime] : qubitLifeTimes) {
@@ -221,7 +220,7 @@ namespace qoala::analysis::qbitlife {
 
     /**
      * Verify if a task is available for scheduling.
-     * A task is available if all its dependences have already been schduled.
+     * A task is available if all its dependences have already been scheduled.
      */
     bool QoalaHostQubitLifeTime::isTaskAvailable(
             const std::string &taskName,
@@ -239,7 +238,7 @@ namespace qoala::analysis::qbitlife {
     }
 
     /**
-     * Find next task available to be scheduled ina list of tasks.
+     * Find next task available to be scheduled in a list of tasks.
      * Return the index of the available task, or std::nullopt if no task is available.
      */
     std::optional<size_t> QoalaHostQubitLifeTime::findNextAvailableTask(
@@ -254,31 +253,18 @@ namespace qoala::analysis::qbitlife {
         return std::nullopt;
     }
 
-    // Remove dependences on the scheduled task.
-    void QoalaHostQubitLifeTime::cleanupTaskDependencies(
-            const Task &scheduledTask, Task &lastTaskOfSameType,
-            std::unordered_map<std::string, std::vector<std::string>> &taskDependences) {
-        auto it = taskDependences.find(scheduledTask.name);
-        if (it != taskDependences.end()) {
-            for (const auto &dep : it->second) {
-                if (dep == lastTaskOfSameType.name) {
-                    lastTaskOfSameType.reset();
-                }
-            }
-        }
-    }
-
     /**
      * Update qubit life times based on scheduled task type.
      * - If task is an init task, set the start time
      * - If task is a measurement task, compute the life time
+     * - Do nothing otherwise
      */
     void QoalaHostQubitLifeTime::updateQubitLifetime(const Task &scheduledTask, int currentTime,
                                                      const std::unordered_map<std::string, std::string> &qubitInits,
                                                      const std::unordered_map<std::string, std::string> &qubitMeas,
                                                      std::unordered_map<std::string, int> &qubitLifeTimes) {
 
-        // Check fi ti si an init task
+        // Check if it is an init task
         auto initIt = qubitInits.find(scheduledTask.name);
         if (initIt != qubitInits.end()) {
             qubitLifeTimes.emplace(initIt->second, currentTime - scheduledTask.time);
@@ -306,7 +292,7 @@ namespace qoala::analysis::qbitlife {
      */
     bool QoalaHostQubitLifeTime::scheduleTaskIfReady(
             std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime, int globalTime,
-            Task &lastTaskOfType, std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
+            std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
             const std::unordered_map<std::string, std::string> &qubitInits,
             const std::unordered_map<std::string, std::string> &qubitMeas,
             std::unordered_map<std::string, int> &qubitLifeTimes) {
@@ -329,14 +315,10 @@ namespace qoala::analysis::qbitlife {
 
         LLVM_DEBUG(llvm::dbgs() << "Scheduling Task: " << task.name << " at time " << globalTime << "\n");
 
-        // Cleanup dependences
-        cleanupTaskDependencies(task, lastTaskOfType, taskDependences);
-
         // Update qubit lifetime if needed
         updateQubitLifetime(task, globalTime, qubitInits, qubitMeas, qubitLifeTimes);
 
         // Update the state
-        lastTaskOfType = task;
         taskTime = globalTime;
 
         // Remove the task
@@ -374,7 +356,7 @@ namespace qoala::analysis::qbitlife {
          * If both cpu and qpu tasks are found, select the one with the shortes execution time
          * This enables to keep track of parallel cpu and qpu tasks execution,
          * where first the shorter cpu tasks are scheduled, up until no other cpu tasks are avialable
-         * or the globel time is enough to fit in the qpu tasks (now in scheduled in parallel with all
+         * or the globel time is enough to fit in the qpu tasks (now scheduled in parallel with all
          * the already scheduled cpu tasks).
          */
         int cpuIncrement = cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);

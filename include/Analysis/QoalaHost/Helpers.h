@@ -432,7 +432,7 @@ namespace qoala::analysis {
                                      std::unordered_map<std::string, int> &qubitLifeTimes);
 
             bool scheduleTaskIfReady(std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime,
-                                     int globalTime, Task &lastTaskOfType,
+                                     int globalTime,
                                      std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
                                      const std::unordered_map<std::string, std::string> &qubitInits,
                                      const std::unordered_map<std::string, std::string> &qubitMeas,
