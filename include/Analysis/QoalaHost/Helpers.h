@@ -423,9 +423,6 @@ namespace qoala::analysis {
             findNextAvailableTask(const std::vector<Task> &tasks,
                                   const std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
 
-            void cleanupTaskDependencies(const Task &scheduledTask, Task &lastTaskOfSameType,
-                                         std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
-
             void updateQubitLifetime(const Task &scheduledTask, int currentTime,
                                      const std::unordered_map<std::string, std::string> &qubitInits,
                                      const std::unordered_map<std::string, std::string> &qubitMeas,
