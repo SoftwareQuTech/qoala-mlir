@@ -99,6 +99,14 @@ namespace qoala::analysis::qbitlife {
             LLVM_DEBUG(llvm::dbgs() << qubitId << ": " << lifetime << "\n");
         }
         LLVM_DEBUG(llvm::dbgs() << "\nTotal Execution Time: " << globalTime << "\n");
+
+        // Remove all the qoalahost::NopOp added by reordering::buildMILPFromMLIR,
+        // which were only there to model the PostTasks.
+        // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
+        auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
     }
 
     /**
