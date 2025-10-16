@@ -19,7 +19,7 @@
 // CHECK-NEXT: run_request() : __qoala_wrapper2
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -32,7 +32,7 @@
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper1
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -45,7 +45,7 @@
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper2
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}

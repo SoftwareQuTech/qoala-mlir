@@ -10,7 +10,7 @@
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}

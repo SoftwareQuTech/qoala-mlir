@@ -167,7 +167,7 @@ namespace qoala::iqoala {
         enum RequestRole { CREATE, RECEIVE };
 
         explicit RequestQuantumRoutine(const llvm::StringRef name):
-            QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(SEQUENTIAL), callback(nullptr), type(CREATE_KEEP),
+            QuantumRoutine(QRK_QUANTUM, name.str()), requestCallback(WAIT_ALL), callback(nullptr), type(CREATE_KEEP),
             requestRole(CREATE) { }
 
         RequestQuantumRoutine(const RequestQuantumRoutine &r):

@@ -182,10 +182,10 @@ namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
-                os << "sequential";
+                os << "SEQUENTIAL";
                 break;
             case RequestQuantumRoutine::WAIT_ALL:
-                os << "wait_all";
+                os << "WAIT_ALL";
                 break;
         }
         return os;

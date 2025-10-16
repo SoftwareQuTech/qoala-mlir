@@ -43,7 +43,7 @@
 // CHECK-NEXT: NETQASM_END
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback:
 // CHECK-NEXT: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
@@ -56,7 +56,7 @@
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper1
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback:
 // CHECK-NEXT: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
