@@ -1,12 +1,12 @@
 // UNSUPPORTED: true
 // Reason: see the comment on the qoala_wrapper_2 request routine op
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_qubit_tracking
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0

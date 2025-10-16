@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_qubit_tracking
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 0
 // CHECK: ^b[[BLOCK1:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }

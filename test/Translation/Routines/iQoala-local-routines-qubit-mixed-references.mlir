@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: quantum_alias_gates_program
 // CHECK-NEXT: parameters: {{[[:space:]]}}
 // CHECK-SAME: csockets: {{[[:space:]]}}
 // CHECK-SAME: epr_sockets: {{[[:space:]]}}
-// CHECK-SAME: META END
+// CHECK-SAME: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }

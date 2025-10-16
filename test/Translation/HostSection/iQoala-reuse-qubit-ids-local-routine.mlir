@@ -1,11 +1,11 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_call_request_routines
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: b0 { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %0 = run_request() : __qoala_wrapper0
 // CHECK: b1 { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
