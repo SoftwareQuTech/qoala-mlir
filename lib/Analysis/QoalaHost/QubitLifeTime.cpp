@@ -275,9 +275,11 @@ namespace qoala::analysis::qbitlife {
         // Check if it is an init task
         auto initIt = qubitInits.find(scheduledTask.name);
         if (initIt != qubitInits.end()) {
-            qubitLifeTimes.emplace(initIt->second, currentTime - scheduledTask.time);
+            // qubitLifeTimes.emplace(initIt->second, currentTime - scheduledTask.time);
+            // Life time should start after initialization is completed
+            qubitLifeTimes.emplace(initIt->second, currentTime);
             LLVM_DEBUG(llvm::dbgs() << "Qubit '" << initIt->second << "' initialized at time "
-                                    << (currentTime - scheduledTask.time) << "\n");
+                                    << currentTime << "\n");
             return;
         }
 
