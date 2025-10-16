@@ -16,7 +16,8 @@
 // CHECK-SAME: uses: [[QUBIT0:.*]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] M[[M_REG0:.*]]

@@ -18,7 +18,8 @@
 // CHECK-NEXT: keeps: {{[[:space:]]}}
 // Since we are matching the newline char in the last check, we need to start matching
 // on the same line!
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
 // CHECK-NEXT: set [[QUBIT_REG1:.*]] [[QUBIT1]]

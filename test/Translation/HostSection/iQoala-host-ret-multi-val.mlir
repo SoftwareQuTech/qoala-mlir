@@ -20,7 +20,8 @@
 // CHECK-SAME: returns: m0
 // CHECK-NEXT: uses: {{[[:space:]]}}
 // CHECK-SAME: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 1
 // CHECK-NEXT: store C[[C_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END

@@ -35,6 +35,7 @@
 // CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses: [[QUBIT0:.*]]
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] [[M_REG0:.*]]

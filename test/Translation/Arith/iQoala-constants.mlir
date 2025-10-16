@@ -15,6 +15,7 @@
 // CHECK-NEXT: returns:
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set C[[C_REG0:.*]] 25
 // CHECK-NEXT: NETQASM_END

@@ -241,6 +241,9 @@ namespace qoala::iqoala {
         os << "returns: " << helpers::formatVector(this->returns) << "\n";
         os << "uses: " << helpers::formatSet(this->usesQubits) << "\n";
         os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
+        // This keyword is used when the routine is used as a request callback (not supportred yet).
+        // However, it needs to exist even if it's not the case.
+        os << "request: " << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::iQoalaMCInstruction *instruction : this->instructions) {

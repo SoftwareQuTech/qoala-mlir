@@ -24,6 +24,7 @@
 // CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[0]
 // CHECK-NEXT: set C[[C_REG1:.*]] 0

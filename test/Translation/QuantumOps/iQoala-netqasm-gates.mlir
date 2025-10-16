@@ -15,7 +15,8 @@
 // CHECK-SAME: returns: m0, m1
 // CHECK-NEXT: uses: [[PHY_QUBIT0:.*]], [[PHY_QUBIT1:.*]]
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QBIT0:.*]] [[PHY_QUBIT0]]
 // CHECK-NEXT: init [[QBIT0]]
 // CHECK-NEXT: set [[QBIT1:.*]] [[PHY_QUBIT1]]

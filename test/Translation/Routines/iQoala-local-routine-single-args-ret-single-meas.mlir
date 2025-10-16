@@ -21,6 +21,7 @@
 // CHECK-SAME: uses: [[QUBIT0:.*]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: [[QUBIT0]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
@@ -46,7 +47,8 @@
 // CHECK-NEXT: uses: [[QUBIT0]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QREG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: meas [[QREG0]] [[MREG0:.*]]
 // CHECK-NEXT: store [[MREG0]] @output[0]

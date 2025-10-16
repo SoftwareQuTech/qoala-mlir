@@ -19,7 +19,8 @@
 // CHECK-SAME: returns: m0, m1, m2
 // CHECK-NEXT: uses: 0, 1, 2
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REG0:.*]] 0
 // CHECK-NEXT: set [[Q_REG1:.*]] 1
 // CHECK-NEXT: set [[Q_REG2:.*]] 2

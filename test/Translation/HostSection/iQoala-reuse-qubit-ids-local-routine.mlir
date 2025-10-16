@@ -20,6 +20,7 @@
 // CHECK-SAME: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT_1:.*]]
 // CHECK-NEXT: keeps: [[QUBIT_1]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set Q0 [[QUBIT_1]]
 // CHECK-NEXT: init Q0
@@ -30,7 +31,8 @@
 // CHECK-SAME: returns: m0, m1
 // CHECK-NEXT: uses: [[QUBIT_0:.*]], [[QUBIT_1]]
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QREG_0:.*]] [[QUBIT_0]]
 // CHECK-NEXT: set [[QREG_1:.*]] [[QUBIT_1]]
 // CHECK-NEXT: cnot [[QREG_0]] [[QREG_1]]
@@ -46,6 +48,7 @@
 // CHECK-SAME: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT_0]]
 // CHECK-NEXT: keeps: [[QUBIT_0]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set Q0 [[QUBIT_0]]
 // CHECK-NEXT: init Q0

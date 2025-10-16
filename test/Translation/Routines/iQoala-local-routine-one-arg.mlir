@@ -15,7 +15,8 @@
 // CHECK-NEXT: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: {{[[:space:]]}}
 // CHECK-SAME: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: load R[[R_REG0:.*]] @input[0]
 // CHECK-NEXT: set C[[C_REG1:.*]] 25
 // CHECK-NEXT: NETQASM_END

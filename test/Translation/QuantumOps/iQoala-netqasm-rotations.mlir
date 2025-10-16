@@ -13,6 +13,7 @@
 // CHECK-NEXT: returns:
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set Q[[QBIT0:.*]] 0
 // CHECK-NEXT: init Q[[QBIT0]]
