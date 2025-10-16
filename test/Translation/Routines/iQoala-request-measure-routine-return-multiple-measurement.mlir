@@ -19,7 +19,7 @@
 // CHECK-NEXT: virt_ids: all 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: measure_directly
+// CHECK-NEXT: typ: measure_directly
 // CHECK-NEXT: role: create
 
 module {

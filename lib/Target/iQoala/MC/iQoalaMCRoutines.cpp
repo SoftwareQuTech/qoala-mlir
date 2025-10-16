@@ -260,7 +260,7 @@ namespace qoala::iqoala {
         os << "virt_ids: " << this->virtualIDs << "\n";
         os << "timeout: " << 1000 << "\n"; // This field is not described in the paper
         os << "fidelity: " << this->fidelity << "\n";
-        os << "type: " << this->type << "\n";
+        os << "typ: " << this->type << "\n";
         os << "role: " << this->requestRole << "\n";
     }
 } // namespace qoala::iqoala

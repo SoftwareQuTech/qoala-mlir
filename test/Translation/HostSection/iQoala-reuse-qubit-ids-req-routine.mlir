@@ -51,7 +51,7 @@
 // CHECK-NEXT: virt_ids: all [[QUBIT_0]]
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 // CHECK: REQUEST __qoala_wrapper3
@@ -65,7 +65,7 @@
 // CHECK-NEXT: virt_ids: all [[QUBIT_0]]
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

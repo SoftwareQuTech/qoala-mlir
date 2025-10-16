@@ -38,7 +38,7 @@
 // CHECK-NEXT: virt_ids: all 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

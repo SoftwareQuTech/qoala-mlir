@@ -28,7 +28,7 @@
 // CHECK-NEXT: virt_ids: all 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper1
@@ -41,7 +41,7 @@
 // CHECK-NEXT: virt_ids: all 1
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper2
@@ -54,7 +54,7 @@
 // CHECK-NEXT: virt_ids: all 2
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {
