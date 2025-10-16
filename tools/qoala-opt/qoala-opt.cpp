@@ -42,8 +42,8 @@ static opt<uint32_t, /*ExternalStorage=*/true>
                                       NotHidden, location(qoala::options::qoalaOptTwoGateDuration));
 
 uint32_t qoala::options::qoalaOptLatency = 100;
-static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency",
-                                                                     NotHidden, location(qoala::options::qoalaOptLatency));
+static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency", NotHidden,
+                                                                     location(qoala::options::qoalaOptLatency));
 
 uint32_t qoala::options::qoalaOptLinkDuration = 1000;
 static opt<uint32_t, /*ExternalStorage=*/true>
