@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_local_routine_gates
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: tuple<%[[RES_0:.*]]; %[[RES_1:.*]]> = run_subroutine() : __qoala_wrapper0
 // There is only one block because ^bb1 only has a `qoalahost.return` which does not return anything.
@@ -15,7 +15,8 @@
 // CHECK-SAME: returns: m0, m1
 // CHECK-NEXT: uses: [[PHY_QUBIT0:.*]], [[PHY_QUBIT1:.*]]
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QBIT0:.*]] [[PHY_QUBIT0]]
 // CHECK-NEXT: init [[QBIT0]]
 // CHECK-NEXT: set [[QBIT1:.*]] [[PHY_QUBIT1]]

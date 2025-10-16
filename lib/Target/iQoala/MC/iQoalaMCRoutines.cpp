@@ -182,10 +182,10 @@ namespace qoala::iqoala {
     raw_ostream &operator<<(raw_ostream &os, const RequestQuantumRoutine::RequestCallback requestCallback) {
         switch (requestCallback) {
             case RequestQuantumRoutine::SEQUENTIAL:
-                os << "sequential";
+                os << "SEQUENTIAL";
                 break;
             case RequestQuantumRoutine::WAIT_ALL:
-                os << "wait_all";
+                os << "WAIT_ALL";
                 break;
         }
         return os;
@@ -241,6 +241,9 @@ namespace qoala::iqoala {
         os << "returns: " << helpers::formatVector(this->returns) << "\n";
         os << "uses: " << helpers::formatSet(this->usesQubits) << "\n";
         os << "keeps: " << helpers::formatSet(this->keepsQubits) << "\n";
+        // This keyword is used when the routine is used as a request callback (not supportred yet).
+        // However, it needs to exist even if it's not the case.
+        os << "request: " << "\n";
 
         os << "NETQASM_START\n";
         for (const assembly::iQoalaMCInstruction *instruction : this->instructions) {
@@ -260,7 +263,7 @@ namespace qoala::iqoala {
         os << "virt_ids: " << this->virtualIDs << "\n";
         os << "timeout: " << 1000 << "\n"; // This field is not described in the paper
         os << "fidelity: " << this->fidelity << "\n";
-        os << "type: " << this->type << "\n";
+        os << "typ: " << this->type << "\n";
         os << "role: " << this->requestRole << "\n";
     }
 } // namespace qoala::iqoala

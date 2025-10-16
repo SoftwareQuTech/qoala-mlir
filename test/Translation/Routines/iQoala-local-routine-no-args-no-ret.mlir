@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_call_local_routine
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 
@@ -16,7 +16,8 @@
 // CHECK-SAME: uses: [[QUBIT0:.*]]
 // Since "meas" is considered a "qfree", this subroutine does not keep the qubit 0
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: init [[QUBIT_REG0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] M[[M_REG0:.*]]

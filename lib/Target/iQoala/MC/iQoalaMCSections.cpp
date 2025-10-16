@@ -13,12 +13,12 @@ static std::string remoteIDFmt = "%s_id";
 
 namespace qoala::iqoala {
     void MetaSection::print(raw_ostream &os) const {
-        os << "META START\n";
+        os << "META_START\n";
         os << tabStr << "name: " << this->name << "\n";
         os << tabStr << "parameters: " << helpers::formatVector(this->globalParams) << "\n";
         os << tabStr << "csockets: " << helpers::formatMap(this->classicalSocketsMap) << "\n";
         os << tabStr << "epr_sockets: " << helpers::formatMap(this->eprsSocketsMap) << "\n";
-        os << "META END";
+        os << "META_END";
     }
 
     void HostSection::print(raw_ostream &os) const {
