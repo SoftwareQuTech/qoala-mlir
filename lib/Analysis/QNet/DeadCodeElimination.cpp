@@ -73,7 +73,7 @@ namespace qoala::analysis {
                     }
                 }
             }
-}
+        }
 
         // Identify dead operations.
         std::vector<Operation *> toErase;
