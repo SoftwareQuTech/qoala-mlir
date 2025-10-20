@@ -65,26 +65,24 @@ namespace qoala::analysis {
             Operation *op = worklist.back();
             worklist.pop_back();
 
-            if (live.find(op) == live.end()) {
+            if (!live.contains(op)) {
                 live.insert(op);
                 for (Value operand : op->getOperands()) {
-                    Operation *producer = operand.getDefiningOp();
-                    if (producer != nullptr) {
+                    if (Operation *producer = operand.getDefiningOp()) {
                         worklist.push_back(producer);
                     }
                 }
             }
-        }
+}
 
         // Identify dead operations.
         std::vector<Operation *> toErase;
         mainFunc.walk([&](Operation *op) {
             if (isCandidateForErasure(op)) {
-                bool isLive = (live.find(op) != live.end());
-                if (!isLive) {
+                if (!live.contains(op)) {
                     toErase.push_back(op);
                 }
-            };
+            }
         });
 
         // Emit warning for removed local qubit allocations.
