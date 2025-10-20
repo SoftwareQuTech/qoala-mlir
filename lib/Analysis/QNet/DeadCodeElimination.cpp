@@ -43,11 +43,7 @@ namespace qoala::analysis {
 
         LLVM_DEBUG(llvm::dbgs() << "[QNet][DCE] starts...\n");
 
-        Operation *operation = getOperation();
-        ModuleOp moduleOp = llvm::dyn_cast<ModuleOp>(operation);
-        const auto funcs = moduleOp.getOps<FuncOp>();
-        assert(!funcs.empty() && "No func? This is embarrassing...");
-        FuncOp mainFunc = *funcs.begin();
+        FuncOp mainFunc = getOperation();
 
         std::vector<Operation *> worklist;
         DenseSet<Operation *> live;
