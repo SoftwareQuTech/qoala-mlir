@@ -1213,6 +1213,20 @@ namespace qoala::analysis::reordering {
         if (gminVar_) {
             SCIPchgVarObj(scip_, gminVar_, 1.0);
         }
+
+        // Secondary (tiny) objective: minimize sum of start times, breaking ties.
+        // Use strictly smaller than feastol so it cannot change the optimal g_min.
+        const double eps = 1e-6; // >> epsilon, << 1 tick
+        int rank = 0;
+        for (const auto &blk : blocks_) {
+            if (blk->getOperations().empty()) {
+                continue;
+            }
+            const auto *first = blk->getOperations().front().get();
+            SCIP_VAR *v = startVars_.at(first->getId());
+            // negative sign -> minimizing starts
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) - eps * (double) rank++);
+        }
     }
 
     void MILPBlockDeadlineModel::addIntraTaskSequencingConstraints() {
