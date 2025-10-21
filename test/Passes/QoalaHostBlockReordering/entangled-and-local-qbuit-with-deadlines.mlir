@@ -3,20 +3,21 @@
 // The checks for deadlines value are +/-1. depending on CPU performance, the computed value might slightly change. Howerver, since we are computing
 // **soft** deadlines, htis is not an issue.
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// 102 +/-1  -> 101|102|103
-// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = {{10(1|2|3)}} : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// 218 +/-1  -> 217|218|219
-// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_1 = {{21(7|8|9)}} : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
-// 332 +/-1  -> 331|332|333
-// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {block_1 = {{33(1|2|3)}} : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-// 486 +/-1  -> 485|486|487
-// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {block_1 = {{48(5|6|7)}} : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// 602 +/-1  -> 601|602|603
-// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {block_1 = {{60(1|2|3)}} : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// 717 +/-1  -> 716|717|718
-// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {block_1 = {{71(6|7|8)}} : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-// 820 +/-1  -> 819|820|821
-// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {block_1 = {{8(19|20|21)}} : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
+
+// 79 +/-1  -> 78|79|80
+// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = {{(78|79|80)}} : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// 172 +/-1 -> 171|172|173
+// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_1 = {{(171|172|173)}} : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+// 263 +/-1 -> 262|263|264
+// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {block_1 = {{(262|263|264)}} : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+// 394 +/-1 -> 393|394|395
+// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {block_1 = {{(393|394|395)}} : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// 486 +/-1 -> 485|486|487
+// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {block_1 = {{(485|486|487)}} : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// 578 +/-1 -> 577|578|579
+// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {block_1 = {{(577|578|579)}} : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
+// 658 +/-1 -> 657|658|659
+// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {block_1 = {{(657|658|659)}} : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
 
 module {
   qremote.remote @Bob
