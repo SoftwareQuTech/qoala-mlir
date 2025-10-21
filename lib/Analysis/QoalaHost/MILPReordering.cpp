@@ -1225,7 +1225,7 @@ namespace qoala::analysis::reordering {
             const auto *first = blk->getOperations().front().get();
             SCIP_VAR *v = startVars_.at(first->getId());
             // negative sign -> minimizing starts
-            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) - eps * (double) rank++);
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
         }
     }
 
