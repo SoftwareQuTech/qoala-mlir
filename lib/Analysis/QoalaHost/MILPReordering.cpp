@@ -648,6 +648,25 @@ namespace qoala::analysis::reordering {
         // Silence SCIP output
         SCIPsetMessagehdlrQuiet(scip_, TRUE);
 
+        // Determinism: single-thread + fixed seeds
+        SCIPsetIntParam(scip_, "parallel/maxnthreads", 1);
+        SCIPsetIntParam(scip_, "parallel/minnthreads", 1);
+        SCIPsetIntParam(scip_, "lp/threads", 1);
+        SCIPsetIntParam(scip_, "randomization/randomseedshift", 0);
+        SCIPsetIntParam(scip_, "randomization/lpseed", 0);
+        SCIPsetIntParam(scip_, "randomization/permutationseed", 0);
+
+        // Tighten numerics a bit (optional but helps consistency)
+        SCIPsetRealParam(scip_, "numerics/feastol", 1e-6);
+        SCIPsetRealParam(scip_, "numerics/epsilon", 1e-9);
+
+        // Disable automatic symmetry detection and exploitation.
+        // Even with fixed seeds and single-threading, SCIP's symmetry handling can
+        // permute equivalent subproblems when multiple symmetric optimal solutions
+        // exist. Turning it off removes that nondeterminism at the cost of a slight
+        // performance decrease but ensures bit-for-bit reproducible schedules.
+        SCIPsetBoolParam(scip_, "misc/usesymmetry", FALSE);
+
         // Create the (still empty) problem before any variables are added.
         if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY) {
             return false;
@@ -929,26 +948,65 @@ namespace qoala::analysis::reordering {
             SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
             SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
         }
+
+        // Add a tiny deterministic secondary objective to break ties between
+        // multiple equally optimal schedules. The small 'eps' is chosen:
+        //   - larger than feastol (1e-6 >> 1e-9) so SCIP recognizes the difference,
+        //   - much smaller than 1 tick, so it does not change the physical timing.
+        //
+        // This ensures the solver picks a unique, reproducible ordering of blocks
+        // (by their original IR order) across platforms and runs, eliminating
+        // platform-dependent tie-breaking within SCIP’s floating-point numerics.
+        const double eps = 1e-6; // >> feastol (1e-9), << 1 tick
+        int rank = 0;
+        for (const auto &b : blocks_) {
+            const auto &ops = b->getOperations();
+            if (ops.empty()) {
+                continue;
+            }
+            const std::string &id = ops.front()->getId();
+            SCIP_VAR *v = startVars_.at(id);
+            // add a small increasing weight to break ties deterministically by IR order
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
+        }
     }
 
     double MILPModelBuilder::getOperationStartTime(const std::string &opId) const {
-        // Returns the computed start time (from SCIP solution) for a given operation by ID.
-        // Includes defensive checks and debug warnings for missing or invalid SCIP variable values.
-
-        const auto it = startVars_.find(opId);
+        auto it = startVars_.find(opId);
         if (it == startVars_.end()) {
             LLVM_DEBUG(llvm::dbgs() << "Warning: start time requested for unknown operation " << opId << "\n");
-            return -1.0;
+            return std::numeric_limits<double>::infinity(); // parks at end
+        }
+        const SCIP_Real x = SCIPgetSolVal(scip_, nullptr, it->second);
+
+        // Treat invalids explicitly
+        if (std::isnan(x) || SCIPisInfinity(scip_, fabs(x))) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for " << opId << ": " << x << "\n");
+            return std::numeric_limits<double>::infinity();
+        }
+        return static_cast<double>(x);
+    }
+
+    static inline int64_t safeFeasRoundToInt(SCIP *scip, SCIP_Real x) {
+        // x is assumed finite here
+        return (int64_t) SCIPfeasFloor(scip, x + 0.5);
+    }
+
+    int64_t MILPModelBuilder::getOperationStartTick(const std::string &opId) const {
+        auto it = startVars_.find(opId);
+        if (it == startVars_.end()) {
+            return std::numeric_limits<int64_t>::max();
         }
 
-        const double val = SCIPgetSolVal(scip_, nullptr, it->second);
-
-        // Defensive checks for invalid SCIP values
-        if (val < 0.0 || std::isnan(val) || std::isinf(val)) {
-            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for operation " << opId << ": " << val << "\n");
+        const SCIP_Real x = SCIPgetSolVal(scip_, nullptr, it->second);
+        if (std::isnan(x) || SCIPisInfinity(scip_, fabs(x))) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for " << opId << ": " << x << "\n");
+            return std::numeric_limits<int64_t>::max();
         }
-
-        return val;
+        if (!SCIPisFeasIntegral(scip_, x)) {
+            LLVM_DEBUG(llvm::dbgs() << "Note: start var not feasibly integral: " << opId << " = " << x << "\n");
+        }
+        return safeFeasRoundToInt(scip_, x);
     }
 
     void MILPModelBuilder::cleanup() {
@@ -968,39 +1026,48 @@ namespace qoala::analysis::reordering {
         // This function computes the start and end time for each block based on the first and last operations
         // in the block, using the MILP solver's solution. The list of blocks is then sorted by their start times.
 
-        std::vector<std::tuple<std::string, double, double>> blockTimes;
+        struct Row {
+            std::string id;
+            int64_t tick;
+            int orig;
+        };
 
-        // Collect start and end times for each block using operation timings from the MILP solution.
-        for (const auto &block : blocks_) {
-            const auto &ops = block->getOperations();
+        std::vector<Row> rows;
+        rows.reserve(blocks_.size());
+
+        int idx = 0;
+        for (const auto &b : blocks_) {
+            const auto &ops = b->getOperations();
             if (ops.empty()) {
                 continue;
             }
-
-            const MILPOperation *firstOp = ops.front().get();
-            const MILPOperation *lastOp = ops.back().get();
-            double start = getOperationStartTime(firstOp->getId());
-            double end = getOperationStartTime(lastOp->getId()) + static_cast<double>(lastOp->getDuration());
-
-            blockTimes.emplace_back(block->getId(), start, end);
+            const auto *first = ops.front().get();
+            const int64_t t = getOperationStartTick(first->getId()); // robust ticks
+            rows.push_back({b->getId(), t, idx++});
         }
 
-        // Sort the blocks based on start time (ascending order).
-        std::sort(blockTimes.begin(), blockTimes.end(),
-                  [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
+        std::stable_sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) {
+            if (a.tick != b.tick) {
+                return a.tick < b.tick;
+            }
+            if (a.orig != b.orig) {
+                return a.orig < b.orig;
+            }
+            return a.id < b.id; // last-resort deterministic tie-break
+        });
 
-        for (const auto &[id, start, end] : blockTimes) {
-            LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
+        std::vector<std::string> out;
+        out.reserve(rows.size());
+        for (auto &r : rows) {
+            out.push_back(r.id);
         }
 
-        // Extract the ordered block IDs into a list to be returned.
-        std::vector<std::string> orderedBlockIds;
-        orderedBlockIds.reserve(blockTimes.size());
-        for (const auto &[id, start, end] : blockTimes) {
-            orderedBlockIds.push_back(id);
-        }
-
-        return orderedBlockIds;
+        LLVM_DEBUG({
+            for (auto &r : rows) {
+                llvm::dbgs() << "Block " << r.id << " tick=" << r.tick << "\n";
+            }
+        });
+        return out;
     }
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp &moduleOp, const std::vector<std::string> &orderedBlockIds) {

@@ -315,6 +315,8 @@ namespace qoala::analysis {
             // Retrieve start time for a specific operation (by ID)
             double getOperationStartTime(const std::string &opId) const;
 
+            int64_t getOperationStartTick(const std::string &opId) const;
+
             std::vector<std::string> getOrderedBlocks() const;
 
             bool checkSolverStatus(mlir::ModuleOp *op) const;
