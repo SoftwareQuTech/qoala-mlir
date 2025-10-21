@@ -665,7 +665,15 @@ namespace qoala::analysis::reordering {
         // permute equivalent subproblems when multiple symmetric optimal solutions
         // exist. Turning it off removes that nondeterminism at the cost of a slight
         // performance decrease but ensures bit-for-bit reproducible schedules.
-        SCIPsetBoolParam(scip_, "misc/usesymmetry", FALSE);
+        // NOTE: In some SCIP versions this param is Int (enum), in others Bool.
+        // Try Int first (0 = off), fall back to Bool(FALSE).
+        {
+            SCIP_RETCODE rc = SCIPsetIntParam(scip_, "misc/usesymmetry", 0 /* off */);
+            if (rc != SCIP_OKAY) {
+                // Older/newer builds may expose it as Bool. Ignore rc here deliberately.
+                (void) SCIPsetBoolParam(scip_, "misc/usesymmetry", FALSE);
+            }
+        }
 
         // Create the (still empty) problem before any variables are added.
         if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY) {
