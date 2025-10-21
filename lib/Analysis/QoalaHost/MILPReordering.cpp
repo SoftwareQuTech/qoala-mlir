@@ -657,7 +657,7 @@ namespace qoala::analysis::reordering {
         SCIPsetIntParam(scip_, "randomization/permutationseed", 0);
 
         // Tighten numerics a bit (optional but helps consistency)
-        SCIPsetRealParam(scip_, "numerics/feastol", 1e-6);
+        SCIPsetRealParam(scip_, "numerics/feastol", 1e-9);
         SCIPsetRealParam(scip_, "numerics/epsilon", 1e-9);
 
         // Disable automatic symmetry detection and exploitation.
