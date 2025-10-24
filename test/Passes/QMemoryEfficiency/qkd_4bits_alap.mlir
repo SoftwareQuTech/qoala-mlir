@@ -1,5 +1,5 @@
-// RUN: qoala-opt %s --qoalahost-show-analysis-qmem-eff | FileCheck %s
-// CHECK: Efficiency = 7.500000e-01
+// RUN: qoala-opt %s --pass-pipeline='builtin.module(qoalahost-show-analysis{show-qmem-eff=true})' | FileCheck %s
+// CHECK: [QMem Efficiency]:7.500000e-01
 
 module {
     qremote.remote @Bob
