@@ -2,12 +2,22 @@
 #define QOALAHOST_HELPERS_H
 
 #include <set>
+#include <unordered_set>
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
+
+// Forward delcare namespace
+namespace qoala {
+    namespace dialects {
+        namespace qoalahost {
+            class MainFuncOp;
+        } // namespace qoalahost
+    } // namespace dialects
+} // namespace qoala
 
 namespace qoala::analysis {
     namespace isolate {
@@ -210,6 +220,8 @@ namespace qoala::analysis {
 
             MILPOperation *getMeasurement() const { return meas_op_; }
 
+            virtual ~MILPQubit() = default;
+
         private:
             std::string id_;
             MILPOperation *alloc_op_;
@@ -337,6 +349,17 @@ namespace qoala::analysis {
                    BlockPrecedenceList, llvm::StringMap<MILPBlock *>, mlir::LogicalResult>
         buildMILPFromMLIR(mlir::ModuleOp module);
 
+        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<mlir::Operation *, MILPOperation *>,
+                   BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
+                   mlir::LogicalResult>
+        buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp mainFunc,
+                        const llvm::StringMap<mlir::Operation *> &routineMap);
+
+        llvm::StringMap<mlir::Operation *> collectRoutineMap(mlir::ModuleOp moduleOp);
+
+        std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
+        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp mainFunc, mlir::ModuleOp moduleOp);
+
         /**
          * Reorders the blocks in the given module based on the specified MILP solution order.
          * This mainly affects the block order inside MainFuncOp.
@@ -385,6 +408,18 @@ namespace qoala::analysis {
             }
         };
 
+        class LiveQubit : public reordering::MILPQubit {
+        public:
+            LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
+
+            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { twoQubitOp_ = twoQubitOp; }
+
+            reordering::MILPOperation *getTwoQubitOp() const { return twoQubitOp_; }
+
+        private:
+            reordering::MILPOperation *twoQubitOp_;
+        };
+
         class QoalaHostQubitLifeTime {
         public:
             QoalaHostQubitLifeTime(mlir::Operation *op);
@@ -397,11 +432,10 @@ namespace qoala::analysis {
 
             std::unordered_map<std::string, int> qubitLifeTimes;
 
-            void buildQubitMaps(const std::vector<std::shared_ptr<analysis::reordering::MILPQubit>> &qubits,
+            void buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
                                 std::unordered_map<std::string, std::string> &qubitInits,
                                 std::unordered_map<std::string, std::string> &qubitMeas,
                                 std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas);
-
             void buildBlockDependencies(
                     const std::vector<std::pair<analysis::reordering::MILPBlock *, analysis::reordering::MILPBlock *>>
                             &precedences,
@@ -414,7 +448,8 @@ namespace qoala::analysis {
                          std::vector<Task> &qpuTasks, std::vector<Task> &cpuTasks,
                          const std::unordered_map<std::string, std::string> &qubitInits,
                          const std::unordered_map<std::string, std::string> &qubitMeas,
-                         std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas);
+                         std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas,
+                         std::unordered_set<std::string> &init, std::unordered_set<std::string> &meas);
 
             bool isTaskAvailable(const std::string &taskName,
                                  const std::unordered_map<std::string, std::vector<std::string>> &taskDependences);

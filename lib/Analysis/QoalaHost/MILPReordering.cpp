@@ -157,7 +157,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    static llvm::StringMap<Operation *> collectRoutineMap(ModuleOp moduleOp) {
+    llvm::StringMap<Operation *> collectRoutineMap(ModuleOp moduleOp) {
         llvm::StringMap<Operation *> routineMap;
 
         moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
@@ -173,9 +173,9 @@ namespace qoala::analysis::reordering {
         return routineMap;
     }
 
-    static std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
-                      BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>,
-                      llvm::StringMap<MILPBlock *>, LogicalResult>
+    std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
+               BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
+               LogicalResult>
     buildMilpBlocks(qoalahost::MainFuncOp mainFunc, const llvm::StringMap<Operation *> &routineMap) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         BlockPrecedenceList precedences;
@@ -321,7 +321,7 @@ namespace qoala::analysis::reordering {
         return {blocks, opToMilpOp, precedences, unresolvedEdges, idToBlockMap, status};
     }
 
-    static std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
+    std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
     collectQubitUsage(qoalahost::MainFuncOp mainFunc, ModuleOp moduleOp) {
         // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
         llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
@@ -1315,7 +1315,7 @@ namespace qoala::analysis::reordering {
 
         int lastValidDeadline = 0; // Initial baseline
 
-        for(auto &blkId: ordered) {
+        for (auto &blkId: ordered) {
             const MILPBlock *blk = nullptr;
             for (const auto &b : blocks_) {
                 if (b->getId() == blkId) {
