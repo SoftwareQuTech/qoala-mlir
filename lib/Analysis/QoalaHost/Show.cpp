@@ -9,8 +9,7 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTSHOWANALYSIS
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-   class QoalaHostShowAnalysis
-            : public impl::QoalaHostShowAnalysisBase<QoalaHostShowAnalysis> {
+    class QoalaHostShowAnalysis : public impl::QoalaHostShowAnalysisBase<QoalaHostShowAnalysis> {
 
     public:
         using QoalaHostShowAnalysisBase::QoalaHostShowAnalysisBase;
@@ -27,11 +26,11 @@ namespace qoala::analysis {
         }
 
         if (showQubitLife) {
-            llvm::outs() << "  [Qubits Lifetimes]: \n";
             const auto &analysis = getAnalysis<qbitlife::QoalaHostQubitLifeTime>();
+            llvm::outs() << "  [Qubits Lifetimes]: \n";
             const auto lifeTimes = analysis.getLifeTimes();
-            for (auto const& [qubit, life] : lifeTimes) {
-                llvm::outs() << "    - " << qubit << ": " << life << "\n";
+            for (const auto &entry : lifeTimes) {
+                llvm::outs() << "    - " << entry.first << ": " << entry.second << "\n";
             }
         }
     }

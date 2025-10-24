@@ -1,8 +1,10 @@
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/AsmState.h"
 #include "mlir/IR/Operation.h"
 
 #define DEBUG_TYPE "qoalahost-qubit-life"
@@ -10,8 +12,70 @@
 using namespace mlir;
 using namespace llvm;
 using namespace qoala::dialects;
+using namespace qoala::analysis;
 
 namespace qoala::analysis::qbitlife {
+
+    /**
+     * Construct LiveQubit objects
+     * - Extract alloc, meas and last two-qubit op from qubit usage
+     * - Create LiveQubit and attach relevant operations
+     */
+    static std::vector<std::shared_ptr<LiveQubit>>
+    getQubitCriticalOps(const llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,
+                        const std::unordered_map<mlir::Operation *, reordering::MILPOperation *> &opToMilpOp) {
+        std::vector<std::shared_ptr<LiveQubit>> qubits;
+
+        for (const auto &entry : qubitToOps) {
+            const std::vector<Operation *> &ops = entry.second;
+
+            reordering::MILPOperation *allocOp = nullptr;
+            reordering::MILPOperation *measOp = nullptr;
+            reordering::MILPOperation *twoQubitOp = nullptr;
+
+            for (Operation *op : ops) {
+                auto num_operands = op->getNumOperands();
+                if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
+                    auto it = opToMilpOp.find(op);
+                    allocOp = (it != opToMilpOp.end()) ? it->second : nullptr;
+                }
+
+                if (llvm::isa<netqasm::MeasureOp>(op)) {
+                    auto itMeas = opToMilpOp.find(op);
+                    measOp = (itMeas != opToMilpOp.end()) ? itMeas->second : nullptr;
+                }
+                /**
+                 * TODO Treat a two-qubit op as a measure op.
+                 * This could be merged with the check for MeasureOp,
+                 * removing the need of the LiveQubit class.
+                 * Need to check if block reordering would still work even when
+                 * the measure op is instead a two-qubit op.
+                 */
+                if (num_operands > 1) {
+                    auto itTwoQubitOp = opToMilpOp.find(op);
+                    twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
+                }
+            }
+
+            std::string id = allocOp->getId().substr(6);
+            std::shared_ptr<LiveQubit> qubitPtr = std::make_shared<LiveQubit>(id);
+
+            // Attach known alloc/meas to the qubit model object
+            if (allocOp) {
+                qubitPtr->setAllocation(allocOp);
+            }
+            if (measOp) {
+                qubitPtr->setMeasurement(measOp);
+            }
+            if (twoQubitOp) {
+                qubitPtr->setTwoQubitOp(twoQubitOp);
+            }
+
+            qubits.push_back(std::move(qubitPtr));
+        }
+
+        return qubits;
+    }
 
     QoalaHostQubitLifeTime::QoalaHostQubitLifeTime(Operation *op) {
         /**
@@ -25,8 +89,59 @@ namespace qoala::analysis::qbitlife {
          * measurement task is scheduled.
          */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifeTimePass\n");
-        auto module = dyn_cast<ModuleOp>(*op);
-        auto [blocks, qubits, precedences, _, __] = reordering::buildMILPFromMLIR(module);
+
+        /**
+         * TODO Branching will create forks in the control flow and
+         * current implementation will see the branches as
+         * concurrent tasks, to be scheduled sequentially.
+         * We should instead differentiate between normal control flow and branching,
+         * and only schedule the longest of the branches for worst case scenario estimation.
+         */
+
+        // Comply with mlir assumptions on analisys passes.
+        // Clone operation to avoid modifying the actual IR.
+        Operation *clonedOp = op->clone();
+        auto module = dyn_cast<ModuleOp>(*clonedOp);
+        auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+
+        assert(!mainFuncs.empty() && "No main function found in module.");
+
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+
+        llvm::StringMap<Operation *> routineMap = reordering::collectRoutineMap(module);
+
+        auto [blocks, opToMilpOp, precedences, unresolvedEdges, _, blocksStatus] =
+                reordering::buildMilpBlocks(mainFunc, routineMap);
+        assert(!failed(blocksStatus) && "Falied to build predences.");
+        assert(unresolvedEdges.empty() && "Unresolved precedence edges detected.");
+
+        LLVM_DEBUG(llvm::dbgs() << "Blocks and tasks:\n");
+        for (const auto &bp : blocks) {
+            const auto *b = bp.get();
+            LLVM_DEBUG(llvm::dbgs() << " - Block " << b->getId() << " (type=" << (int) b->getType() << ")\n");
+            for (const auto &tPtr : b->getTasks()) {
+                const auto *t = tPtr.get();
+                LLVM_DEBUG(llvm::dbgs() << "    * Task " << t->getId() << " [Group=" << (int) t->getGroup() << "]\n");
+                for (const auto *op : t->getOperations()) {
+                    LLVM_DEBUG(llvm::dbgs() << "        - " << op->getId() << " => " << op->getOperation()->getName()
+                                            << " , duration=" << op->getDuration() << "ns\n");
+                }
+            }
+        }
+
+        auto [qubitToOps, collStatus] = reordering::collectQubitUsage(mainFunc, module);
+        assert(!failed(collStatus) && "Could not collect qubit usage.");
+
+        std::vector<std::shared_ptr<LiveQubit>> qubits = getQubitCriticalOps(qubitToOps, opToMilpOp);
+
+        LLVM_DEBUG(llvm::dbgs() << "Constructed LiveQubits:\n");
+        for (const auto &q : qubits) {
+            LLVM_DEBUG(llvm::dbgs() << " - " << q->getId() << ": alloc=");
+            LLVM_DEBUG(llvm::dbgs() << (q->getAllocation() ? q->getAllocation()->getId() : "null") << ", meas=");
+            LLVM_DEBUG(llvm::dbgs() << (q->getMeasurement() ? q->getMeasurement()->getId() : "null")
+                                    << ", lastTwoQubitOp=");
+            LLVM_DEBUG(llvm::dbgs() << (q->getTwoQubitOp() ? q->getTwoQubitOp()->getId() : "null") << "\n");
+        }
 
         std::vector<Task> cpuTasks;
         std::vector<Task> qpuTasks;
@@ -34,6 +149,8 @@ namespace qoala::analysis::qbitlife {
 
         std::unordered_map<std::string, std::string> qubitInits;
         std::unordered_map<std::string, std::string> qubitMeas;
+        std::unordered_set<std::string> init;
+        std::unordered_set<std::string> meas;
         std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> blockDependences;
 
         buildQubitMaps(qubits, qubitInits, qubitMeas, qubitsInitMeas);
@@ -41,7 +158,7 @@ namespace qoala::analysis::qbitlife {
 
         for (const auto &bp : blocks) {
             processBlock(bp.get(), blockDependences, taskDependences, qpuTasks, cpuTasks, qubitInits, qubitMeas,
-                         qubitsInitMeas);
+                         qubitsInitMeas, init, meas);
         }
 
         /**
@@ -50,14 +167,14 @@ namespace qoala::analysis::qbitlife {
          * all its dependences have already been scheduled.
          * cpuTasks and qpuTasks have a relative time that increase only when
          * a cTask or qTask is scheduled respectevely.
-         * There is also an absolute time that increase
+         * There is also a global time that increases
          * every time a task is scheduled.
-         * A task is scheduled only if tis exectuion time would not increase
+         * A task is scheduled only if its exectuion time would not increase
          * it's relative time above the absolute time.
          * This enable the evaluation of parallel exectuion
          * of classical and quantum tasks.
          * Qubit lifetimes are given by the difference between
-         * the relative time at wich a neasurement task is scheduled
+         * the relative time at wich a measurement task is scheduled
          * and the time at which the initialization task was scheduled.
          * We can also estimate total execution time at the end.
          */
@@ -92,21 +209,14 @@ namespace qoala::analysis::qbitlife {
                                 qubitLifeTimes);
         }
 
-        // TODO check for not measured qubits
-
         LLVM_DEBUG(llvm::dbgs() << "\n=== Qubit Lifetimes ===\n");
         for (const auto &[qubitId, lifetime] : qubitLifeTimes) {
             LLVM_DEBUG(llvm::dbgs() << qubitId << ": " << lifetime << "\n");
         }
         LLVM_DEBUG(llvm::dbgs() << "\nTotal Execution Time: " << globalTime << "\n");
 
-        // Remove all the qoalahost::NopOp added by reordering::buildMILPFromMLIR,
-        // which were only there to model the PostTasks.
-        // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
-        auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
-        assert(!mainFuncs.empty() && "No main func? This is embarrassing...");
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
+        // Erase cloned operation.
+        clonedOp->erase();
     }
 
     /**
@@ -120,7 +230,8 @@ namespace qoala::analysis::qbitlife {
             std::unordered_map<std::string, std::vector<std::string>> &taskDependences, std::vector<Task> &qpuTasks,
             std::vector<Task> &cpuTasks, const std::unordered_map<std::string, std::string> &qubitInits,
             const std::unordered_map<std::string, std::string> &qubitMeas,
-            std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas) {
+            std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas,
+            std::unordered_set<std::string> &init, std::unordered_set<std::string> &meas) {
 
         std::string intraBlockPred;
         std::string last;
@@ -195,7 +306,7 @@ namespace qoala::analysis::qbitlife {
     }
 
     void
-    QoalaHostQubitLifeTime::buildQubitMaps(const std::vector<std::shared_ptr<reordering::MILPQubit>> &qubits,
+    QoalaHostQubitLifeTime::buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
                                            std::unordered_map<std::string, std::string> &qubitInits,
                                            std::unordered_map<std::string, std::string> &qubitMeas,
                                            std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas) {
@@ -207,13 +318,18 @@ namespace qoala::analysis::qbitlife {
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
             const std::string &allocId = qubit->getAllocation()->getId();
-            const std::string &measId = qubit->getMeasurement()->getId();
+            auto measPtr = qubit->getMeasurement();
+            if (measPtr == nullptr) {
+                measPtr = qubit->getTwoQubitOp();
+            }
 
-            qubitInits.emplace(allocId, qubitId);
-            qubitMeas.emplace(measId, qubitId);
-
-            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId << "' initialized in '" << allocId << "' and measured in '"
-                                    << measId << "'.\n");
+            if (measPtr != nullptr) {
+                qubitInits.emplace(allocId, qubitId);
+                const std::string &measId = measPtr->getId();
+                qubitMeas.emplace(measId, qubitId);
+                LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId << "' initialized in '" << allocId
+                                        << "' and measured in '" << measId << "'.\n");
+            }
         }
     }
 
@@ -275,12 +391,8 @@ namespace qoala::analysis::qbitlife {
         // Check if it is an init task
         auto initIt = qubitInits.find(scheduledTask.name);
         if (initIt != qubitInits.end()) {
-            // qubitLifeTimes.emplace(initIt->second, currentTime - scheduledTask.time);
             // Life time should start after initialization is completed
             qubitLifeTimes.emplace(initIt->second, currentTime);
-            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << initIt->second << "' initialized at time "
-                                    << currentTime << "\n");
-            return;
         }
 
         // Check if it is a measurement task
@@ -375,6 +487,17 @@ namespace qoala::analysis::qbitlife {
     }
 
     // Return computed qubit life times.
-    std::unordered_map<std::string, int> QoalaHostQubitLifeTime::getLifeTimes() const { return this->qubitLifeTimes; }
+    std::unordered_map<std::string, int> QoalaHostQubitLifeTime::getLifeTimes() const {
+        // std::vector<int> lifeTimes;
+        // lifeTimes.reserve(this->qubitLifeTimes.size());
+
+        // for (const auto &entry : this->qubitLifeTimes) {
+        //     lifeTimes.push_back(entry.second);
+        // }
+
+        // std::sort(lifeTimes.begin(), lifeTimes.end());
+        // return lifeTimes;
+        return this->qubitLifeTimes;
+    }
 
 } // namespace qoala::analysis::qbitlife
