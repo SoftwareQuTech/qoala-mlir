@@ -5,7 +5,7 @@ include "mlir/Pass/PassBase.td"
 
 def QoalaHostAddBlockPrecedences : Pass<"qoalahost-add-block-precedences", "mlir::ModuleOp"> {
     let summary = "Add precedences in QoalaHost blocks definitions. This is meant to be used in the conversion from MIR to LIR and not as stand alone.";
-    let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 def QoalaHostReorderBlocks : Pass<"qoalahost-reorder-blocks", "mlir::ModuleOp"> {
     let summary = "Reorder blocks in QoalaHost main function for minimizing qubits lifetimes.";
@@ -13,19 +13,17 @@ def QoalaHostReorderBlocks : Pass<"qoalahost-reorder-blocks", "mlir::ModuleOp"> 
         Option<"withDeadlines", "with-deadlines", "bool", /*default=*/"false",
                "Whether to compute and add deadlines when reordering blocks.">,
     ];
-    let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 
-def QoalaHostShowAnalysis : Pass<"qoalahost-show-analysis", "mlir::ModuleOp"> {
-  let summary = "Runs and shows the results of specified analyses";
+def QoalaHostQMemEffShowAnalysis: Pass<"qoalahost-show-analysis-qmem-eff", "qoala::dialects::qoalahost::MainFuncOp"> {
+    let summary = "Show the quantum memory efficiency analysis computed in LIR.";
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
+}
 
-  let options = [
-    Option<"showQMemEff", "show-qmem-eff", "bool", /*default=*/"false",
-           "Run and show QMem Efficiency Analysis.">,
-    Option<"showQubitLife", "show-qubit-life", "bool", /*default=*/"false",
-           "Run and show Qubit Lifetime Analysis.">
-  ];
-  let dependentDialects = ["::qoala::dialects::qoalahost::QoalaHostDialect", "::mlir::func::FuncDialect"];
+def QoalaHostQubitLifeShowAnalysis: Pass<"qoalahost-show-analysis-qubit-life", "mlir::ModuleOp"> {
+    let summary = "Show the qubit lifetime analysis computed in LIR.";
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 
 #endif // QOALAHOST_PASSES

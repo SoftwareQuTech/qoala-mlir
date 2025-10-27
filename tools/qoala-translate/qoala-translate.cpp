@@ -17,15 +17,17 @@ namespace qoala::options {
     uint32_t qoalaOptHostPeerLatency = 0;
     uint32_t qoalaOptQNosInstrTime = 0;
     uint32_t qoalaOptQubitLifetime = 0;
-}
+    bool qoalaOptGroupEntReqs = false;
+    uint32_t qoalaOptProgramHorizon = 0;
+} // namespace qoala::options
 
 namespace qoala::translate {
     void registerToiQoalaTranslations();
 }
 
 int main(int argc, char **argv) {
-  registerAllTranslations();
-  // We register the translations of to the iQoala format
-  qoala::translate::registerToiQoalaTranslations();
-  return failed(mlirTranslateMain(argc, argv, "Qoala Translation Testing Tool"));
+    registerAllTranslations();
+    // We register the translations of to the iQoala format
+    qoala::translate::registerToiQoalaTranslations();
+    return failed(mlirTranslateMain(argc, argv, "Qoala Translation Testing Tool"));
 }

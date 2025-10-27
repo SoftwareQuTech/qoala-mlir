@@ -1,11 +1,11 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_call_request_routines
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: b0 { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %0 = run_request() : __qoala_wrapper0
 // CHECK: b1 { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
@@ -20,6 +20,7 @@
 // CHECK-SAME: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT_1:.*]]
 // CHECK-NEXT: keeps: [[QUBIT_1]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set Q0 [[QUBIT_1]]
 // CHECK-NEXT: init Q0
@@ -30,7 +31,8 @@
 // CHECK-SAME: returns: m0, m1
 // CHECK-NEXT: uses: [[QUBIT_0:.*]], [[QUBIT_1]]
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QREG_0:.*]] [[QUBIT_0]]
 // CHECK-NEXT: set [[QREG_1:.*]] [[QUBIT_1]]
 // CHECK-NEXT: cnot [[QREG_0]] [[QREG_1]]
@@ -42,7 +44,7 @@
 // CHECK-NEXT: NETQASM_END
 
 // CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -51,11 +53,11 @@
 // CHECK-NEXT: virt_ids: all [[QUBIT_0]]
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 // CHECK: REQUEST __qoala_wrapper3
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -65,7 +67,7 @@
 // CHECK-NEXT: virt_ids: all [[QUBIT_0]]
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

@@ -6,12 +6,12 @@
 
 namespace qoala::analysis {
 #define GEN_PASS_DECL
-#include "Dialect/QMem/Passes.h.inc"
+#include "Dialect/Helpers/HelperPasses.h.inc"
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
-#include "Dialect/QMem/Passes.h.inc"
+#include "Dialect/Helpers/HelperPasses.h.inc"
 
-} // namespace mlir
+} // namespace qoala::analysis
 
 #endif // QMEM_PASSES_H_

@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_call_request_routines
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // This call does not yield a result, because __qoala_wrapper0 request uses qubitID 0
 // to create the entangled pair
@@ -19,7 +19,8 @@
 // CHECK-SAME: returns: m0, m1, m2
 // CHECK-NEXT: uses: 0, 1, 2
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REG0:.*]] 0
 // CHECK-NEXT: set [[Q_REG1:.*]] 1
 // CHECK-NEXT: set [[Q_REG2:.*]] 2
@@ -32,7 +33,7 @@
 // CHECK-NEXT: NETQASM_END
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -41,7 +42,7 @@
 // CHECK-NEXT: virt_ids: increment 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

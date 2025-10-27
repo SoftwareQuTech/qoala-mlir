@@ -14,7 +14,7 @@ using namespace llvm;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
 
-namespace qoala::analysis::qbitlife {
+namespace qoala::analysis::qubitlife {
 
     /**
      * Construct LiveQubit objects
@@ -77,7 +77,7 @@ namespace qoala::analysis::qbitlife {
         return qubits;
     }
 
-    QoalaHostQubitLifeTime::QoalaHostQubitLifeTime(Operation *op) {
+    QoalaHostQubitLifetime::QoalaHostQubitLifetime(Operation *op) {
         /**
          * Compute qubit life times.
          * Use predecences between block given by reordering pass.
@@ -88,7 +88,7 @@ namespace qoala::analysis::qbitlife {
          * at which their initialization task was scheduled and the time at wich their
          * measurement task is scheduled.
          */
-        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifeTimePass\n");
+        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
 
         /**
          * TODO Branching will create forks in the control flow and
@@ -224,7 +224,7 @@ namespace qoala::analysis::qbitlife {
      * Track dependences betwenn tasks.
      * Register qubit initialization and measurement tasks.
      */
-    void QoalaHostQubitLifeTime::processBlock(
+    void QoalaHostQubitLifetime::processBlock(
             const reordering::MILPBlock *block,
             const std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> &blockDependences,
             std::unordered_map<std::string, std::vector<std::string>> &taskDependences, std::vector<Task> &qpuTasks,
@@ -306,7 +306,7 @@ namespace qoala::analysis::qbitlife {
     }
 
     void
-    QoalaHostQubitLifeTime::buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
+    QoalaHostQubitLifetime::buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
                                            std::unordered_map<std::string, std::string> &qubitInits,
                                            std::unordered_map<std::string, std::string> &qubitMeas,
                                            std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas) {
@@ -333,7 +333,7 @@ namespace qoala::analysis::qbitlife {
         }
     }
 
-    void QoalaHostQubitLifeTime::buildBlockDependencies(
+    void QoalaHostQubitLifetime::buildBlockDependencies(
             const std::vector<std::pair<reordering::MILPBlock *, reordering::MILPBlock *>> &precedences,
             std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> &blockDependences) {
 
@@ -346,7 +346,7 @@ namespace qoala::analysis::qbitlife {
      * Verify if a task is available for scheduling.
      * A task is available if all its dependences have already been scheduled.
      */
-    bool QoalaHostQubitLifeTime::isTaskAvailable(
+    bool QoalaHostQubitLifetime::isTaskAvailable(
             const std::string &taskName,
             const std::unordered_map<std::string, std::vector<std::string>> &taskDependences) {
         auto it = taskDependences.find(taskName);
@@ -365,7 +365,7 @@ namespace qoala::analysis::qbitlife {
      * Find next task available to be scheduled in a list of tasks.
      * Return the index of the available task, or std::nullopt if no task is available.
      */
-    std::optional<size_t> QoalaHostQubitLifeTime::findNextAvailableTask(
+    std::optional<size_t> QoalaHostQubitLifetime::findNextAvailableTask(
             const std::vector<Task> &tasks,
             const std::unordered_map<std::string, std::vector<std::string>> &taskDependences) {
 
@@ -383,7 +383,7 @@ namespace qoala::analysis::qbitlife {
      * - If task is a measurement task, compute the life time
      * - Do nothing otherwise
      */
-    void QoalaHostQubitLifeTime::updateQubitLifetime(const Task &scheduledTask, int currentTime,
+    void QoalaHostQubitLifetime::updateQubitLifetime(const Task &scheduledTask, int currentTime,
                                                      const std::unordered_map<std::string, std::string> &qubitInits,
                                                      const std::unordered_map<std::string, std::string> &qubitMeas,
                                                      std::unordered_map<std::string, int> &qubitLifeTimes) {
@@ -412,7 +412,7 @@ namespace qoala::analysis::qbitlife {
      * Schedule a task if ready, removing it form the available tasks, and update related data.
      * Return true if the task has been scheduled.
      */
-    bool QoalaHostQubitLifeTime::scheduleTaskIfReady(
+    bool QoalaHostQubitLifetime::scheduleTaskIfReady(
             std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime, int globalTime,
             std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
             const std::unordered_map<std::string, std::string> &qubitInits,
@@ -453,7 +453,7 @@ namespace qoala::analysis::qbitlife {
     /**
      * Compute the next global time increment.
      */
-    int QoalaHostQubitLifeTime::computeNextTimeIncrement(const std::vector<Task> &cpuTasks,
+    int QoalaHostQubitLifetime::computeNextTimeIncrement(const std::vector<Task> &cpuTasks,
                                                          const std::vector<Task> &qpuTasks,
                                                          std::optional<size_t> nextCpuTaskIdx,
                                                          std::optional<size_t> nextQpuTaskIdx, int cpuTime, int qpuTime,
@@ -487,7 +487,7 @@ namespace qoala::analysis::qbitlife {
     }
 
     // Return computed qubit life times.
-    std::unordered_map<std::string, int> QoalaHostQubitLifeTime::getLifeTimes() const {
+    std::unordered_map<std::string, int> QoalaHostQubitLifetime::getLifetimes() const {
         // std::vector<int> lifeTimes;
         // lifeTimes.reserve(this->qubitLifeTimes.size());
 
@@ -500,4 +500,4 @@ namespace qoala::analysis::qbitlife {
         return this->qubitLifeTimes;
     }
 
-} // namespace qoala::analysis::qbitlife
+} // namespace qoala::analysis::qubitlife

@@ -1,5 +1,5 @@
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -20,13 +20,10 @@ namespace qoala::helpers::angle {
 
     Operation *insertAngleConversionFunctionDeclaration(ModuleOp &module) {
         OpBuilder builder(module.getBodyRegion());
-        FunctionType functionType = builder.getFunctionType(
-                builder.getF32Type(),
-                {builder.getI32Type(), builder.getI32Type()});
-        auto funcDeclaration = builder.create<func::FuncOp>(
-                module->getLoc(),
-                StringRef{angleConversionFunctionName},
-                functionType);
+        FunctionType functionType =
+                builder.getFunctionType(builder.getF32Type(), {builder.getI32Type(), builder.getI32Type()});
+        auto funcDeclaration =
+                builder.create<func::FuncOp>(module->getLoc(), StringRef{angleConversionFunctionName}, functionType);
         // We set an attribute on the function, so we can recognize it later
         const Attribute attr = builder.getStringAttr("true");
         funcDeclaration->setAttr("qoala-builtin", attr);
@@ -119,13 +116,14 @@ namespace qoala::helpers::angle {
             // Once that we found the first crossing of the contour curve, we will iterate at most
             // MAX_SEARCH_ITERATIONS values of "n" to the right.
             for (; n < MAX_SEARCH_ITERATIONS; n++) {
-                LLVM_DEBUG(llvm::dbgs() << "Status: (" << n << ", " << bestN << ", " << bestE << ", " << bestThreshold << ", " << currentAngle << ")\n");
-                // Iterate over all the exponents, starting at the highest exponent so far, trying to cross the contour curve
-                // NOTE: we limit the exponent to < 32, so we don't overflow the denom of angleCalculator
+                LLVM_DEBUG(llvm::dbgs() << "Status: (" << n << ", " << bestN << ", " << bestE << ", " << bestThreshold
+                                        << ", " << currentAngle << ")\n");
+                // Iterate over all the exponents, starting at the highest exponent so far, trying to cross the contour
+                // curve NOTE: we limit the exponent to < 32, so we don't overflow the denom of angleCalculator
                 uint32_t e;
                 double lastCurrentAngle = currentAngle;
                 for (e = highestE; e < 32; e++) {
-                    lastCurrentAngle = currentAngle; //angle at (n, e-1)
+                    lastCurrentAngle = currentAngle; // angle at (n, e-1)
                     currentAngle = getAngleInRads(n, e); // angle at (n, e)
                     if (currentAngle <= angleRads) {
                         // We crossed the contour curve, make note of this point
@@ -161,4 +159,4 @@ namespace qoala::helpers::angle {
         LLVM_DEBUG(llvm::dbgs() << "Returning: (" << bestN << ", " << bestE << ")\n************************\n");
         return {bestN, bestE};
     }
-}
+} // namespace qoala::helpers::angle

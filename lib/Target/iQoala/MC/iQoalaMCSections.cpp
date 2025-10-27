@@ -1,5 +1,5 @@
-#include "Target/iQoala/iQoala.h"
 #include "Analysis/Helpers/Helpers.h"
+#include "Target/iQoala/iQoala.h"
 
 using namespace mlir;
 
@@ -13,12 +13,12 @@ static std::string remoteIDFmt = "%s_id";
 
 namespace qoala::iqoala {
     void MetaSection::print(raw_ostream &os) const {
-        os << "META START\n";
+        os << "META_START\n";
         os << tabStr << "name: " << this->name << "\n";
         os << tabStr << "parameters: " << helpers::formatVector(this->globalParams) << "\n";
         os << tabStr << "csockets: " << helpers::formatMap(this->classicalSocketsMap) << "\n";
         os << tabStr << "epr_sockets: " << helpers::formatMap(this->eprsSocketsMap) << "\n";
-        os << "META END";
+        os << "META_END";
     }
 
     void HostSection::print(raw_ostream &os) const {
@@ -42,25 +42,15 @@ namespace qoala::iqoala {
         }
     }
 
-    void NetQASMSection::addRoutine(LocalQuantumRoutine *routine) {
-        this->routines.push_back(routine);
-    }
+    void NetQASMSection::addRoutine(LocalQuantumRoutine *routine) { this->routines.push_back(routine); }
 
-    std::vector<LocalQuantumRoutine *> NetQASMSection::getRoutines() const {
-        return this->routines;
-    }
+    std::vector<LocalQuantumRoutine *> NetQASMSection::getRoutines() const { return this->routines; }
 
-    void RequestSection::addRoutine(RequestQuantumRoutine *routine) {
-        this->routines.push_back(routine);
-    }
+    void RequestSection::addRoutine(RequestQuantumRoutine *routine) { this->routines.push_back(routine); }
 
-    std::vector<RequestQuantumRoutine *> RequestSection::getRoutines() const {
-        return this->routines;
-    }
+    std::vector<RequestQuantumRoutine *> RequestSection::getRoutines() const { return this->routines; }
 
-    void MetaSection::addParameter(const std::string &name) {
-        this->globalParams.push_back(name);
-    }
+    void MetaSection::addParameter(const std::string &name) { this->globalParams.push_back(name); }
 
     void MetaSection::addRemote(const std::string &remoteName) {
         const std::string remoteParamName = helpers::formatString(remoteIDFmt, remoteName.c_str());
@@ -70,8 +60,8 @@ namespace qoala::iqoala {
 
     void MetaSection::addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID) {
         this->classicalSocketsMap.emplace(remoteName, socketID);
-
     }
+
     void MetaSection::addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID) {
         this->eprsSocketsMap.emplace(remoteName, socketID);
     }
@@ -88,9 +78,7 @@ namespace qoala::iqoala {
         return this->remoteParamNames.at(remoteName);
     }
 
-    void MetaSection::setName(const std::string &programName) {
-        this->name = programName;
-    }
+    void MetaSection::setName(const std::string &programName) { this->name = programName; }
 
     Block *HostSection::createNewBlock() {
         auto *block = new Block();
@@ -140,4 +128,4 @@ namespace qoala::iqoala {
         return success();
     }
 
-}
+} // namespace qoala::iqoala

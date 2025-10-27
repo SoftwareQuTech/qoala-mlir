@@ -9,9 +9,9 @@
 #include "Dialect/QNet/QNetTypes.h"
 
 #include "Dialect/QNet/QNetDialect.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "llvm/ADT/TypeSwitch.h"
 
 using namespace qoala::dialects::qnet;
 
@@ -22,5 +22,5 @@ void QNetDialect::registerTypes() {
     addTypes<
 #define GET_TYPEDEF_LIST
 #include "Dialect/QNet/QNetTypes.cpp.inc"
-        >();
+            >();
 }

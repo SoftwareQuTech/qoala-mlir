@@ -16,10 +16,10 @@ void QoalaHostDialect::initialize() {
     addOperations<
 #define GET_OP_LIST
 #include "Dialect/QoalaHost/QoalaHost.cpp.inc"
-        >();
+            >();
 
     addTypes<
 #define GET_TYPEDEF_LIST
 #include "Dialect/QoalaHost/QoalaHostTypes.cpp.inc"
-        >();
+            >();
 }

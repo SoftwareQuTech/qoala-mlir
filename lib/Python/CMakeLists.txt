@@ -24,7 +24,7 @@ declare_mlir_dialect_python_bindings(
         ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet"
         TD_FILE dialects/QNetOps.td
         SOURCES
-            dialects/qnet.py
+        dialects/qnet.py
         DIALECT_NAME qnet)
 
 # At the moment, generating the python bindings for MLIR dialects _only_ works for the declared
@@ -38,9 +38,9 @@ declare_mlir_python_extension(QNetPythonSources.Extension
         SOURCES
         QNetExtension.cpp
         EMBED_CAPI_LINK_LIBS
-            QNetCAPI
+        QNetCAPI
         PRIVATE_LINK_LIBS
-            LLVMSupport
+        LLVMSupport
 )
 
 # Registration of the plugin. We need to link a python library, containing *ALL* of the
@@ -53,13 +53,13 @@ add_mlir_python_common_capi_library(QNetPythonCAPI
         OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/_mlir_libs"
         RELATIVE_INSTALL_ROOT "../../../.."
         DECLARED_SOURCES
-            QNetPythonSources.Extension
-            MLIRPythonExtension.RegisterEverything
-            MLIRPythonSources.Core
-            # We no longer bring "everything" (all the dialects) in the linkage.
-            # This means that compilation is faster and the generated library is lighter
-            # This also means that we now need to "include" the mlir_core python bindings
-            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+        QNetPythonSources.Extension
+        MLIRPythonExtension.RegisterEverything
+        MLIRPythonSources.Core
+        # We no longer bring "everything" (all the dialects) in the linkage.
+        # This means that compilation is faster and the generated library is lighter
+        # This also means that we now need to "include" the mlir_core python bindings
+        # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
 )
 
 # Instantiation of the python extensions
@@ -67,14 +67,14 @@ add_mlir_python_modules(QNetPythonModules
         ROOT_PREFIX "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet"
         INSTALL_PREFIX "qnet"
         DECLARED_SOURCES
-            # We no longer bring "everything" (all the dialects) in the linkage.
-            # This means that compilation is faster and the generated library is lighter
-            # This also means that we now need to "include" the mlir_core python bindings
-            # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
-            QNetPythonSources.Extension
-            QNetPythonSources
-            MLIRPythonExtension.RegisterEverything
-            MLIRPythonSources
+        # We no longer bring "everything" (all the dialects) in the linkage.
+        # This means that compilation is faster and the generated library is lighter
+        # This also means that we now need to "include" the mlir_core python bindings
+        # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+        QNetPythonSources.Extension
+        QNetPythonSources
+        MLIRPythonExtension.RegisterEverything
+        MLIRPythonSources
         COMMON_CAPI_LINK_LIBS
-            QNetPythonCAPI
+        QNetPythonCAPI
 )

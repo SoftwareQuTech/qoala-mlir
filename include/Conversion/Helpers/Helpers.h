@@ -1,12 +1,13 @@
 #ifndef QOALA_MLIR_HELPERS_H
 #define QOALA_MLIR_HELPERS_H
 
-#include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::helpers {
     struct OpAndValues {
-        OpAndValues(mlir::Operation *op, const mlir::ValueRange &values) : operation(op), values(values) { }
+        OpAndValues(mlir::Operation *op, const mlir::ValueRange &values): operation(op), values(values) { }
+
         mlir::Operation *operation{};
         mlir::ValueRange values;
     };
@@ -21,13 +22,13 @@ namespace qoala::helpers {
      *                 If multiple classes are passed then the operation must have
      *                 _one_ of the given destination types
      */
-    template <typename SourceOp, typename... DestOps>
+    template<typename SourceOp, typename... DestOps>
     class OpLoweringTemplate : public mlir::OpConversionPattern<SourceOp> {
     public:
         // Constructor that call the super class and sets the flag to allow
         // applying this rewrite pattern multiple times in a single recursion stack
-        OpLoweringTemplate(const mlir::TypeConverter &typeConverter, mlir::MLIRContext *context) :
-        mlir::OpConversionPattern<SourceOp>(typeConverter, context) {
+        OpLoweringTemplate(const mlir::TypeConverter &typeConverter, mlir::MLIRContext *context):
+            mlir::OpConversionPattern<SourceOp>(typeConverter, context) {
             this->setHasBoundedRewriteRecursion();
         }
 
@@ -54,13 +55,11 @@ namespace qoala::helpers {
          *         to the created operation (as returned by getOperation()) and the new
          *         values to replace in the users of the old operation.
          */
-        virtual std::unique_ptr<OpAndValues>
-                createNewOpAndValues(SourceOp op, typename SourceOp::Adaptor adaptor,
-                                     mlir::ConversionPatternRewriter &rewriter) const = 0;
+        virtual std::unique_ptr<OpAndValues> createNewOpAndValues(SourceOp op, typename SourceOp::Adaptor adaptor,
+                                                                  mlir::ConversionPatternRewriter &rewriter) const = 0;
 
-        mlir::LogicalResult
-        matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
-                        mlir::ConversionPatternRewriter &rewriter) const override {
+        mlir::LogicalResult matchAndRewrite(SourceOp op, typename SourceOp::Adaptor adaptor,
+                                            mlir::ConversionPatternRewriter &rewriter) const override {
             const std::unique_ptr<OpAndValues> newOpAndVals = createNewOpAndValues(op, adaptor, rewriter);
             // Expect an operation of a type of the declared destination types
             assert(llvm::isa<DestOps...>(newOpAndVals->operation));
@@ -77,15 +76,18 @@ namespace qoala::helpers {
         bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
         mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);
         std::vector<uint32_t> transformDouble(double angleRads);
-    } // namespace qoala::helpers::angle
+    } // namespace angle
 
     namespace print {
         /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
         struct IdentRAII {
             uint32_t &indent;
-            explicit IdentRAII(uint32_t &indent) : indent(indent) {}
+
+            explicit IdentRAII(uint32_t &indent): indent(indent) { }
+
             ~IdentRAII() { --indent; }
         };
+
         void printOperation(mlir::Operation *op);
         void printRegion(mlir::Region &region);
         void printBlock(mlir::Block &block);
@@ -93,7 +95,7 @@ namespace qoala::helpers {
         IdentRAII pushIndent();
 
         llvm::raw_ostream &printIndent();
-    } // namespace qoala::helpers::print
+    } // namespace print
 } // namespace qoala::helpers
 
 #endif // QOALA_MLIR_HELPERS_H

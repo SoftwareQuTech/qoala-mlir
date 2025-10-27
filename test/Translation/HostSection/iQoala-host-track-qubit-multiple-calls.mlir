@@ -1,12 +1,12 @@
 // UNSUPPORTED: true
 // Reason: see the comment on the qoala_wrapper_2 request routine op
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_qubit_tracking
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = QL, predecessors = [] }
 // This call does not yield a result, because __qoala_wrapper0 "uses 0" and "keeps 0"
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_request() : __qoala_wrapper0
@@ -35,6 +35,7 @@
 // CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses: [[QUBIT0:.*]]
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QUBIT_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: meas [[QUBIT_REG0]] [[M_REG0:.*]]
@@ -42,7 +43,7 @@
 // CHECK-NEXT: NETQASM_END
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback:
 // CHECK-NEXT: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
@@ -51,11 +52,11 @@
 // CHECK-NEXT: virt_ids: all 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper1
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback:
 // CHECK-NEXT: return_vars: m0
 // CHECK-NEXT: remote_id: {Bob_id}
@@ -64,7 +65,7 @@
 // CHECK-NEXT: virt_ids: all 1
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

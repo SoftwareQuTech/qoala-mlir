@@ -1,6 +1,6 @@
 #include "Analysis/NetQASM/Helpers.h"
-#include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/Helpers/DialectHelpers.h"
+#include "Dialect/NetQASM/NetQASM.h"
 #include "Target/iQoala/iQoala.h"
 
 using namespace mlir;
@@ -10,9 +10,10 @@ using namespace qoala::dialects::netqasm;
 
 namespace qoala::analysis::netqasm {
     std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
-        const iqoala::QuantumRoutine *quantumRoutine) {
+                                                     const iqoala::QuantumRoutine *quantumRoutine) {
         std::map<uint32_t, uint8_t> result;
-        if (auto routineOp = dyn_cast_if_present<helpers::NetQASMRoutineInterface>(getRoutineWithName(mlirModule, functionName))) {
+        if (auto routineOp = dyn_cast_if_present<helpers::NetQASMRoutineInterface>(
+                    getRoutineWithName(mlirModule, functionName))) {
             const auto returnOp = routineOp.getReturnOperation();
 
             for (auto returnVal : llvm::enumerate(returnOp->getOperands())) {
@@ -49,8 +50,7 @@ namespace qoala::analysis::netqasm {
                 return true;
             }
             // There operations use qubits on the first operand
-            if (isa<RotateXOp, RotateYOp, RotateZOp>(user) &&
-                use.getOperandNumber() == 0) {
+            if (isa<RotateXOp, RotateYOp, RotateZOp>(user) && use.getOperandNumber() == 0) {
                 return true;
             }
             // These operations use qubits on the first or second operand
@@ -81,7 +81,8 @@ namespace qoala::analysis::netqasm {
     template<typename RoutineType>
     static ArgValueMap getRoutineArgVals(RoutineType routine, const OperandRange &callOperands) {
         ArgValueMap result;
-        assert(routine.getNumArguments() == callOperands.size() && "Caller operand count doesn't match the callee arguments count");
+        assert(routine.getNumArguments() == callOperands.size() &&
+               "Caller operand count doesn't match the callee arguments count");
         for (auto blockArg : routine.front().getArguments()) {
             result.mapCallerArgToCalleeArgValue(callOperands[blockArg.getArgNumber()], blockArg);
         }
@@ -97,17 +98,4 @@ namespace qoala::analysis::netqasm {
         }
         return {};
     }
-
-    std::vector<assembly::iQoalaMCInstruction *> filterInstructionsFromRoutine(const iqoala::QuantumRoutine *routine,
-        const assembly::NetQASMMCInstr::OpCode opCode) {
-        std::vector<assembly::iQoalaMCInstruction *> result;
-        if (isa<iqoala::LocalQuantumRoutine>(routine)) {
-            for (assembly::iQoalaMCInstruction *instruction : routine->getInstructions()) {
-                if (instruction->getOpcode() == opCode) {
-                    result.push_back(instruction);
-                }
-            }
-        }
-        return result;
-    }
-}
+} // namespace qoala::analysis::netqasm

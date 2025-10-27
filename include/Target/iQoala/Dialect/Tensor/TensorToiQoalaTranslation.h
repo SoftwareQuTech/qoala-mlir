@@ -2,8 +2,8 @@
 #define QOALA_MLIR_TENSORTOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/Support/LogicalResult.h"
 
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 
@@ -18,6 +18,6 @@ namespace qoala::translate {
             registeriQoalaTranslation<mlir::tensor::TensorDialect, TensorToiQoalaTranslation>(registry);
         }
     };
-}
+} // namespace qoala::translate
 
-#endif //QOALA_MLIR_TENSORTOIQOALATRANSLATION_H
+#endif // QOALA_MLIR_TENSORTOIQOALATRANSLATION_H

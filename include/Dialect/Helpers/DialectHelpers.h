@@ -1,8 +1,8 @@
 #ifndef DIALECT_HELPERS_H
 #define DIALECT_HELPERS_H
 
-#include "mlir/IR/Operation.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Operation.h"
 
 namespace qoala::dialects::helpers {
     bool operationIsInsideMainFunc(mlir::Operation *op);
@@ -36,6 +36,6 @@ namespace qoala::dialects::helpers {
      *         not found.
      */
     mlir::Operation *getRoutineWithName(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName);
-}
+} // namespace qoala::dialects::helpers
 
-#endif //DIALECT_HELPERS_H
+#endif // DIALECT_HELPERS_H

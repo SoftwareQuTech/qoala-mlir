@@ -2,8 +2,8 @@
 #define NETQASMTOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/Support/LogicalResult.h"
 
 #include "Dialect/NetQASM/NetQASM.h"
 
@@ -18,5 +18,5 @@ namespace qoala::translate {
             registeriQoalaTranslation<dialects::netqasm::NetQASMDialect, NetQASMToiQoalaTranslation>(registry);
         }
     };
-}
-#endif //NETQASMTOIQOALATRANSLATION_H
+} // namespace qoala::translate
+#endif // NETQASMTOIQOALATRANSLATION_H

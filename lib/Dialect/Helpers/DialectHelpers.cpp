@@ -1,6 +1,6 @@
 #include "Dialect/Helpers/DialectHelpers.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/NetQASM/NetQASM.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 
 using namespace mlir;
 
@@ -40,7 +40,7 @@ namespace qoala::dialects::helpers {
         return parent.getSymName().str();
     }
 
-    template <typename RoutineOpType>
+    template<typename RoutineOpType>
     static Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
         Operation *routineOp = nullptr;
         mlirModule->walk([&](RoutineOpType routine) -> WalkResult {
@@ -67,4 +67,4 @@ namespace qoala::dialects::helpers {
         }
         return getRoutineWithName<netqasm::RequestRoutineOp>(mlirModule, functionName);
     }
-}
+} // namespace qoala::dialects::helpers

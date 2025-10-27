@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_local_routine_ret_one_val
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 7
@@ -16,7 +16,8 @@
 // CHECK-NEXT: returns: m0, m1, m2
 // CHECK-NEXT: uses: {{[[:space:]]}}
 // CHECK-SAME: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: load R[[R_REG0:.*]] @input[0]
 // CHECK-NEXT: load R[[R_REG1:.*]] @input[1]
 // CHECK-NEXT: set C[[C_REG2:.*]] 11

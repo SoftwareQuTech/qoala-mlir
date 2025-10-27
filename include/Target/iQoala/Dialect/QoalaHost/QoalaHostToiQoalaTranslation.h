@@ -2,8 +2,8 @@
 #define QOALAHOSTTOIQOALATRANSLATION_H
 
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/Support/LogicalResult.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 
@@ -18,6 +18,6 @@ namespace qoala::translate {
             registeriQoalaTranslation<dialects::qoalahost::QoalaHostDialect, QoalaHostToiQoalaTranslation>(registry);
         }
     };
-}
+} // namespace qoala::translate
 
-#endif //QOALAHOSTTOIQOALATRANSLATION_H
+#endif // QOALAHOSTTOIQOALATRANSLATION_H

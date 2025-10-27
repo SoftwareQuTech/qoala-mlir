@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --pass-pipeline='builtin.module(qoalahost-show-analysis{show-qubit-life=true})' | FileCheck %s
+// RUN: qoala-opt %s --qoalahost-show-analysis-qubit-life | FileCheck %s
 // CHECK: [Qubits Lifetimes]:
 // CHECK: - 3::2: 168
 // CHECK: - 1::2: 1251

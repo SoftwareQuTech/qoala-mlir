@@ -5,12 +5,12 @@
 // AFTER the place where it is used.
 // This is why all the branching destinations are "hard-coded"
 
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_branching_zero
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK-NEXT: ^b0 { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK-NEXT: %[[HOST_REG1:.*]] = assign_cval() : 2
@@ -24,6 +24,7 @@
 // CHECK-NEXT: returns: m0
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: load R[[ARG0_REG:.*]] @input[0]
 // CHECK-NEXT: set C[[C_REG1:.*]] 0

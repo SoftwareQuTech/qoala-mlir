@@ -1,0 +1,108 @@
+stages:
+  - lint
+  - build
+  - test
+
+variables:
+  DEBIAN_FRONTEND: noninteractive
+  # We'll compute these in the "llvm:meta" job and propagate via dotenv.
+  LLVM_SCIP_BASE_IMAGE: "qoalac/llvm-scip"
+  LLVM_SHA: ""
+  SCIP_VERSION: 9.2.2
+  # Your project will use these paths INSIDE the toolchain image:
+  MLIR_DIR_IN_IMAGE: "/workspace/llvm/build/lib/cmake/mlir"
+  VENV_DIR_IN_IMAGE: "/workspace/llvm-venv"
+  SCIP_DIR_IN_IMAGE: "/opt/scip/lib/cmake/scip" 
+
+clang-format:check:
+  stage: lint
+  image: ubuntu:24.04
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    # Ensure the script checks for the same major version we install below
+    CLANG_FORMAT_REQUIRED_MAJOR: "18"
+    GIT_SUBMODULE_STRATEGY: none
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends clang-format-18 git findutils
+    # Provide an unversioned 'clang-format' that points to v18
+    - update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+    - clang-format --version
+    - git config diff.ignoreSubmodules all
+    - git config --global submodule.recurse false
+    - chmod +x scripts/check-clang-format.sh
+  script:
+    - ./scripts/check-clang-format.sh
+  rules:
+    # Run only for merge requests targeting master
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  artifacts:
+    when: always
+    paths:
+      - clang-format.patch
+    expire_in: 1 week
+
+llvm:meta:
+  stage: build
+  image: ubuntu:24.04
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_DEPTH: 1
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - git submodule update --init --recursive --depth 1
+    # Short SHA from the llvm submodule pointer
+    - LLVM_SHA="$(git rev-parse HEAD:llvm)"
+    # Your local image tag (built on the runner host)
+    - MLIR_IMAGE="${LLVM_SCIP_BASE_IMAGE}:${LLVM_SHA}-${SCIP_VERSION}"
+    - echo "LLVM_SHA=${LLVM_SHA}" | tee -a toolchain.env
+    - echo "MLIR_IMAGE=${MLIR_IMAGE}" | tee -a toolchain.env
+    - echo "Resolved MLIR_IMAGE=${MLIR_IMAGE}"
+  rules:
+    # Run only for merge requests targeting master
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  artifacts:
+    reports:
+      dotenv: toolchain.env
+    expire_in: 1 week
+
+qoalac:build:
+  stage: build
+  needs: ["llvm:meta"]
+  image:
+    name: $MLIR_IMAGE
+    pull_policy: if-not-present   # key bit: use local image if available
+  script:
+    - source "$VENV_DIR_IN_IMAGE/bin/activate"
+
+    - |
+        mkdir build && cd build && LD=ld.ldd-17 cmake -G Ninja .. \
+          -DCMAKE_C_COMPILER=clang-17 \
+          -DCMAKE_CXX_COMPILER=clang++-17 \
+          -DCMAKE_LINKER=ld.ldd-17 \
+          -DMLIR_DIR="$MLIR_DIR_IN_IMAGE" \
+          -DSCIP_DIR="$SCIP_DIR_IN_IMAGE" \
+          -DPython3_EXECUTABLE="$VENV_DIR_IN_IMAGE/bin/python3"
+
+    - cmake --build .
+  artifacts:
+    paths:
+      # - build/
+      - build/bin/
+    expire_in: 1 week
+  rules:
+    # Run only for merge requests targeting master
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+
+qoalac:test:
+  stage: test
+  needs: ["llvm:meta", "qoalac:build"]
+  image:
+    name: $MLIR_IMAGE
+    pull_policy: if-not-present
+  script:
+    - export PATH="$CI_PROJECT_DIR/build/bin:$PATH"
+    - llvm-lit test
+  rules:
+    # Run only for merge requests targeting master
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'

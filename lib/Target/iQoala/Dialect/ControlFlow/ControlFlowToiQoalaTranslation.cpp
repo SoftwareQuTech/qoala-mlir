@@ -1,10 +1,11 @@
-#include "llvm/ADT/TypeSwitch.h"
-#include "mlir/IR/Operation.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "Target/iQoala/Dialect/ControlFlow/ControlFlowToiQoalaTranslation.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/MC/Helpers.h"
 #include "Target/iQoala/MC/iQoalaMC.h"
-#include "Target/iQoala/Dialect/ControlFlow/ControlFlowToiQoalaTranslation.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include "mlir/IR/Operation.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -18,7 +19,7 @@ static NetQASMMCInstr::OpCode getNetQASMOpCodeFor(const arith::CmpIPredicate pre
     // Mapping between the arith.cmpi predicate values to the respective NetQASM Opcodes
     switch (predicate) {
         case arith::CmpIPredicate::eq:
-            return operandIsZero ? NetQASMMCInstr:: OP_BEZ : NetQASMMCInstr::OP_BEQ;
+            return operandIsZero ? NetQASMMCInstr::OP_BEZ : NetQASMMCInstr::OP_BEQ;
         case arith::CmpIPredicate::ne:
             return operandIsZero ? NetQASMMCInstr::OP_BNZ : NetQASMMCInstr::OP_BNE;
         case arith::CmpIPredicate::sge:
@@ -63,9 +64,8 @@ static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslatio
 
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-        {}, {}, {targetBlockOperand},
-        /*useOpOperands=*/false, /*appendInstruction=*/true);
+            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP, {}, {}, {targetBlockOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
 
@@ -124,17 +124,16 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
 
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op.getOperation(), opcode,
-            {}, {}, {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
+                moduleTranslation, op.getOperation(), opcode, {}, {},
+                {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
+                /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
         }
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP,
-            {}, {}, {falseTargetBlockOperand},
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
+                moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP, {}, {}, {falseTargetBlockOperand},
+                /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();
         }
@@ -154,9 +153,8 @@ static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation,
 
     // Create the jump instruction
     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-        moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-        {}, {}, {destOperand},
-        /*useOpOperands=*/false, /*appendInstruction=*/true);
+            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP, {}, {}, {destOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
     return instruction ? success() : failure();
 }
 
@@ -176,7 +174,8 @@ static bool valueCanBeTracedToZeroConstant(const Value &value) {
     return false;
 }
 
-static SmallVector<iQoalaMCOperand *> createCmpOperands(ModuleTranslation *moduleTranslation, arith::CmpIOp cmpIOp, bool *oneOperandIsZero) {
+static SmallVector<iQoalaMCOperand *> createCmpOperands(ModuleTranslation *moduleTranslation, arith::CmpIOp cmpIOp,
+                                                        bool *oneOperandIsZero) {
     // Check if one of the values used by the comparison can be traced back to zero
     SmallVector<iQoalaMCOperand *> operands;
     const bool leftIsZero = valueCanBeTracedToZeroConstant(cmpIOp.getLhs());
@@ -225,17 +224,15 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
 
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), opcode,
-            {}, {}, cmpOperands,
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
+                moduleTranslation, op.getOperation(), opcode, {}, {}, cmpOperands,
+                /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
             return failure();
         }
         // Insert the unconditional jump (false branch)
         const auto *uncondBrInstr = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP,
-            {}, {}, {falseTargetBlockOperand},
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
+                moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP, {}, {}, {falseTargetBlockOperand},
+                /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!uncondBrInstr) {
             return failure();
         }
@@ -249,31 +246,32 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
 static LogicalResult translateControlFlowOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
-        .Case([&](cf::BranchOp op) -> LogicalResult {
-            if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                return placeQoalaHostJumpInstr(moduleTranslation, op);
-            }
-            if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                return placeNetQASMJumpInstr(moduleTranslation, op);
-            }
-            return op.emitOpError("Branch operation not in host or netqasm section!\n");
-        })
-        .Case([&](cf::CondBranchOp op) -> LogicalResult {
-            if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                return placeQoalaHostCondBrInstr(moduleTranslation, op);
-            }
-            if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
-                return placeNetQASMCondBrInstr(moduleTranslation, op);
-            }
-            return op.emitOpError("Conditional branch operation not in host or netqasm section!\n");
-        })
-        .Default([](Operation *op) -> LogicalResult {
-            return op->emitOpError("Unknown way to translate a ControlFlow operation to iQoala: '") << *op << "'\n";
-        });
+            .Case([&](cf::BranchOp op) -> LogicalResult {
+                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                    return placeQoalaHostJumpInstr(moduleTranslation, op);
+                }
+                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                    return placeNetQASMJumpInstr(moduleTranslation, op);
+                }
+                return op.emitOpError("Branch operation not in host or netqasm section!\n");
+            })
+            .Case([&](cf::CondBranchOp op) -> LogicalResult {
+                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                    return placeQoalaHostCondBrInstr(moduleTranslation, op);
+                }
+                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                    return placeNetQASMCondBrInstr(moduleTranslation, op);
+                }
+                return op.emitOpError("Conditional branch operation not in host or netqasm section!\n");
+            })
+            .Default([](Operation *op) -> LogicalResult {
+                return op->emitOpError("Unknown way to translate a ControlFlow operation to iQoala: '") << *op << "'\n";
+            });
 }
 
 namespace qoala::translate {
-    LogicalResult ControlFlowToiQoalaTranslation::convertOperation(Operation *op, ModuleTranslation *moduleTranslation) const {
+    LogicalResult ControlFlowToiQoalaTranslation::convertOperation(Operation *op,
+                                                                   ModuleTranslation *moduleTranslation) const {
         return translateControlFlowOperation(op, moduleTranslation);
     }
-}
+} // namespace qoala::translate

@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --pass-pipeline='builtin.module(qoalahost-show-analysis{show-qmem-eff=true})' | FileCheck %s
+// RUN: qoala-opt %s --qoalahost-show-analysis-qmem-eff | FileCheck %s
 // CHECK: [QMem Efficiency]:5.000000e-01
 
 module {

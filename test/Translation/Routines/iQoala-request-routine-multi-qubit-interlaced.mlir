@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_call_request_routines
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_request() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
@@ -21,6 +21,7 @@
 // CHECK-SAME: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT3:.*]]
 // CHECK-NEXT: keeps: [[QUBIT3]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REGA:.*]] [[QUBIT3]]
 // CHECK-NEXT: init [[Q_REGA:.*]]
@@ -32,6 +33,7 @@
 // CHECK-SAME: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
 // CHECK-NEXT: keeps: [[QUBIT0]], [[QUBIT1]], [[QUBIT2]], [[QUBIT3]], [[QUBIT4]]
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REGB0:.*]] [[QUBIT0]]
 // CHECK-NEXT: set [[Q_REGB1:.*]] [[QUBIT1]]
@@ -49,7 +51,8 @@
 // CHECK-SAME: returns: m0, m1, m2, m3, m4
 // CHECK-NEXT: uses: [[QUBIT0]], [[QUBIT1]], [[QUBIT2]], [[QUBIT3]], [[QUBIT4]]
 // CHECK-NEXT: keeps: {{[[:space:]]}}
-// CHECK-SAME: NETQASM_START
+// CHECK-SAME: request:
+// CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[Q_REG0:.*]] [[QUBIT0]]
 // CHECK-NEXT: set [[Q_REG1:.*]] [[QUBIT1]]
 // CHECK-NEXT: set [[Q_REG2:.*]] [[QUBIT2]]
@@ -68,7 +71,7 @@
 // CHECK-NEXT: NETQASM_END
 
 //CHECK: REQUEST __qoala_wrapper0
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -77,11 +80,11 @@
 // CHECK-NEXT: virt_ids: increment 0
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 //CHECK: REQUEST __qoala_wrapper2
-// CHECK-NEXT: callback_type: sequential
+// CHECK-NEXT: callback_type: WAIT_ALL
 // CHECK-NEXT: callback: {{[[:space:]]}}
 // CHECK-SAME: return_vars: {{[[:space:]]}}
 // CHECK-SAME: remote_id: {Bob_id}
@@ -90,7 +93,7 @@
 // CHECK-NEXT: virt_ids: all 4
 // CHECK-NEXT: timeout: 1000
 // CHECK-NEXT: fidelity: 1.000000e+00
-// CHECK-NEXT: type: create_keep
+// CHECK-NEXT: typ: create_keep
 // CHECK-NEXT: role: create
 
 module {

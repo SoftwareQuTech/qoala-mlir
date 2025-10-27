@@ -10,6 +10,7 @@ from .._mlir_libs._qnetTypes.qnet_types import *
 
 from typing import Any, List, Optional, Sequence, Union
 
+
 @_ods_cext.register_operation(_Dialect, replace=True)
 class FuncOp(FuncOp):
     """Helper class ported from the 'FuncOp' class from the 'func' dialect"""

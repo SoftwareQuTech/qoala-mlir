@@ -7,11 +7,11 @@
 namespace qoala::analysis {
 #define GEN_PASS_DECL
 #include "Dialect/QNet/Passes.h.inc"
-/// Generate the code for registering passes.
+    /// Generate the code for registering passes.
 
 #define GEN_PASS_REGISTRATION
 #include "Dialect/QNet/Passes.h.inc"
 
-} // namespace mlir
+} // namespace qoala::analysis
 
 #endif // QNET_PASSES_H_

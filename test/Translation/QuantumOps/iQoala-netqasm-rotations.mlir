@@ -1,10 +1,10 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
-// CHECK: META START
+// CHECK: META_START
 // CHECK-NEXT: name: test_local_routine_rotations
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
-// CHECK-NEXT: META END
+// CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[RES_0:.*]] = run_subroutine() : __qoala_wrapper0
 
@@ -13,6 +13,7 @@
 // CHECK-NEXT: returns:
 // CHECK-NEXT: uses:
 // CHECK-NEXT: keeps:
+// CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set Q[[QBIT0:.*]] 0
 // CHECK-NEXT: init Q[[QBIT0]]

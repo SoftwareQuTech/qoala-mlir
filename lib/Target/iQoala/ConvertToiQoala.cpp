@@ -1,6 +1,6 @@
-#include "mlir/Tools/mlir-translate/Translation.h"
-#include "Target/iQoala/QoalaTranslations.h"
 #include "Target/iQoala/Export.h"
+#include "Target/iQoala/QoalaTranslations.h"
+#include "mlir/Tools/mlir-translate/Translation.h"
 
 using namespace mlir;
 
@@ -18,7 +18,7 @@ namespace qoala::translate {
         TranslateFromMLIRRegistration registration(
                 "mlir-to-iqoala", "Translate MLIR to iQoala", // Command line arg, and description
                 [](Operation *op, raw_ostream &output) -> LogicalResult {
-                    assert (isa<ModuleOp>(*op));
+                    assert(isa<ModuleOp>(*op));
                     iqoala::iQoalaContext iQoalaContext;
                     const auto iQoalaModule = translateModuleToiQoala(op, iQoalaContext);
                     if (!iQoalaModule) {
@@ -37,4 +37,4 @@ namespace qoala::translate {
                     registerAllQoalaSupportTranslations(registry);
                 });
     }
-} // namespace mlir
+} // namespace qoala::translate

@@ -13,6 +13,6 @@ namespace mlir::OpTrait {
         // In the meantime, we don't have any specific behavior for operation
         // with the "Entangle" trait
     };
-}
+} // namespace mlir::OpTrait
 
-#endif //QOALA_MLIR_QMEM_TRAITS_H
+#endif // QOALA_MLIR_QMEM_TRAITS_H

@@ -3,4 +3,4 @@
 
 #include "Analysis/Helpers/NetQASMInterfaces.h.inc"
 
-#endif //NETQASM_INTERFACES_H
+#endif // NETQASM_INTERFACES_H

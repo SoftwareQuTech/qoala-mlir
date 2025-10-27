@@ -93,6 +93,18 @@ SCIP is the MILP solver used for some optimization passes. To install it, please
 
 > NOTE: the optimization passes were tested with v9.2.2, there is no guarantee that the API will not change, especially in a late **major** version.
 
+## Build LLVM with SCIP docker image
+
+You can simply run:
+```bash
+LLVM_SHA=$(git rev-parse HEAD:llvm) SCIP_VERSION=9.2.2
+docker build \
+  --build-arg LLVM_SHA="$LLVM_SHA" \
+  --build-arg SCIP_VERSION="$SCIP_VERSION" \
+  -f docker/llvm-scip/Dockerfile \
+  -t qoalac/llvm-scip:$LLVM_SHA-$SCIP_VERSION .
+```
+
 ## Build this repo
 
 This setup assumes that you have built LLVM and MLIR in `./llvm/build`, MLIR has been installed to `/opt/mlir`

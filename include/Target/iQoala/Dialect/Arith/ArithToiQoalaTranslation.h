@@ -17,6 +17,6 @@ namespace qoala::translate {
             registeriQoalaTranslation<mlir::arith::ArithDialect, ArithToiQoalaTranslation>(registry);
         }
     };
-}
+} // namespace qoala::translate
 
-#endif //ARITHTOIQOALATRANSLATION_H
+#endif // ARITHTOIQOALATRANSLATION_H

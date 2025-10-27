@@ -1,10 +1,9 @@
 #ifndef QOALA_MLIR_CONVERSION_H
 #define QOALA_MLIR_CONVERSION_H
 
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "Dialect/QMem/QMem.h"
-
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinOps.h"
 
 namespace qoala::analysis::functionize {
     struct FunctionizeData {
@@ -44,9 +43,9 @@ namespace qoala::analysis::functionize {
      * @param quantumOpsGroup An ordered `SetVector` object containing the set of operations to wrap, in the
      *                        order they need to be inserted in the new body.
      */
-     void createNewFunctionWithOperations(FunctionizeData &data, mlir::OpBuilder &opBuilder,
-                                          mlir::StringRef funcName, const mlir::Location &loc,
-                                          llvm::SetVector<mlir::Operation *> &quantumOpsGroup);
+    void createNewFunctionWithOperations(FunctionizeData &data, mlir::OpBuilder &opBuilder, mlir::StringRef funcName,
+                                         const mlir::Location &loc,
+                                         llvm::SetVector<mlir::Operation *> &quantumOpsGroup);
 
     /**
      * Analyzes the given set of operations to determine the "arguments" and "results" of the given set.
@@ -86,12 +85,14 @@ namespace qoala::analysis::functionize {
 
     /**
      * Operation classifier that follows the rules of the compiler specifications. This method creates
-     * operation groups based on the criteria specified in https://gitlab.tudelft.nl/qoala/qoala-compiler-spec/-/blob/master/design/translations/MIR_to_LIR.md
+     * operation groups based on the criteria specified in
+     * https://gitlab.tudelft.nl/qoala/qoala-compiler-spec/-/blob/master/design/translations/MIR_to_LIR.md
      * @param mainFunction The function on which run the grouping
      * @param maxOpsPerGroup Maximum number of operations to leave inside a group.
      * @return A collection of quantum groups.
      */
-    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction, uint32_t maxOpsPerGroup);
-}
+    std::vector<QuantumOpsGroupTy> functionizeOpClassifier(dialects::qmem::FuncOp &mainFunction,
+                                                           uint32_t maxOpsPerGroup);
+} // namespace qoala::analysis::functionize
 
-#endif //QOALA_MLIR_CONVERSION_H
+#endif // QOALA_MLIR_CONVERSION_H
