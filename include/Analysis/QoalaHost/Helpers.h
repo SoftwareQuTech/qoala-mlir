@@ -437,21 +437,23 @@ namespace qoala::analysis {
          * Constructs the MILP blocks from the given main function and the routine map.
          * @param mainFunc The main function.
          * @param routineMap a map from NetQASM routines' symbol names to their corresponding operations
-         * @returns A tuple containing the constructed MILP blocks, a map between MLIR operations and MILP operations, precedence list,
-         *          unresolvedEdges, a map between MILP block ids and the blocks, and a LogicalResult indicating success or failure.
+         * @returns A tuple containing the constructed MILP blocks, a map between MLIR operations and MILP operations,
+         * precedence list, unresolvedEdges, a map between MILP block ids and the blocks, and a LogicalResult indicating
+         * success or failure.
          */
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<mlir::Operation *, MILPOperation *>,
                    BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                    mlir::LogicalResult>
         buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp mainFunc,
                         const llvm::StringMap<mlir::Operation *> &routineMap);
-        
+
         /**
          * Constructs a map between qubits as MLIR values and all the MLIR operations that have memory effects on them.
          * @param mainFunc The main function.
          * @param moduleOp The MLIR module to analyze.
-         * @returns A map between the qubit MLIR values and a vector of MLIR operations that have memory effects on them, and a LogicalResult indicating success or failure.
-         */                
+         * @returns A map between the qubit MLIR values and a vector of MLIR operations that have memory effects on
+         * them, and a LogicalResult indicating success or failure.
+         */
         std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
         collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp mainFunc, mlir::ModuleOp moduleOp);
 

@@ -10,7 +10,8 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTQUBITLIFESHOWANALYSIS
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostQubitLifeShowAnalysis : public impl::QoalaHostQubitLifeShowAnalysisBase<QoalaHostQubitLifeShowAnalysis> {
+    class QoalaHostQubitLifeShowAnalysis
+        : public impl::QoalaHostQubitLifeShowAnalysisBase<QoalaHostQubitLifeShowAnalysis> {
         using QoalaHostQubitLifeShowAnalysisBase::QoalaHostQubitLifeShowAnalysisBase;
 
         void runOnOperation() override;
