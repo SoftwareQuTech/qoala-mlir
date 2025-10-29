@@ -15,27 +15,26 @@ using namespace qoala::dialects::qnet;
 namespace qoala::analysis::gatecount {
 
     bool isQuantumOp(mlir::Operation *op) {
-        return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp, MeasureOp, EprsOp, EprsMeasureOp>(op);
+        return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp, MeasureOp, EprsOp,
+                         EprsMeasureOp>(op);
     }
 
     bool isOneQubitOp(mlir::Operation *op) {
         return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, MeasureOp, EprsOp, EprsMeasureOp>(op);
     }
 
-    bool isTwoQubitOp(mlir::Operation *op) {
-        return llvm::isa<CnotOp, CzOp, CrotXOp>(op);
-    }
+    bool isTwoQubitOp(mlir::Operation *op) { return llvm::isa<CnotOp, CzOp, CrotXOp>(op); }
 
     std::string getSSAName(Value val, AsmState &state) {
         std::string ssaName;
         llvm::raw_string_ostream stream(ssaName);
         val.printAsOperand(stream, state);
-    
+
         return ssaName;
     }
 
     QNetGateCount::QNetGateCount(Operation *op) {
-        llvm::StringMap<std::vector<Operation*>> qubitsToOps;
+        llvm::StringMap<std::vector<Operation *>> qubitsToOps;
         llvm::DenseMap<Value, std::string> qubitsInitToOpRes;
 
         if (ModuleOp module = llvm::dyn_cast<ModuleOp>(op)) {
@@ -45,8 +44,7 @@ namespace qoala::analysis::gatecount {
             // Walk over all ops in the module.
             module.walk([&](Operation *op) {
                 if (llvm::isa<NewQubitOp, EprsOp>(op)) {
-                    LLVM_DEBUG(
-                    llvm::dbgs() << "New Qubit Op for qubit: " << op->getName().getStringRef() << ".\n");
+                    LLVM_DEBUG(llvm::dbgs() << "New Qubit Op for qubit: " << op->getName().getStringRef() << ".\n");
                     for (Value result : op->getResults()) {
                         std::string qubitSsaName = getSSAName(result, state);
                         qubitsInitToOpRes[result] = qubitSsaName;
@@ -60,12 +58,10 @@ namespace qoala::analysis::gatecount {
                     if (isQuantumOp(op)) {
                         ++gateCount;
                         if (isTwoQubitOp(op)) {
-                            LLVM_DEBUG(
-                            llvm::dbgs() << "Two Qubit Op: " << op->getName().getStringRef() << ".\n");
+                            LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << op->getName().getStringRef() << ".\n");
                             ++twoQubitGateCount;
                         } else {
-                            LLVM_DEBUG(
-                            llvm::dbgs() << "One Qubit Op: " << op->getName().getStringRef() << ".\n");
+                            LLVM_DEBUG(llvm::dbgs() << "One Qubit Op: " << op->getName().getStringRef() << ".\n");
                             ++oneQubitGateCount;
                         }
                         // For each operand, find its lineage ID and propagate it to the
@@ -78,7 +74,7 @@ namespace qoala::analysis::gatecount {
                             auto foundIt = qubitsInitToOpRes.find(operand);
                             if (foundIt != qubitsInitToOpRes.end()) {
                                 std::string initSSA = foundIt->second;
-                                
+
                                 // Add this operation to the history of the qubit it acts on.
                                 // To avoid duplicates for multi-qubit gates, we can check first.
                                 // if (qubitsToOps[initSSA].empty() || qubitsToOps[initSSA].back() != op) {
@@ -103,22 +99,18 @@ namespace qoala::analysis::gatecount {
                     }
                 }
             });
-            
+
             // AsmState state(module);
             for (auto &pair : qubitsToOps) {
                 llvm::StringRef qubitSsaName = pair.getKey();
                 auto &users = pair.second;
 
-                LLVM_DEBUG(
-                llvm::dbgs() << "Gates on qubit " << qubitSsaName << ":\n");
+                LLVM_DEBUG(llvm::dbgs() << "Gates on qubit " << qubitSsaName << ":\n");
                 for (auto *user : users) {
-                    LLVM_DEBUG(
-                    llvm::dbgs() << "    -> " << user->getName().getStringRef() << "\n");
+                    LLVM_DEBUG(llvm::dbgs() << "    -> " << user->getName().getStringRef() << "\n");
                 }
             }
         }
     }
-
-
 
 } // namespace qoala::analysis::gatecount

@@ -11,17 +11,17 @@ namespace qoala::analysis {
             explicit QNetGateCount(mlir::Operation *op);
 
             [[nodiscard]]
-            llvm::StringMap<int> getOneQubitGateCounts() const {
+            const llvm::StringMap<uint32_t> &getOneQubitGateCounts() const {
                 return qubitToOneGateCount;
             }
 
             [[nodiscard]]
-            llvm::StringMap<int> getTwoQubitGateCounts() const {
+            const llvm::StringMap<uint32_t> &getTwoQubitGateCounts() const {
                 return qubitToTwoGateCount;
             }
 
             [[nodiscard]]
-            llvm::StringMap<int> getGateCounts() const {
+            const llvm::StringMap<uint32_t> &getGateCounts() const {
                 return qubitToGateCount;
             };
 
@@ -39,13 +39,14 @@ namespace qoala::analysis {
             uint32_t getTwoQubitGateCount() const {
                 return twoQubitGateCount;
             };
+
         private:
             uint32_t gateCount = 0;
             uint32_t oneQubitGateCount = 0;
             uint32_t twoQubitGateCount = 0;
-            llvm::StringMap<int> qubitToGateCount;
-            llvm::StringMap<int> qubitToOneGateCount;
-            llvm::StringMap<int> qubitToTwoGateCount;
+            llvm::StringMap<uint32_t> qubitToGateCount;
+            llvm::StringMap<uint32_t> qubitToOneGateCount;
+            llvm::StringMap<uint32_t> qubitToTwoGateCount;
         };
     } // namespace gatecount
 } // namespace qoala::analysis
