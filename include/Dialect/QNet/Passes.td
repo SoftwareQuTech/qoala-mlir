@@ -13,4 +13,9 @@ def QNetDeadCodeElimination : Pass<"qnet-dead-code-elimination", "qoala::dialect
   let dependentDialects = ["qoala::dialects::qnet::QNetDialect"];
 }
 
+def QNetGateCountShowAnalysis: Pass<"qnet-show-analysis-gate-count", "mlir::ModuleOp"> {
+    let summary = "Show the gate count analysis computed in HIR.";
+    let dependentDialects = ["qoala::dialects::qnet::QNetDialect"];
+}
+
 #endif // QNET_PASSES
