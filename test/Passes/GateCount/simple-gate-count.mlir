@@ -1,3 +1,9 @@
+// RUN: qoala-opt %s --qnet-show-analysis-gate-count | FileCheck %s
+// CHECK:  [Gate Count]:
+// CHECK:  - One-qubit gates: 2
+// CHECK:  - Two-qubit gates: 1
+// CHECK:  - Total gates: 3
+
 module {
     qnet.remote @Bob
     qnet.func @unmeasured_locally_entangled_qubit() {

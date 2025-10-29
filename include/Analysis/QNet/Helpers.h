@@ -1,6 +1,7 @@
 #ifndef QNET_HELPERS_H
 #define QNET_HELPERS_H
 
+#include "llvm/ADT/StringMap.h"
 #include "mlir/IR/BuiltinOps.h"
 
 namespace qoala::analysis {
@@ -10,26 +11,41 @@ namespace qoala::analysis {
             explicit QNetGateCount(mlir::Operation *op);
 
             [[nodiscard]]
-            uint32_t getOneQubitGateCount() const {
-                // return virtualQubits;
-                return 0;
+            llvm::StringMap<int> getOneQubitGateCounts() const {
+                return qubitToOneGateCount;
             }
+
+            [[nodiscard]]
+            llvm::StringMap<int> getTwoQubitGateCounts() const {
+                return qubitToTwoGateCount;
+            }
+
+            [[nodiscard]]
+            llvm::StringMap<int> getGateCounts() const {
+                return qubitToGateCount;
+            };
+
+            [[nodiscard]]
+            uint32_t getGateCount() const {
+                return gateCount;
+            };
+
+            [[nodiscard]]
+            uint32_t getOneQubitGateCount() const {
+                return oneQubitGateCount;
+            };
 
             [[nodiscard]]
             uint32_t getTwoQubitGateCount() const {
-                // return physicalQubits;
-                return 0;
-            }
-
-            [[nodiscard]]
-            float getGateCount() const {
-                return 0;
+                return twoQubitGateCount;
             };
         private:
-            int gateCount;
-            std::unordered_map<std::string, int> qubitToGateCount;
-            std::unordered_map<std::string, int> qubitToOneGateCount;
-            std::unordered_map<std::string, int> qubitToTwoGateCount;
+            uint32_t gateCount = 0;
+            uint32_t oneQubitGateCount = 0;
+            uint32_t twoQubitGateCount = 0;
+            llvm::StringMap<int> qubitToGateCount;
+            llvm::StringMap<int> qubitToOneGateCount;
+            llvm::StringMap<int> qubitToTwoGateCount;
         };
     } // namespace gatecount
 } // namespace qoala::analysis
