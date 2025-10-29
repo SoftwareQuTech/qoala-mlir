@@ -34,7 +34,6 @@ namespace qoala::analysis::qubitlife {
             reordering::MILPOperation *twoQubitOp = nullptr;
 
             for (Operation *op : ops) {
-                auto num_operands = op->getNumOperands();
                 if (llvm::isa<netqasm::QInitOp>(op) || llvm::isa<netqasm::EprsOp>(op)) {
                     auto it = opToMilpOp.find(op);
                     allocOp = (it != opToMilpOp.end()) ? it->second : nullptr;
@@ -45,13 +44,14 @@ namespace qoala::analysis::qubitlife {
                     measOp = (itMeas != opToMilpOp.end()) ? itMeas->second : nullptr;
                 }
                 /**
-                 * TODO Treat a two-qubit op as a measure op.
+                 * TODO Treat last two-qubit op as a measure op.
+                 * A measure op will overwrite the last two-qubit op.
                  * This could be merged with the check for MeasureOp,
                  * removing the need of the LiveQubit class.
                  * Need to check if block reordering would still work even when
                  * the measure op is instead a two-qubit op.
                  */
-                if (num_operands > 1) {
+                if (llvm::isa<netqasm::CnotOp, netqasm::CzOp, netqasm::CrotXOp>(op)) {
                     auto itTwoQubitOp = opToMilpOp.find(op);
                     twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
                 }
