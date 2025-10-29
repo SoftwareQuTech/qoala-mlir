@@ -21,8 +21,14 @@ namespace qoala::analysis {
         const auto &analysis = getAnalysis<qubitlife::QoalaHostQubitLifetime>();
         llvm::outs() << "  [Qubits Lifetimes]: \n";
         const auto lifeTimes = analysis.getLifetimes();
-        for (const auto &entry : lifeTimes) {
-            llvm::outs() << "    - " << entry.first << ": " << entry.second << "\n";
+        std::vector<std::string> sortedKeys;
+        for (const auto &pair : lifeTimes) {
+            sortedKeys.push_back(pair.first);
+        }
+        std::sort(sortedKeys.begin(), sortedKeys.end());
+
+        for (const auto &key : sortedKeys) {
+            llvm::outs() << "    - " << key << ": " << lifeTimes.at(key) << "\n";
         }
     }
 } // namespace qoala::analysis
