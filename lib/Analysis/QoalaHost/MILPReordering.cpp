@@ -929,7 +929,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    void MILPBlockOrderModel::setObjective() {
+    void MILPBlockOrderModel::setPrimaryObjective() {
         // Sets the MILP objective to minimize the total qubit usage time across all qubits.
         // For each qubit:
         //  - MeasureOp start time contributes positively to the objective
@@ -939,6 +939,15 @@ namespace qoala::analysis::reordering {
         //                = Total lifetime time per qubit
         // In this implementation we remove dur(meas) - dur(alloc) from the objective, as those are not
         // variables and have no influence on the result.
+
+        const bool maximize = qoalaOptUnoptimize;
+        SCIPsetObjsense(scip_, maximize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
+
+        // Reset all objective coeffs to 0 first, just to be clean:
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
 
         for (const std::shared_ptr<MILPQubit> &q : qubits_) {
@@ -956,28 +965,155 @@ namespace qoala::analysis::reordering {
             SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
             SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
         }
+    }
 
-        // Add a tiny deterministic secondary objective to break ties between
-        // multiple equally optimal schedules. The small 'eps' is chosen:
-        //   - larger than feastol (1e-6 >> 1e-9) so SCIP recognizes the difference,
-        //   - much smaller than 1 tick, so it does not change the physical timing.
-        //
-        // This ensures the solver picks a unique, reproducible ordering of blocks
-        // (by their original IR order) across platforms and runs, eliminating
-        // platform-dependent tie-breaking within SCIP’s floating-point numerics.
-        const double eps = 1e-6; // >> feastol (1e-9), << 1 tick
-        int rank = 0;
-        for (const auto &b : blocks_) {
-            const auto &ops = b->getOperations();
-            if (ops.empty()) {
+    double MILPBlockOrderModel::getPrimaryObjectiveValueFromSolution() const {
+        SCIP_SOL *bestsol = SCIPgetBestSol(scip_);
+        double z = 0.0;
+
+        for (const auto &q : qubits_) {
+            const MILPOperation *alloc = q->getAllocation();
+            const MILPOperation *meas = q->getMeasurement();
+            if (!(alloc && meas)) {
                 continue;
             }
-            const std::string &id = ops.front()->getId();
-            SCIP_VAR *v = startVars_.at(id);
-            // add a small increasing weight to break ties deterministically by IR order
-            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
+
+            double sAlloc = SCIPgetSolVal(scip_, bestsol, startVars_.at(alloc->getId()));
+            double sMeas = SCIPgetSolVal(scip_, bestsol, startVars_.at(meas->getId()));
+
+            z += (sMeas - sAlloc);
+        }
+
+        return z;
+    }
+
+    void MILPBlockOrderModel::constrainPrimaryObjectiveTo(double zStar) {
+        SCIP_CONS *c = nullptr;
+        SCIPcreateConsBasicLinear(scip_, &c, "fix_primary_obj",
+                                  /*nvars=*/0,
+                                  /*vars=*/nullptr,
+                                  /*vals=*/nullptr,
+                                  /*lhs=*/(SCIP_Real) zStar,
+                                  /*rhs=*/(SCIP_Real) zStar);
+
+        for (const auto &q : qubits_) {
+            const MILPOperation *alloc = q->getAllocation();
+            const MILPOperation *meas = q->getMeasurement();
+            if (!(alloc && meas)) {
+                continue;
+            }
+
+            SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
+        }
+
+        SCIPaddCons(scip_, c);
+        SCIPreleaseCons(scip_, &c);
+    }
+
+    void MILPBlockOrderModel::setSecondaryObjectiveDeterministic() {
+        // Clear everything first
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
+        // Build a stable IR order index for each MILPOperation
+        llvm::DenseMap<const MILPOperation *, int> irIndex;
+        int idx = 0;
+        for (const auto &b : blocks_) {
+            for (const auto &op : b->getOperations()) {
+                irIndex[op.get()] = idx++;
+            }
+        }
+
+        struct QInfo {
+            const MILPOperation *meas;
+            int allocRank;
+        };
+
+        std::vector<QInfo> qinfos;
+        qinfos.reserve(qubits_.size());
+
+        for (const auto &q : qubits_) {
+            const MILPOperation *a = q->getAllocation();
+            const MILPOperation *m = q->getMeasurement();
+            if (!(a && m)) {
+                continue;
+            }
+
+            auto it = irIndex.find(a);
+            if (it == irIndex.end()) {
+                continue;
+            }
+
+            qinfos.push_back({m, it->second});
+        }
+
+        // Sort by alloc IR index: earliest alloc first
+        std::sort(qinfos.begin(), qinfos.end(),
+                  [](const QInfo &x, const QInfo &y) { return x.allocRank < y.allocRank; });
+
+        // Assign weights: earliest alloc gets largest weight
+        const int K = (int) qinfos.size();
+        for (int rank = 0; rank < K; ++rank) {
+            const MILPOperation *measOp = qinfos[rank].meas;
+            SCIP_VAR *v = startVars_.at(measOp->getId());
+            const int w = K - rank; // strictly decreasing
+            // Set objective coeff = w (additive)
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + (SCIP_Real) w);
         }
     }
+
+    // void MILPBlockOrderModel::setObjective() {
+    //     // Sets the MILP objective to minimize the total qubit usage time across all qubits.
+    //     // For each qubit:
+    //     //  - MeasureOp start time contributes positively to the objective
+    //     //  - AllocationOp start time contributes negatively
+    //     // This models:
+    //     //      Objective = sum ((start(Meas) + dur(meas)) - (start(Alloc) - dur(alloc)))
+    //     //                = Total lifetime time per qubit
+    //     // In this implementation we remove dur(meas) - dur(alloc) from the objective, as those are not
+    //     // variables and have no influence on the result.
+    //     SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
+
+    //     for (const std::shared_ptr<MILPQubit> &q : qubits_) {
+    //         const MILPOperation *alloc = q->getAllocation();
+    //         const MILPOperation *meas = q->getMeasurement();
+    //         // If a qubit is missing a measurement operation, we cannot meaningfully define
+    //         // its lifetime for optimization purposes (i.e., we can't compute the interval
+    //         // between allocation and measurement). In such cases, we exclude the qubit from
+    //         // the objective function. Proper handling of this situation (e.g., warning or fallback)
+    //         // is tracked under ticket #91.
+    //         if (!(alloc && meas)) {
+    //             continue;
+    //         }
+
+    //         SCIPchgVarObj(scip_, startVars_[alloc->getId()], -1.0);
+    //         SCIPchgVarObj(scip_, startVars_[meas->getId()], 1.0);
+    //     }
+
+    //     // Add a tiny deterministic secondary objective to break ties between
+    //     // multiple equally optimal schedules. The small 'eps' is chosen:
+    //     //   - larger than feastol (1e-6 >> 1e-9) so SCIP recognizes the difference,
+    //     //   - much smaller than 1 tick, so it does not change the physical timing.
+    //     //
+    //     // This ensures the solver picks a unique, reproducible ordering of blocks
+    //     // (by their original IR order) across platforms and runs, eliminating
+    //     // platform-dependent tie-breaking within SCIP’s floating-point numerics.
+    //     const double eps = 1e-6; // >> feastol (1e-9), << 1 tick
+    //     int rank = 0;
+    //     for (const auto &b : blocks_) {
+    //         const auto &ops = b->getOperations();
+    //         if (ops.empty()) {
+    //             continue;
+    //         }
+    //         const std::string &id = ops.front()->getId();
+    //         SCIP_VAR *v = startVars_.at(id);
+    //         // add a small increasing weight to break ties deterministically by IR order
+    //         SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
+    //     }
+    // }
 
     double MILPModelBuilder::getOperationStartTime(const std::string &opId) const {
         auto it = startVars_.find(opId);
@@ -993,28 +1129,6 @@ namespace qoala::analysis::reordering {
             return std::numeric_limits<double>::infinity();
         }
         return static_cast<double>(x);
-    }
-
-    static inline int64_t safeFeasRoundToInt(SCIP *scip, SCIP_Real x) {
-        // x is assumed finite here
-        return (int64_t) SCIPfeasFloor(scip, x + 0.5);
-    }
-
-    int64_t MILPModelBuilder::getOperationStartTick(const std::string &opId) const {
-        auto it = startVars_.find(opId);
-        if (it == startVars_.end()) {
-            return std::numeric_limits<int64_t>::max();
-        }
-
-        const SCIP_Real x = SCIPgetSolVal(scip_, nullptr, it->second);
-        if (std::isnan(x) || SCIPisInfinity(scip_, fabs(x))) {
-            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for " << opId << ": " << x << "\n");
-            return std::numeric_limits<int64_t>::max();
-        }
-        if (!SCIPisFeasIntegral(scip_, x)) {
-            LLVM_DEBUG(llvm::dbgs() << "Note: start var not feasibly integral: " << opId << " = " << x << "\n");
-        }
-        return safeFeasRoundToInt(scip_, x);
     }
 
     void MILPModelBuilder::cleanup() {
@@ -1034,48 +1148,39 @@ namespace qoala::analysis::reordering {
         // This function computes the start and end time for each block based on the first and last operations
         // in the block, using the MILP solver's solution. The list of blocks is then sorted by their start times.
 
-        struct Row {
-            std::string id;
-            int64_t tick;
-            int orig;
-        };
+        std::vector<std::tuple<std::string, double, double>> blockTimes;
 
-        std::vector<Row> rows;
-        rows.reserve(blocks_.size());
-
-        int idx = 0;
-        for (const auto &b : blocks_) {
-            const auto &ops = b->getOperations();
+        // Collect start and end times for each block using operation timings from the MILP solution.
+        for (const auto &block : blocks_) {
+            const auto &ops = block->getOperations();
             if (ops.empty()) {
                 continue;
             }
-            const auto *first = ops.front().get();
-            const int64_t t = getOperationStartTick(first->getId()); // robust ticks
-            rows.push_back({b->getId(), t, idx++});
+
+            const MILPOperation *firstOp = ops.front().get();
+            const MILPOperation *lastOp = ops.back().get();
+            double start = getOperationStartTime(firstOp->getId());
+            double end = getOperationStartTime(lastOp->getId()) + static_cast<double>(lastOp->getDuration());
+
+            blockTimes.emplace_back(block->getId(), start, end);
         }
 
-        std::stable_sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) {
-            if (a.tick != b.tick) {
-                return a.tick < b.tick;
-            }
-            if (a.orig != b.orig) {
-                return a.orig < b.orig;
-            }
-            return a.id < b.id; // last-resort deterministic tie-break
-        });
+        // Sort the blocks based on start time (ascending order).
+        std::sort(blockTimes.begin(), blockTimes.end(),
+                  [](const auto &a, const auto &b) { return std::get<1>(a) < std::get<1>(b); });
 
-        std::vector<std::string> out;
-        out.reserve(rows.size());
-        for (auto &r : rows) {
-            out.push_back(r.id);
+        for (const auto &[id, start, end] : blockTimes) {
+            LLVM_DEBUG(llvm::dbgs() << "Block " << id << ": [" << start << ", " << end << "]\n");
         }
 
-        LLVM_DEBUG({
-            for (auto &r : rows) {
-                llvm::dbgs() << "Block " << r.id << " tick=" << r.tick << "\n";
-            }
-        });
-        return out;
+        // Extract the ordered block IDs into a list to be returned.
+        std::vector<std::string> orderedBlockIds;
+        orderedBlockIds.reserve(blockTimes.size());
+        for (const auto &[id, start, end] : blockTimes) {
+            orderedBlockIds.push_back(id);
+        }
+
+        return orderedBlockIds;
     }
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp &moduleOp, const std::vector<std::string> &orderedBlockIds) {
@@ -1177,417 +1282,418 @@ namespace qoala::analysis::reordering {
         return result;
     }
 
-    void MILPBlockDeadlineModel::createVariables() {
-        // Variables created here:
-        //   - s_op (start time for each operation)
-        //   - g_min (scalar >= 0): the minimum inter-block gap to maximize
-        //   - G_pred_to_succ (>= 0 for each consecutive pair in known order)
-        // Assumption: `precedences_` define a single chain. We do not reconstruct
-        // a separate order; we directly iterate over `precedences_` to create the gap vars.
+    // void MILPBlockDeadlineModel::createVariables() {
+    //     // Variables created here:
+    //     //   - s_op (start time for each operation)
+    //     //   - g_min (scalar >= 0): the minimum inter-block gap to maximize
+    //     //   - G_pred_to_succ (>= 0 for each consecutive pair in known order)
+    //     // Assumption: `precedences_` define a single chain. We do not reconstruct
+    //     // a separate order; we directly iterate over `precedences_` to create the gap vars.
 
-        // Create start time variables for all operations
-        for (const auto &blk : blocks_) {
-            for (const auto &op : blk->getOperations()) {
-                const std::string &id = op->getId();
-                if (!startVars_.count(id)) {
-                    startVars_[id] = createVariable(scip_, "s_" + id, /*strictlyPositive=*/false);
-                }
-            }
-        }
+    //     // Create start time variables for all operations
+    //     for (const auto &blk : blocks_) {
+    //         for (const auto &op : blk->getOperations()) {
+    //             const std::string &id = op->getId();
+    //             if (!startVars_.count(id)) {
+    //                 startVars_[id] = createVariable(scip_, "s_" + id, /*strictlyPositive=*/false);
+    //             }
+    //         }
+    //     }
 
-        // g_min
-        gminVar_ = createVariable(scip_, "g_min", /*strictlyPositive=*/false);
+    //     // g_min
+    //     gminVar_ = createVariable(scip_, "g_min", /*strictlyPositive=*/false);
 
-        // Create gap variables G for each precedence edge (pred -> succ)
-        gapVars_.clear();
-        for (const auto &[pred, succ] : precedences_) {
-            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
-            gapVars_[gname] = createVariable(scip_, gname, /*strictlyPositive=*/false);
-        }
-    }
+    //     // Create gap variables G for each precedence edge (pred -> succ)
+    //     gapVars_.clear();
+    //     for (const auto &[pred, succ] : precedences_) {
+    //         const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+    //         gapVars_[gname] = createVariable(scip_, gname, /*strictlyPositive=*/false);
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::setObjective() {
-        // Sets the objective: maximize the minimum inter-block gap g_min.
+    // void MILPBlockDeadlineModel::setObjective() {
+    //     // Sets the objective: maximize the minimum inter-block gap g_min.
 
-        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MAXIMIZE);
-        if (gminVar_) {
-            SCIPchgVarObj(scip_, gminVar_, 1.0);
-        }
+    //     SCIPsetObjsense(scip_, SCIP_OBJSENSE_MAXIMIZE);
+    //     if (gminVar_) {
+    //         SCIPchgVarObj(scip_, gminVar_, 1.0);
+    //     }
 
-        // Secondary (tiny) objective: minimize sum of start times, breaking ties.
-        // Use strictly smaller than feastol so it cannot change the optimal g_min.
-        const double eps = 1e-6; // >> epsilon, << 1 tick
-        int rank = 0;
-        for (const auto &blk : blocks_) {
-            if (blk->getOperations().empty()) {
-                continue;
-            }
-            const auto *first = blk->getOperations().front().get();
-            SCIP_VAR *v = startVars_.at(first->getId());
-            // negative sign -> minimizing starts
-            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
-        }
-    }
+    //     // Secondary (tiny) objective: minimize sum of start times, breaking ties.
+    //     // Use strictly smaller than feastol so it cannot change the optimal g_min.
+    //     const double eps = 1e-6; // >> epsilon, << 1 tick
+    //     int rank = 0;
+    //     for (const auto &blk : blocks_) {
+    //         if (blk->getOperations().empty()) {
+    //             continue;
+    //         }
+    //         const auto *first = blk->getOperations().front().get();
+    //         SCIP_VAR *v = startVars_.at(first->getId());
+    //         // negative sign -> minimizing starts
+    //         SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + eps * (double) rank++);
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addIntraTaskSequencingConstraints() {
-        // Enforces strict sequential execution of operations within each task.
-        // For each task and each consecutive operation pair (o1, o2):
-        //    - start(o2) = start(o1) + dur(o1)
-        // This is encoded as a linear equality constraint:
-        //    - start(o2) - start(o1) = dur(o1)
+    // void MILPBlockDeadlineModel::addIntraTaskSequencingConstraints() {
+    //     // Enforces strict sequential execution of operations within each task.
+    //     // For each task and each consecutive operation pair (o1, o2):
+    //     //    - start(o2) = start(o1) + dur(o1)
+    //     // This is encoded as a linear equality constraint:
+    //     //    - start(o2) - start(o1) = dur(o1)
 
-        for (const auto &blk : blocks_) {
-            for (const auto &t : blk->getTasks()) {
-                const auto &ops = t->getOperations();
-                for (size_t i = 0; i + 1 < ops.size(); ++i) {
-                    const auto *o1 = ops[i];
-                    const auto *o2 = ops[i + 1];
+    //     for (const auto &blk : blocks_) {
+    //         for (const auto &t : blk->getTasks()) {
+    //             const auto &ops = t->getOperations();
+    //             for (size_t i = 0; i + 1 < ops.size(); ++i) {
+    //                 const auto *o1 = ops[i];
+    //                 const auto *o2 = ops[i + 1];
 
-                    SCIP_CONS *c;
-                    std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();
-                    const int32_t rhs = o1->getDuration();
-                    LLVM_DEBUG(llvm::dbgs() << "G...rhs = " << rhs << "\n");
-                    SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
-                    SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
-                    SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
-                    SCIPaddCons(scip_, c);
-                    SCIPreleaseCons(scip_, &c);
-                }
-            }
-        }
-    }
+    //                 SCIP_CONS *c;
+    //                 std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();
+    //                 const int32_t rhs = o1->getDuration();
+    //                 LLVM_DEBUG(llvm::dbgs() << "G...rhs = " << rhs << "\n");
+    //                 SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
+    //                 SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
+    //                 SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
+    //                 SCIPaddCons(scip_, c);
+    //                 SCIPreleaseCons(scip_, &c);
+    //             }
+    //         }
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addIntraBlockSequencingConstraints() {
-        // Enforces strict execution order of tasks within each block.
-        // For each consecutive task pair (t1, t2) in a block:
-        //    - start(first_op(t2)) = start(last_op(t1)) + dur(last_op(t1))
-        // Ensures task2 starts exactly after task1 ends.
-        // Encoded as equality: start2 - start1 = dur
+    // void MILPBlockDeadlineModel::addIntraBlockSequencingConstraints() {
+    //     // Enforces strict execution order of tasks within each block.
+    //     // For each consecutive task pair (t1, t2) in a block:
+    //     //    - start(first_op(t2)) = start(last_op(t1)) + dur(last_op(t1))
+    //     // Ensures task2 starts exactly after task1 ends.
+    //     // Encoded as equality: start2 - start1 = dur
 
-        for (const auto &blk : blocks_) {
-            const auto &tasks = blk->getTasks();
-            for (size_t i = 0; i + 1 < tasks.size(); ++i) {
-                const auto *t1 = tasks[i].get();
-                const auto *t2 = tasks[i + 1].get();
-                const MILPOperation *last1 = t1->getOperations().back();
-                const MILPOperation *first2 = t2->getOperations().front();
-                const int32_t dur1 = last1->getDuration();
+    //     for (const auto &blk : blocks_) {
+    //         const auto &tasks = blk->getTasks();
+    //         for (size_t i = 0; i + 1 < tasks.size(); ++i) {
+    //             const auto *t1 = tasks[i].get();
+    //             const auto *t2 = tasks[i + 1].get();
+    //             const MILPOperation *last1 = t1->getOperations().back();
+    //             const MILPOperation *first2 = t2->getOperations().front();
+    //             const int32_t dur1 = last1->getDuration();
 
-                std::string name = "intra_block_" + blk->getId() + "_" + std::to_string(i);
-                SCIP_CONS *c;
+    //             std::string name = "intra_block_" + blk->getId() + "_" + std::to_string(i);
+    //             SCIP_CONS *c;
 
-                // Enforce strict equality: LHS == RHS == dur1
-                LLVM_DEBUG(llvm::dbgs() << "I...dur1 = " << dur1 << "\n");
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur1, dur1);
-                SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_[last1->getId()], -1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
-        }
-    }
+    //             // Enforce strict equality: LHS == RHS == dur1
+    //             LLVM_DEBUG(llvm::dbgs() << "I...dur1 = " << dur1 << "\n");
+    //             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur1, dur1);
+    //             SCIPaddCoefLinear(scip_, c, startVars_[first2->getId()], 1.0);
+    //             SCIPaddCoefLinear(scip_, c, startVars_[last1->getId()], -1.0);
+    //             SCIPaddCons(scip_, c);
+    //             SCIPreleaseCons(scip_, &c);
+    //         }
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addBlockPrecedenceConstraints() {
-        // Enforces global block-level precedence constraints.
-        // For each edge (pred -> succ) in the dependency graph:
-        //    - start(first_op(succ)) => start(last_op(pred)) + dur(last_op(pred))
-        // This guarantees causal order between blocks.
-        // Encoded as a linear inequality with a lower bound.
+    // void MILPBlockDeadlineModel::addBlockPrecedenceConstraints() {
+    //     // Enforces global block-level precedence constraints.
+    //     // For each edge (pred -> succ) in the dependency graph:
+    //     //    - start(first_op(succ)) => start(last_op(pred)) + dur(last_op(pred))
+    //     // This guarantees causal order between blocks.
+    //     // Encoded as a linear inequality with a lower bound.
 
-        for (const auto &[pred, succ] : precedences_) {
-            const MILPOperation *lastPred = pred->lastOp();
-            const MILPOperation *firstSucc = succ->firstOp();
+    //     for (const auto &[pred, succ] : precedences_) {
+    //         const MILPOperation *lastPred = pred->lastOp();
+    //         const MILPOperation *firstSucc = succ->firstOp();
 
-            const uint32_t dur = lastPred->getDuration();
+    //         const uint32_t dur = lastPred->getDuration();
 
-            SCIP_CONS *c;
-            std::string name = "block_prec_" + pred->getId() + "_" + succ->getId();
-            LLVM_DEBUG(llvm::dbgs() << "J...dur = " << dur << "\n");
-            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
-            SCIPaddCoefLinear(scip_, c, startVars_[firstSucc->getId()], 1.0);
-            SCIPaddCoefLinear(scip_, c, startVars_[lastPred->getId()], -1.0);
-            SCIPaddCons(scip_, c);
-            SCIPreleaseCons(scip_, &c);
-        }
-    }
+    //         SCIP_CONS *c;
+    //         std::string name = "block_prec_" + pred->getId() + "_" + succ->getId();
+    //         LLVM_DEBUG(llvm::dbgs() << "J...dur = " << dur << "\n");
+    //         SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
+    //         SCIPaddCoefLinear(scip_, c, startVars_[firstSucc->getId()], 1.0);
+    //         SCIPaddCoefLinear(scip_, c, startVars_[lastPred->getId()], -1.0);
+    //         SCIPaddCons(scip_, c);
+    //         SCIPreleaseCons(scip_, &c);
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addFCFSConsistencyConstraints() {
-        // Adds First-Come-First-Served (FCFS) consistency constraints for blocks with known order.
-        // For each precedence pair (b1 -> b2), and for each task index k:
-        //    - Ensure: start(o2) => start(o1) + total_dur(t1[k])
-        //      where o1/o2 are first operations of tasks in position k of b1 and b2.
-        // Applied when both blocks are of matching quantum structure (3 tasks) or single-task classical blocks.
-        // This helps preserve expected temporal consistency when reordering blocks
+    // void MILPBlockDeadlineModel::addFCFSConsistencyConstraints() {
+    //     // Adds First-Come-First-Served (FCFS) consistency constraints for blocks with known order.
+    //     // For each precedence pair (b1 -> b2), and for each task index k:
+    //     //    - Ensure: start(o2) => start(o1) + total_dur(t1[k])
+    //     //      where o1/o2 are first operations of tasks in position k of b1 and b2.
+    //     // Applied when both blocks are of matching quantum structure (3 tasks) or single-task classical blocks.
+    //     // This helps preserve expected temporal consistency when reordering blocks
 
-        for (const auto &[b1, b2] : precedences_) {
-            const auto &t1 = b1->getTasks();
-            const auto &t2 = b2->getTasks();
+    //     for (const auto &[b1, b2] : precedences_) {
+    //         const auto &t1 = b1->getTasks();
+    //         const auto &t2 = b2->getTasks();
 
-            std::vector<uint32_t> indices =
-                    (t1.size() == 3 && t2.size() == 3) ? std::vector<uint32_t>{0, 1, 2} : std::vector<uint32_t>{0};
+    //         std::vector<uint32_t> indices =
+    //                 (t1.size() == 3 && t2.size() == 3) ? std::vector<uint32_t>{0, 1, 2} : std::vector<uint32_t>{0};
 
-            for (const uint32_t k : indices) {
-                if (k >= t1.size() || k >= t2.size()) {
-                    llvm::errs() << "Warning: FCFS index out of range in blocks " << b1->getId() << " or "
-                                 << b2->getId() << " at k=" << k << "\n";
-                    continue;
-                }
+    //         for (const uint32_t k : indices) {
+    //             if (k >= t1.size() || k >= t2.size()) {
+    //                 llvm::errs() << "Warning: FCFS index out of range in blocks " << b1->getId() << " or "
+    //                              << b2->getId() << " at k=" << k << "\n";
+    //                 continue;
+    //             }
 
-                const MILPOperation *o1 = t1[k]->getOperations().front();
-                const MILPOperation *o2 = t2[k]->getOperations().front();
+    //             const MILPOperation *o1 = t1[k]->getOperations().front();
+    //             const MILPOperation *o2 = t2[k]->getOperations().front();
 
-                uint32_t dur = 0;
-                for (const MILPOperation *op : t1[k]->getOperations()) {
-                    dur += op->getDuration();
-                }
+    //             uint32_t dur = 0;
+    //             for (const MILPOperation *op : t1[k]->getOperations()) {
+    //                 dur += op->getDuration();
+    //             }
 
-                std::string name = "fcfs_" + b1->getId() + "_" + b2->getId() + "_" + std::to_string(k);
-                SCIP_CONS *c;
-                LLVM_DEBUG(llvm::dbgs() << "K...dur = " << dur << "\n");
-                SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
-                SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
-        }
-    }
+    //             std::string name = "fcfs_" + b1->getId() + "_" + b2->getId() + "_" + std::to_string(k);
+    //             SCIP_CONS *c;
+    //             LLVM_DEBUG(llvm::dbgs() << "K...dur = " << dur << "\n");
+    //             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, dur, SCIPinfinity(scip_));
+    //             SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
+    //             SCIPaddCoefLinear(scip_, c, startVars_[o1->getId()], -1.0);
+    //             SCIPaddCons(scip_, c);
+    //             SCIPreleaseCons(scip_, &c);
+    //         }
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addInterBlockGapConstraints() {
-        // Enforces gap definitions and min-gap floor for each precedence edge:
-        //   - Define gap:
-        //       G_pred_to_succ = start(first(succ)) - start(last(pred)) - dur(last(pred))
-        //   - Enforce minimum gap:
-        //       G_pred_to_succ >= g_min
-        // Gap variables have LB >= 0 by construction.
+    // void MILPBlockDeadlineModel::addInterBlockGapConstraints() {
+    //     // Enforces gap definitions and min-gap floor for each precedence edge:
+    //     //   - Define gap:
+    //     //       G_pred_to_succ = start(first(succ)) - start(last(pred)) - dur(last(pred))
+    //     //   - Enforce minimum gap:
+    //     //       G_pred_to_succ >= g_min
+    //     // Gap variables have LB >= 0 by construction.
 
-        for (const auto &[pred, succ] : precedences_) {
+    //     for (const auto &[pred, succ] : precedences_) {
 
-            const MILPOperation *lastPred = pred->lastOp();
-            const MILPOperation *firstSucc = succ->firstOp();
-            if (!(lastPred && firstSucc)) {
-                continue;
-            }
+    //         const MILPOperation *lastPred = pred->lastOp();
+    //         const MILPOperation *firstSucc = succ->firstOp();
+    //         if (!(lastPred && firstSucc)) {
+    //             continue;
+    //         }
 
-            // WARNING - we need to make thi variable signed, since we are using it as a negative
-            // when passing it to the connstraint creator
-            const int32_t durLastPred = lastPred->getDuration();
-            const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
-            SCIP_VAR *G = gapVars_.at(gname);
+    //         // WARNING - we need to make thi variable signed, since we are using it as a negative
+    //         // when passing it to the connstraint creator
+    //         const int32_t durLastPred = lastPred->getDuration();
+    //         const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
+    //         SCIP_VAR *G = gapVars_.at(gname);
 
-            // Gap definition:  G - s(firstSucc) + s(lastPred) = -durLastPred
-            {
-                SCIP_CONS *c;
-                std::string cname = "gap_def_" + pred->getId() + "_" + succ->getId();
-                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, -durLastPred, -durLastPred);
-                SCIPaddCoefLinear(scip_, c, G, 1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_.at(firstSucc->getId()), -1.0);
-                SCIPaddCoefLinear(scip_, c, startVars_.at(lastPred->getId()), 1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
+    //         // Gap definition:  G - s(firstSucc) + s(lastPred) = -durLastPred
+    //         {
+    //             SCIP_CONS *c;
+    //             std::string cname = "gap_def_" + pred->getId() + "_" + succ->getId();
+    //             SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, -durLastPred, -durLastPred);
+    //             SCIPaddCoefLinear(scip_, c, G, 1.0);
+    //             SCIPaddCoefLinear(scip_, c, startVars_.at(firstSucc->getId()), -1.0);
+    //             SCIPaddCoefLinear(scip_, c, startVars_.at(lastPred->getId()), 1.0);
+    //             SCIPaddCons(scip_, c);
+    //             SCIPreleaseCons(scip_, &c);
+    //         }
 
-            // Minimum gap:  G - g_min >= 0
-            {
-                SCIP_CONS *c;
-                std::string cname = "gap_ge_gmin_" + pred->getId() + "_" + succ->getId();
-                SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
-                SCIPaddCoefLinear(scip_, c, G, 1.0);
-                SCIPaddCoefLinear(scip_, c, gminVar_, -1.0);
-                SCIPaddCons(scip_, c);
-                SCIPreleaseCons(scip_, &c);
-            }
-        }
-    }
+    //         // Minimum gap:  G - g_min >= 0
+    //         {
+    //             SCIP_CONS *c;
+    //             std::string cname = "gap_ge_gmin_" + pred->getId() + "_" + succ->getId();
+    //             SCIPcreateConsBasicLinear(scip_, &c, cname.c_str(), 0, nullptr, nullptr, 0.0, SCIPinfinity(scip_));
+    //             SCIPaddCoefLinear(scip_, c, G, 1.0);
+    //             SCIPaddCoefLinear(scip_, c, gminVar_, -1.0);
+    //             SCIPaddCons(scip_, c);
+    //             SCIPreleaseCons(scip_, &c);
+    //         }
+    //     }
+    // }
 
-    void MILPBlockDeadlineModel::addProgramHorizonConstraint() {
-        // Constrains the program to finish before a global time horizon M.
-        // We enforce: end(tail block) <= M
-        // -> s(lastOp(tail)) + dur(lastOp) <= M.
-        // The tail is the unique block that never appears as a predecessor in `precedences_`.
-        // Assumptions:
-        // - The precedences define a chain, thus the tail exists,
-        // - The MILPBlocks are well formed, thus there is at least one (non blk_meta) op per block.
+    // void MILPBlockDeadlineModel::addProgramHorizonConstraint() {
+    //     // Constrains the program to finish before a global time horizon M.
+    //     // We enforce: end(tail block) <= M
+    //     // -> s(lastOp(tail)) + dur(lastOp) <= M.
+    //     // The tail is the unique block that never appears as a predecessor in `precedences_`.
+    //     // Assumptions:
+    //     // - The precedences define a chain, thus the tail exists,
+    //     // - The MILPBlocks are well formed, thus there is at least one (non blk_meta) op per block.
 
-        // Find tail: appears only as succ, never as pred
-        llvm::DenseSet<const MILPBlock *> preds, succs;
-        for (const auto &[first, second] : precedences_) {
-            preds.insert(first);
-            succs.insert(second);
-        }
-        const MILPBlock *tail = nullptr;
-        for (const MILPBlock *cand : succs) {
-            if (!preds.contains(cand)) {
-                tail = cand;
-                break;
-            }
-        }
+    //     // Find tail: appears only as succ, never as pred
+    //     llvm::DenseSet<const MILPBlock *> preds, succs;
+    //     for (const auto &[first, second] : precedences_) {
+    //         preds.insert(first);
+    //         succs.insert(second);
+    //     }
+    //     const MILPBlock *tail = nullptr;
+    //     for (const MILPBlock *cand : succs) {
+    //         if (!preds.contains(cand)) {
+    //             tail = cand;
+    //             break;
+    //         }
+    //     }
 
-        assert(tail && "[Deadlines][Horizon] Invariant violated: no tail block found from precedences");
+    //     assert(tail && "[Deadlines][Horizon] Invariant violated: no tail block found from precedences");
 
-        const MILPOperation *lastOp = tail->lastOp();
-        const double H = getProgramHorizon();
-        const double ubOnStart = H - static_cast<double>(lastOp->getDuration());
+    //     const MILPOperation *lastOp = tail->lastOp();
+    //     const double H = getProgramHorizon();
+    //     const double ubOnStart = H - static_cast<double>(lastOp->getDuration());
 
-        SCIP_CONS *c;
-        std::string name = "program_horizon";
-        // s(lastOp) <= M - dur(lastOp)
-        SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), ubOnStart);
-        SCIPaddCoefLinear(scip_, c, startVars_.at(lastOp->getId()), 1.0);
-        SCIPaddCons(scip_, c);
-        SCIPreleaseCons(scip_, &c);
-    }
+    //     SCIP_CONS *c;
+    //     std::string name = "program_horizon";
+    //     // s(lastOp) <= M - dur(lastOp)
+    //     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), ubOnStart);
+    //     SCIPaddCoefLinear(scip_, c, startVars_.at(lastOp->getId()), 1.0);
+    //     SCIPaddCons(scip_, c);
+    //     SCIPreleaseCons(scip_, &c);
+    // }
 
-    void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
-        // Constrains each qubit's lifetime to stay within Lmax (feasibility only).
-        // For each qubit q with alloc and meas:
-        //   (s_meas + dur_meas) - (s_alloc + dur_alloc) <= Lmax
-        // -> s_meas - s_alloc <= Lmax - dur_meas + dur_alloc
+    // void MILPBlockDeadlineModel::addQubitLifetimeConstraints() {
+    //     // Constrains each qubit's lifetime to stay within Lmax (feasibility only).
+    //     // For each qubit q with alloc and meas:
+    //     //   (s_meas + dur_meas) - (s_alloc + dur_alloc) <= Lmax
+    //     // -> s_meas - s_alloc <= Lmax - dur_meas + dur_alloc
 
-        for (const auto &q : qubits_) {
-            const std::string &id = q->getId();
-            const MILPOperation *alloc = q->getAllocation();
-            const MILPOperation *meas = q->getMeasurement();
+    //     for (const auto &q : qubits_) {
+    //         const std::string &id = q->getId();
+    //         const MILPOperation *alloc = q->getAllocation();
+    //         const MILPOperation *meas = q->getMeasurement();
 
-            if (!meas) {
-                LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing meas operation.\n");
-                continue;
-            }
+    //         if (!meas) {
+    //             LLVM_DEBUG(llvm::dbgs() << "Skipping qubit " << id << " — missing meas operation.\n");
+    //             continue;
+    //         }
 
-            const uint32_t allocDur = alloc->getDuration();
-            const uint32_t measDur = meas->getDuration();
-            const uint32_t Lmax = qoalaOptQubitLifetime;
+    //         const uint32_t allocDur = alloc->getDuration();
+    //         const uint32_t measDur = meas->getDuration();
+    //         const uint32_t Lmax = qoalaOptQubitLifetime;
 
-            const int32_t rhs = Lmax - measDur + allocDur;
+    //         const int32_t rhs = Lmax - measDur + allocDur;
 
-            SCIP_CONS *c;
-            std::string name = "lifetime_" + id;
-            LLVM_DEBUG(llvm::dbgs() << "L...rhs = " << rhs << "\n");
-            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
-            SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
-            SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
-            SCIPaddCons(scip_, c);
-            SCIPreleaseCons(scip_, &c);
-        }
-    }
+    //         SCIP_CONS *c;
+    //         std::string name = "lifetime_" + id;
+    //         LLVM_DEBUG(llvm::dbgs() << "L...rhs = " << rhs << "\n");
+    //         SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, -SCIPinfinity(scip_), rhs);
+    //         SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
+    //         SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
+    //         SCIPaddCons(scip_, c);
+    //         SCIPreleaseCons(scip_, &c);
+    //     }
+    // }
 
-    double MILPBlockDeadlineModel::getProgramHorizon() const {
-        // Model: Determine a conservative global time bound M for the program.
-        // Default: M_default = 2 * sum_{ops} duration(op).
-        // If a positive qoalaOptProgramHorizon is provided:
-        //   - If qoalaOptProgramHorizon < sumDur, emit a warning and use the default (too tight).
-        //   - Else, accept and use qoalaOptProgramHorizon.
-        // Otherwise, use the default.
+    // double MILPBlockDeadlineModel::getProgramHorizon() const {
+    //     // Model: Determine a conservative global time bound M for the program.
+    //     // Default: M_default = 2 * sum_{ops} duration(op).
+    //     // If a positive qoalaOptProgramHorizon is provided:
+    //     //   - If qoalaOptProgramHorizon < sumDur, emit a warning and use the default (too tight).
+    //     //   - Else, accept and use qoalaOptProgramHorizon.
+    //     // Otherwise, use the default.
 
-        // Sum of all operation durations
-        int64_t sumDur = 0;
-        for (const auto &blk : blocks_) {
-            for (const auto &op : blk->getOperations()) {
-                sumDur += op->getDuration();
-            }
-        }
+    //     // Sum of all operation durations
+    //     int64_t sumDur = 0;
+    //     for (const auto &blk : blocks_) {
+    //         for (const auto &op : blk->getOperations()) {
+    //             sumDur += op->getDuration();
+    //         }
+    //     }
 
-        const double sumDurD = static_cast<double>(sumDur);
-        const double defaultH = 2.0 * sumDurD; // conservative default
-        const double userHorizon = static_cast<double>(qoalaOptProgramHorizon);
+    //     const double sumDurD = static_cast<double>(sumDur);
+    //     const double defaultH = 2.0 * sumDurD; // conservative default
+    //     const double userHorizon = static_cast<double>(qoalaOptProgramHorizon);
 
-        // If user provided a positive horizon, validate and use it (or fall back with warning)
-        if (qoalaOptProgramHorizon > 0) {
-            if (userHorizon < sumDurD) {
-                // emit warning that the inputted horizon is too low and that we are going to default
-                llvm::errs() << "[Deadlines] Provided program horizon (" << userHorizon
-                             << ") is smaller than the aggregate duration lower bound (" << sumDurD
-                             << "). Falling back to default horizon (" << defaultH << ").\n";
-                return defaultH;
-            }
-            // use qoalaOptProgramHorizon
-            LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Using user-provided program horizon: " << userHorizon << "\n");
-            return userHorizon;
-        }
+    //     // If user provided a positive horizon, validate and use it (or fall back with warning)
+    //     if (qoalaOptProgramHorizon > 0) {
+    //         if (userHorizon < sumDurD) {
+    //             // emit warning that the inputted horizon is too low and that we are going to default
+    //             llvm::errs() << "[Deadlines] Provided program horizon (" << userHorizon
+    //                          << ") is smaller than the aggregate duration lower bound (" << sumDurD
+    //                          << "). Falling back to default horizon (" << defaultH << ").\n";
+    //             return defaultH;
+    //         }
+    //         // use qoalaOptProgramHorizon
+    //         LLVM_DEBUG(llvm::dbgs() << "[Deadlines] Using user-provided program horizon: " << userHorizon << "\n");
+    //         return userHorizon;
+    //     }
 
-        // default
-        LLVM_DEBUG(llvm::dbgs() << "[Deadline] Using default program horizon (2 * sumDur): " << defaultH << "\n");
-        return defaultH;
-    }
+    //     // default
+    //     LLVM_DEBUG(llvm::dbgs() << "[Deadline] Using default program horizon (2 * sumDur): " << defaultH << "\n");
+    //     return defaultH;
+    // }
 
-    std::pair<std::unordered_map<std::string, uint32_t>, std::string>
-    MILPBlockDeadlineModel::computeBlockDeadlines() const {
-        // Computes relative deadlines for each block based on their actual scheduled start times.
-        // The deadlines represent how many time units after the end of the reference block each block should begin.
-        // Steps:
-        //   1. Retrieve the topologically ordered list of blocks.
-        //   2. Choose the *reference block* (first in the list), and calculate its end time.
-        //   3. For every other block:
-        //       - Calculate its start time relative to the reference block's end.
-        //       - If that would result in a negative deadline (i.e., block starts before the reference finishes),
-        //         assign a deadline just after the last valid one (to avoid non-monotonicity).
-        //   4. Return the mapping: block ID -> deadline offset, and the ID of the reference block.
-        // These deadlines are later used to annotate MLIR `BlkMeta` operations with scheduling guidance.
+    // std::pair<std::unordered_map<std::string, uint32_t>, std::string>
+    // MILPBlockDeadlineModel::computeBlockDeadlines() const {
+    //     // Computes relative deadlines for each block based on their actual scheduled start times.
+    //     // The deadlines represent how many time units after the end of the reference block each block should begin.
+    //     // Steps:
+    //     //   1. Retrieve the topologically ordered list of blocks.
+    //     //   2. Choose the *reference block* (first in the list), and calculate its end time.
+    //     //   3. For every other block:
+    //     //       - Calculate its start time relative to the reference block's end.
+    //     //       - If that would result in a negative deadline (i.e., block starts before the reference finishes),
+    //     //         assign a deadline just after the last valid one (to avoid non-monotonicity).
+    //     //   4. Return the mapping: block ID -> deadline offset, and the ID of the reference block.
+    //     // These deadlines are later used to annotate MLIR `BlkMeta` operations with scheduling guidance.
 
-        std::unordered_map<std::string, uint32_t> deadlines;
+    //     std::unordered_map<std::string, uint32_t> deadlines;
 
-        const std::vector<std::string> ordered = getOrderedBlocks();
-        if (ordered.empty()) {
-            return {deadlines, ""};
-        }
+    //     const std::vector<std::string> ordered = getOrderedBlocks();
+    //     if (ordered.empty()) {
+    //         return {deadlines, ""};
+    //     }
 
-        // Reference block is the first in the ordered list
-        const std::string &refBlockId = ordered.front();
-        const MILPBlock *refBlock = nullptr;
+    //     // Reference block is the first in the ordered list
+    //     const std::string &refBlockId = ordered.front();
+    //     const MILPBlock *refBlock = nullptr;
 
-        for (const auto &blk : blocks_) {
-            if (blk->getId() == refBlockId) {
-                refBlock = blk.get();
-                break;
-            }
-        }
+    //     for (const auto &blk : blocks_) {
+    //         if (blk->getId() == refBlockId) {
+    //             refBlock = blk.get();
+    //             break;
+    //         }
+    //     }
 
-        if (!refBlock || refBlock->getOperations().empty()) {
-            return {deadlines, ""};
-        }
+    //     if (!refBlock || refBlock->getOperations().empty()) {
+    //         return {deadlines, ""};
+    //     }
 
-        const auto &refOps = refBlock->getOperations();
-        const MILPOperation *lastRefOp = refOps.back().get();
-        const double refEnd = getOperationStartTime(lastRefOp->getId()) + static_cast<double>(lastRefOp->getDuration());
+    //     const auto &refOps = refBlock->getOperations();
+    //     const MILPOperation *lastRefOp = refOps.back().get();
+    //     const double refEnd = getOperationStartTime(lastRefOp->getId()) +
+    //     static_cast<double>(lastRefOp->getDuration());
 
-        uint32_t lastValidDeadline = 0; // Initial baseline
+    //     uint32_t lastValidDeadline = 0; // Initial baseline
 
-        for (auto &blkId : ordered) {
-            const MILPBlock *blk = nullptr;
-            for (const auto &b : blocks_) {
-                if (b->getId() == blkId) {
-                    blk = b.get();
-                    break;
-                }
-            }
+    //     for (auto &blkId : ordered) {
+    //         const MILPBlock *blk = nullptr;
+    //         for (const auto &b : blocks_) {
+    //             if (b->getId() == blkId) {
+    //                 blk = b.get();
+    //                 break;
+    //             }
+    //         }
 
-            if (!blk || blk->getOperations().empty()) {
-                continue;
-            }
+    //         if (!blk || blk->getOperations().empty()) {
+    //             continue;
+    //         }
 
-            const auto *startOp = blk->getOperations().front().get();
-            const double startTime = getOperationStartTime(startOp->getId());
-            // WARNING - This next difference can be negative, so we need to use a signed integer
-            int32_t deadline = static_cast<int32_t>(std::round(startTime - refEnd));
+    //         const auto *startOp = blk->getOperations().front().get();
+    //         const double startTime = getOperationStartTime(startOp->getId());
+    //         // WARNING - This next difference can be negative, so we need to use a signed integer
+    //         int32_t deadline = static_cast<int32_t>(std::round(startTime - refEnd));
 
-            // Correct negative deadline by using last valid + 1
-            if (deadline < 0) {
-                deadline = lastValidDeadline + 1;
-            }
+    //         // Correct negative deadline by using last valid + 1
+    //         if (deadline < 0) {
+    //             deadline = lastValidDeadline + 1;
+    //         }
 
-            deadlines[blkId] = deadline;
-            lastValidDeadline = deadline;
-        }
+    //         deadlines[blkId] = deadline;
+    //         lastValidDeadline = deadline;
+    //     }
 
-        LLVM_DEBUG({
-            llvm::dbgs() << "Reference block id: " << refBlockId << "\n";
-            for (const auto &[blkId, deadline] : deadlines) {
-                llvm::dbgs() << "[DeadlineModel] Deadline for block " << blkId << ": " << deadline << "\n";
-            }
-        });
+    //     LLVM_DEBUG({
+    //         llvm::dbgs() << "Reference block id: " << refBlockId << "\n";
+    //         for (const auto &[blkId, deadline] : deadlines) {
+    //             llvm::dbgs() << "[DeadlineModel] Deadline for block " << blkId << ": " << deadline << "\n";
+    //         }
+    //     });
 
-        return {deadlines, refBlockId};
-    }
+    //     return {deadlines, refBlockId};
+    // }
 
     void annotateBlockDeadlines(ModuleOp &moduleOp, const std::unordered_map<std::string, uint32_t> &deadlines,
                                 const std::string &refBlockId) {
