@@ -94,6 +94,11 @@ namespace qoala::analysis {
 
         blockOrderSecondary.cleanup();
 
+        LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
+        if (failed(status)) {
+            signalPassFailure();
+        }
+
         if (this->withDeadlines) {
             reordering::BlockPrecedenceList deadlinesPrecedences =
                     createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
@@ -135,11 +140,6 @@ namespace qoala::analysis {
             deadlineSecondary.cleanup();
 
             reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
-        }
-
-        LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
-        if (failed(status)) {
-            signalPassFailure();
         }
 
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
