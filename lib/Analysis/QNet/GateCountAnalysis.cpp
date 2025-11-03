@@ -24,8 +24,8 @@ namespace qoala::analysis {
 
         std::vector<llvm::StringRef> sortedQubits;
         sortedQubits.reserve(oneQubitGateCounts.size());
-        for (const auto &pair : oneQubitGateCounts) {
-            sortedQubits.push_back(pair.getKey());
+        for (const auto &item : oneQubitGateCounts) {
+            sortedQubits.push_back(item.getKey());
         }
         std::sort(sortedQubits.begin(), sortedQubits.end());
 
@@ -37,18 +37,18 @@ namespace qoala::analysis {
         llvm::outs() << "\n  Per qubit gate count:\n";
         llvm::outs() << "  - One-qubit gates:\n";
 
-        for (const auto &key : sortedQubits) {
-            llvm::outs() << "    * qubit[" << key << "]: " << oneQubitGateCounts.at(key) << "\n";
+        for (const auto &qubit : sortedQubits) {
+            llvm::outs() << "    * qubit[" << qubit << "]: " << oneQubitGateCounts.at(qubit) << "\n";
         }
 
         llvm::outs() << "  - Two-qubit gates:\n";
-        for (const auto &key : sortedQubits) {
-            llvm::outs() << "    * qubit[" << key << "]: " << twoQubitGateCounts.at(key) << "\n";
+        for (const auto &qubit : sortedQubits) {
+            llvm::outs() << "    * qubit[" << qubit << "]: " << twoQubitGateCounts.at(qubit) << "\n";
         }
 
         llvm::outs() << "  -  All gates:\n";
-        for (const auto &key : sortedQubits) {
-            llvm::outs() << "    * qubit[" << key << "]: " << gateCounts.at(key) << "\n";
+        for (const auto &qubit : sortedQubits) {
+            llvm::outs() << "    * qubit[" << qubit << "]: " << gateCounts.at(qubit) << "\n";
         }
     }
 } // namespace qoala::analysis

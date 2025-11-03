@@ -64,16 +64,16 @@ namespace qoala::analysis::gatecount {
                             LLVM_DEBUG(llvm::dbgs() << "One Qubit Op: " << op->getName().getStringRef() << ".\n");
                             ++oneQubitGateCount;
                         }
-                        // For each operand, find its lineage ID and propagate it to the
+                        // For each operand, find its init SSA name and propagate it to the
                         // corresponding result.
-                        for (auto it : llvm::enumerate(op->getOperands())) {
-                            Value operand = it.value();
-                            unsigned index = it.index();
+                        for (auto operandIt : llvm::enumerate(op->getOperands())) {
+                            Value operand = operandIt.value();
+                            unsigned index = operandIt.index();
 
                             // Check if the operand is a qubit we are tracking
-                            auto foundIt = qubitsInitToOpRes.find(operand);
-                            if (foundIt != qubitsInitToOpRes.end()) {
-                                std::string initSSA = foundIt->second;
+                            auto initSSAIt = qubitsInitToOpRes.find(operand);
+                            if (initSSAIt != qubitsInitToOpRes.end()) {
+                                std::string initSSA = initSSAIt->second;
 
                                 // Add this operation to the history of the qubit it acts on.
                                 // To avoid duplicates for multi-qubit gates, we can check first.
@@ -101,9 +101,9 @@ namespace qoala::analysis::gatecount {
             });
 
             // AsmState state(module);
-            for (auto &pair : qubitsToOps) {
-                llvm::StringRef qubitSsaName = pair.getKey();
-                auto &users = pair.second;
+            for (auto &item : qubitsToOps) {
+                llvm::StringRef qubitSsaName = item.getKey();
+                auto &users = item.second;
 
                 LLVM_DEBUG(llvm::dbgs() << "Gates on qubit " << qubitSsaName << ":\n");
                 for (auto *user : users) {
