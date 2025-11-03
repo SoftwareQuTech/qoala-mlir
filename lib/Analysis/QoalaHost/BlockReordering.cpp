@@ -77,7 +77,7 @@ namespace qoala::analysis {
 
         // lock the primary optimum
         blockOrderSecondary.constrainPrimaryObjectiveTo(zStar);
-        
+
         // Inject allocation order from solution
         blockOrderSecondary.setPrimaryAllocationOrder(allocOrder);
 

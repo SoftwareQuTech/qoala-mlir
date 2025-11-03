@@ -360,7 +360,7 @@ namespace qoala::analysis {
 
             // Provide the allocation order (from primary) to guide tie-breaking
             // allocOpIdsInOrder: list of Allocation op IDs sorted "earliest first" per primary solution
-            void setPrimaryAllocationOrder(const std::vector<std::string>& allocOpIdsInOrder);
+            void setPrimaryAllocationOrder(const std::vector<std::string> &allocOpIdsInOrder);
 
             std::vector<std::string> computeAllocationOrderFromSolution() const;
 
