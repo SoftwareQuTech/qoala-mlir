@@ -1646,7 +1646,21 @@ namespace qoala::analysis::reordering {
     }
 
     void MILPBlockDeadlineModel::setSecondaryObjectiveDeterministic() {
-        // Minimize secondary tie-breaker
+        // Sets the deterministic secondary objective of the
+        // lexicographic (two-phase) optimization for the deadline model.
+        // Policy:
+        //   - The secondary objective is not physically meaningful; it is used
+        //     solely to enforce deterministic, platform-independent ordering.
+        //   - We assign small, monotonically decreasing integer weights to the
+        //     start-time variables of operations according to their order in the
+        //     compiler’s intermediate representation (IR).
+        //   - Minimizing this weighted sum promotes an ALAP
+        //     bias within the feasible region defined by g_min = z*, without
+        //     changing any primary optimal values.
+        //   - No epsilon perturbation is used: the primary objective is *exactly*
+        //     fixed via constraint, and this objective only acts as a deterministic
+        //     selector among degenerate optima.
+
         SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
 
         // Zero all objective coefficients
@@ -1674,8 +1688,8 @@ namespace qoala::analysis::reordering {
             }
         }
 
-        // Assign strictly decreasing integer weights by IR order:
-        // earlier IR op -> larger weight -> minimizing pushes it earlier deterministically.
+        // Assign strictly increasing integer weights by IR order:
+        //   earlier IR op -> smaller weight, later IR op -> larger weight.
         const int N = static_cast<int>(opsInIR.size());
         for (int i = 0; i < N; ++i) {
             const MILPOperation *op = opsInIR[i];
@@ -1684,7 +1698,7 @@ namespace qoala::analysis::reordering {
                 continue; // safety
             }
             SCIP_VAR *v = it->second;
-            const int w = N - i; // N, N-1, ..., 1
+            const int w = i + 1;
             SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + static_cast<SCIP_Real>(w));
         }
     }
