@@ -371,49 +371,49 @@ namespace qoala::analysis {
             uint32_t bigM_;
         };
 
-        // class MILPBlockDeadlineModel : public MILPModelBuilder {
-        // public:
-        //     MILPBlockDeadlineModel() = default;
+        class MILPBlockDeadlineModel : public MILPModelBuilder {
+        public:
+            MILPBlockDeadlineModel() = default;
 
-        //     ~MILPBlockDeadlineModel() override = default;
+            ~MILPBlockDeadlineModel() override = default;
 
-        //     void createVariables() override;
+            void createVariables() override;
 
-        //     void addConstraints() override {
-        //         addIntraTaskSequencingConstraints();
-        //         addIntraBlockSequencingConstraints();
-        //         addBlockPrecedenceConstraints();
-        //         addFCFSConsistencyConstraints();
-        //         addQubitLifetimeConstraints();
-        //         addInterBlockGapConstraints();
-        //         addProgramHorizonConstraint();
-        //     };
+            void addConstraints() override {
+                addIntraTaskSequencingConstraints();
+                addIntraBlockSequencingConstraints();
+                addBlockPrecedenceConstraints();
+                addFCFSConsistencyConstraints();
+                addQubitLifetimeConstraints();
+                addInterBlockGapConstraints();
+                addProgramHorizonConstraint();
+            };
 
-        //     void setPrimaryObjective() override; // phase 1 objective
-        //     double getPrimaryObjectiveValueFromSolution() const override;
-        //     void constrainPrimaryObjectiveTo(double zStar) override;
-        //     void setSecondaryObjectiveDeterministic() override;
+            void setPrimaryObjective() override; // phase 1 objective
+            double getPrimaryObjectiveValueFromSolution() const override;
+            void constrainPrimaryObjectiveTo(double zStar) override;
+            void setSecondaryObjectiveDeterministic() override;
 
-        //     std::pair<std::unordered_map<std::string, uint32_t>, std::string> computeBlockDeadlines() const;
+            std::pair<std::unordered_map<std::string, uint32_t>, std::string> computeBlockDeadlines() const;
 
-        // private:
-        //     std::unordered_map<std::string, SCIP_VAR *> gapVars_;
-        //     SCIP_VAR *gminVar_ = nullptr;
+        private:
+            std::unordered_map<std::string, SCIP_VAR *> gapVars_;
+            SCIP_VAR *gminVar_ = nullptr;
 
-        //     void addIntraTaskSequencingConstraints();
+            void addIntraTaskSequencingConstraints();
 
-        //     void addIntraBlockSequencingConstraints();
+            void addIntraBlockSequencingConstraints();
 
-        //     void addBlockPrecedenceConstraints();
+            void addBlockPrecedenceConstraints();
 
-        //     void addFCFSConsistencyConstraints();
+            void addFCFSConsistencyConstraints();
 
-        //     void addQubitLifetimeConstraints();
-        //     void addInterBlockGapConstraints();
-        //     void addProgramHorizonConstraint();
+            void addQubitLifetimeConstraints();
+            void addInterBlockGapConstraints();
+            void addProgramHorizonConstraint();
 
-        //     double getProgramHorizon() const;
-        // };
+            double getProgramHorizon() const;
+        };
 
         using Closure = std::set<std::pair<std::string, std::string>>;
 

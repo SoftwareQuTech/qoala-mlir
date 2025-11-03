@@ -88,36 +88,48 @@ namespace qoala::analysis {
 
         blockOrderSecondary.cleanup();
 
-        // if (this->withDeadlines) {
-        //     reordering::BlockPrecedenceList deadlinesPrecedences =
-        //             createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
+        if (this->withDeadlines) {
+            reordering::BlockPrecedenceList deadlinesPrecedences =
+                    createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
 
-        //     reordering::MILPBlockDeadlineModel deadlineModel;
-        //     if (!deadlineModel.initialize()) {
-        //         moduleOp.emitError("Failed to initialize SCIP.");
-        //         signalPassFailure();
-        //     }
+            // Phase 1: maximize gmin
+            reordering::MILPBlockDeadlineModel deadlinePrimary;
+            if (!deadlinePrimary.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP (deadline primary).");
+                signalPassFailure();
+            }
+            deadlinePrimary.setProblemData(blocks, qubits, deadlinesPrecedences);
+            deadlinePrimary.createVariables();
+            deadlinePrimary.addConstraints();
+            deadlinePrimary.setPrimaryObjective();
+            if (!deadlinePrimary.optimize() || !deadlinePrimary.checkSolverStatus(&moduleOp)) {
+                moduleOp.emitError("Deadlines MILP solve (primary) failed.");
+                signalPassFailure();
+            }
+            const double gminStar = deadlinePrimary.getPrimaryObjectiveValueFromSolution();
+            deadlinePrimary.cleanup();
 
-        //     deadlineModel.setProblemData(blocks, qubits, deadlinesPrecedences);
-        //     deadlineModel.createVariables();
-        //     deadlineModel.addConstraints();
-        //     deadlineModel.setObjective();
+            // Phase 2: fix gmin == gmin* and apply deterministic tie-breaker
+            reordering::MILPBlockDeadlineModel deadlineSecondary;
+            if (!deadlineSecondary.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP (deadline secondary).");
+                signalPassFailure();
+            }
+            deadlineSecondary.setProblemData(blocks, qubits, deadlinesPrecedences);
+            deadlineSecondary.createVariables();
+            deadlineSecondary.addConstraints();
+            deadlineSecondary.constrainPrimaryObjectiveTo(gminStar);
+            deadlineSecondary.setSecondaryObjectiveDeterministic();
+            if (!deadlineSecondary.optimize() || !deadlineSecondary.checkSolverStatus(&moduleOp)) {
+                moduleOp.emitError("Deadlines MILP solve (secondary) failed.");
+                signalPassFailure();
+            }
 
-        //     if (!deadlineModel.optimize()) {
-        //         moduleOp.emitError("MILP solve failed.");
-        //         signalPassFailure();
-        //     }
+            auto [deadlines, refBlockId] = deadlineSecondary.computeBlockDeadlines();
+            deadlineSecondary.cleanup();
 
-        //     if (!deadlineModel.checkSolverStatus(&moduleOp)) {
-        //         signalPassFailure();
-        //     }
-
-        //     auto [deadlines, refBlockId] = deadlineModel.computeBlockDeadlines();
-
-        //     deadlineModel.cleanup();
-
-        //     reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
-        // }
+            reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
+        }
 
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
         if (failed(status)) {
