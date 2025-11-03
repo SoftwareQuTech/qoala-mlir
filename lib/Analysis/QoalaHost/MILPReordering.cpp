@@ -1011,25 +1011,90 @@ namespace qoala::analysis::reordering {
         SCIPreleaseCons(scip_, &c);
     }
 
+    std::vector<std::string> MILPBlockOrderModel::computeAllocationOrderFromSolution() const {
+        std::vector<std::pair<std::string, double>> allocWithTimes;
+        SCIP_SOL *best = SCIPgetBestSol(scip_);
+        if (!best) {
+            llvm::errs() << "Warning: no SCIP solution available when computing allocation order.\n";
+            return {};
+        }
+
+        // Collect (alloc_op_id, start_time)
+        for (const auto &q : qubits_) {
+            const MILPOperation *a = q->getAllocation();
+            if (!a) {
+                continue;
+            }
+
+            auto it = startVars_.find(a->getId());
+            if (it == startVars_.end()) {
+                continue;
+            }
+
+            double t = SCIPgetSolVal(scip_, best, it->second);
+            allocWithTimes.emplace_back(a->getId(), t);
+        }
+
+        // Build IR order index for tie-breaking
+        std::unordered_map<std::string, int> allocIR;
+        int idx = 0;
+        for (const auto &b : blocks_) {
+            for (const auto &op : b->getOperations()) {
+                allocIR[op->getId()] = idx++;
+            }
+        }
+
+        // Sort by time, then by IR order
+        std::sort(allocWithTimes.begin(), allocWithTimes.end(), [&](const auto &x, const auto &y) {
+            if (x.second != y.second) {
+                return x.second < y.second;
+            }
+            auto ix = allocIR.find(x.first);
+            auto iy = allocIR.find(y.first);
+            return (ix != allocIR.end() && iy != allocIR.end()) ? ix->second < iy->second : x.first < y.first;
+        });
+
+        // Extract IDs in order
+        std::vector<std::string> allocOrder;
+        allocOrder.reserve(allocWithTimes.size());
+        for (const auto &p : allocWithTimes) {
+            allocOrder.push_back(p.first);
+        }
+
+        return allocOrder;
+    }
+
+    void MILPBlockOrderModel::setPrimaryAllocationOrder(const std::vector<std::string> &allocOpIdsInOrder) {
+        primaryAllocRank_.clear();
+        int r = 0;
+        for (const auto &id : allocOpIdsInOrder) {
+            primaryAllocRank_[id] = r++;
+        }
+    }
+
     void MILPBlockOrderModel::setSecondaryObjectiveDeterministic() {
-        // Clear everything first
+        // Primary fixed to z*. Choose a canonical, deterministic solution.
+        //
+        // Policy:
+        //   - Uses the allocation order established in the primary optimization,
+        //     stored in `primaryAllocRank_`.
+        //   - Measurements of qubits whose allocations occurred earlier in that
+        //     primary schedule receive larger weights in the secondary objective.
+        //   - This ensures deterministic tie-breaking among equally optimal solutions,
+        //     while preserving the exact primary objective value.
+        //
+        // No epsilon perturbation: this is true two-phase lexicographic optimization.
+
+        // Reset objective coefficients and set sense to MINIMIZE
         SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
         for (auto &kv : startVars_) {
             SCIPchgVarObj(scip_, kv.second, 0.0);
         }
 
-        // Build a stable IR order index for each MILPOperation
-        llvm::DenseMap<const MILPOperation *, int> irIndex;
-        int idx = 0;
-        for (const auto &b : blocks_) {
-            for (const auto &op : b->getOperations()) {
-                irIndex[op.get()] = idx++;
-            }
-        }
-
+        // Build (measurement op, rank) pairs using precomputed primaryAllocRank_
         struct QInfo {
             const MILPOperation *meas;
-            int allocRank;
+            int rank; // smaller = earlier
         };
 
         std::vector<QInfo> qinfos;
@@ -1042,26 +1107,24 @@ namespace qoala::analysis::reordering {
                 continue;
             }
 
-            auto it = irIndex.find(a);
-            if (it == irIndex.end()) {
+            auto it = primaryAllocRank_.find(a->getId());
+            if (it == primaryAllocRank_.end()) {
                 continue;
             }
 
             qinfos.push_back({m, it->second});
         }
 
-        // Sort by alloc IR index: earliest alloc first
-        std::sort(qinfos.begin(), qinfos.end(),
-                  [](const QInfo &x, const QInfo &y) { return x.allocRank < y.allocRank; });
+        // Sort by allocation rank (earlier first)
+        std::sort(qinfos.begin(), qinfos.end(), [](const QInfo &x, const QInfo &y) { return x.rank < y.rank; });
 
-        // Assign weights: earliest alloc gets largest weight
-        const int K = (int) qinfos.size();
-        for (int rank = 0; rank < K; ++rank) {
-            const MILPOperation *measOp = qinfos[rank].meas;
+        // Assign strictly decreasing integer weights to measurement start vars
+        const int K = static_cast<int>(qinfos.size());
+        for (int r = 0; r < K; ++r) {
+            const MILPOperation *measOp = qinfos[r].meas;
             SCIP_VAR *v = startVars_.at(measOp->getId());
-            const int w = K - rank; // strictly decreasing
-            // Set objective coeff = w (additive)
-            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + (SCIP_Real) w);
+            const int w = K - r; // K, K-1, ..., 1
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + static_cast<SCIP_Real>(w));
         }
     }
 

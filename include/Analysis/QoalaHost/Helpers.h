@@ -358,6 +358,12 @@ namespace qoala::analysis {
             void constrainPrimaryObjectiveTo(double zStar) override;
             void setSecondaryObjectiveDeterministic() override;
 
+            // Provide the allocation order (from primary) to guide tie-breaking
+            // allocOpIdsInOrder: list of Allocation op IDs sorted "earliest first" per primary solution
+            void setPrimaryAllocationOrder(const std::vector<std::string>& allocOpIdsInOrder);
+
+            std::vector<std::string> computeAllocationOrderFromSolution() const;
+
         private:
             // Specific constraints
             void addIntraTaskOrderingConstraints();
@@ -369,6 +375,8 @@ namespace qoala::analysis {
             void addIntraBlockSequencingConstraints();
 
             uint32_t bigM_;
+
+            std::unordered_map<std::string, int> primaryAllocRank_;
         };
 
         class MILPBlockDeadlineModel : public MILPModelBuilder {

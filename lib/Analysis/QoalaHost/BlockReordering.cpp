@@ -56,6 +56,9 @@ namespace qoala::analysis {
         // read optimal primary scalar as double
         double zStar = blockOrderPrimary.getPrimaryObjectiveValueFromSolution();
 
+        // Compute allocation order from solution
+        auto allocOrder = blockOrderPrimary.computeAllocationOrderFromSolution();
+
         // we also need the *schedule state* (start times) later to reorder blocks if
         // the second pass ends up with the same start times but different tie-breaks.
         // BUT actually we only need final block order from *secondary*, not from primary,
@@ -72,8 +75,11 @@ namespace qoala::analysis {
         blockOrderSecondary.createVariables();
         blockOrderSecondary.addConstraints();
 
-        // now: lock the primary optimum
+        // lock the primary optimum
         blockOrderSecondary.constrainPrimaryObjectiveTo(zStar);
+        
+        // Inject allocation order from solution
+        blockOrderSecondary.setPrimaryAllocationOrder(allocOrder);
 
         // now: set the deterministic secondary objective
         blockOrderSecondary.setSecondaryObjectiveDeterministic();
