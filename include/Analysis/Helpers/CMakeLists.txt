@@ -1,3 +1,4 @@
 add_mlir_interface(QMemInterfaces)
 add_mlir_interface(NetQASMInterfaces)
 add_mlir_interface(GenericInterfaces)
+add_mlir_interface(QNetInterfaces)
