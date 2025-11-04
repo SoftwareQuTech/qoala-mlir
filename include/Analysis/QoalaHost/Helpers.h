@@ -303,21 +303,31 @@ namespace qoala::analysis {
             // Add all model constraints
             virtual void addConstraints() = 0;
 
+            // Configure SCIP objective = primary objective (lifetime minimization, etc.)
+            virtual void setPrimaryObjective() = 0;
+
             // Optimize using SCIP
             bool optimize() const { return SCIPsolve(scip_) == SCIP_OKAY; }
 
+            bool checkSolverStatus(mlir::ModuleOp *op) const;
+
+            // Read back the exact primary objective value from the optimal solution.
+            virtual double getPrimaryObjectiveValueFromSolution() const = 0;
+
+            // Add linear constraint that "primary objective expression == zStar".
+            // (To be called when we rebuild a *second* SCIP instance.)
+            virtual void constrainPrimaryObjectiveTo(double zStar) = 0;
+
+            // Wipe objective coeffs and install deterministic tiebreaker objective.
+            virtual void setSecondaryObjectiveDeterministic() = 0;
+
             // Free SCIP variables and memory
             void cleanup();
-
-            // Define the objective function (e.g., minimize total qubit lifetime)
-            virtual void setObjective() = 0;
 
             // Retrieve start time for a specific operation (by ID)
             double getOperationStartTime(const std::string &opId) const;
 
             std::vector<std::string> getOrderedBlocks() const;
-
-            bool checkSolverStatus(mlir::ModuleOp *op) const;
 
         protected:
             std::vector<std::shared_ptr<MILPBlock>> blocks_;
@@ -343,7 +353,16 @@ namespace qoala::analysis {
                 addIntraBlockSequencingConstraints();
             };
 
-            void setObjective() override;
+            void setPrimaryObjective() override;
+            double getPrimaryObjectiveValueFromSolution() const override;
+            void constrainPrimaryObjectiveTo(double zStar) override;
+            void setSecondaryObjectiveDeterministic() override;
+
+            // Provide the allocation order (from primary) to guide tie-breaking
+            // allocOpIdsInOrder: list of Allocation op IDs sorted "earliest first" per primary solution
+            void setPrimaryAllocationOrder(const std::vector<std::string> &allocOpIdsInOrder);
+
+            std::vector<std::string> computeAllocationOrderFromSolution() const;
 
         private:
             // Specific constraints
@@ -356,6 +375,8 @@ namespace qoala::analysis {
             void addIntraBlockSequencingConstraints();
 
             uint32_t bigM_;
+
+            std::unordered_map<std::string, int> primaryAllocRank_;
         };
 
         class MILPBlockDeadlineModel : public MILPModelBuilder {
@@ -376,7 +397,10 @@ namespace qoala::analysis {
                 addProgramHorizonConstraint();
             };
 
-            void setObjective() override;
+            void setPrimaryObjective() override; // phase 1 objective
+            double getPrimaryObjectiveValueFromSolution() const override;
+            void constrainPrimaryObjectiveTo(double zStar) override;
+            void setSecondaryObjectiveDeterministic() override;
 
             std::pair<std::unordered_map<std::string, uint32_t>, std::string> computeBlockDeadlines() const;
 

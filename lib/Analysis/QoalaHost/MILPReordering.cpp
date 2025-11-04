@@ -648,6 +648,33 @@ namespace qoala::analysis::reordering {
         // Silence SCIP output
         SCIPsetMessagehdlrQuiet(scip_, TRUE);
 
+        // Determinism: single-thread + fixed seeds
+        SCIPsetIntParam(scip_, "parallel/maxnthreads", 1);
+        SCIPsetIntParam(scip_, "parallel/minnthreads", 1);
+        SCIPsetIntParam(scip_, "lp/threads", 1);
+        SCIPsetIntParam(scip_, "randomization/randomseedshift", 0);
+        SCIPsetIntParam(scip_, "randomization/lpseed", 0);
+        SCIPsetIntParam(scip_, "randomization/permutationseed", 0);
+
+        // Tighten numerics a bit (optional but helps consistency)
+        SCIPsetRealParam(scip_, "numerics/feastol", 1e-9);
+        SCIPsetRealParam(scip_, "numerics/epsilon", 1e-9);
+
+        // Disable automatic symmetry detection and exploitation.
+        // Even with fixed seeds and single-threading, SCIP's symmetry handling can
+        // permute equivalent subproblems when multiple symmetric optimal solutions
+        // exist. Turning it off removes that nondeterminism at the cost of a slight
+        // performance decrease but ensures bit-for-bit reproducible schedules.
+        // NOTE: In some SCIP versions this param is Int (enum), in others Bool.
+        // Try Int first (0 = off), fall back to Bool(FALSE).
+        {
+            SCIP_RETCODE rc = SCIPsetIntParam(scip_, "misc/usesymmetry", 0 /* off */);
+            if (rc != SCIP_OKAY) {
+                // Older/newer builds may expose it as Bool. Ignore rc here deliberately.
+                (void) SCIPsetBoolParam(scip_, "misc/usesymmetry", FALSE);
+            }
+        }
+
         // Create the (still empty) problem before any variables are added.
         if (SCIPcreateProbBasic(scip_, "MILP_BlockOrdering") != SCIP_OKAY) {
             return false;
@@ -902,7 +929,7 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    void MILPBlockOrderModel::setObjective() {
+    void MILPBlockOrderModel::setPrimaryObjective() {
         // Sets the MILP objective to minimize the total qubit usage time across all qubits.
         // For each qubit:
         //  - MeasureOp start time contributes positively to the objective
@@ -912,6 +939,15 @@ namespace qoala::analysis::reordering {
         //                = Total lifetime time per qubit
         // In this implementation we remove dur(meas) - dur(alloc) from the objective, as those are not
         // variables and have no influence on the result.
+
+        const bool maximize = qoalaOptUnoptimize;
+        SCIPsetObjsense(scip_, maximize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
+
+        // Reset all objective coeffs to 0 first, just to be clean:
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
         SCIPsetObjsense(scip_, qoalaOptUnoptimize ? SCIP_OBJSENSE_MAXIMIZE : SCIP_OBJSENSE_MINIMIZE);
 
         for (const std::shared_ptr<MILPQubit> &q : qubits_) {
@@ -931,24 +967,181 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    double MILPModelBuilder::getOperationStartTime(const std::string &opId) const {
-        // Returns the computed start time (from SCIP solution) for a given operation by ID.
-        // Includes defensive checks and debug warnings for missing or invalid SCIP variable values.
+    double MILPBlockOrderModel::getPrimaryObjectiveValueFromSolution() const {
+        SCIP_SOL *bestsol = SCIPgetBestSol(scip_);
+        double z = 0.0;
 
-        const auto it = startVars_.find(opId);
+        for (const auto &q : qubits_) {
+            const MILPOperation *alloc = q->getAllocation();
+            const MILPOperation *meas = q->getMeasurement();
+            if (!(alloc && meas)) {
+                continue;
+            }
+
+            double sAlloc = SCIPgetSolVal(scip_, bestsol, startVars_.at(alloc->getId()));
+            double sMeas = SCIPgetSolVal(scip_, bestsol, startVars_.at(meas->getId()));
+
+            z += (sMeas - sAlloc);
+        }
+
+        return z;
+    }
+
+    void MILPBlockOrderModel::constrainPrimaryObjectiveTo(double zStar) {
+        SCIP_CONS *c = nullptr;
+        SCIPcreateConsBasicLinear(scip_, &c, "fix_primary_obj",
+                                  /*nvars=*/0,
+                                  /*vars=*/nullptr,
+                                  /*vals=*/nullptr,
+                                  /*lhs=*/(SCIP_Real) zStar,
+                                  /*rhs=*/(SCIP_Real) zStar);
+
+        for (const auto &q : qubits_) {
+            const MILPOperation *alloc = q->getAllocation();
+            const MILPOperation *meas = q->getMeasurement();
+            if (!(alloc && meas)) {
+                continue;
+            }
+
+            SCIPaddCoefLinear(scip_, c, startVars_.at(meas->getId()), 1.0);
+            SCIPaddCoefLinear(scip_, c, startVars_.at(alloc->getId()), -1.0);
+        }
+
+        SCIPaddCons(scip_, c);
+        SCIPreleaseCons(scip_, &c);
+    }
+
+    std::vector<std::string> MILPBlockOrderModel::computeAllocationOrderFromSolution() const {
+        std::vector<std::pair<std::string, double>> allocWithTimes;
+        SCIP_SOL *best = SCIPgetBestSol(scip_);
+        if (!best) {
+            llvm::errs() << "Warning: no SCIP solution available when computing allocation order.\n";
+            return {};
+        }
+
+        // Collect (alloc_op_id, start_time)
+        for (const auto &q : qubits_) {
+            const MILPOperation *a = q->getAllocation();
+            if (!a) {
+                continue;
+            }
+
+            auto it = startVars_.find(a->getId());
+            if (it == startVars_.end()) {
+                continue;
+            }
+
+            double t = SCIPgetSolVal(scip_, best, it->second);
+            allocWithTimes.emplace_back(a->getId(), t);
+        }
+
+        // Build IR order index for tie-breaking
+        std::unordered_map<std::string, int> allocIR;
+        int idx = 0;
+        for (const auto &b : blocks_) {
+            for (const auto &op : b->getOperations()) {
+                allocIR[op->getId()] = idx++;
+            }
+        }
+
+        // Sort by time, then by IR order
+        std::sort(allocWithTimes.begin(), allocWithTimes.end(), [&](const auto &x, const auto &y) {
+            if (x.second != y.second) {
+                return x.second < y.second;
+            }
+            auto ix = allocIR.find(x.first);
+            auto iy = allocIR.find(y.first);
+            return (ix != allocIR.end() && iy != allocIR.end()) ? ix->second < iy->second : x.first < y.first;
+        });
+
+        // Extract IDs in order
+        std::vector<std::string> allocOrder;
+        allocOrder.reserve(allocWithTimes.size());
+        for (const auto &p : allocWithTimes) {
+            allocOrder.push_back(p.first);
+        }
+
+        return allocOrder;
+    }
+
+    void MILPBlockOrderModel::setPrimaryAllocationOrder(const std::vector<std::string> &allocOpIdsInOrder) {
+        primaryAllocRank_.clear();
+        int r = 0;
+        for (const auto &id : allocOpIdsInOrder) {
+            primaryAllocRank_[id] = r++;
+        }
+    }
+
+    void MILPBlockOrderModel::setSecondaryObjectiveDeterministic() {
+        // Primary fixed to z*. Choose a canonical, deterministic solution.
+        //
+        // Policy:
+        //   - Uses the allocation order established in the primary optimization,
+        //     stored in `primaryAllocRank_`.
+        //   - Measurements of qubits whose allocations occurred earlier in that
+        //     primary schedule receive larger weights in the secondary objective.
+        //   - This ensures deterministic tie-breaking among equally optimal solutions,
+        //     while preserving the exact primary objective value.
+        //
+        // No epsilon perturbation: this is true two-phase lexicographic optimization.
+
+        // Reset objective coefficients and set sense to MINIMIZE
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
+        // Build (measurement op, rank) pairs using precomputed primaryAllocRank_
+        struct QInfo {
+            const MILPOperation *meas;
+            int rank; // smaller = earlier
+        };
+
+        std::vector<QInfo> qinfos;
+        qinfos.reserve(qubits_.size());
+
+        for (const auto &q : qubits_) {
+            const MILPOperation *a = q->getAllocation();
+            const MILPOperation *m = q->getMeasurement();
+            if (!(a && m)) {
+                continue;
+            }
+
+            auto it = primaryAllocRank_.find(a->getId());
+            if (it == primaryAllocRank_.end()) {
+                continue;
+            }
+
+            qinfos.push_back({m, it->second});
+        }
+
+        // Sort by allocation rank (earlier first)
+        std::sort(qinfos.begin(), qinfos.end(), [](const QInfo &x, const QInfo &y) { return x.rank < y.rank; });
+
+        // Assign strictly decreasing integer weights to measurement start vars
+        const int K = static_cast<int>(qinfos.size());
+        for (int r = 0; r < K; ++r) {
+            const MILPOperation *measOp = qinfos[r].meas;
+            SCIP_VAR *v = startVars_.at(measOp->getId());
+            const int w = K - r; // K, K-1, ..., 1
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + static_cast<SCIP_Real>(w));
+        }
+    }
+
+    double MILPModelBuilder::getOperationStartTime(const std::string &opId) const {
+        auto it = startVars_.find(opId);
         if (it == startVars_.end()) {
             LLVM_DEBUG(llvm::dbgs() << "Warning: start time requested for unknown operation " << opId << "\n");
-            return -1.0;
+            return std::numeric_limits<double>::infinity(); // parks at end
         }
+        const SCIP_Real x = SCIPgetSolVal(scip_, nullptr, it->second);
 
-        const double val = SCIPgetSolVal(scip_, nullptr, it->second);
-
-        // Defensive checks for invalid SCIP values
-        if (val < 0.0 || std::isnan(val) || std::isinf(val)) {
-            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for operation " << opId << ": " << val << "\n");
+        // Treat invalids explicitly
+        if (std::isnan(x) || SCIPisInfinity(scip_, fabs(x))) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for " << opId << ": " << x << "\n");
+            return std::numeric_limits<double>::infinity();
         }
-
-        return val;
+        return static_cast<double>(x);
     }
 
     void MILPModelBuilder::cleanup() {
@@ -1120,6 +1313,11 @@ namespace qoala::analysis::reordering {
             }
         }
 
+        // Zero all objective coefficients on start vars (clean slate)
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
         // g_min
         gminVar_ = createVariable(scip_, "g_min", /*strictlyPositive=*/false);
 
@@ -1131,10 +1329,16 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    void MILPBlockDeadlineModel::setObjective() {
+    void MILPBlockDeadlineModel::setPrimaryObjective() {
         // Sets the objective: maximize the minimum inter-block gap g_min.
 
         SCIPsetObjsense(scip_, SCIP_OBJSENSE_MAXIMIZE);
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+        for (auto &kv : gapVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
         if (gminVar_) {
             SCIPchgVarObj(scip_, gminVar_, 1.0);
         }
@@ -1419,6 +1623,84 @@ namespace qoala::analysis::reordering {
         // default
         LLVM_DEBUG(llvm::dbgs() << "[Deadline] Using default program horizon (2 * sumDur): " << defaultH << "\n");
         return defaultH;
+    }
+
+    double MILPBlockDeadlineModel::getPrimaryObjectiveValueFromSolution() const {
+        SCIP_SOL *best = SCIPgetBestSol(scip_);
+        return SCIPgetSolVal(scip_, best, gminVar_);
+    }
+
+    void MILPBlockDeadlineModel::constrainPrimaryObjectiveTo(double zStar) {
+        // Constrain gmin == zStar (exact lexicographic lock)
+        SCIP_CONS *c = nullptr;
+        SCIPcreateConsBasicLinear(scip_, &c, "fix_gmin",
+                                  /*nvars=*/0, /*vars=*/nullptr, /*vals=*/nullptr,
+                                  /*lhs=*/(SCIP_Real) zStar,
+                                  /*rhs=*/(SCIP_Real) zStar);
+
+        // gmin has coefficient +1
+        SCIPaddCoefLinear(scip_, c, gminVar_, 1.0);
+
+        SCIPaddCons(scip_, c);
+        SCIPreleaseCons(scip_, &c);
+    }
+
+    void MILPBlockDeadlineModel::setSecondaryObjectiveDeterministic() {
+        // Sets the deterministic secondary objective of the
+        // lexicographic (two-phase) optimization for the deadline model.
+        // Policy:
+        //   - The secondary objective is not physically meaningful; it is used
+        //     solely to enforce deterministic, platform-independent ordering.
+        //   - We assign small, monotonically decreasing integer weights to the
+        //     start-time variables of operations according to their order in the
+        //     compiler’s intermediate representation (IR).
+        //   - Minimizing this weighted sum promotes an ALAP
+        //     bias within the feasible region defined by g_min = z*, without
+        //     changing any primary optimal values.
+        //   - No epsilon perturbation is used: the primary objective is *exactly*
+        //     fixed via constraint, and this objective only acts as a deterministic
+        //     selector among degenerate optima.
+
+        SCIPsetObjsense(scip_, SCIP_OBJSENSE_MINIMIZE);
+
+        // Zero all objective coefficients
+        SCIPchgVarObj(scip_, gminVar_, 0.0);
+        for (auto &kv : startVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+        for (auto &kv : gapVars_) {
+            SCIPchgVarObj(scip_, kv.second, 0.0);
+        }
+
+        // Build a stable global IR order over all operations
+        std::vector<const MILPOperation *> opsInIR;
+        opsInIR.reserve([&] {
+            size_t n = 0;
+            for (const auto &b : blocks_) {
+                n += b->getOperations().size();
+            }
+            return n;
+        }());
+
+        for (const auto &b : blocks_) {
+            for (const auto &op : b->getOperations()) {
+                opsInIR.push_back(op.get());
+            }
+        }
+
+        // Assign strictly increasing integer weights by IR order:
+        //   earlier IR op -> smaller weight, later IR op -> larger weight.
+        const int N = static_cast<int>(opsInIR.size());
+        for (int i = 0; i < N; ++i) {
+            const MILPOperation *op = opsInIR[i];
+            auto it = startVars_.find(op->getId());
+            if (it == startVars_.end()) {
+                continue; // safety
+            }
+            SCIP_VAR *v = it->second;
+            const int w = i + 1;
+            SCIPchgVarObj(scip_, v, SCIPvarGetObj(v) + static_cast<SCIP_Real>(w));
+        }
     }
 
     std::pair<std::unordered_map<std::string, uint32_t>, std::string>

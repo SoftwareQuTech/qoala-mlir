@@ -1,20 +1,18 @@
-// UNSUPPORTED: true
 // RUN: qoala-opt %s --qoalahost-reorder-blocks=with-deadlines | FileCheck %s
 
-// The checks for deadlines value are +/-1. depending on CPU performance, the computed value might slightly change. Howerver, since we are computing
-// **soft** deadlines, htis is not an issue.
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = 102 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_1 = 218 : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {block_1 = 332 : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {block_1 = 486 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {block_1 = 601 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_8", deadlines = {block_1 = 1588 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
-// CHECK: qoalahost.blk_meta  {block_id = "block_9", deadlines = {block_1 = 2694 : i64}, dependencies = ["block_8"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_10", deadlines = {block_1 = 2965 : i64}, dependencies = ["block_9"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_11", deadlines = {block_1 = 3079 : i64}, dependencies = ["block_10"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {block_1 = 3194 : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {block_1 = 3297 : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = 92 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {block_1 = 198 : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {block_1 = 302 : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {block_1 = 446 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {block_1 = 551 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_8", deadlines = {block_1 = 656 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
+// CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {block_1 = 1752 : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {block_1 = 1845 : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_9", deadlines = {block_1 = 1938 : i64}, dependencies = ["block_8"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_10", deadlines = {block_1 = 2042 : i64}, dependencies = ["block_9"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "block_11", deadlines = {block_1 = 2146 : i64}, dependencies = ["block_10"], predecessors = [], prev_comm = "", prev_ent = ""}
+
 
 module {
   qremote.remote @Bob
