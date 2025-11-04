@@ -70,18 +70,29 @@ namespace qoala::analysis {
                 }
             }
 
-            // Rewrite: forward prevOp's inputs to replace op's outputs
+            // Type sanity: each result of 'op' must match the corresponding input of 'prevOp'
+            for (auto [res2, in1] : llvm::zip(op->getResults(), prevOp->getOperands())) {
+                if (res2.getType() != in1.getType()) {
+                    LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: result/input type mismatch\n");
+                    return failure();
+                }
+            }
+
             LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   Matched pair: " << prevOp->getName() << " / "
                                     << op->getName() << " -> performing cancellation\n");
 
-            for (auto [res2, opd1] : llvm::zip(op->getResults(), op->getOperands())) {
-                rewriter.replaceAllUsesWith(res2, opd1);
-                LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]      replaced uses of " << res2 << " with " << opd1
-                                        << "\n");
-            }
+            // Forward past BOTH ops: replace 'op' results with the ORIGINAL inputs of 'prevOp'.
+            // This ensures 'prevOp' becomes dead (no uses) and can be erased safely.
+            rewriter.replaceOp(op, prevOp->getOperands());
 
-            LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]      erasing ops\n");
-            rewriter.eraseOp(op);
+            LLVM_DEBUG({
+                llvm::dbgs() << "[HermitianCancel]      forwarded results of " << op->getName()
+                             << " to inputs of previous " << prevOp->getName() << " [";
+                llvm::interleaveComma(prevOp->getOperands(), llvm::dbgs());
+                llvm::dbgs() << "]\n";
+            });
+
+            // Now safe to erase prevOp (its results were only used by 'op').
             rewriter.eraseOp(prevOp);
 
             LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   Cancellation complete\n");

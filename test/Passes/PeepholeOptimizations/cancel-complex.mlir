@@ -15,7 +15,7 @@ module {
         %q5 = qnet.hadamard %q3 : !qnet.qubit
         %q6 = qnet.hadamard %q5 : !qnet.qubit
 
-        %q7, %q8 = qnet.cnot %q3, %q6 : !qnet.qubit, !qnet.qubit
+        %q7, %q8 = qnet.cnot %q3, %q4 : !qnet.qubit, !qnet.qubit
 
         qnet.return
     }
