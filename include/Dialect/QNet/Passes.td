@@ -16,7 +16,7 @@ def QNetDeadCodeElimination : Pass<"qnet-dead-code-elimination", "qoala::dialect
 def QNetPeepholeOptimizations : Pass<"qnet-peephole-optimizations", "qoala::dialects::qnet::FuncOp"> {
   let summary = "Run peephole optimizations (e.g. hermitian cancellation, rotation merging) on quantum code.";
   let options = [
-        Option<"hermiatianCancellations", "hermitian-cancellation", "bool", /*default=*/"true",
+        Option<"hermiatianCancel", "hermitian-cancel", "bool", /*default=*/"true",
                "Run hermitian cancellations as part of the peephole optimizations.">,
     ];
 }

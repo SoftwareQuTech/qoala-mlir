@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qnet-peephole-optimizations=hermitian-cancellation | FileCheck %s
+// RUN: qoala-opt %s --qnet-peephole-optimizations=hermitian-cancel | FileCheck %s
 
 module {
     qnet.func @cancel_simple() {

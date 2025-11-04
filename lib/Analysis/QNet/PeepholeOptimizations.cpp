@@ -106,11 +106,11 @@ namespace qoala::analysis {
     };
 
     void QNetPeepholeOptimizationsPass::runOnOperation() {
-        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancellations="
-                                << this->hermiatianCancellations << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermiatianCancel
+                                << "\n");
 
         RewritePatternSet patterns(&getContext());
-        if (this->hermiatianCancellations) {
+        if (this->hermiatianCancel) {
             patterns.add<CancelHermitianPairPattern>(&getContext());
             GreedyRewriteConfig cfg;
             (void) applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), cfg);
