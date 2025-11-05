@@ -230,7 +230,7 @@ def CnotOp : QNet_Op<"cnot", [HermitianOpIface]> {
     }];
 }
 
-def CzOp : QNet_Op<"cz"> {
+def CzOp : QNet_Op<"cz", [HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
