@@ -104,23 +104,36 @@ namespace qoala::analysis {
         }
     };
 
+    struct FoldRotationPairPattern : OpInterfaceRewritePattern<RotationOpIface> {
+        using Base = OpInterfaceRewritePattern<RotationOpIface>;
+        using Base::Base;
+
+        LogicalResult matchAndRewrite(RotationOpIface rot, PatternRewriter &rewriter) const override {
+            return success();
+        }
+    };
+
     class QNetPeepholeOptimizationsPass : public impl::QNetPeepholeOptimizationsBase<QNetPeepholeOptimizationsPass> {
         using QNetPeepholeOptimizationsBase::QNetPeepholeOptimizationsBase;
         void runOnOperation() override;
     };
 
     void QNetPeepholeOptimizationsPass::runOnOperation() {
-        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermiatianCancel
-                                << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermitianCancel
+                                << ", rotationFold=" << this->rotationFolding << "\n");
 
         RewritePatternSet patterns(&getContext());
-        if (this->hermiatianCancel) {
+        if (this->hermitianCancel) {
             patterns.add<CancelHermitianPairPattern>(&getContext());
-            GreedyRewriteConfig cfg;
-            (void) applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), cfg);
+        }
+        if (this->rotationFolding) {
+            patterns.add<FoldRotationPairPattern>(&getContext());
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] finished\n");
+        GreedyRewriteConfig cfg;
+        (void) applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), cfg);
+
+        LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole] finished\n");
     }
 
 } // namespace qoala::analysis
