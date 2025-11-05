@@ -190,7 +190,7 @@ def NewQubitOp : QNet_Op<"new_qubit"> {
     }];
 }
 
-def RotXOp : QNet_Op<"rot_x"> {
+def RotXOp : QNet_Op<"rot_x", [DeclareOpInterfaceMethods<RotationOpIface>]> {
     let arguments = (ins QubitType:$qin, F32:$angle);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
@@ -198,7 +198,7 @@ def RotXOp : QNet_Op<"rot_x"> {
     }];
 }
 
-def RotYOp : QNet_Op<"rot_y"> {
+def RotYOp : QNet_Op<"rot_y", [DeclareOpInterfaceMethods<RotationOpIface>]> {
     let arguments = (ins QubitType:$qin, F32:$angle);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
@@ -206,7 +206,7 @@ def RotYOp : QNet_Op<"rot_y"> {
     }];
 }
 
-def RotZOp : QNet_Op<"rot_z"> {
+def RotZOp : QNet_Op<"rot_z", [DeclareOpInterfaceMethods<RotationOpIface>]> {
     let arguments = (ins QubitType:$qin, F32:$angle);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
@@ -238,7 +238,7 @@ def CzOp : QNet_Op<"cz", [HermitianOpIface]> {
     }];
 }
 
-def CrotXOp : QNet_Op<"crot_x"> {
+def CrotXOp : QNet_Op<"crot_x", [DeclareOpInterfaceMethods<RotationOpIface>]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1, F32:$angle);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
