@@ -55,7 +55,9 @@ namespace qoala::analysis {
                 return failure();
             }
 
-            // Arity alignment
+            // Quick structural sanity check: make sure both ops have the same
+            // number of wires (results/operands). The detailed per-wire alignment
+            // and single-use checks happen right after.
             if (prevOp->getNumResults() != op->getNumOperands() || prevOp->getNumOperands() != op->getNumResults()) {
                 LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: mismatched arity\n");
                 return failure();
