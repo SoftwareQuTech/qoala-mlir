@@ -63,21 +63,20 @@ namespace qoala::analysis {
                 return failure();
             }
 
-            // Strict adjacency and single-use of prev results
-            for (auto [opd, res] : llvm::zip(op->getOperands(), prevOp->getResults())) {
-                if (opd != res) {
+            for (auto [opd, resPrev, resCurr, inPrev] :
+                 llvm::zip(op->getOperands(), prevOp->getResults(), op->getResults(), prevOp->getOperands())) {
+                // Strict adjacency and single-use of prev results
+                if (opd != resPrev) {
                     LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: operands/results not aligned\n");
                     return failure();
                 }
-                if (!res.hasOneUse()) {
+                if (!resPrev.hasOneUse()) {
                     LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: result has multiple uses\n");
                     return failure();
                 }
-            }
 
-            // Type sanity: each result of 'op' must match the corresponding input of 'prevOp'
-            for (auto [res2, in1] : llvm::zip(op->getResults(), prevOp->getOperands())) {
-                if (res2.getType() != in1.getType()) {
+                // Type sanity: each result of 'op' must match the corresponding input of 'prevOp'
+                if (resCurr.getType() != inPrev.getType()) {
                     LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: result/input type mismatch\n");
                     return failure();
                 }
