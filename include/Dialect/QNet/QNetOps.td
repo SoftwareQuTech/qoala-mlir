@@ -22,6 +22,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QNet/QNetDialect.td"
 include "Dialect/QNet/QNetTypes.td"
+include "Analysis/Helpers/QNetInterfaces.td"
 
 
 class QNet_Op<string mnemonic, list<Trait> traits = []> :
@@ -213,7 +214,7 @@ def RotZOp : QNet_Op<"rot_z"> {
     }];
 }
 
-def HadamardOp : QNet_Op<"hadamard"> {
+def HadamardOp : QNet_Op<"hadamard", [HermitianOpIface]> {
     let arguments = (ins QubitType:$qin);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
@@ -221,7 +222,7 @@ def HadamardOp : QNet_Op<"hadamard"> {
     }];
 }
 
-def CnotOp : QNet_Op<"cnot"> {
+def CnotOp : QNet_Op<"cnot", [HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
@@ -229,7 +230,7 @@ def CnotOp : QNet_Op<"cnot"> {
     }];
 }
 
-def CzOp : QNet_Op<"cz"> {
+def CzOp : QNet_Op<"cz", [HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
