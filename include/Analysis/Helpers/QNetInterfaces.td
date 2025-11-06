@@ -7,7 +7,7 @@ def HermitianOpIface : OpInterface<"HermitianOpIface"> {
     let description = [{
         Interface for hermitian operations.
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [];
 }
 
