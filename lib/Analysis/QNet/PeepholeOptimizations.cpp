@@ -43,8 +43,7 @@ namespace qoala::analysis {
             }
 
             // prevOp must also implement the same interface
-            auto prevOpIface = dyn_cast<HermitianOpIface>(prevOp);
-            if (!prevOpIface) {
+            if (!isa<HermitianOpIface>(prevOp)) {
                 LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: previous op not Hermitian\n");
                 return failure();
             }
