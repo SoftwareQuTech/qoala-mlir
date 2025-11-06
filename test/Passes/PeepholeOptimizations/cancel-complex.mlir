@@ -1,4 +1,3 @@
-// UNSUPPORTED: true
 // RUN: qoala-opt %s --qnet-peephole-optimizations=hermitian-cancel | FileCheck %s
 
 module {
