@@ -32,6 +32,10 @@ namespace qoala::analysis {
             }
 
             // Candidate previous op (def of first operand)
+            // NOTE: Currently we use the first operand to identify the candidate producer.
+            // This is safe for existing single and two-qubit Hermitian gates, as later
+            // checks enforce operand/result alignment. For future ops with more complex
+            // wiring, consider verifying all operands share the same defining op.
             Operation *prevOp = op->getOperand(0).getDefiningOp();
             if (!prevOp) {
                 LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   -> Skip: first operand has no defining op\n");
