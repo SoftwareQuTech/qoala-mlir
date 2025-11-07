@@ -172,23 +172,23 @@ uint32_t qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTim
 
 uint32_t qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::SendIntOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-uint32_t qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+uint32_t qoalahost::SendFloatOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
-uint32_t qoalahost::RecvIntsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint32_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-uint32_t qoalahost::RecvFloatsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint32_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::SendIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::RecvIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return BlockType::CC;
 }
 
-BlockType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     return BlockType::CC;
 }
 

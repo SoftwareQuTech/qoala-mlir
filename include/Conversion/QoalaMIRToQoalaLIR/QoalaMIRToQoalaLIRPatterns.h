@@ -43,7 +43,7 @@ namespace qoala::conversion::mir {
     };
 
     class RecvIntsOpLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntsOp, dialects::qoalahost::RecvIntsOp> {
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntsOp, dialects::qoalahost::RecvIntOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
@@ -52,7 +52,7 @@ namespace qoala::conversion::mir {
     };
 
     class RecvFloatsOpLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatsOp, dialects::qoalahost::RecvFloatsOp> {
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatsOp, dialects::qoalahost::RecvFloatOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
@@ -61,7 +61,7 @@ namespace qoala::conversion::mir {
     };
 
     class SendIntsOpLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntsOp, dialects::qoalahost::SendIntsOp> {
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntsOp, dialects::qoalahost::SendIntOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
@@ -70,7 +70,7 @@ namespace qoala::conversion::mir {
     };
 
     class SendFloatsOpLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatsOp, dialects::qoalahost::SendFloatsOp> {
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatsOp, dialects::qoalahost::SendFloatOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
