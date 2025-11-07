@@ -17,8 +17,7 @@ namespace qoala::analysis {
 #include "Dialect/QNet/Passes.h.inc"
 
     struct CancelHermitianPairPattern : OpInterfaceRewritePattern<HermitianOpIface> {
-        using Base = OpInterfaceRewritePattern<HermitianOpIface>;
-        using Base::Base;
+        using OpInterfaceRewritePattern::OpInterfaceRewritePattern;
 
         LogicalResult matchAndRewrite(HermitianOpIface opIface, PatternRewriter &rewriter) const override {
             Operation *op = opIface.getOperation();
