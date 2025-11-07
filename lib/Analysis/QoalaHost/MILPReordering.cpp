@@ -333,7 +333,7 @@ namespace qoala::analysis::reordering {
     }
 
     std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
-    collectQubitUsage(qoalahost::MainFuncOp mainFunc, ModuleOp moduleOp) {
+    collectQubitUsage(qoalahost::MainFuncOp &mainFunc, ModuleOp &moduleOp) {
         // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
         llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
         // Maps result of call to actual QAlloc op it aliases (transitive resolution)
