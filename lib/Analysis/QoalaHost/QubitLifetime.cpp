@@ -149,8 +149,6 @@ namespace qoala::analysis::qubitlife {
 
         std::unordered_map<std::string, std::string> qubitInits;
         std::unordered_map<std::string, std::string> qubitMeas;
-        std::unordered_set<std::string> init;
-        std::unordered_set<std::string> meas;
         std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> blockDependences;
 
         buildQubitMaps(qubits, qubitInits, qubitMeas, qubitsInitMeas);
@@ -158,7 +156,7 @@ namespace qoala::analysis::qubitlife {
 
         for (const auto &bp : blocks) {
             processBlock(bp.get(), blockDependences, taskDependences, qpuTasks, cpuTasks, qubitInits, qubitMeas,
-                         qubitsInitMeas, init, meas);
+                         qubitsInitMeas);
         }
 
         /**
@@ -230,8 +228,7 @@ namespace qoala::analysis::qubitlife {
             std::unordered_map<std::string, std::vector<std::string>> &taskDependences, std::vector<Task> &qpuTasks,
             std::vector<Task> &cpuTasks, const std::unordered_map<std::string, std::string> &qubitInits,
             const std::unordered_map<std::string, std::string> &qubitMeas,
-            std::unordered_map<std::string, std::vector<std::string>> &qubitInitsMeas,
-            std::unordered_set<std::string> &init, std::unordered_set<std::string> &meas) {
+            std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas) {
 
         std::string intraBlockPred;
         std::string last;
