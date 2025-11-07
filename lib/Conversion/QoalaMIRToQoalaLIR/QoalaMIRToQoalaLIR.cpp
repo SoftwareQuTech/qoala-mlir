@@ -79,7 +79,6 @@ namespace qoala::conversion {
         passManager.addPass(analysis::createFoldConstants());
 
         // Stage 5: Functionize
-
         passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
 
         // This is the limit of what can be isolated in standalone passes.

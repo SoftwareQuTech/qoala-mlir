@@ -88,6 +88,7 @@ namespace qoala::conversion::mir {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
         auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr(),
                                                              adaptor.getLengthAttr());
+        auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
         // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_ints op.
         // We need to remove the extra qoalahost.nop_term terminator operation
@@ -102,8 +103,8 @@ namespace qoala::conversion::mir {
                                                                             qmem::RecvFloatsOp::Adaptor adaptor,
                                                                             ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        auto newRecv = rewriter.create<qoalahost::RecvFloatOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr(),
-                                                               adaptor.getLengthAttr());
+        auto length = op.getLengthAttr().getInt();
+        auto newRecv = rewriter.create<qoalahost::RecvFloatOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
         // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_floats op.
         // We need to remove the extra qoalahost.nop_term terminator operation

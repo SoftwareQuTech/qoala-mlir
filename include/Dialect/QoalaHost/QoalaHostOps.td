@@ -245,7 +245,7 @@ def SendFloatOp : UsingRemote_Op<"send_float", [
 def RecvFloatOp : UsingRemote_Op<"recv_float", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
-    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
+    let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs F32:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
