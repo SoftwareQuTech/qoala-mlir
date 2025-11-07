@@ -1,8 +1,8 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-qubit-life | FileCheck %s
 // CHECK: [Qubits Lifetimes]:
-// CHECK: - 0::2: 1229
+// CHECK: - 0::2: 1262
 // CHECK: - 1::2: 71
-// CHECK: - 3::2: 168
+// CHECK: - 3::2: 157
 
 module {
   qremote.remote @Bob
@@ -76,6 +76,6 @@ module {
         %m0 = qoalahost.call @meas_ent(%0) : (i32) -> i1
     ^bb7:
         qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
-        %m1 = qoalahost.call @meas_local0(%0) : (i32) -> i1
+        %m1 = qoalahost.call @meas_local0(%1) : (i32) -> i1
   }
 }
