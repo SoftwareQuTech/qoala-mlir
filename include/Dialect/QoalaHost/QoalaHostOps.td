@@ -203,12 +203,10 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
         }];
 }
 
-def SendIntsOp : UsingRemote_Op<"send_ints", [
+def SendIntOp : UsingRemote_Op<"send_int", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
-    // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
-    let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
+    let arguments = (ins I32:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
@@ -225,36 +223,30 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [
  * In a mor pragmatic way, we will "isolate" recv instructions inside its own
  * block, so we can easily comply with the traits of the recv operation.
  */
-def RecvIntsOp : UsingRemote_Op<"recv_ints", [
+def RecvIntOp : UsingRemote_Op<"recv_int", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
-    // TODO - This operation yields a tensor as a result. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
-    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
-    let results = (outs TensorOf<[I32]>:$cout);
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let results = (outs I32:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
     }];
 }
 
-def SendFloatsOp : UsingRemote_Op<"send_floats", [
+def SendFloatOp : UsingRemote_Op<"send_float", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
-    // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
-    let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
+    let arguments = (ins F32:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
 }
 
-def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
+def RecvFloatOp : UsingRemote_Op<"recv_float", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
-    // TODO - This operation yields a tensor as a result. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
-    let results = (outs TensorOf<[F32]>:$cout);
+    let results = (outs F32:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
     }];
