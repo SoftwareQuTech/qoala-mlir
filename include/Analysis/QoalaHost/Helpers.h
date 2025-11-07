@@ -535,6 +535,7 @@ namespace qoala::analysis {
         public:
             QoalaHostQubitLifetime(mlir::Operation *op);
 
+            [[nodiscard]]
             std::unordered_map<std::string, int> getLifetimes() const;
 
         private:
