@@ -56,8 +56,12 @@ namespace qoala::analysis::qubitlife {
                     twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
                 }
             }
-            
-            assert(allocOp != nullptr && "Missing Alloc Op found for qubit");
+
+            if (allocOp == nullptr) {
+                llvm::outs() << "Missing Alloc Op for qubit: " << entry.first << ".\n";
+                assert(false);
+            }
+
             std::string id = allocOp->getId().substr(6);
             std::shared_ptr<LiveQubit> qubitPtr = std::make_shared<LiveQubit>(id);
 
@@ -316,7 +320,7 @@ namespace qoala::analysis::qubitlife {
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
             if (qubit->getAllocation() == nullptr) {
-                printf("Alloc Op not found for qubit (%s).\n", qubitId.c_str());
+                llvm::outs() << "Alloc Op not found for qubit " << qubitId << ".\n";
                 assert(false);
             }
             const std::string &allocId = qubit->getAllocation()->getId();
