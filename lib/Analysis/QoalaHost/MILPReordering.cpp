@@ -175,7 +175,7 @@ namespace qoala::analysis::reordering {
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
                BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                LogicalResult>
-    buildMilpBlocks(qoalahost::MainFuncOp mainFunc, const llvm::StringMap<Operation *> &routineMap) {
+    buildMilpBlocks(qoalahost::MainFuncOp &mainFunc, const llvm::StringMap<Operation *> &routineMap) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         BlockPrecedenceList precedences;
 
