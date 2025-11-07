@@ -370,7 +370,7 @@ namespace qoala::analysis::qubitlife {
             const std::unordered_map<std::string, std::vector<std::string>> &taskDependences) {
 
         for (size_t i = 0; i < tasks.size(); ++i) {
-            if (isTaskAvailable(tasks[i].name, taskDependences)) {
+            if (isTaskAvailable(tasks[i].getName(), taskDependences)) {
                 return i;
             }
         }
@@ -389,14 +389,14 @@ namespace qoala::analysis::qubitlife {
                                                      std::unordered_map<std::string, int> &qubitLifeTimes) {
 
         // Check if it is an init task
-        auto initIt = qubitInits.find(scheduledTask.name);
+        auto initIt = qubitInits.find(scheduledTask.getName());
         if (initIt != qubitInits.end()) {
             // Life time should start after initialization is completed
             qubitLifeTimes.emplace(initIt->second, currentTime);
         }
 
         // Check if it is a measurement task
-        auto measIt = qubitMeas.find(scheduledTask.name);
+        auto measIt = qubitMeas.find(scheduledTask.getName());
         if (measIt != qubitMeas.end()) {
             auto lifetimeIt = qubitLifeTimes.find(measIt->second);
             if (lifetimeIt != qubitLifeTimes.end()) {
@@ -431,11 +431,11 @@ namespace qoala::analysis::qubitlife {
          * its execution time would not increase the time
          * of its task type beyond the global time.
          */
-        if (globalTime - taskTime < task.time) {
+        if (globalTime - taskTime < task.getTime()) {
             return false;
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "Scheduling Task: " << task.name << " at time " << globalTime << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "Scheduling Task: " << task.getName() << " at time " << globalTime << "\n");
 
         // Update qubit lifetime if needed
         updateQubitLifetime(task, globalTime, qubitInits, qubitMeas, qubitLifeTimes);
@@ -444,7 +444,7 @@ namespace qoala::analysis::qubitlife {
         taskTime = globalTime;
 
         // Remove the task
-        taskDependences.erase(task.name);
+        taskDependences.erase(task.getName());
         tasks.erase(tasks.begin() + *taskIndex);
 
         return true;
@@ -467,11 +467,11 @@ namespace qoala::analysis::qubitlife {
         }
 
         if (!hasCpuTask) {
-            return qpuTasks[*nextQpuTaskIdx].time - (currentTime - qpuTime);
+            return qpuTasks[*nextQpuTaskIdx].getTime() - (currentTime - qpuTime);
         }
 
         if (!hasQpuTask) {
-            return cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);
+            return cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
         }
 
         /**
@@ -481,8 +481,8 @@ namespace qoala::analysis::qubitlife {
          * or the global time is enough to fit in the qpu tasks (now scheduled in parallel with all
          * the already scheduled cpu tasks).
          */
-        int cpuIncrement = cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);
-        int qpuIncrement = qpuTasks[*nextQpuTaskIdx].time - (currentTime - qpuTime);
+        int cpuIncrement = cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
+        int qpuIncrement = qpuTasks[*nextQpuTaskIdx].getTime() - (currentTime - qpuTime);
         return std::min(cpuIncrement, qpuIncrement);
     }
 

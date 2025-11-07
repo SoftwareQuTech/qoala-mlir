@@ -444,7 +444,7 @@ namespace qoala::analysis {
         std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<mlir::Operation *, MILPOperation *>,
                    BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                    mlir::LogicalResult>
-        buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp mainFunc,
+        buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp &mainFunc,
                         const llvm::StringMap<mlir::Operation *> &routineMap);
 
         /**
@@ -455,7 +455,7 @@ namespace qoala::analysis {
          * them, and a LogicalResult indicating success or failure.
          */
         std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
-        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp mainFunc, mlir::ModuleOp moduleOp);
+        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp &mainFunc, mlir::ModuleOp &moduleOp);
 
         /**
          * Reorders the blocks in the given module based on the specified MILP solution order.
@@ -503,17 +503,20 @@ namespace qoala::analysis {
 
     namespace qubitlife {
 
+        // Conceptually different from reordering::MILPTask
+        // Represent smaller tasks that alwasy end with either
+        // an init, measure or two-quit op.
         class Task {
         public:
-            std::string name;
-            int time;
-
             Task(std::string n = "", int t = -1): name(n), time(t) { }
 
-            void reset() {
-                this->name = "";
-                this->time = -1;
-            }
+            std::string getName() const { return name; }
+
+            int getTime() const { return time; }
+
+        private:
+            std::string name;
+            int time;
         };
 
         class LiveQubit : public reordering::MILPQubit {
