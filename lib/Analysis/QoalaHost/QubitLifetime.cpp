@@ -85,7 +85,7 @@ namespace qoala::analysis::qubitlife {
          * Given information about execution time of each operation inside tasks,
          * estimate the parallel scheduling of cpu and qpu tasks, keeping track of the
          * execution time. The qubits lifetimes can then be computed from the time
-         * at which their initialization task was scheduled and the time at wich their
+         * at which their initialization task was scheduled and the time at which their
          * measurement task is scheduled.
          */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
