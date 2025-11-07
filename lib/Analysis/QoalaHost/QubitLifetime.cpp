@@ -478,7 +478,7 @@ namespace qoala::analysis::qubitlife {
          * If both cpu and qpu tasks are found, select the one with the shortes execution time
          * This enables to keep track of parallel cpu and qpu tasks execution,
          * where first the shorter cpu tasks are scheduled, up until no other cpu tasks are avialable
-         * or the globel time is enough to fit in the qpu tasks (now scheduled in parallel with all
+         * or the global time is enough to fit in the qpu tasks (now scheduled in parallel with all
          * the already scheduled cpu tasks).
          */
         int cpuIncrement = cpuTasks[*nextCpuTaskIdx].time - (currentTime - cpuTime);
