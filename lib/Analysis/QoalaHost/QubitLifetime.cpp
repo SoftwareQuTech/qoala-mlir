@@ -221,7 +221,7 @@ namespace qoala::analysis::qubitlife {
 
     /**
      * Process a block and separate qpu and cpu tasks.
-     * Track dependences betwenn tasks.
+     * Track dependences between tasks.
      * Register qubit initialization and measurement tasks.
      */
     void QoalaHostQubitLifetime::processBlock(
