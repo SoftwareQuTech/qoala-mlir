@@ -48,8 +48,8 @@ namespace qoala::analysis::qubitlife {
                  * A measure op will overwrite the last two-qubit op.
                  * This could be merged with the check for MeasureOp,
                  * removing the need of the LiveQubit class.
-                 * Need to check if block reordering would still work even when
-                 * the measure op is instead a two-qubit op.
+                 * Need to check if MILP reordering would still work even when
+                 * the measure op is instead a two-qubit op. See issue qoala-kanban-board#109.
                  */
                 if (llvm::isa<netqasm::CnotOp, netqasm::CzOp, netqasm::CrotXOp>(op)) {
                     auto itTwoQubitOp = opToMilpOp.find(op);
