@@ -56,7 +56,8 @@ namespace qoala::analysis::qubitlife {
                     twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
                 }
             }
-
+            
+            assert(allocOp != nullptr && "Missing Alloc Op found for qubit");
             std::string id = allocOp->getId().substr(6);
             std::shared_ptr<LiveQubit> qubitPtr = std::make_shared<LiveQubit>(id);
 
@@ -314,6 +315,10 @@ namespace qoala::analysis::qubitlife {
 
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
+            if (qubit->getAllocation() == nullptr) {
+                printf("Alloc Op not found for qubit (%s).\n", qubitId.c_str());
+                assert(false);
+            }
             const std::string &allocId = qubit->getAllocation()->getId();
             auto measPtr = qubit->getMeasurement();
             if (measPtr == nullptr) {
@@ -456,8 +461,8 @@ namespace qoala::analysis::qubitlife {
                                                          std::optional<size_t> nextQpuTaskIdx, int cpuTime, int qpuTime,
                                                          int currentTime) {
 
-        bool hasCpuTask = nextCpuTaskIdx.has_value() && nextCpuTaskIdx < cpuTasks.size();
-        bool hasQpuTask = nextQpuTaskIdx.has_value() && nextQpuTaskIdx < qpuTasks.size();
+        bool hasCpuTask = nextCpuTaskIdx.has_value() && *nextCpuTaskIdx < cpuTasks.size();
+        bool hasQpuTask = nextQpuTaskIdx.has_value() && *nextQpuTaskIdx < qpuTasks.size();
 
         if (!hasCpuTask && !hasQpuTask) {
             return 0;
