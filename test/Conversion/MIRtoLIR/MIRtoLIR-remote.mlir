@@ -15,7 +15,8 @@ module {
     // CHECK-NEXT: qoalahost.nop_term
 
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK: qoalahost.recv_ints {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xi32>
+    // CHECK: %[[REC_INT_0:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
+    // CHECK: %[[REC_INT_1:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
     %0 = qmem.recv_ints {length = 2 : i32, remote = @Bob} : tensor<2xi32>
 
     // CHECK: ^[[BLOCK_2:.*]]:
@@ -24,12 +25,14 @@ module {
 
     %from_elements = tensor.from_elements %c0_i32, %c5_i32 : tensor<2xi32>
 
-    // CHECK: qoalahost.send_ints %[[FROM_ELEM]] {remote = @[[REMOTEBOB]]} : tensor<2xi32>
+    // CHECK: qoalahost.send_int %[[FROM_ELEM]] {remote = @[[REMOTEBOB]]} i32
+    // CHECK: qoalahost.send_int %[[FROM_ELEM]] {remote = @[[REMOTEBOB]]} i32
     qmem.send_ints %from_elements {remote = @Bob} : tensor<2xi32>
     // CHECK-NEXT: qoalahost.nop_term
 
     // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK: qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: %[[REC_FLOAT_0:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
+    // CHECK: %[[REC_FLOAT_1:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
     %1 = qmem.recv_floats {length = 2 : i32, remote = @Bob} : tensor<2xf32>
 
     // CHECK: ^[[BLOCK_4:.*]]:
@@ -38,7 +41,8 @@ module {
 
     %from_elements_1 = tensor.from_elements %cst, %cst_0 : tensor<2xf32>
 
-    // CHECK: qoalahost.send_floats %[[FROM_ELEM_1]] {remote = @[[REMOTEBOB]]} : tensor<2xf32>
+    // CHECK: qoalahost.send_float %[[FROM_ELEM_1]] {remote = @[[REMOTEBOB]]} : f32
+    // CHECK: qoalahost.send_float %[[FROM_ELEM_1]] {remote = @[[REMOTEBOB]]} : f32
     qmem.send_floats %from_elements_1 {remote = @Bob} : tensor<2xf32>
     // CHECK: qoalahost.return
     qmem.return
