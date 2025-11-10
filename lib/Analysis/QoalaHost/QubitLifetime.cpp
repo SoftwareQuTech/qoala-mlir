@@ -182,9 +182,9 @@ namespace qoala::analysis::qubitlife {
          * We can also estimate total execution time at the end.
          */
 
-        int cpuTime = 0;
-        int qpuTime = 0;
-        int globalTime = 0;
+        uint32_t cpuTime = 0;
+        uint32_t qpuTime = 0;
+        uint32_t globalTime = 0;
 
         qubitLifeTimes.reserve(qubits.size());
 
@@ -197,8 +197,8 @@ namespace qoala::analysis::qubitlife {
             auto nextCpuTaskIdx = findNextAvailableTask(cpuTasks, taskDependences);
 
             // Compute global time increment
-            int timeIncrement = computeNextTimeIncrement(cpuTasks, qpuTasks, nextCpuTaskIdx, nextQpuTaskIdx, cpuTime,
-                                                         qpuTime, globalTime);
+            uint32_t timeIncrement = computeNextTimeIncrement(cpuTasks, qpuTasks, nextCpuTaskIdx, nextQpuTaskIdx,
+                                                              cpuTime, qpuTime, globalTime);
 
             globalTime += timeIncrement;
             LLVM_DEBUG(llvm::dbgs() << "Global Time: " << globalTime << "\n");
@@ -247,7 +247,7 @@ namespace qoala::analysis::qubitlife {
         for (const auto &tPtr : block->getTasks()) {
             const auto *t = tPtr.get();
 
-            int taskTime = 0;
+            uint32_t taskTime = 0;
 
             for (const auto *op : t->getOperations()) {
                 taskTime += op->getDuration();
@@ -389,10 +389,10 @@ namespace qoala::analysis::qubitlife {
      * - If task is a measurement task, compute the life time
      * - Do nothing otherwise
      */
-    void QoalaHostQubitLifetime::updateQubitLifetime(const Task &scheduledTask, int currentTime,
+    void QoalaHostQubitLifetime::updateQubitLifetime(const Task &scheduledTask, uint32_t currentTime,
                                                      const std::unordered_map<std::string, std::string> &qubitInits,
                                                      const std::unordered_map<std::string, std::string> &qubitMeas,
-                                                     std::unordered_map<std::string, int> &qubitLifeTimes) {
+                                                     std::unordered_map<std::string, uint32_t> &qubitLifeTimes) {
 
         // Check if it is an init task
         auto initIt = qubitInits.find(scheduledTask.getName());
@@ -406,7 +406,7 @@ namespace qoala::analysis::qubitlife {
         if (measIt != qubitMeas.end()) {
             auto lifetimeIt = qubitLifeTimes.find(measIt->second);
             if (lifetimeIt != qubitLifeTimes.end()) {
-                int initTime = lifetimeIt->second;
+                uint32_t initTime = lifetimeIt->second;
                 lifetimeIt->second = currentTime - initTime;
                 LLVM_DEBUG(llvm::dbgs() << "Qubit '" << measIt->second << "' measured at time " << currentTime
                                         << ", lifetime: " << lifetimeIt->second << "\n");
@@ -419,11 +419,11 @@ namespace qoala::analysis::qubitlife {
      * Return true if the task has been scheduled.
      */
     bool QoalaHostQubitLifetime::scheduleTaskIfReady(
-            std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime, int globalTime,
+            std::vector<Task> &tasks, std::optional<size_t> taskIndex, uint32_t &taskTime, uint32_t globalTime,
             std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
             const std::unordered_map<std::string, std::string> &qubitInits,
             const std::unordered_map<std::string, std::string> &qubitMeas,
-            std::unordered_map<std::string, int> &qubitLifeTimes) {
+            std::unordered_map<std::string, uint32_t> &qubitLifeTimes) {
 
         if (!taskIndex.has_value()) {
             taskTime = globalTime;
@@ -459,11 +459,11 @@ namespace qoala::analysis::qubitlife {
     /**
      * Compute the next global time increment.
      */
-    int QoalaHostQubitLifetime::computeNextTimeIncrement(const std::vector<Task> &cpuTasks,
-                                                         const std::vector<Task> &qpuTasks,
-                                                         std::optional<size_t> nextCpuTaskIdx,
-                                                         std::optional<size_t> nextQpuTaskIdx, int cpuTime, int qpuTime,
-                                                         int currentTime) {
+    uint32_t QoalaHostQubitLifetime::computeNextTimeIncrement(const std::vector<Task> &cpuTasks,
+                                                              const std::vector<Task> &qpuTasks,
+                                                              std::optional<size_t> nextCpuTaskIdx,
+                                                              std::optional<size_t> nextQpuTaskIdx, uint32_t cpuTime,
+                                                              uint32_t qpuTime, uint32_t currentTime) {
 
         bool hasCpuTask = nextCpuTaskIdx.has_value() && *nextCpuTaskIdx < cpuTasks.size();
         bool hasQpuTask = nextQpuTaskIdx.has_value() && *nextQpuTaskIdx < qpuTasks.size();
@@ -487,12 +487,12 @@ namespace qoala::analysis::qubitlife {
          * or the global time is enough to fit in the qpu tasks (now scheduled in parallel with all
          * the already scheduled cpu tasks).
          */
-        int cpuIncrement = cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
-        int qpuIncrement = qpuTasks[*nextQpuTaskIdx].getTime() - (currentTime - qpuTime);
+        uint32_t cpuIncrement = cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
+        uint32_t qpuIncrement = qpuTasks[*nextQpuTaskIdx].getTime() - (currentTime - qpuTime);
         return std::min(cpuIncrement, qpuIncrement);
     }
 
     // Return computed qubit life times.
-    std::unordered_map<std::string, int> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifeTimes; }
+    std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifeTimes; }
 
 } // namespace qoala::analysis::qubitlife

@@ -502,15 +502,15 @@ namespace qoala::analysis {
         // an init, measure or two-quit op.
         class Task {
         public:
-            Task(std::string n = "", int t = -1): name(n), time(t) { }
+            Task(std::string n = "", uint32_t t = 0): name(n), time(t) { }
 
             std::string getName() const { return name; }
 
-            int getTime() const { return time; }
+            uint32_t getTime() const { return time; }
 
         private:
             std::string name;
-            int time;
+            uint32_t time;
         };
 
         class LiveQubit : public reordering::MILPQubit {
@@ -530,13 +530,13 @@ namespace qoala::analysis {
             QoalaHostQubitLifetime(mlir::Operation *op);
 
             [[nodiscard]]
-            std::unordered_map<std::string, int> getLifetimes() const;
+            std::unordered_map<std::string, uint32_t> getLifetimes() const;
 
         private:
             // A map from qubits IDs to their init and measure tasks IDs.
             std::unordered_map<std::string, std::vector<std::string>> qubitsInitMeas;
 
-            std::unordered_map<std::string, int> qubitLifeTimes;
+            std::unordered_map<std::string, uint32_t> qubitLifeTimes;
 
             static void buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
                                        std::unordered_map<std::string, std::string> &qubitInits,
@@ -564,22 +564,23 @@ namespace qoala::analysis {
             findNextAvailableTask(const std::vector<Task> &tasks,
                                   const std::unordered_map<std::string, std::vector<std::string>> &taskDependences);
 
-            static void updateQubitLifetime(const Task &scheduledTask, int currentTime,
+            static void updateQubitLifetime(const Task &scheduledTask, uint32_t currentTime,
                                             const std::unordered_map<std::string, std::string> &qubitInits,
                                             const std::unordered_map<std::string, std::string> &qubitMeas,
-                                            std::unordered_map<std::string, int> &qubitLifeTimes);
+                                            std::unordered_map<std::string, uint32_t> &qubitLifeTimes);
 
-            static bool scheduleTaskIfReady(std::vector<Task> &tasks, std::optional<size_t> taskIndex, int &taskTime,
-                                            int globalTime,
+            static bool scheduleTaskIfReady(std::vector<Task> &tasks, std::optional<size_t> taskIndex,
+                                            uint32_t &taskTime, uint32_t globalTime,
                                             std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
                                             const std::unordered_map<std::string, std::string> &qubitInits,
                                             const std::unordered_map<std::string, std::string> &qubitMeas,
-                                            std::unordered_map<std::string, int> &qubitLifeTimes);
+                                            std::unordered_map<std::string, uint32_t> &qubitLifeTimes);
 
-            static int computeNextTimeIncrement(const std::vector<Task> &cpuTasks, const std::vector<Task> &qpuTasks,
-                                                std::optional<size_t> nextCpuTaskIdx,
-                                                std::optional<size_t> nextQpuTaskIdx, int cpuTime, int qpuTime,
-                                                int currentTime);
+            static uint32_t computeNextTimeIncrement(const std::vector<Task> &cpuTasks,
+                                                     const std::vector<Task> &qpuTasks,
+                                                     std::optional<size_t> nextCpuTaskIdx,
+                                                     std::optional<size_t> nextQpuTaskIdx, uint32_t cpuTime,
+                                                     uint32_t qpuTime, uint32_t currentTime);
         };
 
     } // namespace qubitlife
