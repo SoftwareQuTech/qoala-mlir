@@ -10,14 +10,8 @@
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
 
-// Forward delcare namespace
-namespace qoala {
-    namespace dialects {
-        namespace qoalahost {
-            class MainFuncOp;
-        } // namespace qoalahost
-    } // namespace dialects
-} // namespace qoala
+#define GET_OP_FWD_DEFINES
+#include "Dialect/QoalaHost/QoalaHost.h.inc"
 
 namespace qoala::analysis {
     namespace isolate {
