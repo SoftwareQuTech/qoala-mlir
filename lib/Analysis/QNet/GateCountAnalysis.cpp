@@ -18,13 +18,13 @@ namespace qoala::analysis {
 
     void QNetGateCountShowAnalysis::runOnOperation() {
         const auto &analysis = getAnalysis<gatecount::QNetGateCount>();
-        const auto &oneQubitGateCounts = analysis.getOneQubitGateCounts();
-        const auto &twoQubitGateCounts = analysis.getTwoQubitGateCounts();
-        const auto &gateCounts = analysis.getGateCounts();
+        const auto &detailedOneQubitGateCount = analysis.getDetailedOneQubitGateCount();
+        const auto &detailedTwoQubitGateCount = analysis.getDetailedTwoQubitGateCount();
+        const auto &detailedGateCount = analysis.getDetailedGateCount();
 
         std::vector<llvm::StringRef> sortedQubits;
-        sortedQubits.reserve(oneQubitGateCounts.size());
-        for (const auto &item : oneQubitGateCounts) {
+        sortedQubits.reserve(detailedOneQubitGateCount.size());
+        for (const auto &item : detailedOneQubitGateCount) {
             sortedQubits.push_back(item.getKey());
         }
         std::sort(sortedQubits.begin(), sortedQubits.end());
@@ -38,17 +38,17 @@ namespace qoala::analysis {
         llvm::outs() << "  - One-qubit gates:\n";
 
         for (const auto &qubit : sortedQubits) {
-            llvm::outs() << "    * qubit[" << qubit << "]: " << oneQubitGateCounts.at(qubit) << "\n";
+            llvm::outs() << "    * qubit[" << qubit << "]: " << detailedOneQubitGateCount.at(qubit) << "\n";
         }
 
         llvm::outs() << "  - Two-qubit gates:\n";
         for (const auto &qubit : sortedQubits) {
-            llvm::outs() << "    * qubit[" << qubit << "]: " << twoQubitGateCounts.at(qubit) << "\n";
+            llvm::outs() << "    * qubit[" << qubit << "]: " << detailedTwoQubitGateCount.at(qubit) << "\n";
         }
 
         llvm::outs() << "  -  All gates:\n";
         for (const auto &qubit : sortedQubits) {
-            llvm::outs() << "    * qubit[" << qubit << "]: " << gateCounts.at(qubit) << "\n";
+            llvm::outs() << "    * qubit[" << qubit << "]: " << detailedGateCount.at(qubit) << "\n";
         }
     }
 } // namespace qoala::analysis

@@ -14,18 +14,19 @@ using namespace qoala::dialects::qnet;
 
 namespace qoala::analysis::gatecount {
 
-    bool isQuantumOp(mlir::Operation *op) {
+    static bool isQuantumOp(mlir::Operation *op) {
+        // Check if the op is a quantum operation.
         return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp, MeasureOp, EprsOp,
                          EprsMeasureOp>(op);
     }
 
-    bool isOneQubitOp(mlir::Operation *op) {
-        return llvm::isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, MeasureOp, EprsOp, EprsMeasureOp>(op);
+    static bool isTwoQubitOp(mlir::Operation *op) {
+        // Check if the op is a two-qubit op.
+        return llvm::isa<CnotOp, CzOp, CrotXOp>(op);
     }
 
-    bool isTwoQubitOp(mlir::Operation *op) { return llvm::isa<CnotOp, CzOp, CrotXOp>(op); }
-
-    std::string getSSAName(Value val, AsmState &state) {
+    static std::string getSSAName(Value val, AsmState &state) {
+        // Get the SSA name of the value with respect to the asm state.
         std::string ssaName;
         llvm::raw_string_ostream stream(ssaName);
         val.printAsOperand(stream, state);
@@ -34,8 +35,14 @@ namespace qoala::analysis::gatecount {
     }
 
     QNetGateCount::QNetGateCount(Operation *op) {
+        // Walk over all ops in the module and count quantum operations.
+        // Keep track of SSA names to assign quantum operations
+        // to the right qubit.
+
+        // Map from qubits SSA name at their creation to all quantum operation applied to them
         llvm::StringMap<std::vector<Operation *>> qubitsToOps;
-        llvm::DenseMap<Value, std::string> qubitsInitToOpRes;
+        // Map from quantum operations results SSA names to their SSA name at creation
+        llvm::DenseMap<Value, std::string> opResToInitSSA;
 
         if (ModuleOp module = llvm::dyn_cast<ModuleOp>(op)) {
 
@@ -47,12 +54,12 @@ namespace qoala::analysis::gatecount {
                     LLVM_DEBUG(llvm::dbgs() << "New Qubit Op for qubit: " << op->getName().getStringRef() << ".\n");
                     for (Value result : op->getResults()) {
                         std::string qubitSsaName = getSSAName(result, state);
-                        qubitsInitToOpRes[result] = qubitSsaName;
+                        opResToInitSSA[result] = qubitSsaName;
                         qubitsToOps.try_emplace(qubitSsaName);
                         qubitsToOps[qubitSsaName].push_back(op);
-                        qubitToOneGateCount[qubitSsaName] = 0;
-                        qubitToTwoGateCount[qubitSsaName] = 0;
-                        qubitToGateCount[qubitSsaName] = 0;
+                        detailedOneGateCount[qubitSsaName] = 0;
+                        detailedTwoGateCount[qubitSsaName] = 0;
+                        detailedGateCount[qubitSsaName] = 0;
                     }
                 } else {
                     if (isQuantumOp(op)) {
@@ -71,27 +78,24 @@ namespace qoala::analysis::gatecount {
                             unsigned index = operandIt.index();
 
                             // Check if the operand is a qubit we are tracking
-                            auto initSSAIt = qubitsInitToOpRes.find(operand);
-                            if (initSSAIt != qubitsInitToOpRes.end()) {
+                            auto initSSAIt = opResToInitSSA.find(operand);
+                            if (initSSAIt != opResToInitSSA.end()) {
                                 std::string initSSA = initSSAIt->second;
 
                                 // Add this operation to the history of the qubit it acts on.
-                                // To avoid duplicates for multi-qubit gates, we can check first.
-                                // if (qubitsToOps[initSSA].empty() || qubitsToOps[initSSA].back() != op) {
                                 qubitsToOps[initSSA].push_back(op);
-                                qubitToGateCount[initSSA]++;
+                                detailedGateCount[initSSA]++;
                                 if (isTwoQubitOp(op)) {
-                                    qubitToTwoGateCount[initSSA]++;
+                                    detailedTwoGateCount[initSSA]++;
                                 } else {
-                                    qubitToOneGateCount[initSSA]++;
+                                    detailedOneGateCount[initSSA]++;
                                 }
-                                // }
 
-                                // Propagate the ID to the corresponding result, if it's also a qubit.
+                                // Propagate the SSA name to the corresponding result, if it's also a qubit.
                                 if (index < op->getNumResults()) {
                                     Value result = op->getResult(index);
                                     if (result.getType().isa<QubitType>()) {
-                                        qubitsInitToOpRes[result] = initSSA;
+                                        opResToInitSSA[result] = initSSA;
                                     }
                                 }
                             }
@@ -100,7 +104,6 @@ namespace qoala::analysis::gatecount {
                 }
             });
 
-            // AsmState state(module);
             for (auto &item : qubitsToOps) {
                 llvm::StringRef qubitSsaName = item.getKey();
                 auto &users = item.second;
