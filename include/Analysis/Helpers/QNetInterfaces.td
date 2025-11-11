@@ -31,7 +31,7 @@ def RotationOpIface : OpInterface<"RotationOpIface"> {
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            unsigned n = op->getNumOperands();
+            uint32_t n = op->getNumOperands();
             assert(n >= 2 && "RotationOpIface: need at least [target, angle]");
             return op->getOperand(n - 2);
             }] >,
@@ -42,9 +42,9 @@ def RotationOpIface : OpInterface<"RotationOpIface"> {
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            unsigned n = op->getNumOperands();
+            uint32_t n = op->getNumOperands();
             assert(n >= 2 && "RotationOpIface: need at least [target, angle]");
-            unsigned tgtIdx = n - 2;
+            uint32_t tgtIdx = n - 2;
             return op->getOperands().take_front(tgtIdx); // OK
             }] >,
 
@@ -54,7 +54,7 @@ def RotationOpIface : OpInterface<"RotationOpIface"> {
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            unsigned n = op->getNumOperands();
+            uint32_t n = op->getNumOperands();
             assert(n >= 1 && "RotationOpIface: no operands");
             mlir::Value angleVal = op->getOperand(n - 1);
             if (auto cst = angleVal.getDefiningOp<mlir::arith::ConstantOp>()) {
@@ -73,11 +73,11 @@ def RotationOpIface : OpInterface<"RotationOpIface"> {
 
         InterfaceMethod<[{
         Return the operand index of the target qubit.
-        }], "unsigned", "getTargetOperandIndex", (ins),
+        }], "uint32_t", "getTargetOperandIndex", (ins),
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            unsigned n = op->getNumOperands();
+            uint32_t n = op->getNumOperands();
             assert(n >= 2 && "RotationOpIface: need at least [target, angle]");
             return n - 2u;
             }] >

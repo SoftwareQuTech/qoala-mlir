@@ -143,8 +143,8 @@ namespace qoala::analysis {
                 return failure();
             }
 
-            const unsigned numCtrls = ctrls.size();
-            const unsigned tgtIdx = rot.getTargetOperandIndex();
+            const uint32_t numCtrls = ctrls.size();
+            const uint32_t tgtIdx = rot.getTargetOperandIndex();
 
             if (prevOp->getNumResults() != (numCtrls + 1)) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prev result arity " << prevOp->getNumResults()
@@ -154,7 +154,7 @@ namespace qoala::analysis {
 
             // Ensure the “pass-through” wiring: each control operand of `op`
             // is exactly the corresponding result of `prevOp`.
-            for (unsigned i = 0; i < numCtrls; ++i) {
+            for (uint32_t i = 0; i < numCtrls; ++i) {
                 if (op->getOperand(i) != prevOp->getResult(i)) {
                     LLVM_DEBUG(llvm::dbgs()
                                << "[RotFold]   -> Skip: control #" << i << " not fed by prev result #" << i << "\n");
@@ -203,7 +203,7 @@ namespace qoala::analysis {
 
             //  - rewire all control operands of `op` to previous op's *input* controls
             //  The iface default says controls are the leading operands.
-            for (unsigned i = 0; i < numCtrls; ++i) {
+            for (uint32_t i = 0; i < numCtrls; ++i) {
                 op->setOperand(i, prevOp->getOperand(i));
             }
 
