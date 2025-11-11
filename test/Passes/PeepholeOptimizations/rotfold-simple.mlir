@@ -2,6 +2,14 @@
 
 module {
     qnet.func @rotation_folding_simple() {
+        // CHECK: %[[CST:.*]] = arith.constant 6.28318548 : f32
+        // CHECK-NEXT: %[[q0:.*]] = qnet.new_qubit : !qnet.qubit
+        // CHECK-NEXT: %[[q1:.*]] = qnet.rot_x %[[q0]], %[[CST]] : !qnet.qubit
+        // CHECK-NEXT: %[[q2:.*]] = qnet.rot_y %[[q1]], %[[CST]] : !qnet.qubit
+        // CHECK-NEXT: %[[q3:.*]] = qnet.rot_z %[[q2]], %[[CST]] : !qnet.qubit
+        // CHECK-NEXT: %[[q4:.*]] = qnet.new_qubit : !qnet.qubit
+        // CHECK-NEXT: %[[q5:.*]], %[[q6:.*]] = qnet.crot_x %[[q4]], %[[q3]], %[[CST]] : !qnet.qubit, !qnet.qubit
+        // CHECK-NEXT: qnet.return
 
         %q1 = qnet.new_qubit : !qnet.qubit
 

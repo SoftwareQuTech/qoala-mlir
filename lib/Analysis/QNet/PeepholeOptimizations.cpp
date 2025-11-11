@@ -113,8 +113,8 @@ namespace qoala::analysis {
             LLVM_DEBUG(llvm::dbgs() << "[RotFold] Checking op: " << op->getName() << " @" << op->getLoc() << "\n");
 
             // Must have a target operand that comes from a previous rotation
-            Value target2 = rot.getTarget();
-            Operation *prevOp = target2 ? target2.getDefiningOp() : nullptr;
+            Value target = rot.getTarget();
+            Operation *prevOp = target ? target.getDefiningOp() : nullptr;
             if (!prevOp) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: target has no defining op\n");
                 return failure();
@@ -127,91 +127,88 @@ namespace qoala::analysis {
                 return failure();
             }
 
-            // Same axis?
+            // Same axis
             if (prevRot.getAxis() != rot.getAxis()) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: axis mismatch\n");
                 return failure();
             }
 
-            // Same control set (exact same Values in same order)
-            auto prevCtrls = prevRot.getControls();
-            auto ctrls = rot.getControls();
+            // Controls “match” in the controlled case:
+            // We accept either exact SSA equality (trivial) or the common pass-through
+            // case where `rot` takes as controls the *results* of `prevOp`.
+            ValueRange prevCtrls = prevRot.getControls();
+            ValueRange ctrls = rot.getControls();
             if (prevCtrls.size() != ctrls.size()) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: control arity mismatch\n");
                 return failure();
             }
-            for (auto [a, b] : llvm::zip(prevCtrls, ctrls)) {
-                if (a != b) {
-                    LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: control mismatch\n");
+
+            const unsigned numCtrls = ctrls.size();
+            const unsigned tgtIdx = rot.getTargetOperandIndex();
+
+            if (prevOp->getNumResults() != (numCtrls + 1)) {
+                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prev result arity " << prevOp->getNumResults()
+                                        << " != numCtrls+1 (" << (numCtrls + 1) << ")\n");
+                return failure();
+            }
+
+            // Ensure the “pass-through” wiring: each control operand of `op`
+            // is exactly the corresponding result of `prevOp`.
+            for (unsigned i = 0; i < numCtrls; ++i) {
+                if (op->getOperand(i) != prevOp->getResult(i)) {
+                    LLVM_DEBUG(llvm::dbgs()
+                               << "[RotFold]   -> Skip: control #" << i << " not fed by prev result #" << i << "\n");
                     return failure();
                 }
             }
 
-            // The result of prevOp (its target out) must be used only by op (strict adjacency)
-            if (prevOp->getNumResults() != 1) {
-                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prevOp not single-result\n");
-                return failure();
-            }
-            Value out1 = prevOp->getResult(0);
-            if (!out1.hasOneUse()) {
-                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: previous result has extra uses\n");
+            // The target we already know comes from prevOp (by how we found prevOp),
+            // but we still assert it matches the expected result slot.
+            if (op->getOperand(tgtIdx) != prevOp->getResult(numCtrls)) {
+                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: target operand #" << tgtIdx
+                                        << " not fed by prev target result #" << numCtrls << "\n");
                 return failure();
             }
 
-            // Angles must be constants we can add
+            // Every result of prevOp must be uniquely used by `op`, so we can erase it.
+            for (OpResult r : prevOp->getResults()) {
+                if (!r.hasOneUse()) {
+                    LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prev result has extra uses\n");
+                    return failure();
+                }
+            }
+
+            // Angles must be constants we can fold
             auto a1Attr = dyn_cast_or_null<FloatAttr>(prevRot.getAngleAttr());
             auto a2Attr = dyn_cast_or_null<FloatAttr>(rot.getAngleAttr());
             if (!a1Attr || !a2Attr) {
-                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: non-constant angles\n");
+                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: non-constant angles (prev="
+                                        << (a1Attr ? "const" : "non-const")
+                                        << ", this=" << (a2Attr ? "const" : "non-const") << ")\n");
                 return failure();
             }
 
             APFloat sum = a1Attr.getValue();
             sum.add(a2Attr.getValue(), APFloat::rmNearestTiesToEven);
 
-            // Find index of the target operand inside op to rewire it past prevOp.
-            // Prefer an interface accessor if you have one; otherwise, search.
-            int targetIdx = -1;
-            for (int i = 0, e = (int) op->getNumOperands(); i < e; ++i) {
-                if (op->getOperand(i) == out1) {
-                    targetIdx = i;
-                    break;
-                }
-            }
-            if (targetIdx < 0) {
-                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: could not locate target operand index\n");
-                return failure();
-            }
-
-            // Type sanity: result type of prevOp input == result type of op result
-            // We assume single-result rotations with same qubit type; skip if not needed.
-
-            LLVM_DEBUG(llvm::dbgs() << "[RotFold]    Match: folding " << prevOp->getName() << " + " << op->getName()
-                                    << " (same axis, same controls)\n");
-
-            // Update op angle in-place
+            // Mutations:
+            //  - set new angle on the second op
             auto newAngleAttr = FloatAttr::get(a2Attr.getType(), sum);
             rot.setAngleAttr(newAngleAttr);
 
-            // Rewire op's target operand to prevOp's *input target*
-            //    (skip prevRot) i.e., fold into op and bypass prevOp.
-            Value in1Target = prevRot.getTarget(); // prevRot's input target
-            // If prevRot.getTarget() returns the *input*, good. If it returns the *output*,
-            // use prevRot.getOperation()->getOperand(<idx-of-target-input>) instead.
-            // For safety, derive from operand equality:
-            //   prevOp has 1 result (out1). Its single target input is some operand of prevOp.
-            // We'll pick the unique operand of prevOp that has the same type as out1 and is a qubit.
-            // But since you have getTarget(), we'll rely on it:
-            op->setOperand(targetIdx, in1Target);
+            //  - rewire target of `op` to previous op's *input* target
+            //  (i.e., bypass prevOp)
+            Value prevInputTarget = prevRot.getTarget();
+            op->setOperand(tgtIdx, prevInputTarget);
 
-            // Erase prevOp (its result was only used by op)
+            //  - rewire all control operands of `op` to previous op's *input* controls
+            //  The iface default says controls are the leading operands.
+            for (unsigned i = 0; i < numCtrls; ++i) {
+                op->setOperand(i, prevOp->getOperand(i));
+            }
+
+            // Safe to erase previous rotation
             rewriter.eraseOp(prevOp);
-
-            LLVM_DEBUG({
-                llvm::dbgs() << "[RotFold]      new angle set, rewired operand #" << targetIdx
-                             << " to bypass previous rotation\n";
-            });
-            LLVM_DEBUG(llvm::dbgs() << "[RotFold]   Fold complete\n");
             return success();
         }
     };
