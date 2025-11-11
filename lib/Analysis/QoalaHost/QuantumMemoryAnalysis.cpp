@@ -18,6 +18,6 @@ namespace qoala::analysis {
 
     void QoalaHostQMemEffShowAnalysis::runOnOperation() {
         const auto &analysis = getAnalysis<qmemeff::QoalaHostQMemoryEfficiency>();
-        llvm::outs() << "Efficiency = " << analysis.getEfficiency() << "\n";
+        llvm::outs() << "  [QMem Efficiency]:" << analysis.getEfficiency() << "\n";
     }
 } // namespace qoala::analysis

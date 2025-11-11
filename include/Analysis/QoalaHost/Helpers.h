@@ -2,12 +2,18 @@
 #define QOALAHOST_HELPERS_H
 
 #include <set>
+#include <unordered_set>
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
+
+// TODO including "Dialect/QoalaHost/QoalaHost.h" creates
+// circular inclusion issues at compile time. See qoala-kanban-board#110.
+#define GET_OP_FWD_DEFINES
+#include "Dialect/QoalaHost/QoalaHost.h.inc"
 
 namespace qoala::analysis {
     namespace isolate {
@@ -270,6 +276,8 @@ namespace qoala::analysis {
                 return meas_op_;
             }
 
+            virtual ~MILPQubit() = default;
+
         private:
             std::string id_;
             MILPOperation *alloc_op_;
@@ -446,6 +454,30 @@ namespace qoala::analysis {
         buildMILPFromMLIR(mlir::ModuleOp &moduleOp);
 
         /**
+         * Constructs the MILP blocks from the given main function and the routine map.
+         * @param mainFunc The main function.
+         * @param routineMap a map from NetQASM routines' symbol names to their corresponding operations
+         * @returns A tuple containing the constructed MILP blocks, a map between MLIR operations and MILP operations,
+         * precedence list, unresolvedEdges, a map between MILP block ids and the blocks, and a LogicalResult indicating
+         * success or failure.
+         */
+        std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<mlir::Operation *, MILPOperation *>,
+                   BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
+                   mlir::LogicalResult>
+        buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp &mainFunc,
+                        const llvm::StringMap<mlir::Operation *> &routineMap);
+
+        /**
+         * Constructs a map between qubits as MLIR values and all the MLIR operations that have memory effects on them.
+         * @param mainFunc The main function.
+         * @param moduleOp The MLIR module to analyze.
+         * @returns A map between the qubit MLIR values and a vector of MLIR operations that have memory effects on
+         * them, and a LogicalResult indicating success or failure.
+         */
+        std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
+        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp &mainFunc, mlir::ModuleOp &moduleOp);
+
+        /**
          * Reorders the blocks in the given module based on the specified MILP solution order.
          * This mainly affects the block order inside MainFuncOp.
          * @param moduleOp The module whose blocks will be reordered.
@@ -488,6 +520,58 @@ namespace qoala::analysis {
          */
         void groupEntanglementBlocksFirst(mlir::ModuleOp moduleOp);
     } // namespace reordering
+
+    namespace qubitlife {
+
+        // Conceptually different from reordering::MILPTask
+        // Represent smaller tasks that alwasy end with either
+        // an init, measure or two-quit op.
+        class Task {
+        public:
+            Task(std::string n = "", uint32_t t = 0): name(n), time(t) { }
+
+            std::string getName() const { return name; }
+
+            uint32_t getTime() const { return time; }
+
+        private:
+            std::string name;
+            uint32_t time;
+        };
+
+        class LiveQubit : public reordering::MILPQubit {
+            /**
+             * Class used to kepp track of the last two-qubit op applied to a qubit.
+             */
+
+        public:
+            LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
+
+            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { twoQubitOp_ = twoQubitOp; }
+
+            reordering::MILPOperation *getTwoQubitOp() const { return twoQubitOp_; }
+
+        private:
+            reordering::MILPOperation *twoQubitOp_;
+        };
+
+        class QoalaHostQubitLifetime {
+        public:
+            QoalaHostQubitLifetime(mlir::Operation *op);
+
+            [[nodiscard]]
+            std::unordered_map<std::string, uint32_t> getLifetimes() const;
+
+        private:
+            // A map from qubits IDs to their init and measure tasks IDs.
+            std::unordered_map<std::string, std::vector<std::string>> qubitsInitMeas;
+
+            // A map from qubit IDs to their lifetimes.
+            std::unordered_map<std::string, uint32_t> qubitLifeTimes;
+        };
+
+    } // namespace qubitlife
+
 } // namespace qoala::analysis
 
 #endif // QOALAHOST_HELPERS_H
