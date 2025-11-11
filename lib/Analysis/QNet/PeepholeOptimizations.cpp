@@ -105,8 +105,7 @@ namespace qoala::analysis {
     };
 
     struct FoldRotationPairPattern : OpInterfaceRewritePattern<RotationOpIface> {
-        using Base = OpInterfaceRewritePattern<RotationOpIface>;
-        using Base::Base;
+        using OpInterfaceRewritePattern::OpInterfaceRewritePattern;
 
         LogicalResult matchAndRewrite(RotationOpIface rot, PatternRewriter &rewriter) const override {
             Operation *op = rot.getOperation();
