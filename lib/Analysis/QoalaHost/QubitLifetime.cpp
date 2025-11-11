@@ -20,6 +20,10 @@ namespace qoala::analysis::qubitlife {
      * Construct LiveQubit objects
      * - Extract alloc, meas and last two-qubit op from qubit usage
      * - Create LiveQubit and attach relevant operations
+     * TODO This could be merged with the check for MeasureOp,
+     * removing the need of the LiveQubit class.
+     * Need to check if MILP reordering would still work even when
+     * the measure op is instead a two-qubit op. See issue qoala-kanban-board#109.
      */
     static std::vector<std::shared_ptr<LiveQubit>>
     getQubitCriticalOps(const llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,
@@ -44,12 +48,8 @@ namespace qoala::analysis::qubitlife {
                     measOp = (itMeas != opToMilpOp.end()) ? itMeas->second : nullptr;
                 }
                 /**
-                 * TODO Treat last two-qubit op as a measure op.
+                 * Treat last two-qubit op as a measure op.
                  * A measure op will overwrite the last two-qubit op.
-                 * This could be merged with the check for MeasureOp,
-                 * removing the need of the LiveQubit class.
-                 * Need to check if MILP reordering would still work even when
-                 * the measure op is instead a two-qubit op. See issue qoala-kanban-board#109.
                  */
                 if (llvm::isa<netqasm::CnotOp, netqasm::CzOp, netqasm::CrotXOp>(op)) {
                     auto itTwoQubitOp = opToMilpOp.find(op);
