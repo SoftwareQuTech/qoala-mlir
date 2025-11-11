@@ -112,7 +112,7 @@ namespace qoala::analysis {
             LLVM_DEBUG(llvm::dbgs() << "[RotFold] Checking op: " << op->getName() << " @" << op->getLoc() << "\n");
 
             // Must have a target operand that comes from a previous rotation
-            Value target = rot.getTarget();
+            const Value target = rot.getTarget();
             Operation *prevOp = target ? target.getDefiningOp() : nullptr;
             if (!prevOp) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: target has no defining op\n");
@@ -135,8 +135,8 @@ namespace qoala::analysis {
             // Controls “match” in the controlled case:
             // We accept either exact SSA equality (trivial) or the common pass-through
             // case where `rot` takes as controls the *results* of `prevOp`.
-            ValueRange prevCtrls = prevRot.getControls();
-            ValueRange ctrls = rot.getControls();
+            const ValueRange prevCtrls = prevRot.getControls();
+            const ValueRange ctrls = rot.getControls();
             if (prevCtrls.size() != ctrls.size()) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: control arity mismatch\n");
                 return failure();
@@ -178,8 +178,8 @@ namespace qoala::analysis {
             }
 
             // Angles must be constants we can fold
-            auto a1Attr = dyn_cast_or_null<FloatAttr>(prevRot.getAngleAttr());
-            auto a2Attr = dyn_cast_or_null<FloatAttr>(rot.getAngleAttr());
+            const auto a1Attr = dyn_cast_or_null<FloatAttr>(prevRot.getAngleAttr());
+            const auto a2Attr = dyn_cast_or_null<FloatAttr>(rot.getAngleAttr());
             if (!a1Attr || !a2Attr) {
                 LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: non-constant angles (prev="
                                         << (a1Attr ? "const" : "non-const")
@@ -192,12 +192,12 @@ namespace qoala::analysis {
 
             // Mutations:
             //  - set new angle on the second op
-            auto newAngleAttr = FloatAttr::get(a2Attr.getType(), sum);
+            const auto newAngleAttr = FloatAttr::get(a2Attr.getType(), sum);
             rot.setAngleAttr(newAngleAttr);
 
             //  - rewire target of `op` to previous op's *input* target
             //  (i.e., bypass prevOp)
-            Value prevInputTarget = prevRot.getTarget();
+            const Value prevInputTarget = prevRot.getTarget();
             op->setOperand(tgtIdx, prevInputTarget);
 
             //  - rewire all control operands of `op` to previous op's *input* controls

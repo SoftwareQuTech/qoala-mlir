@@ -31,7 +31,7 @@ void FuncOp::print(OpAsmPrinter &p) {
                                              getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-static void replaceAngleOperandWithConst(Operation *op, unsigned angleIdx, FloatAttr fa) {
+static void replaceAngleOperandWithConst(Operation *op, const uint32_t angleIdx, FloatAttr fa) {
     OpBuilder b(op);
     b.setInsertionPoint(op);
     auto c = b.create<arith::ConstantOp>(op->getLoc(), fa);
@@ -41,7 +41,7 @@ static void replaceAngleOperandWithConst(Operation *op, unsigned angleIdx, Float
 RotationAxis RotXOp::getAxis() { return RotationAxis::X; }
 
 void RotXOp::setAngleAttr(Attribute angle) {
-    auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
     assert(fa && "setAngleAttr expects FloatAttr");
     // operands: (qin, angle)
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
@@ -50,7 +50,7 @@ void RotXOp::setAngleAttr(Attribute angle) {
 RotationAxis RotYOp::getAxis() { return RotationAxis::Y; }
 
 void RotYOp::setAngleAttr(Attribute angle) {
-    auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
     assert(fa && "setAngleAttr expects FloatAttr");
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
 }
@@ -58,7 +58,7 @@ void RotYOp::setAngleAttr(Attribute angle) {
 RotationAxis RotZOp::getAxis() { return RotationAxis::Z; }
 
 void RotZOp::setAngleAttr(Attribute angle) {
-    auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
     assert(fa && "setAngleAttr expects FloatAttr");
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
 }
@@ -66,7 +66,7 @@ void RotZOp::setAngleAttr(Attribute angle) {
 RotationAxis CrotXOp::getAxis() { return RotationAxis::X; }
 
 void CrotXOp::setAngleAttr(Attribute angle) {
-    auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
     assert(fa && "setAngleAttr expects FloatAttr");
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/2, fa);
 }
