@@ -355,6 +355,8 @@ namespace qoala::helpers {
         }
         return mlir::success();
     }
+
+    enum class RotationAxis { X, Y, Z };
 } // namespace qoala::helpers
 
 namespace qoala::translate {
