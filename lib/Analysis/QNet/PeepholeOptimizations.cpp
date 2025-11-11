@@ -170,11 +170,9 @@ namespace qoala::analysis {
             }
 
             // Every result of prevOp must be uniquely used by `op`, so we can erase it.
-            for (OpResult r : prevOp->getResults()) {
-                if (!r.hasOneUse()) {
-                    LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prev result has extra uses\n");
-                    return failure();
-                }
+            if (!llvm::all_of(prevOp->getResults(), [&](const OpResult r) { return r.hasOneUse(); })) {
+                LLVM_DEBUG(llvm::dbgs() << "[RotFold]   -> Skip: prev result has extra uses\n");
+                return failure();
             }
 
             // Angles must be constants we can fold
