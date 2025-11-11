@@ -12,7 +12,8 @@ using namespace qoala::helpers;
 #define GET_OP_CLASSES
 #include "Dialect/QNet/QNet.cpp.inc"
 
-
+// include generated "dispatcher" of the operation interface
+#include "Analysis/Helpers/QNetInterfaces.cpp.inc"
 
 /* Parse and print functions "ported" from func.func: parse and print */
 ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
