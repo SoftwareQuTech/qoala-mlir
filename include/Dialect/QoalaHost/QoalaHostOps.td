@@ -252,6 +252,48 @@ def RecvFloatOp : UsingRemote_Op<"recv_float", [
     }];
 }
 
+/* "Condensed" (plural) versions of the recv/send_ints/floats
+ * These versions are here to prepare for the future
+ */
+// TODO - Maybe at this level (LIR) we might want to return MemRefs instead of vectors...
+def SendIntsOp : UsingRemote_Op<"send_ints", [
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    let arguments = (ins VectorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvIntsOp : UsingRemote_Op<"recv_ints", [
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
+    let results = (outs VectorOf<[I32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+def SendFloatsOp : UsingRemote_Op<"send_floats", [
+    DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    let arguments = (ins VectorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
+    Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
+    DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
+    let results = (outs VectorOf<[F32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
 def NopTOp : QoalaHost_Op<"nop_term", [HasParent<"MainFuncOp">, Terminator]> {
     let summary = [{
         "nop" operation with terminator trait. This operation is useful to

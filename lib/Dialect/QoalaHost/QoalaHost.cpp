@@ -192,6 +192,26 @@ BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *
     return BlockType::CC;
 }
 
+uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+
+uint32_t qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
+
+uint32_t qoalahost::RecvIntsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+
+uint32_t qoalahost::RecvFloatsOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+
+BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+
+BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+
+BlockType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
+}
+
+BlockType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+    return BlockType::CC;
+}
+
 BlockType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
     const StringRef symName = this->getCallee();
     Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
