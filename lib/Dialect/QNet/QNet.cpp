@@ -12,6 +12,8 @@ using namespace qoala::helpers;
 #define GET_OP_CLASSES
 #include "Dialect/QNet/QNet.cpp.inc"
 
+
+
 /* Parse and print functions "ported" from func.func: parse and print */
 ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
     auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
