@@ -51,9 +51,10 @@ namespace qoala::analysis::gatecount {
             // Walk over all ops in the module.
             module.walk([&](Operation *op) {
                 if (llvm::isa<NewQubitOp, EprsOp>(op)) {
-                    LLVM_DEBUG(llvm::dbgs() << "New Qubit Op for qubit: " << op->getName().getStringRef() << ".\n");
                     for (Value result : op->getResults()) {
                         std::string qubitSsaName = getSSAName(result, state);
+                        LLVM_DEBUG(llvm::dbgs() << "New Qubit Op " << op->getName().getStringRef()
+                                                << " for qubit: " << qubitSsaName << ".\n");
                         opResToInitSSA[result] = qubitSsaName;
                         qubitsToOps.try_emplace(qubitSsaName);
                         qubitsToOps[qubitSsaName].push_back(op);
@@ -62,10 +63,11 @@ namespace qoala::analysis::gatecount {
                         detailedGateCount[qubitSsaName] = 0;
                     }
                 } else {
-                    if (isQuantumOp(op)) {
+                    if (isQuantumOp(op) and !llvm::isa<MeasureOp>(op)) {
                         ++gateCount;
                         if (isTwoQubitOp(op)) {
                             LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << op->getName().getStringRef() << ".\n");
+
                             ++twoQubitGateCount;
                         } else {
                             LLVM_DEBUG(llvm::dbgs() << "One Qubit Op: " << op->getName().getStringRef() << ".\n");
@@ -81,6 +83,8 @@ namespace qoala::analysis::gatecount {
                             auto initSSAIt = opResToInitSSA.find(operand);
                             if (initSSAIt != opResToInitSSA.end()) {
                                 std::string initSSA = initSSAIt->second;
+                                LLVM_DEBUG(llvm::dbgs() << "Op " << op->getName().getStringRef()
+                                                        << " on qubit: " << initSSA << ".\n");
 
                                 // Add this operation to the history of the qubit it acts on.
                                 qubitsToOps[initSSA].push_back(op);

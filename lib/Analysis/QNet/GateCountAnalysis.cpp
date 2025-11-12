@@ -34,7 +34,7 @@ namespace qoala::analysis {
         llvm::outs() << "  - Two-qubit gates: " << analysis.getTwoQubitGateCount() << "\n";
         llvm::outs() << "  - Total gates: " << analysis.getGateCount() << "\n";
 
-        llvm::outs() << "\n  Per qubit gate count:\n";
+        llvm::outs() << "\n  Detailed gate count:\n";
         llvm::outs() << "  - One-qubit gates:\n";
 
         for (const auto &qubit : sortedQubits) {

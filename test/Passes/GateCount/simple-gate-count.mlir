@@ -1,8 +1,21 @@
 // RUN: qoala-opt %s --qnet-show-analysis-gate-count | FileCheck %s
 // CHECK:  [Gate Count]:
-// CHECK:  - One-qubit gates: 2
-// CHECK:  - Two-qubit gates: 1
+// CHECK:  - One-qubit gates: 1
+// CHECK:  - Two-qubit gates: 2
 // CHECK:  - Total gates: 3
+//CHECK:  Detailed gate count:
+//CHECK:  - One-qubit gates:
+//CHECK:    * qubit[%0]: 0
+//CHECK:    * qubit[%1]: 1
+//CHECK:    * qubit[%3]: 0
+//CHECK:  - Two-qubit gates:
+//CHECK:    * qubit[%0]: 1
+//CHECK:    * qubit[%1]: 2
+//CHECK:    * qubit[%3]: 1
+//CHECK:  -  All gates:
+//CHECK:    * qubit[%0]: 1
+//CHECK:    * qubit[%1]: 3
+//CHECK:    * qubit[%3]: 1
 
 module {
     qnet.remote @Bob
@@ -18,7 +31,9 @@ module {
 
         %q6 = qnet.eprs  {remote = @Bob} : !qnet.qubit
 
-        %m = qnet.measure %q3 : i1
+        %q7, %q8 = qnet.cnot %q6, %q5 : !qnet.qubit, !qnet.qubit
+
+        %m = qnet.measure %q8 : i1
 
         qnet.return
     }
