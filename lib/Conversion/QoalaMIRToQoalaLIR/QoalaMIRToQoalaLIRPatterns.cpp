@@ -82,13 +82,13 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
     }
 
+    // Lowering patterns that map classical communication ops to a single lir instruction
     std::unique_ptr<OpAndValues> RecvIntsOpLowering::createNewOpAndValues(qmem::RecvIntsOp op,
                                                                           qmem::RecvIntsOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr(),
-                                                             adaptor.getLengthAttr());
-        auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::RecvIntsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr(),
+                                                              adaptor.getLengthAttr());
         // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_ints op.
         // We need to remove the extra qoalahost.nop_term terminator operation
@@ -103,8 +103,8 @@ namespace qoala::conversion::mir {
                                                                             qmem::RecvFloatsOp::Adaptor adaptor,
                                                                             ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        auto length = op.getLengthAttr().getInt();
-        auto newRecv = rewriter.create<qoalahost::RecvFloatOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::RecvFloatsOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr(),
+                                                                adaptor.getLengthAttr());
         // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_floats op.
         // We need to remove the extra qoalahost.nop_term terminator operation
@@ -118,14 +118,14 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues> SendIntsOpLowering::createNewOpAndValues(qmem::SendIntsOp op,
                                                                           qmem::SendIntsOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
-        auto newRecv = rewriter.create<qoalahost::SendIntOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::SendIntsOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
     std::unique_ptr<OpAndValues> SendFloatsOpLowering::createNewOpAndValues(qmem::SendFloatsOp op,
                                                                             qmem::SendFloatsOp::Adaptor adaptor,
                                                                             ConversionPatternRewriter &rewriter) const {
-        auto newRecv = rewriter.create<qoalahost::SendFloatOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        auto newRecv = rewriter.create<qoalahost::SendFloatsOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
