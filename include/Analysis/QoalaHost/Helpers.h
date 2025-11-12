@@ -572,6 +572,16 @@ namespace qoala::analysis {
 
     } // namespace qubitlife
 
+    namespace esp {
+        class QoalaHostEstimateSuccProb {
+        public:
+            explicit QoalaHostEstimateSuccProb(mlir::Operation *op);
+        private:
+            float gate_esp = 1.0;
+            float qubit_esp = 1.0;
+        };
+    } // namespace esp
+
 } // namespace qoala::analysis
 
 #endif // QOALAHOST_HELPERS_H
