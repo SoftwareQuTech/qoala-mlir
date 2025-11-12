@@ -1,6 +1,6 @@
 // UNSUPPORTED: true
 // This test uses dynamic float values (received from other endpoint) which are not supported
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir=unfold-comm-ops=false | FileCheck %s
 
 // CHECK: module
 module {
