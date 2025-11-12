@@ -12,12 +12,12 @@ namespace qoala::analysis {
 
             [[nodiscard]]
             const llvm::StringMap<uint32_t> &getDetailedOneQubitGateCount() const {
-                return detailedOneGateCount;
+                return detailedOneQubitGateCount;
             }
 
             [[nodiscard]]
             const llvm::StringMap<uint32_t> &getDetailedTwoQubitGateCount() const {
-                return detailedTwoGateCount;
+                return detailedTwoQubitGateCount;
             }
 
             [[nodiscard]]
@@ -45,8 +45,8 @@ namespace qoala::analysis {
             uint32_t oneQubitGateCount = 0;
             uint32_t twoQubitGateCount = 0;
             llvm::StringMap<uint32_t> detailedGateCount;
-            llvm::StringMap<uint32_t> detailedOneGateCount;
-            llvm::StringMap<uint32_t> detailedTwoGateCount;
+            llvm::StringMap<uint32_t> detailedOneQubitGateCount;
+            llvm::StringMap<uint32_t> detailedTwoQubitGateCount;
         };
     } // namespace gatecount
 } // namespace qoala::analysis
