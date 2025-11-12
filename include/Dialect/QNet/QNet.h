@@ -18,6 +18,11 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
+#include "Analysis/Helpers/QNetInterfaces.h"
+
+#include "Analysis/Helpers/Helpers.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+
 // FIRST include typedef classes, THEN op classes (latter needs decls of former)
 #define GET_TYPEDEF_CLASSES
 #include "Dialect/QNet/QNetTypes.h.inc"

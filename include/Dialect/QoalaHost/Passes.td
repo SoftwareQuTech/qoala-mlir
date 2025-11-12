@@ -21,4 +21,9 @@ def QoalaHostQMemEffShowAnalysis: Pass<"qoalahost-show-analysis-qmem-eff", "qoal
     let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 
+def QoalaHostQubitLifeShowAnalysis: Pass<"qoalahost-show-analysis-qubit-life", "mlir::ModuleOp"> {
+    let summary = "Show the qubit lifetime analysis computed in LIR.";
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
+}
+
 #endif // QOALAHOST_PASSES

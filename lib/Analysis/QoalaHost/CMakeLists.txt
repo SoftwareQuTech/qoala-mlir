@@ -4,6 +4,8 @@ add_mlir_dialect_library(MLIRQoalaHostAnalysis
         AddPrecedences.cpp
         BlockReordering.cpp
         MILPReordering.cpp
+        QubitLifetime.cpp
+        QubitLifetimeAnalysis.cpp
         QMemoryEfficiency.cpp
         QuantumMemoryAnalysis.cpp
         EntanglementFirst.cpp

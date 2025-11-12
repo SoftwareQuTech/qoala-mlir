@@ -37,60 +37,109 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        reordering::MILPBlockOrderModel blockOrderModel;
-        if (!blockOrderModel.initialize()) {
-            moduleOp.emitError("Failed to initialize SCIP.");
+        reordering::MILPBlockOrderModel blockOrderPrimary;
+        if (!blockOrderPrimary.initialize()) {
+            moduleOp.emitError("Failed to initialize SCIP (primary).");
             signalPassFailure();
         }
 
-        blockOrderModel.setProblemData(blocks, qubits, precedences);
-        blockOrderModel.createVariables();
-        blockOrderModel.addConstraints();
-        blockOrderModel.setObjective();
+        blockOrderPrimary.setProblemData(blocks, qubits, precedences);
+        blockOrderPrimary.createVariables();
+        blockOrderPrimary.addConstraints();
+        blockOrderPrimary.setPrimaryObjective();
 
-        if (!blockOrderModel.optimize()) {
-            moduleOp.emitError("MILP solve failed.");
+        if (!blockOrderPrimary.optimize() || !blockOrderPrimary.checkSolverStatus(&moduleOp)) {
+            moduleOp.emitError("MILP solve (primary) failed.");
             signalPassFailure();
         }
 
-        std::vector<std::string> orderedBlockIds = blockOrderModel.getOrderedBlocks();
+        // read optimal primary scalar as double
+        double zStar = blockOrderPrimary.getPrimaryObjectiveValueFromSolution();
 
-        blockOrderModel.cleanup();
+        // Compute allocation order from solution
+        auto allocOrder = blockOrderPrimary.computeAllocationOrderFromSolution();
+
+        // we also need the *schedule state* (start times) later to reorder blocks if
+        // the second pass ends up with the same start times but different tie-breaks.
+        // BUT actually we only need final block order from *secondary*, not from primary,
+        // so we don't extract ordering yet.
+        blockOrderPrimary.cleanup();
+
+        reordering::MILPBlockOrderModel blockOrderSecondary;
+        if (!blockOrderSecondary.initialize()) {
+            moduleOp.emitError("Failed to initialize SCIP (secondary).");
+            signalPassFailure();
+        }
+
+        blockOrderSecondary.setProblemData(blocks, qubits, precedences);
+        blockOrderSecondary.createVariables();
+        blockOrderSecondary.addConstraints();
+
+        // lock the primary optimum
+        blockOrderSecondary.constrainPrimaryObjectiveTo(zStar);
+
+        // Inject allocation order from solution
+        blockOrderSecondary.setPrimaryAllocationOrder(allocOrder);
+
+        // now: set the deterministic secondary objective
+        blockOrderSecondary.setSecondaryObjectiveDeterministic();
+
+        if (!blockOrderSecondary.optimize() || !blockOrderSecondary.checkSolverStatus(&moduleOp)) {
+            moduleOp.emitError("MILP solve (secondary) failed.");
+            signalPassFailure();
+        }
+
+        // final canonical block order:
+        std::vector<std::string> orderedBlockIds = blockOrderSecondary.getOrderedBlocks();
+
+        blockOrderSecondary.cleanup();
+
+        LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
+        if (failed(status)) {
+            signalPassFailure();
+        }
 
         if (this->withDeadlines) {
             reordering::BlockPrecedenceList deadlinesPrecedences =
                     createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
 
-            reordering::MILPBlockDeadlineModel deadlineModel;
-            if (!deadlineModel.initialize()) {
-                moduleOp.emitError("Failed to initialize SCIP.");
+            // Phase 1: maximize gmin
+            reordering::MILPBlockDeadlineModel deadlinePrimary;
+            if (!deadlinePrimary.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP (deadline primary).");
+                signalPassFailure();
+            }
+            deadlinePrimary.setProblemData(blocks, qubits, deadlinesPrecedences);
+            deadlinePrimary.createVariables();
+            deadlinePrimary.addConstraints();
+            deadlinePrimary.setPrimaryObjective();
+            if (!deadlinePrimary.optimize() || !deadlinePrimary.checkSolverStatus(&moduleOp)) {
+                moduleOp.emitError("Deadlines MILP solve (primary) failed.");
+                signalPassFailure();
+            }
+            const double gminStar = deadlinePrimary.getPrimaryObjectiveValueFromSolution();
+            deadlinePrimary.cleanup();
+
+            // Phase 2: fix gmin == gmin* and apply deterministic tie-breaker
+            reordering::MILPBlockDeadlineModel deadlineSecondary;
+            if (!deadlineSecondary.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP (deadline secondary).");
+                signalPassFailure();
+            }
+            deadlineSecondary.setProblemData(blocks, qubits, deadlinesPrecedences);
+            deadlineSecondary.createVariables();
+            deadlineSecondary.addConstraints();
+            deadlineSecondary.constrainPrimaryObjectiveTo(gminStar);
+            deadlineSecondary.setSecondaryObjectiveDeterministic();
+            if (!deadlineSecondary.optimize() || !deadlineSecondary.checkSolverStatus(&moduleOp)) {
+                moduleOp.emitError("Deadlines MILP solve (secondary) failed.");
                 signalPassFailure();
             }
 
-            deadlineModel.setProblemData(blocks, qubits, deadlinesPrecedences);
-            deadlineModel.createVariables();
-            deadlineModel.addConstraints();
-            deadlineModel.setObjective();
-
-            if (!deadlineModel.optimize()) {
-                moduleOp.emitError("MILP solve failed.");
-                signalPassFailure();
-            }
-
-            if (!deadlineModel.checkSolverStatus(&moduleOp)) {
-                signalPassFailure();
-            }
-
-            auto [deadlines, refBlockId] = deadlineModel.computeBlockDeadlines();
-
-            deadlineModel.cleanup();
+            auto [deadlines, refBlockId] = deadlineSecondary.computeBlockDeadlines();
+            deadlineSecondary.cleanup();
 
             reordering::annotateBlockDeadlines(moduleOp, deadlines, refBlockId);
-        }
-
-        LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
-        if (failed(status)) {
-            signalPassFailure();
         }
 
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
