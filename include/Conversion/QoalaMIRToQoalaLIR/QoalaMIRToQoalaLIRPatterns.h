@@ -78,6 +78,42 @@ namespace qoala::conversion::mir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class RecvIntsOpUnfoldLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntsOp, dialects::qoalahost::RecvIntOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::RecvIntsOp op, dialects::qmem::RecvIntsOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RecvFloatsOpUnfoldLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatsOp, dialects::qoalahost::RecvFloatOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::RecvFloatsOp op, dialects::qmem::RecvFloatsOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class SendIntsOpUnfoldLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntsOp, dialects::qoalahost::SendIntOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::SendIntsOp op, dialects::qmem::SendIntsOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class SendFloatsOpUnfoldLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatsOp, dialects::qoalahost::SendFloatOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::SendFloatsOp op, dialects::qmem::SendFloatsOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect
      */
     class MeasureOpLowering
