@@ -102,9 +102,10 @@ namespace qoala::helpers {
      * @param context The MLIRContext object.
      * @param patterns The pattern set object to populate.
      * @param typeConverter The type converter object used by the rewriter methods.
+     * @param unfoldCommOps Sets the configuration of the lowering patterns to unfold classical communications.
      */
     void populateQMemToQoalaHostPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
-                                         mlir::TypeConverter &typeConverter);
+                                         mlir::TypeConverter &typeConverter, bool unfoldCommOps);
 
     /**
      * Configures the given ConversionTarget object to specify the valid state of the IR after

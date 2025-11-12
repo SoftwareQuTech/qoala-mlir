@@ -30,7 +30,9 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
         Option<"useSCCP", "use-sccp", "bool", /*default=*/"false",
                "Use an SCCP pass to propagate constants inside nested blocks in the main function.">,
         Option<"maxOpsPerGroup", "max-ops-per-group", "uint32_t", /*default=*/"0",
-               "Set the max number of operations to place per group. This option only affects the per-qubit grouping functionization">
+               "Set the max number of operations to place per group. This option only affects the per-qubit grouping functionization">,
+        Option<"unfoldCommOps", "unfold-comm-ops", "bool", /*default=*/"true",
+               "Unfold multi-value, classical communication operations into multiple single-value operations">
     ];
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
@@ -56,5 +58,9 @@ def LowerQMemToLowerDialects : Pass<"lower-qmem-to-lower-dialects", "mlir::Modul
                              "qoala::dialects::qoalahost::QoalaHostDialect",
                              "qoala::dialects::netqasm::NetQASMDialect",
                              "qoala::dialects::qremote::QRemoteDialect"];
+    let options = [
+        Option<"unfoldCommOps", "unfold-comm-ops", "bool", /*default=*/"true",
+               "Unfold multi-value, classical communication operations into multiple single-value operations">
+    ];
 }
 #endif /* QMEM_TO_QOALAHOST_PASS */
