@@ -165,6 +165,37 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     }];
 }
 
+// Single-value versionf o fthe classical communication oeprations
+def SendIntOp : UsingRemote_Op<"send_int"> {
+    let arguments = (ins I32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvIntOp : UsingRemote_Op<"recv_int"> {
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
+    let results = (outs I32:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+def SendFloatOp : UsingRemote_Op<"send_float"> {
+    let arguments = (ins F32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvFloatOp : UsingRemote_Op<"recv_float"> {
+    let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
+    let results = (outs F32:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
 def QAllocOp: QMem_Op<"qalloc"> {
     let results = (outs I32:$q);
     let assemblyFormat = [{
