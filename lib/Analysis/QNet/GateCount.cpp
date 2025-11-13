@@ -61,8 +61,13 @@ namespace qoala::analysis::gatecount {
                         ++oneQubitGateCount;
                     }
                     // For each operand, find its init Id and propagate it to the corresponding result.
+                    // As per qnet definition of quantum ops, #results <= #operands and qubits are always the first
+                    // operands. Also order of operands and results should be the same, for SSA purposes. Loop through
+                    // operands, and for each operand that we are already tracking, i.e. a qubit, find its corresponding
+                    // results at the same position.
                     for (auto operandIt : llvm::enumerate(op->getOperands())) {
                         Value operand = operandIt.value();
+                        // Qubit operand index
                         uint32_t index = operandIt.index();
 
                         // Check if the operand is a qubit we are tracking
@@ -81,6 +86,7 @@ namespace qoala::analysis::gatecount {
                             }
 
                             // Propagate the init Id to the corresponding result.
+                            // Resut index should be same as corresponding operand.
                             Value result = op->getResult(index);
                             opResToId[result] = initId;
                         }
