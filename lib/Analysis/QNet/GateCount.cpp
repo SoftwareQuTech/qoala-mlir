@@ -67,9 +67,8 @@ namespace qoala::analysis::gatecount {
                         uint32_t index = operandIt.index();
 
                         // Check if the operand is a qubit we are tracking
-                        auto initIt = opResToId.find(operand);
-                        if (initIt != opResToId.end()) {
-                            uint32_t initId = static_cast<uint32_t>(initIt->second);
+                        if (opResToId.contains(operand)) {
+                            uint32_t initId = opResToId.at(operand);
 
                             // Add this operation to the history of the qubit it acts on.
                             LLVM_DEBUG(llvm::dbgs() << "Op " << qubitOp.getName().getStringRef()
