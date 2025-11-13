@@ -73,7 +73,7 @@ namespace qoala::analysis::gatecount {
                         // Check if the operand is a qubit we are tracking
                         auto initIt = opResToId.find(operand);
                         if (initIt != opResToId.end()) {
-                            uint32_t initId = initIt->second;
+                            uint32_t initId = static_cast<uint32_t>(initIt->second);
 
                             // Add this operation to the history of the qubit it acts on.
                             LLVM_DEBUG(llvm::dbgs()
