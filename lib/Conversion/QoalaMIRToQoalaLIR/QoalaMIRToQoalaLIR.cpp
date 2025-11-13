@@ -31,7 +31,6 @@ namespace qoala::conversion {
     };
 
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
-        MLIRContext &context = this->getContext();
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
@@ -80,7 +79,7 @@ namespace qoala::conversion {
         // after running:
         // https://mlir.llvm.org/getting_started/DeveloperGuide/#ir-should-be-valid-before-and-after-each-pass
         // For this reason, we group app the transformations in a single pass
-        passManager.addPass(createLowerQMemToLowerDialects({this->unfoldCommOps}));
+        passManager.addPass(createLowerQMemToLowerDialects());
 
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");
         LLVM_DEBUG(passManager.printAsTextualPipeline(llvm::dbgs()));

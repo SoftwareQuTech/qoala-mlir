@@ -58,9 +58,5 @@ def LowerQMemToLowerDialects : Pass<"lower-qmem-to-lower-dialects", "mlir::Modul
                              "qoala::dialects::qoalahost::QoalaHostDialect",
                              "qoala::dialects::netqasm::NetQASMDialect",
                              "qoala::dialects::qremote::QRemoteDialect"];
-    let options = [
-        Option<"unfoldCommOps", "unfold-comm-ops", "bool", /*default=*/"true",
-               "Unfold multi-value, classical communication operations into multiple single-value operations">
-    ];
 }
 #endif /* QMEM_TO_QOALAHOST_PASS */
