@@ -22,10 +22,10 @@ namespace qoala::analysis {
         const auto &detailedTwoQubitGateCount = analysis.getDetailedTwoQubitGateCount();
         const auto &detailedGateCount = analysis.getDetailedGateCount();
 
-        std::vector<llvm::StringRef> sortedQubits;
+        std::vector<uint32_t> sortedQubits;
         sortedQubits.reserve(detailedOneQubitGateCount.size());
         for (const auto &item : detailedOneQubitGateCount) {
-            sortedQubits.push_back(item.getKey());
+            sortedQubits.push_back(item.first);
         }
         std::sort(sortedQubits.begin(), sortedQubits.end());
 

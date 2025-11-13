@@ -25,74 +25,64 @@ namespace qoala::analysis::gatecount {
         return llvm::isa<CnotOp, CzOp, CrotXOp>(op);
     }
 
-    static std::string getSSAName(Value val, AsmState &state) {
-        // Get the SSA name of the value with respect to the asm state.
-        std::string ssaName;
-        llvm::raw_string_ostream stream(ssaName);
-        val.printAsOperand(stream, state);
-
-        return ssaName;
-    }
-
     QNetGateCount::QNetGateCount(Operation *op) {
         // Walk over all ops in the module and count quantum operations.
-        // Keep track of SSA names to assign quantum operations
-        // to the right qubit.
+        // Assign unique Id to qubits at initialization
+        // Id is used to track qubits and assign quantum operations to them.
 
-        // Map from quantum operations results SSA names to their SSA name at creation
-        llvm::DenseMap<Value, std::string> opResToInitSSA;
+        // Map from quantum operations results to their init Id
+        llvm::DenseMap<Value, uint32_t> opResToId;
 
         auto module = dyn_cast_or_null<ModuleOp>(*op);
         assert(module && "No ModuleOp: something went wrong.");
 
-        AsmState state(module);
+        uint32_t qId = 0;
 
         // Walk over all ops in the module.
         module.walk([&](Operation *op) {
             if (llvm::isa<NewQubitOp, EprsOp>(op)) {
                 for (Value result : op->getResults()) {
-                    std::string qubitSsaName = getSSAName(result, state);
-                    LLVM_DEBUG(llvm::dbgs() << "New Qubit Op " << op->getName().getStringRef()
-                                            << " for qubit: " << qubitSsaName << ".\n");
-                    opResToInitSSA[result] = qubitSsaName;
-                    detailedOneQubitGateCount[qubitSsaName] = 0;
-                    detailedTwoQubitGateCount[qubitSsaName] = 0;
-                    detailedGateCount[qubitSsaName] = 0;
+                    opResToId[result] = qId;
+                    LLVM_DEBUG(llvm::dbgs()
+                               << "New Qubit Op " << op->getName().getStringRef() << " for qubit: " << qId << ".\n");
+                    detailedOneQubitGateCount[qId] = 0;
+                    detailedTwoQubitGateCount[qId] = 0;
+                    detailedGateCount[qId] = 0;
+                    ++qId;
                 }
             } else {
                 if (isQuantumOp(op) && !llvm::isa<MeasureOp>(op)) {
                     ++gateCount;
                     if (isTwoQubitOp(op)) {
                         LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << op->getName().getStringRef() << ".\n");
-
                         ++twoQubitGateCount;
                     } else {
                         LLVM_DEBUG(llvm::dbgs() << "One Qubit Op: " << op->getName().getStringRef() << ".\n");
                         ++oneQubitGateCount;
                     }
-                    // For each operand, find its init SSA name and propagate it to the corresponding result.
+                    // For each operand, find its init Id and propagate it to the corresponding result.
                     for (auto operandIt : llvm::enumerate(op->getOperands())) {
                         Value operand = operandIt.value();
-                        unsigned index = operandIt.index();
+                        uint32_t index = operandIt.index();
 
                         // Check if the operand is a qubit we are tracking
-                        auto initSSAIt = opResToInitSSA.find(operand);
-                        if (initSSAIt != opResToInitSSA.end()) {
-                            std::string initSSA = initSSAIt->second;
-                            LLVM_DEBUG(llvm::dbgs()
-                                       << "Op " << op->getName().getStringRef() << " on qubit: " << initSSA << ".\n");
+                        auto initIt = opResToId.find(operand);
+                        if (initIt != opResToId.end()) {
+                            uint32_t initId = initIt->second;
 
                             // Add this operation to the history of the qubit it acts on.
-                            detailedGateCount[initSSA]++;
+                            LLVM_DEBUG(llvm::dbgs()
+                                       << "Op " << op->getName().getStringRef() << " on qubit: " << initId << ".\n");
+                            detailedGateCount[initId]++;
                             if (isTwoQubitOp(op)) {
-                                detailedTwoQubitGateCount[initSSA]++;
+                                detailedTwoQubitGateCount[initId]++;
                             } else {
-                                detailedOneQubitGateCount[initSSA]++;
+                                detailedOneQubitGateCount[initId]++;
                             }
 
-                            // Propagate the SSA name to the corresponding result.
+                            // Propagate the init Id to the corresponding result.
                             Value result = op->getResult(index);
-                            opResToInitSSA[result] = initSSA;
+                            opResToId[result] = initId;
                         }
                     }
                 }

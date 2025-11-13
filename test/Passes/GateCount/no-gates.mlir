@@ -5,14 +5,14 @@
 // CHECK:  - Total gates: 0
 // CHECK:  Detailed gate count:
 // CHECK:  - One-qubit gates:
-// CHECK:    * qubit[%0]: 0
-// CHECK:    * qubit[%1]: 0
+// CHECK:    * qubit[0]: 0
+// CHECK:    * qubit[1]: 0
 // CHECK:  - Two-qubit gates:
-// CHECK:    * qubit[%0]: 0
-// CHECK:    * qubit[%1]: 0
+// CHECK:    * qubit[0]: 0
+// CHECK:    * qubit[1]: 0
 // CHECK:  -  All gates:
-// CHECK:    * qubit[%0]: 0
-// CHECK:    * qubit[%1]: 0
+// CHECK:    * qubit[0]: 0
+// CHECK:    * qubit[1]: 0
 
 module {
     qnet.remote @Bob

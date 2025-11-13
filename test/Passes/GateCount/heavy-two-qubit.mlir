@@ -5,14 +5,14 @@
 // CHECK:  - Total gates: 6
 // CHECK:  Detailed gate count:
 // CHECK:  - One-qubit gates:
-// CHECK:    * qubit[%0]: 2
-// CHECK:    * qubit[%2]: 0
+// CHECK:    * qubit[0]: 2
+// CHECK:    * qubit[1]: 0
 // CHECK:  - Two-qubit gates:
-// CHECK:    * qubit[%0]: 4
-// CHECK:    * qubit[%2]: 4
+// CHECK:    * qubit[0]: 4
+// CHECK:    * qubit[1]: 4
 // CHECK:  -  All gates:
-// CHECK:    * qubit[%0]: 6
-// CHECK:    * qubit[%2]: 4
+// CHECK:    * qubit[0]: 6
+// CHECK:    * qubit[1]: 4
 
 module {
     qnet.func @heavy_two_qubit() {
