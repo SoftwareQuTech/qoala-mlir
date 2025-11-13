@@ -47,7 +47,6 @@ namespace qoala::analysis::gatecount {
                         ++qId;
                     }
                 } else {
-                    // if (isQuantumOp(op) && !llvm::isa<MeasureOp>(op)) {
                     ++gateCount;
                     if (isTwoQubitOp(qubitOp)) {
                         LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
@@ -86,7 +85,6 @@ namespace qoala::analysis::gatecount {
                             opResToId[result] = initId;
                         }
                     }
-                    // }
                 }
             }
         });
