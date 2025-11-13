@@ -82,7 +82,8 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
     }
 
-    // Lowering patterns that map classical communication ops to a single lir instruction
+    // Lowering patterns that map QMem multi-value classical
+    // communication ops to multi-value classical ops in QoalaHost
     std::unique_ptr<OpAndValues> RecvIntsOpLowering::createNewOpAndValues(qmem::RecvIntsOp op,
                                                                           qmem::RecvIntsOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
@@ -129,49 +130,38 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
-    // Lowering patterns that map classical communication ops to *several* lir instructions
+    // Lowering patterns that map QMem single-value classical
+    // communication ops to single-value classical ops in QoalaHost
     std::unique_ptr<OpAndValues>
-    RecvIntsOpUnfoldLowering::createNewOpAndValues(qmem::RecvIntsOp op, qmem::RecvIntsOp::Adaptor adaptor,
-                                                   ConversionPatternRewriter &rewriter) const {
-        // TODO - Create as many as recv_int as "length" of the original operation
-        //  WARNING: Doing this means that we need to "split" the block into several ones (as many as length)
-        //  We might want to modify the functionization algorithm to insert placeholders
-        //  that can be replaced here.
+    RecvIntOpLowering::createNewOpAndValues(qmem::RecvIntOp op, qmem::RecvIntOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const {
+        // TODO - Create straight-forward lowering logic
         // Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        // auto length = op.getLengthAttr().getInt();
-        assert(false && "RecvIntsLowering - Unfolding comm operations is not implemented yet");
+        assert(false && "RecvIntLowering - Unfolding comm operations is not implemented yet");
     }
 
     std::unique_ptr<OpAndValues>
-    RecvFloatsOpUnfoldLowering::createNewOpAndValues(qmem::RecvFloatsOp op, qmem::RecvFloatsOp::Adaptor adaptor,
-                                                     ConversionPatternRewriter &rewriter) const {
-        // TODO - Create as many as recv_int as "length" of the original operation
-        //  WARNING: Doing this means that we need to "split" the block into several ones (as many as length)
-        //  We might want to modify the functionization algorithm to insert placeholders
-        //  that can be replaced here.
+    RecvFloatOpLowering::createNewOpAndValues(qmem::RecvFloatOp op, qmem::RecvFloatOp::Adaptor adaptor,
+                                              ConversionPatternRewriter &rewriter) const {
+        // TODO - Create straight-forward lowering logic
         // Type convertedType = this->typeConverter->convertType(op.getCout().getType());
-        // auto length = op.getLengthAttr().getInt();
-        assert(false && "RecvFloatsLowering - Unfolding comm operations is not implemented yet");
+        assert(false && "RecvFloatLowering - Unfolding comm operations is not implemented yet");
     }
 
     std::unique_ptr<OpAndValues>
-    SendIntsOpUnfoldLowering::createNewOpAndValues(qmem::SendIntsOp op, qmem::SendIntsOp::Adaptor adaptor,
-                                                   ConversionPatternRewriter &rewriter) const {
-        // TODO - Create as many as recv_int as "length" of the original operation
-        //  WARNING: Doing this means that we need to "split" the block into several ones (as many as length)
-        //  We might want to modify the functionization algorithm to insert placeholders
-        //  that can be replaced here.
-        assert(false && "SendIntsLowering - Unfolding comm operations is not implemented yet");
+    SendIntOpLowering::createNewOpAndValues(qmem::SendIntOp op, qmem::SendIntOp::Adaptor adaptor,
+                                            ConversionPatternRewriter &rewriter) const {
+        // TODO - Create straight-forward lowering logic
+        // Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        assert(false && "SendIntLowering - Unfolding comm operations is not implemented yet");
     }
 
     std::unique_ptr<OpAndValues>
-    SendFloatsOpUnfoldLowering::createNewOpAndValues(qmem::SendFloatsOp op, qmem::SendFloatsOp::Adaptor adaptor,
-                                                     ConversionPatternRewriter &rewriter) const {
-        // TODO - Create as many as recv_int as "length" of the original operation
-        //  WARNING: Doing this means that we need to "split" the block into several ones (as many as length)
-        //  We might want to modify the functionization algorithm to insert placeholders
-        //  that can be replaced here.
-        assert(false && "SendFloatsLowering - Unfolding comm operations is not implemented yet");
+    SendFloatOpLowering::createNewOpAndValues(qmem::SendFloatOp op, qmem::SendFloatOp::Adaptor adaptor,
+                                              ConversionPatternRewriter &rewriter) const {
+        // TODO - Create straight-forward lowering logic
+        // Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        assert(false && "SendFloatLowering - Unfolding comm operations is not implemented yet");
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect

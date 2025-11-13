@@ -78,39 +78,39 @@ namespace qoala::conversion::mir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class RecvIntsOpUnfoldLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntsOp, dialects::qoalahost::RecvIntOp> {
+    class RecvIntOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntOp, dialects::qoalahost::RecvIntOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
-        createNewOpAndValues(dialects::qmem::RecvIntsOp op, dialects::qmem::RecvIntsOp::Adaptor adaptor,
+        createNewOpAndValues(dialects::qmem::RecvIntOp op, dialects::qmem::RecvIntOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class RecvFloatsOpUnfoldLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatsOp, dialects::qoalahost::RecvFloatOp> {
+    class RecvFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatOp, dialects::qoalahost::RecvFloatOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
-        createNewOpAndValues(dialects::qmem::RecvFloatsOp op, dialects::qmem::RecvFloatsOp::Adaptor adaptor,
+        createNewOpAndValues(dialects::qmem::RecvFloatOp op, dialects::qmem::RecvFloatOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class SendIntsOpUnfoldLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntsOp, dialects::qoalahost::SendIntOp> {
+    class SendIntOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntOp, dialects::qoalahost::SendIntOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
-        createNewOpAndValues(dialects::qmem::SendIntsOp op, dialects::qmem::SendIntsOp::Adaptor adaptor,
+        createNewOpAndValues(dialects::qmem::SendIntOp op, dialects::qmem::SendIntOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class SendFloatsOpUnfoldLowering
-        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatsOp, dialects::qoalahost::SendFloatOp> {
+    class SendFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatOp, dialects::qoalahost::SendFloatOp> {
     public:
         using OpLoweringTemplate::OpLoweringTemplate;
         std::unique_ptr<helpers::OpAndValues>
-        createNewOpAndValues(dialects::qmem::SendFloatsOp op, dialects::qmem::SendFloatsOp::Adaptor adaptor,
+        createNewOpAndValues(dialects::qmem::SendFloatOp op, dialects::qmem::SendFloatOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 

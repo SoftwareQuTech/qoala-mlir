@@ -24,7 +24,7 @@ def OpQubitsInterface : OpInterface<"OpQubitsInterface"> {
     let cppNamespace = "::qoala::helpers";
     let methods = [
         InterfaceMethod<[{
-            Returns a vector of the oprtations that define the qubits used by this operation
+            Returns a vector of the operations that define the qubits used by this operation
         }], "std::vector<mlir::Operation *>", "getOpsAllocatingUsedQubits"
         >
     ];

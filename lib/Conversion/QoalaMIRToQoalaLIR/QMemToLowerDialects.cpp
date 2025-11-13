@@ -45,8 +45,8 @@ namespace qoala::helpers {
         patterns.add<mir::RemoteOpLowering, mir::FuncOpLowering, mir::ReturnOpLowering, mir::CallOpLowering>(
                 typeConverter, &context);
         if (unfoldCommOps) {
-            patterns.add<mir::RecvIntsOpUnfoldLowering, mir::RecvIntsOpUnfoldLowering, mir::SendIntsOpUnfoldLowering,
-                     mir::SendFloatsOpUnfoldLowering>(typeConverter, &context);
+            patterns.add<mir::RecvIntOpLowering, mir::RecvIntOpLowering, mir::SendIntOpLowering,
+                     mir::SendFloatOpLowering>(typeConverter, &context);
         } else {
             patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
                          mir::SendFloatsOpLowering>(typeConverter, &context);
