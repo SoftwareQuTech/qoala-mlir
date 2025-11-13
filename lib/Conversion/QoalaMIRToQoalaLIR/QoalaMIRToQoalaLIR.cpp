@@ -38,15 +38,6 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
         OpPassManager passManager("builtin.module");
-
-        helpers::NullTypeConverter typeConverter(&context);
-
-        // Configuration of the conversion targets and patterns for each stage
-        ConversionTarget f32LoweringTarget(context);
-        RewritePatternSet f32Patterns(&context);
-        helpers::configureF32LoweringTarget(f32LoweringTarget);
-        helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
-
         // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
 
         // Stage 1: Insert the declaration of the builtin angle conversion function

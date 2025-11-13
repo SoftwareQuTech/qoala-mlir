@@ -41,16 +41,13 @@ namespace qoala::helpers {
     }
 
     void populateQMemToQoalaHostPatterns(MLIRContext &context, RewritePatternSet &patterns,
-                                         TypeConverter &typeConverter, const bool unfoldCommOps) {
+                                         TypeConverter &typeConverter) {
         patterns.add<mir::RemoteOpLowering, mir::FuncOpLowering, mir::ReturnOpLowering, mir::CallOpLowering>(
                 typeConverter, &context);
-        if (unfoldCommOps) {
-            patterns.add<mir::RecvIntOpLowering, mir::RecvIntOpLowering, mir::SendIntOpLowering,
-                     mir::SendFloatOpLowering>(typeConverter, &context);
-        } else {
-            patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
-                         mir::SendFloatsOpLowering>(typeConverter, &context);
-        }
+        patterns.add<mir::RecvIntOpLowering, mir::RecvIntOpLowering, mir::SendIntOpLowering,
+                 mir::SendFloatOpLowering>(typeConverter, &context);
+        patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
+                     mir::SendFloatsOpLowering>(typeConverter, &context);
     }
 
     void configureQMemToNetQASMTarget(ConversionTarget &target) {
@@ -107,7 +104,7 @@ namespace qoala::conversion {
         ConversionTarget qMemToQoalaHostTarget(context);
         RewritePatternSet qMemToQoalaHostPatterns(&context);
         configureQMemToQoalaHostTarget(qMemToQoalaHostTarget, true, false);
-        populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter, this->unfoldCommOps);
+        populateQMemToQoalaHostPatterns(context, qMemToQoalaHostPatterns, typeConverter);
 
         ConversionTarget qMemToNetQASMTarget(context);
         RewritePatternSet qMemToNetQASMPatterns(&context);
