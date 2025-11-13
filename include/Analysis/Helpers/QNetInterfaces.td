@@ -3,6 +3,60 @@
 
 include "mlir/IR/Interfaces.td"
 
+def QubitOpIface : OpInterface<"QubitOpIface"> {
+    let description = [{
+        Interface for operations with qubit operands and qubit results.
+    }];
+    let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+        Return the operation name.
+        }], "mlir::OperationName", "getName", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            return op->getName();
+            }] >,
+        
+        InterfaceMethod<[{
+        Return all of the qubit operands.
+        }], "mlir::OperandRange", "getQubitOperands", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            uint32_t n = op->getNumOperands();
+            assert(n >= 1 && "QubitOpIface: no operands.");
+            // An operation acting on numQubits should always return numQubits results
+            uint32_t numQubits = op->getNumResults();
+            assert(n >= 1 && "QubitOpIface: no qubits returned as results.");
+            ++numQubits;
+            return op->getOperands().take_front(numQubits);
+            }] >,
+        
+        InterfaceMethod<[{
+        Return all of the qubit results.
+        }], "mlir::ResultRange", "getQubitResults", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            uint32_t n = op->getNumResults();
+            assert(n >= 1 && "QubitOpIface: no results.");
+            return op->getResults();
+            }] >,
+        
+        InterfaceMethod<[{
+        Return qubit result at speicifed index.
+        }], "mlir::OpResult", "getQubitResult", (ins "uint32_t":$index),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            uint32_t n = op->getNumResults();
+            assert(n >= 1 && "QubitOpIface: no results.");
+            return op->getResult(index);
+            }] >
+    ];
+}
+
 def HermitianOpIface : OpInterface<"HermitianOpIface"> {
     let description = [{
         Interface for hermitian operations.
