@@ -70,3 +70,19 @@ void CrotXOp::setAngleAttr(Attribute angle) {
     assert(fa && "setAngleAttr expects FloatAttr");
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/2, fa);
 }
+
+bool CrotXOp::isTwoQubitOp() { return true; }
+
+bool CnotOp::isTwoQubitOp() { return true; }
+
+bool CzOp::isTwoQubitOp() { return true; }
+
+mlir::OperandRange NewQubitOp::getQubitOperands() {
+    // No qubit operands
+    return getOperation()->getOperands().take_front(0);
+}
+
+mlir::OperandRange EprsOp::getQubitOperands() {
+    // The "remote" attribute is not a qubit operand
+    return getOperation()->getOperands().take_front(0);
+}

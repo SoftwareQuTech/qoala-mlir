@@ -135,7 +135,7 @@ def RemoteOp: QNet_Op<"remote", [Symbol]> {
 
 /* Operations for handling remote nodes/qubits */
 
-def EprsOp: UsingRemote_Op<"eprs", [QubitOpIface]> {
+def EprsOp: UsingRemote_Op<"eprs", [QubitOpIface, DeclareOpInterfaceMethods<QubitOpIface, ["getQubitOperands"]>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
@@ -183,7 +183,7 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
 
 /* Operations for local qubits (can also be applied to an entangled qubit) */
 
-def NewQubitOp : QNet_Op<"new_qubit", [QubitOpIface]> {
+def NewQubitOp : QNet_Op<"new_qubit", [QubitOpIface, DeclareOpInterfaceMethods<QubitOpIface, ["getQubitOperands"]>]> {
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{
         attr-dict `:` type($qout)
@@ -222,7 +222,7 @@ def HadamardOp : QNet_Op<"hadamard", [QubitOpIface, HermitianOpIface]> {
     }];
 }
 
-def CnotOp : QNet_Op<"cnot", [QubitOpIface, HermitianOpIface]> {
+def CnotOp : QNet_Op<"cnot", [DeclareOpInterfaceMethods<QubitOpIface, ["isTwoQubitOp"]>, HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
@@ -230,7 +230,7 @@ def CnotOp : QNet_Op<"cnot", [QubitOpIface, HermitianOpIface]> {
     }];
 }
 
-def CzOp : QNet_Op<"cz", [QubitOpIface, HermitianOpIface]> {
+def CzOp : QNet_Op<"cz", [DeclareOpInterfaceMethods<QubitOpIface, ["isTwoQubitOp"]>, HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{
@@ -238,7 +238,7 @@ def CzOp : QNet_Op<"cz", [QubitOpIface, HermitianOpIface]> {
     }];
 }
 
-def CrotXOp : QNet_Op<"crot_x", [QubitOpIface, DeclareOpInterfaceMethods<RotationOpIface>]> {
+def CrotXOp : QNet_Op<"crot_x", [DeclareOpInterfaceMethods<QubitOpIface, ["isTwoQubitOp"]>, DeclareOpInterfaceMethods<RotationOpIface>]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1, F32:$angle);
     let results = (outs QubitType:$qout0, QubitType:$qout1);
     let assemblyFormat = [{

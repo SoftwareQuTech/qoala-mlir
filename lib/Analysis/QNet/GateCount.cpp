@@ -15,11 +15,6 @@ using namespace qoala::dialects::qnet;
 
 namespace qoala::analysis::gatecount {
 
-    static bool isTwoQubitOp(QubitOpIface op) {
-        // Check if the op is a two-qubit op.
-        return op.getOperation()->getNumResults() > 1;
-    }
-
     QNetGateCount::QNetGateCount(Operation *op) {
         // Walk over all ops in the module and count quantum operations.
         // Assign unique Id to qubits at initialization
@@ -47,7 +42,7 @@ namespace qoala::analysis::gatecount {
                 }
             } else {
                 ++gateCount;
-                if (isTwoQubitOp(qubitOp)) {
+                if (qubitOp.isTwoQubitOp()) {
                     LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
                     ++twoQubitGateCount;
                 } else {
@@ -55,34 +50,27 @@ namespace qoala::analysis::gatecount {
                     ++oneQubitGateCount;
                 }
                 // For each operand, find its init Id and propagate it to the corresponding result.
-                // As per qnet definition of quantum ops, #results <= #operands and qubits are always the first
-                // operands. Also order of operands and results should be the same, for SSA purposes. Loop through
-                // operands, and for each operand that we are already tracking, i.e. a qubit, find its corresponding
-                // results at the same position.
-                for (auto operandIt : llvm::enumerate(qubitOp.getQubitOperands())) {
-                    Value operand = operandIt.value();
-                    // Qubit operand index
-                    uint32_t index = operandIt.index();
+                // Asssumes that qubits are always the first operands and a QuantumOpIface has #qubitsResults =
+                // #qubitOperands. Also, by qnet definition, order of operands and results should be the same. Loop
+                // through qubit operands, and find its corresponding qubit result at the same position.
 
+                for (auto [operand, result] : llvm::zip(qubitOp.getQubitOperands(), qubitOp.getQubitResults())) {
                     // Check if the operand is a qubit we are tracking
-                    if (opResToId.contains(operand)) {
-                        uint32_t initId = opResToId.at(operand);
+                    assert(opResToId.contains(operand) && "Qubit used but never initialized.");
+                    uint32_t initId = opResToId.at(operand);
 
-                        // Add this operation to the history of the qubit it acts on.
-                        LLVM_DEBUG(llvm::dbgs() << "Op " << qubitOp.getName().getStringRef()
-                                                << " on qubit: " << initId << ".\n");
-                        detailedGateCount[initId]++;
-                        if (isTwoQubitOp(qubitOp)) {
-                            detailedTwoQubitGateCount[initId]++;
-                        } else {
-                            detailedOneQubitGateCount[initId]++;
-                        }
-
-                        // Propagate the init Id to the corresponding result.
-                        // Resut index should be same as corresponding operand.
-                        Value result = qubitOp.getQubitResult(index);
-                        opResToId[result] = initId;
+                    // Add this operation to the history of the qubit it acts on.
+                    LLVM_DEBUG(llvm::dbgs()
+                               << "Op " << qubitOp.getName().getStringRef() << " on qubit: " << initId << ".\n");
+                    detailedGateCount[initId]++;
+                    if (qubitOp.isTwoQubitOp()) {
+                        detailedTwoQubitGateCount[initId]++;
+                    } else {
+                        detailedOneQubitGateCount[initId]++;
                     }
+
+                    // Propagate the init Id to the corresponding result.
+                    opResToId[result] = initId;
                 }
             }
         });

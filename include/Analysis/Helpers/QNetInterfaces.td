@@ -19,41 +19,36 @@ def QubitOpIface : OpInterface<"QubitOpIface"> {
             }] >,
         
         InterfaceMethod<[{
+        Return whether this is a two-qubit operation.
+        }], "bool", "isTwoQubitOp", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            // Default: most operations are single-qubit, return false
+            return false;
+            }] >,
+        
+        InterfaceMethod<[{
         Return all of the qubit operands.
+        // Assume that number of qubit operands equals number of results.
+        // Override for NewQubitOp and EprsOp.
         }], "mlir::OperandRange", "getQubitOperands", (ins),
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            uint32_t n = op->getNumOperands();
-            assert(n >= 1 && "QubitOpIface: no operands.");
-            // An operation acting on numQubits should always return numQubits results
-            uint32_t numQubits = op->getNumResults();
-            assert(n >= 1 && "QubitOpIface: no qubits returned as results.");
-            ++numQubits;
-            return op->getOperands().take_front(numQubits);
-            }] >,
+            uint32_t numQubitsRes = op->getNumResults();
+            return op->getOperands().take_front(numQubitsRes);
+            }]>,
         
         InterfaceMethod<[{
         Return all of the qubit results.
+        // Assume that QubitOpIface returns only qubit results.
         }], "mlir::ResultRange", "getQubitResults", (ins),
             /*methodBody=*/[{}],
             /*defaultImplementation=*/[{
             auto *op = $_op.getOperation();
-            uint32_t n = op->getNumResults();
-            assert(n >= 1 && "QubitOpIface: no results.");
-            return op->getResults();
-            }] >,
-        
-        InterfaceMethod<[{
-        Return qubit result at speicifed index.
-        }], "mlir::OpResult", "getQubitResult", (ins "uint32_t":$index),
-            /*methodBody=*/[{}],
-            /*defaultImplementation=*/[{
-            auto *op = $_op.getOperation();
-            uint32_t n = op->getNumResults();
-            assert(n >= 1 && "QubitOpIface: no results.");
-            return op->getResult(index);
-            }] >
+            uint32_t numQubitsRes = op->getNumResults();
+            return op->getResults().take_front(numQubitsRes);
+            }]>
     ];
 }
 
