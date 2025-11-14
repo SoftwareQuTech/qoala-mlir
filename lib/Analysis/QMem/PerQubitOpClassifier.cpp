@@ -18,16 +18,17 @@ namespace qoala::analysis::functionize {
         return llvm::isa<
 #define GET_OP_LIST
 #include "Dialect/QMem/QMem.cpp.inc"
-
                 >(op);
     }
 
     static bool qMemOpIsaBreakingPoint(const Operation &op) {
-        return llvm::isa<dialects::qmem::RecvFloatsOp, dialects::qmem::RecvIntsOp>(op);
+        return llvm::isa<dialects::qmem::RecvFloatsOp, dialects::qmem::RecvIntsOp,
+                         dialects::qmem::RecvFloatOp, dialects::qmem::RecvIntOp>(op);
     }
 
     static bool qMemOpShouldRemainInBody(const Operation &op) {
-        return llvm::isa<dialects::qmem::SendIntsOp, dialects::qmem::SendFloatsOp, dialects::qmem::FuncOp,
+        return llvm::isa<dialects::qmem::SendIntsOp, dialects::qmem::SendFloatsOp,
+                         dialects::qmem::SendIntOp, dialects::qmem::SendFloatOp, dialects::qmem::FuncOp,
                          dialects::qmem::ReturnOp, dialects::qmem::RemoteOp>(op);
     }
 
