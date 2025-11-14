@@ -3,6 +3,55 @@
 
 include "mlir/IR/Interfaces.td"
 
+def QubitOpIface : OpInterface<"QubitOpIface"> {
+    let description = [{
+        Interface for operations with qubit operands and qubit results.
+    }];
+    let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+        Return the operation name.
+        }], "mlir::OperationName", "getName", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            return op->getName();
+            }] >,
+        
+        InterfaceMethod<[{
+        Return whether this is a two-qubit operation.
+        }], "bool", "isTwoQubitOp", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            // Default: most operations are single-qubit, return false
+            return false;
+            }] >,
+        
+        InterfaceMethod<[{
+        Return all of the qubit operands.
+        // Assume that number of qubit operands equals number of results.
+        // Override for NewQubitOp and EprsOp.
+        }], "mlir::OperandRange", "getQubitOperands", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            uint32_t numQubitsRes = op->getNumResults();
+            return op->getOperands().take_front(numQubitsRes);
+            }]>,
+        
+        InterfaceMethod<[{
+        Return all of the qubit results.
+        // Assume that QubitOpIface returns only qubit results.
+        }], "mlir::ResultRange", "getQubitResults", (ins),
+            /*methodBody=*/[{}],
+            /*defaultImplementation=*/[{
+            auto *op = $_op.getOperation();
+            uint32_t numQubitsRes = op->getNumResults();
+            return op->getResults().take_front(numQubitsRes);
+            }]>
+    ];
+}
+
 def HermitianOpIface : OpInterface<"HermitianOpIface"> {
     let description = [{
         Interface for hermitian operations.

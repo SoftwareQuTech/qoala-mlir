@@ -1,6 +1,8 @@
 add_mlir_dialect_library(MLIRQNetAnalysis
         CheckLinear.cpp
         DeadCodeElimination.cpp
+        GateCount.cpp
+        GateCountAnalysis.cpp
         PeepholeOptimizations.cpp
 
         ADDITIONAL_HEADER_DIRS
