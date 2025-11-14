@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir=unfold-comm-ops=false | FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir=disable-unfold-comm-ops | FileCheck %s
 
 module {
     qmem.remote @Bob

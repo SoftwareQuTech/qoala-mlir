@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir=unfold-comm-ops=false | FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir=disable-unfold-comm-ops | FileCheck %s
 
 // There is NO quantum instructions here, so we don't expect any "functionization" effect
 
