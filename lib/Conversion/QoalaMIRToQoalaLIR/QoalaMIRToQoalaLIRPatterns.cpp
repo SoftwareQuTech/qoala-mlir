@@ -30,9 +30,9 @@ namespace qoala::conversion::mir {
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
         // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
 
-        // RecvInts and RecvFloats will stay isolated in a block
-        analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, qmem::RecvIntsOp, qmem::RecvFloatsOp>(newFunc,
-                                                                                                              rewriter);
+        // RecvInt, RecvFloat, RecvInts and RecvFloats will stay isolated in a block
+        analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, qmem::RecvIntsOp, qmem::RecvFloatsOp,
+                                                 qmem::RecvIntOp, qmem::RecvFloatOp>(newFunc, rewriter);
 
         // Call ops are a bit different.
         // * If calling a request routine -> They stay in an isolated block
