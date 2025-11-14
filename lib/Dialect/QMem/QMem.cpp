@@ -199,13 +199,13 @@ Operation *SendIntOp::simpleClone(OpBuilder &builder, const Location loc) {
 std::vector<Operation *> SendIntOp::getOpsAllocatingUsedQubits() { return {}; }
 
 Operation *RecvFloatOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<RecvFloatOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
+    return builder.create<RecvFloatOp>(loc, getCout().getType(), getRemoteAttr());
 }
 
 std::vector<Operation *> RecvFloatOp::getOpsAllocatingUsedQubits() { return {}; }
 
 Operation *RecvIntOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<RecvIntsOp>(loc, getCout().getType(), getRemoteAttr(), getLengthAttr());
+    return builder.create<RecvIntOp>(loc, getCout().getType(), getRemoteAttr());
 }
 
 std::vector<Operation *> RecvIntOp::getOpsAllocatingUsedQubits() { return {}; }
