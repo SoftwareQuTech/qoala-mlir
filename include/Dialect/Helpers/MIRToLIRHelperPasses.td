@@ -13,6 +13,11 @@ def ConvertIntegerToFloatRotations : Pass<"lower-float-rotations", "qoala::diale
     let dependentDialects = ["qoala::dialects::qmem::QMemDialect"];
 }
 
+def UnfoldClassicalCommOps : Pass<"unfold-comm-ops", "qoala::dialects::qmem::FuncOp"> {
+    let summary = "Unfolds the multi-value QMem classical communication operations into their single-value counterparts";
+    let dependentDialects = ["qoala::dialects::qmem::QMemDialect"];
+}
+
 //===----------------------------------------------------------------------===//
 // Helper pass for functionizing quantum operations
 //===----------------------------------------------------------------------===//

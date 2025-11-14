@@ -68,7 +68,17 @@ namespace qoala::conversion {
         // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
         passManager.addPass(analysis::createFoldConstants());
 
-        // Stage 5: Functionize
+        // Stage 5: Unfold the classical communication operations
+        if (!this->doNotUnfoldCommOps) {
+            // This is an intra-dialect rewrite.
+            // Since send/recv_int(s)/float(s) need to be isolated in their own iQoala blocks, those
+            // instructions need to be isolated in their own group inside functionize.
+            // By unfolding the classical communication ops here we avoid inserting special cases in the
+            // functionization algorithm.
+            funcOpPassManager.addPass(analysis::createUnfoldClassicalCommOps());
+        }
+
+        // Stage 6: Functionize
         passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
 
         // This is the limit of what can be isolated in standalone passes.
