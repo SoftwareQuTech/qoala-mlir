@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/Pass/AnalysisManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
@@ -575,10 +576,15 @@ namespace qoala::analysis {
     namespace esp {
         class QoalaHostEstimateSuccProb {
         public:
-            explicit QoalaHostEstimateSuccProb(mlir::Operation *op);
+            explicit QoalaHostEstimateSuccProb(mlir::Operation *op, mlir::AnalysisManager &am);
+
+            [[nodiscard]]
+            float getESP() const;
+
         private:
             float gate_esp = 1.0;
             float qubit_esp = 1.0;
+            float total_esp = 1.0;
         };
     } // namespace esp
 

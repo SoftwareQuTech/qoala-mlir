@@ -18,5 +18,6 @@ namespace qoala::analysis {
 
     void QoalaHostESPShowAnalysis::runOnOperation() {
         const auto &analysis = getAnalysis<esp::QoalaHostEstimateSuccProb>();
+        llvm::outs() << "  [ESP]: " << analysis.getESP() << "\n";
     }
 } // namespace qoala::analysis
