@@ -40,8 +40,7 @@ namespace qoala::analysis::unfold {
                     })
                     // TODO - Figure out how runtime values are packed into a Tensor/Vector
                     .Default([](Operation *operation) {
-                        operation->emitOpError("Unknown way to translate a QRemote operation to iQoala: '")
-                                << *operation << "'\n";
+                        operation->emitOpError("Unknown way to translate a QRemote operation to iQoala");
                     });
             // First, delete the leaf operation
             rewriter.eraseOp(sourceSendOp);
