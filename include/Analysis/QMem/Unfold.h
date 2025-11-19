@@ -10,7 +10,7 @@ namespace qoala::analysis {
     // We avoid placing that code in this header to avoid ending with multiple definitions of
     // the same function in different files.
     // That's also why we declare this function as static, since the symbol only makes sense
-    // in the translation unit where the this function is defined.
+    // in the translation unit where this function is defined.
     static mlir::LogicalResult processUserOperation(mlir::Operation *userOp,
                                                     mlir::DenseMap<mlir::Value, uint32_t> &oldRecvValues);
 
