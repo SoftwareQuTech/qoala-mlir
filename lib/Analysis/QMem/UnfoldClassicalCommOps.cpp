@@ -1,31 +1,25 @@
-#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
-
 #include "Analysis/QMem/Unfold.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMem.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/DialectConversion.h"
-
-#include "llvm/Support/Debug.h"
-
-// Includes to be moved to the header when generalizing
-
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "qmem-unfold-qmem-ops"
 
 using namespace mlir;
 using namespace qoala::dialects::qmem;
-
-#define DEBUG_TYPE "qmem-unfold-qmem-ops"
 
 namespace qoala::analysis {
 #define GEN_PASS_DEF_UNFOLDCLASSICALCOMMOPS
 #include "Dialect/Helpers/HelperPasses.h.inc"
 
-    using UnfoldSendIntsPattern = unfold::UnfoldSendPattern<SendIntsOp, SendIntOp, IntegerAttr>;
-    using UnfoldSendFloatsPattern = unfold::UnfoldSendPattern<SendFloatsOp, SendFloatOp, FloatAttr>;
-
+    // This function might wrongly be marked as unused. It is used by the templates instantiated below
     static LogicalResult processUserOperation(Operation *userOp, DenseMap<Value, uint32_t> &oldRecvValues) {
         return llvm::TypeSwitch<Operation *, LogicalResult>(userOp)
                 .Case([&](tensor::ExtractOp extractOp) {
@@ -34,8 +28,7 @@ namespace qoala::analysis {
                     // with the corresponding new "recv_int".
 
                     if (extractOp.getIndices().size() > 1) {
-                        extractOp.emitOpError(
-                                "Multi-dimension extraction of received valued is not supported.");
+                        extractOp.emitOpError("Multi-dimension extraction of received valued is not supported.");
                         return failure();
                     }
 
@@ -60,35 +53,11 @@ namespace qoala::analysis {
                 });
     }
 
-    class UnfoldSendPattern : public OpRewritePattern<RecvIntsOp> {
-    public:
-        using OpRewritePattern::OpRewritePattern;
-
-        LogicalResult matchAndRewrite(RecvIntsOp sourceSendOp, PatternRewriter &rewriter) const override {
-            // When unfolding a recv comm op, we need to track the usages of the operation
-            DenseMap<uint32_t, Value> newRecvValues;
-            DenseMap<Value, uint32_t> oldRecvValues;
-            for (auto *userOp : sourceSendOp->getUsers()) {
-                if (failed(processUserOperation(userOp, oldRecvValues))) {
-                    sourceSendOp.emitOpError("Cannot unfold operation.");
-                    return failure();
-                }
-            }
-            // Create the new recv_int operations
-            for (uint32_t i = 0; i < sourceSendOp.getLengthAttr().getInt(); i++) {
-                auto newRecvInt = rewriter.create<RecvIntOp>(sourceSendOp.getLoc(), sourceSendOp.getRemoteAttr());
-                newRecvValues.try_emplace(i, newRecvInt.getResult());
-            }
-
-            // Replace the old extract operations with the value from the new recv_int
-            for (auto [oldValue, index] : oldRecvValues) {
-                rewriter.replaceAllUsesWith(oldValue, newRecvValues[index]);
-                rewriter.eraseOp(oldValue.getDefiningOp());
-            }
-            rewriter.eraseOp(sourceSendOp.getOperation());
-            return success();
-        }
-    };
+    // Instantiate the templates for unfolding send/recv_ints/floats
+    using UnfoldSendIntsPattern = unfold::UnfoldSendPattern<SendIntsOp, SendIntOp, IntegerAttr>;
+    using UnfoldSendFloatsPattern = unfold::UnfoldSendPattern<SendFloatsOp, SendFloatOp, FloatAttr>;
+    using UnfoldRecvIntsPattern = unfold::UnfoldRecvPattern<RecvIntsOp, RecvIntOp>;
+    using UnfoldRecvFloatsPattern = unfold::UnfoldRecvPattern<RecvFloatsOp, RecvFloatOp>;
 
     class UnfoldClassicalCommOpsPass : public impl::UnfoldClassicalCommOpsBase<UnfoldClassicalCommOpsPass> {
     public:
@@ -102,7 +71,7 @@ namespace qoala::analysis {
 
         RewritePatternSet patterns(&context);
         patterns.add<UnfoldSendIntsPattern, UnfoldSendFloatsPattern>(&context);
-        patterns.add<UnfoldSendPattern>(&context);
+        patterns.add<UnfoldRecvIntsPattern, UnfoldRecvFloatsPattern>(&context);
 
         GreedyRewriteConfig cfg;
         // If we don't disable region simplification, the folding of the code will be more aggressive
