@@ -1,0 +1,46 @@
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
+
+// CHECK: module
+module {
+  // CHECK: qremote.remote @[[REMOTEBOB:.*]]
+  qmem.remote @Bob
+
+  // CHECK: qoalahost.main_func @test_recv_floats_all_used()
+  qmem.func @test_recv_floats_all_used() -> f32 {
+    // CHECK-NOT: arith.constant 0 : index
+    // CHECK-NOT: arith.constant 1 : index
+    // CHECK-NOT: arith.constant 2 : index
+
+    %idx_0 = arith.constant 0 : index
+    %idx_1 = arith.constant 1 : index
+    %idx_2 = arith.constant 2 : index
+
+    // The recv_floats will be expanded into multiple recv_float operations.
+    // Each one of them will live in its own block
+
+    %received_floats = qmem.recv_floats {length = 3 : i32, remote = @Bob} : tensor<3xf32>
+    %recv_0 = tensor.extract %received_floats [%idx_0] : tensor<3xf32>
+    %recv_1 = tensor.extract %received_floats [%idx_1] : tensor<3xf32>
+    %recv_2 = tensor.extract %received_floats [%idx_2] : tensor<3xf32>
+    // CHECK: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
+
+    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
+
+    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
+
+    // Some extra operations to avoid folding deleting operations
+    %1 = arith.addf %recv_0, %recv_2 : f32
+    %2 = arith.subf %1, %recv_1 : f32
+    qmem.return %2 : f32
+    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RES_1:.*]] = arith.addf %[[RECV_0]], %[[RECV_2]] : f32
+    // CHECK-NEXT: %[[RES_2:.*]] = arith.subf %[[RES_1]], %[[RECV_1]] : f32
+    // CHECK-NEXT: qoalahost.return %[[RES_2]] : f32
+  }
+}
