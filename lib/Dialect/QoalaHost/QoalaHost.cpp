@@ -184,13 +184,9 @@ BlockType qoalahost::SendIntOp::getBlockType(const llvm::StringMap<Operation *> 
 
 BlockType qoalahost::RecvIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
 uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 

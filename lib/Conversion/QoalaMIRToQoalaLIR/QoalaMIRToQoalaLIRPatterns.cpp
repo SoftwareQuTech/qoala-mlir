@@ -132,9 +132,9 @@ namespace qoala::conversion::mir {
 
     // Lowering patterns that map QMem single-value classical
     // communication ops to single-value classical ops in QoalaHost
-    std::unique_ptr<OpAndValues>
-    RecvIntOpLowering::createNewOpAndValues(qmem::RecvIntOp op, qmem::RecvIntOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> RecvIntOpLowering::createNewOpAndValues(qmem::RecvIntOp op,
+                                                                         qmem::RecvIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
         auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
         // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
@@ -147,9 +147,9 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
-    std::unique_ptr<OpAndValues>
-    RecvFloatOpLowering::createNewOpAndValues(qmem::RecvFloatOp op, qmem::RecvFloatOp::Adaptor adaptor,
-                                              ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> RecvFloatOpLowering::createNewOpAndValues(qmem::RecvFloatOp op,
+                                                                           qmem::RecvFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
         Type convertedType = this->typeConverter->convertType(op.getCout().getType());
         auto newRecv = rewriter.create<qoalahost::RecvFloatOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
         // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
@@ -162,16 +162,16 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
-    std::unique_ptr<OpAndValues>
-    SendIntOpLowering::createNewOpAndValues(qmem::SendIntOp op, qmem::SendIntOp::Adaptor adaptor,
-                                            ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> SendIntOpLowering::createNewOpAndValues(qmem::SendIntOp op,
+                                                                         qmem::SendIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
         auto newRecv = rewriter.create<qoalahost::SendIntOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
 
-    std::unique_ptr<OpAndValues>
-    SendFloatOpLowering::createNewOpAndValues(qmem::SendFloatOp op, qmem::SendFloatOp::Adaptor adaptor,
-                                              ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> SendFloatOpLowering::createNewOpAndValues(qmem::SendFloatOp op,
+                                                                           qmem::SendFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
         auto newSend = rewriter.create<qoalahost::SendFloatOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }

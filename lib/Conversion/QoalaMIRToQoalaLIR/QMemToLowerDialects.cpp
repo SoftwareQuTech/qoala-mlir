@@ -45,7 +45,7 @@ namespace qoala::helpers {
         patterns.add<mir::RemoteOpLowering, mir::FuncOpLowering, mir::ReturnOpLowering, mir::CallOpLowering>(
                 typeConverter, &context);
         patterns.add<mir::RecvIntOpLowering, mir::RecvFloatOpLowering, mir::SendIntOpLowering,
-                 mir::SendFloatOpLowering>(typeConverter, &context);
+                     mir::SendFloatOpLowering>(typeConverter, &context);
         patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
                      mir::SendFloatsOpLowering>(typeConverter, &context);
     }

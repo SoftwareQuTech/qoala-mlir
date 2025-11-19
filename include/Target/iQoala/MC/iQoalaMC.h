@@ -330,7 +330,7 @@ namespace qoala::assembly {
         enum InstrType { UNKNOWN, CC, CL, QC, QL };
 
         using iQoalaMCInstruction::iQoalaMCInstruction;
-        QoalaHostMCInstr(): iQoalaMCInstruction(nullptr), instructionType(UNKNOWN){};
+        QoalaHostMCInstr(): iQoalaMCInstruction(nullptr), instructionType(UNKNOWN) { };
         ~QoalaHostMCInstr() override = default;
 
         /* Base entry point for creating QoalaHost instructions */

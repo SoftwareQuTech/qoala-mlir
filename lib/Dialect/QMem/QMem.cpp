@@ -85,12 +85,14 @@ std::vector<Operation *> EprsOp::getOpsAllocatingUsedQubits() { return {this->ge
 
 Operation *FuncOp::simpleClone(OpBuilder &builder, const Location loc) {
     return builder.create<FuncOp>(loc, getSymNameAttr(), getFunctionTypeAttr(), getSymVisibilityAttr(),
-                                     getArgAttrsAttr(), getResAttrsAttr());
+                                  getArgAttrsAttr(), getResAttrsAttr());
 }
 
 std::vector<Operation *> FuncOp::getOpsAllocatingUsedQubits() { return {}; }
 
-Operation *HadamardOp::simpleClone(OpBuilder &builder, const Location loc) { return builder.create<HadamardOp>(loc, getQ()); }
+Operation *HadamardOp::simpleClone(OpBuilder &builder, const Location loc) {
+    return builder.create<HadamardOp>(loc, getQ());
+}
 
 std::vector<Operation *> HadamardOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
@@ -98,7 +100,9 @@ Operation *InitOp::simpleClone(OpBuilder &builder, const Location loc) { return 
 
 std::vector<Operation *> InitOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
-Operation *MeasureOp::simpleClone(OpBuilder &builder, const Location loc) { return builder.create<MeasureOp>(loc, getQ()); }
+Operation *MeasureOp::simpleClone(OpBuilder &builder, const Location loc) {
+    return builder.create<MeasureOp>(loc, getQ());
+}
 
 std::vector<Operation *> MeasureOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
