@@ -7,9 +7,9 @@ module {
 
   // CHECK: qoalahost.main_func @test_recv_ints_all_used()
   qmem.func @test_recv_ints_all_used() -> i32 {
-    // CHECK-DAG: %[[IDX_0:.*]] = arith.constant 0 : index
-    // CHECK-DAG: %[[IDX_1:.*]] = arith.constant 1 : index
-    // CHECK-DAG: %[[IDX_2:.*]] = arith.constant 2 : index
+    // CHECK-NOT: arith.constant 0 : index
+    // CHECK-NOT: arith.constant 1 : index
+    // CHECK-NOT: arith.constant 2 : index
 
     %idx_0 = arith.constant 0 : index
     %idx_1 = arith.constant 1 : index
@@ -22,22 +22,25 @@ module {
     %recv_0 = tensor.extract %received_ints [%idx_0] : tensor<3xi32>
     %recv_1 = tensor.extract %received_ints [%idx_1] : tensor<3xi32>
     %recv_2 = tensor.extract %received_ints [%idx_2] : tensor<3xi32>
+    // CHECK: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
+
     // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_int {remote = @Bob} : i32
-    // CHECK-NEXT: qoalahost.nop_term
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
 
     // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_int {remote = @Bob} : i32
-    // CHECK-NEXT: qoalahost.nop_term
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
 
-    // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_int {remote = @Bob} : i32
-    // CHECK-NEXT: qoalahost.nop_term
-
-    // CHECK: ^[[BLOCK_4:.*]]:
     // Some extra operations to avoid folding deleting operations
     %1 = arith.addi %recv_0, %recv_2 : i32
     %2 = arith.subi %1, %recv_1 : i32
     qmem.return %2 : i32
+    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RES_1:.*]] = arith.addi %[[RECV_0]], %[[RECV_2]] : i32
+    // CHECK-NEXT: %[[RES_2:.*]] = arith.subi %[[RES_1]], %[[RECV_1]] : i32
+    // CHECK-NEXT: qoalahost.return %[[RES_2]] : i32
   }
 }
