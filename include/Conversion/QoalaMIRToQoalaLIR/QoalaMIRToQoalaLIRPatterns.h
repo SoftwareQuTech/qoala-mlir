@@ -78,6 +78,42 @@ namespace qoala::conversion::mir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class RecvIntOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvIntOp, dialects::qoalahost::RecvIntOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::RecvIntOp op, dialects::qmem::RecvIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RecvFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::RecvFloatOp, dialects::qoalahost::RecvFloatOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::RecvFloatOp op, dialects::qmem::RecvFloatOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class SendIntOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendIntOp, dialects::qoalahost::SendIntOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::SendIntOp op, dialects::qmem::SendIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class SendFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qmem::SendFloatOp, dialects::qoalahost::SendFloatOp> {
+    public:
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qmem::SendFloatOp op, dialects::qmem::SendFloatOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect
      */
     class MeasureOpLowering

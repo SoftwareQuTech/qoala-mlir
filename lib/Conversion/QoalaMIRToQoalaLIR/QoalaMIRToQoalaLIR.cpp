@@ -31,22 +31,12 @@ namespace qoala::conversion {
     };
 
     void QoalaMIRToQoalaLIRPass::runOnOperation() {
-        MLIRContext &context = this->getContext();
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Converting MIR to LIR *\n");
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
         OpPassManager passManager("builtin.module");
-
-        helpers::NullTypeConverter typeConverter(&context);
-
-        // Configuration of the conversion targets and patterns for each stage
-        ConversionTarget f32LoweringTarget(context);
-        RewritePatternSet f32Patterns(&context);
-        helpers::configureF32LoweringTarget(f32LoweringTarget);
-        helpers::populateQMemF32ToInt32RotPatterns(context, f32Patterns, typeConverter);
-
         // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
@@ -78,8 +68,17 @@ namespace qoala::conversion {
         // Stage 4: After compiling f32 rotations, some constants could now be orphan operations; remove them.
         passManager.addPass(analysis::createFoldConstants());
 
-        // Stage 5: Functionize
+        // Stage 5: Unfold the classical communication operations
+        if (!this->doNotUnfoldCommOps) {
+            // This is an intra-dialect rewrite.
+            // Since send/recv_int(s)/float(s) need to be isolated in their own iQoala blocks, those
+            // instructions need to be isolated in their own group inside functionize.
+            // By unfolding the classical communication ops here we avoid inserting special cases in the
+            // functionization algorithm.
+            funcOpPassManager.addPass(analysis::createUnfoldClassicalCommOps());
+        }
 
+        // Stage 6: Functionize
         passManager.addPass(analysis::createFunctionizeQuantumOps({this->useSimpleFunctionize, this->maxOpsPerGroup}));
 
         // This is the limit of what can be isolated in standalone passes.

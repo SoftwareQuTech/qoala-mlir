@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir| FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
 
 // CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = ["block_0"], predecessors = ["block_0"], prev_comm = "", prev_ent = ""}

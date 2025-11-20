@@ -18,7 +18,7 @@ namespace qoala::analysis {
         void runOnOperation() override;
     };
 
-    static inline bool isCandidateForErasure(Operation *op) {
+    static bool isCandidateForErasure(Operation *op) {
         return isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp>(op);
     }
 
@@ -50,7 +50,7 @@ namespace qoala::analysis {
 
         // Collect initial liveness roots and must-keep operations:
         // - Measurements are always considered live roots.
-        // - EPR creation are inserted into the live set unconditionnally as they must never be removed.
+        // - EPR creation are inserted into the live set unconditionally as they must never be removed.
         mainFunc.walk([&](Operation *op) {
             if (isa<MeasureOp>(op)) {
                 worklist.push_back(op);

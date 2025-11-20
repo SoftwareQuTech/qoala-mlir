@@ -1,0 +1,51 @@
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
+
+// CHECK: module
+module {
+  // CHECK: qremote.remote @[[REMOTEBOB:.*]]
+  qmem.remote @Bob
+
+  // CHECK: qoalahost.main_func @test_recv_ints_all_used()
+  qmem.func @test_recv_ints_all_used() -> i32 {
+    // CHECK-NOT: arith.constant 0 : index
+    // CHECK-NOT: arith.constant 1 : index
+    // CHECK-NOT: arith.constant 2 : index
+
+    %idx_0 = arith.constant 0 : index
+    %idx_1 = arith.constant 1 : index
+    %idx_2 = arith.constant 2 : index
+
+    // The recv_ints will be expanded into multiple recv_int operations.
+    // Each one of them will live in its own block
+
+    // Note that %recv_1 *is not used* below. Despite this, we expect that the recv
+    // operation *will remain*, keep the semantics of the original program
+    // (the other side can still send 3 values, despite using only 2 on this end).
+    %received_ints = qmem.recv_ints {length = 3 : i32, remote = @Bob} : tensor<3xi32>
+    %recv_0 = tensor.extract %received_ints [%idx_0] : tensor<3xi32>
+    %recv_1 = tensor.extract %received_ints [%idx_1] : tensor<3xi32>
+    %recv_2 = tensor.extract %received_ints [%idx_2] : tensor<3xi32>
+    // CHECK: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
+
+    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
+
+    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
+
+    // Some extra operations to avoid folding deleting operations
+    // We use "mul" as second operation, since using "sub" would trigger the const folding
+    // to optimize both operations out
+    %1 = arith.addi %recv_0, %recv_2 : i32
+    %2 = arith.muli %1, %recv_0 : i32
+    qmem.return %2 : i32
+    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta
+    // CHECK-NEXT: %[[RES_1:.*]] = arith.addi %[[RECV_0]], %[[RECV_2]] : i32
+    // CHECK-NEXT: %[[RES_2:.*]] = arith.muli %[[RES_1]], %[[RECV_0]] : i32
+    // CHECK-NEXT: qoalahost.return %[[RES_2]] : i32
+  }
+}
