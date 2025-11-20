@@ -255,10 +255,11 @@ def RecvFloatOp : UsingRemote_Op<"recv_float", [
 /* "Condensed" (plural) versions of the recv/send_ints/floats
  * These versions are here to prepare for the future
  */
-// TODO - Maybe at this level (LIR) we might want to return MemRefs instead of vectors...
 def SendIntsOp : UsingRemote_Op<"send_ints", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -268,6 +269,8 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [
 def RecvIntsOp : UsingRemote_Op<"recv_ints", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -278,6 +281,8 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [
 def SendFloatsOp : UsingRemote_Op<"send_floats", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -287,6 +292,8 @@ def SendFloatsOp : UsingRemote_Op<"send_floats", [
 def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicaCommInterface>]> {
+    // TODO - This operation uses a tensor as an input. At this level (LIR)
+    //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{
