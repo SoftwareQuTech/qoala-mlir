@@ -11,6 +11,7 @@
 
 using namespace mlir;
 using namespace qoala::dialects::qoalahost;
+using namespace qoala::options;
 
 namespace qoala::analysis::esp {
 
@@ -26,23 +27,16 @@ namespace qoala::analysis::esp {
         const auto oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
         const auto twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
-        // From PhysRevLett.130.213601
-        const float singleQubitOpErr = 0.01;
-        const float dualQubitOpErr = 0.05;
-        // micro seconds
-        const uint32_t t1 = 62000;
-        const uint32_t t2 = 62000;
-
         for (auto qubitId : lifeTimes) {
             float qubit_esp = 1.0;
 
-            float exp1 = (t1 + t2) * lifeTimes.at(qubitId.first) / static_cast<float>((t1 * t2));
-            float exp2 = lifeTimes.at(qubitId.first) / static_cast<float>(t1);
+            float exp1 = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifeTimes.at(qubitId.first) / static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
+            float exp2 = lifeTimes.at(qubitId.first) / static_cast<float>(qoalaOptQubitLifetime);
 
             qubit_esp *= (std::exp(-exp1) + std::exp(-exp2));
 
-            qubit_esp *= pow(1 - singleQubitOpErr, oneQubitGateCount.at(qubitId.first));
-            qubit_esp *= pow(1 - dualQubitOpErr, twoQubitGateCount.at(qubitId.first));
+            qubit_esp *= pow(1 - qoalaOptSingleGateError, oneQubitGateCount.at(qubitId.first));
+            qubit_esp *= pow(1 - qoalaOptTwoGateError, twoQubitGateCount.at(qubitId.first));
 
             LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubit_esp << "\n");
             esp *= qubit_esp;
