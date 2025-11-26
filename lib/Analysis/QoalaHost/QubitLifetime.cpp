@@ -10,7 +10,6 @@
 #define DEBUG_TYPE "qoalahost-qubit-life"
 
 using namespace mlir;
-using namespace llvm;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
 
@@ -51,7 +50,7 @@ namespace qoala::analysis::qubitlife {
                  * Treat last two-qubit op as a measure op.
                  * A measure op will overwrite the last two-qubit op.
                  */
-                if (llvm::isa<netqasm::CnotOp, netqasm::CzOp, netqasm::CrotXOp>(op)) {
+                if (llvm::isa<netqasm::ifaces::DualQubitOp>(op)) {
                     auto itTwoQubitOp = opToMilpOp.find(op);
                     twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
                 }
@@ -84,12 +83,10 @@ namespace qoala::analysis::qubitlife {
 
     static void buildQubitMaps(const std::vector<std::shared_ptr<LiveQubit>> &qubits,
                                std::unordered_map<std::string, std::string> &qubitInits,
-                               std::unordered_map<std::string, std::string> &qubitMeas,
-                               std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas) {
+                               std::unordered_map<std::string, std::string> &qubitMeas) {
 
         qubitInits.reserve(qubits.size());
         qubitMeas.reserve(qubits.size());
-        qubitsInitMeas.reserve(qubits.size());
 
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
@@ -133,8 +130,7 @@ namespace qoala::analysis::qubitlife {
                  std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
                  std::vector<Task> &qpuTasks, std::vector<Task> &cpuTasks,
                  const std::unordered_map<std::string, std::string> &qubitInits,
-                 const std::unordered_map<std::string, std::string> &qubitMeas,
-                 std::unordered_map<std::string, std::vector<std::string>> &qubitsInitMeas) {
+                 const std::unordered_map<std::string, std::string> &qubitMeas) {
 
         std::string intraBlockPred;
         std::string last;
@@ -160,12 +156,6 @@ namespace qoala::analysis::qubitlife {
                 if (initIt != qubitInits.end() || measIt != qubitMeas.end()) {
                     qpuTasks.emplace_back(Task(opId, taskTime));
                     taskDependences.try_emplace({opId, {}});
-
-                    if (initIt != qubitInits.end()) {
-                        qubitsInitMeas.emplace(initIt->second, std::vector<std::string>{opId});
-                    } else {
-                        qubitsInitMeas.at(measIt->second).push_back(opId);
-                    }
 
                     LLVM_DEBUG(llvm::dbgs()
                                << "Added Task '" << opId << "' with execution time: " << taskTime << ".\n");
@@ -423,12 +413,11 @@ namespace qoala::analysis::qubitlife {
         std::unordered_map<std::string, std::string> qubitMeas;
         std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> blockDependences;
 
-        buildQubitMaps(qubits, qubitInits, qubitMeas, qubitsInitMeas);
+        buildQubitMaps(qubits, qubitInits, qubitMeas);
         buildBlockDependencies(precedences, blockDependences);
 
         for (const auto &bp : blocks) {
-            processBlock(bp.get(), blockDependences, taskDependences, qpuTasks, cpuTasks, qubitInits, qubitMeas,
-                         qubitsInitMeas);
+            processBlock(bp.get(), blockDependences, taskDependences, qpuTasks, cpuTasks, qubitInits, qubitMeas);
         }
 
         /**
@@ -490,6 +479,6 @@ namespace qoala::analysis::qubitlife {
     }
 
     // Return computed qubit life times.
-    std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifeTimes; }
+    const std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifeTimes; }
 
 } // namespace qoala::analysis::qubitlife

@@ -16,7 +16,6 @@ module {
     netqasm.return %1 : i32
   }
   netqasm.local_routine @cnot(%0: i32, %1: i32) {
-    netqasm.hadamard %0
     netqasm.cnot %0, %1
     netqasm.return
   }

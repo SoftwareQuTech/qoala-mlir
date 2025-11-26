@@ -561,17 +561,59 @@ namespace qoala::analysis {
             QoalaHostQubitLifetime(mlir::Operation *op);
 
             [[nodiscard]]
-            std::unordered_map<std::string, uint32_t> getLifetimes() const;
+            const std::unordered_map<std::string, uint32_t> getLifetimes() const;
 
         private:
-            // A map from qubits IDs to their init and measure tasks IDs.
-            std::unordered_map<std::string, std::vector<std::string>> qubitsInitMeas;
-
             // A map from qubit IDs to their lifetimes.
             std::unordered_map<std::string, uint32_t> qubitLifeTimes;
         };
 
     } // namespace qubitlife
+
+    namespace gatecount {
+        class QoalaHostGateCount {
+            public:
+                explicit QoalaHostGateCount(mlir::Operation *op);
+
+                [[nodiscard]]
+                const std::unordered_map<std::string, uint32_t> &getDetailedOneQubitGateCount() const {
+                    return detailedOneQubitGateCount;
+                }
+
+                [[nodiscard]]
+                const std::unordered_map<std::string, uint32_t> &getDetailedTwoQubitGateCount() const {
+                    return detailedTwoQubitGateCount;
+                }
+
+                [[nodiscard]]
+                const std::unordered_map<std::string, uint32_t> &getDetailedGateCount() const {
+                    return detailedGateCount;
+                };
+
+                [[nodiscard]]
+                uint32_t getGateCount() const {
+                    return gateCount;
+                };
+
+                [[nodiscard]]
+                uint32_t getOneQubitGateCount() const {
+                    return oneQubitGateCount;
+                };
+
+                [[nodiscard]]
+                uint32_t getTwoQubitGateCount() const {
+                    return twoQubitGateCount;
+                };
+
+            private:
+                uint32_t gateCount = 0;
+                uint32_t oneQubitGateCount = 0;
+                uint32_t twoQubitGateCount = 0;
+                std::unordered_map<std::string, uint32_t> detailedGateCount;
+                std::unordered_map<std::string, uint32_t> detailedOneQubitGateCount;
+                std::unordered_map<std::string, uint32_t> detailedTwoQubitGateCount;
+        };
+    } // namespace gatecount
 
     namespace esp {
         class QoalaHostEstimateSuccProb {
@@ -579,12 +621,10 @@ namespace qoala::analysis {
             explicit QoalaHostEstimateSuccProb(mlir::Operation *op, mlir::AnalysisManager &am);
 
             [[nodiscard]]
-            float getESP() const;
+            float getESP() const { return esp; };
 
         private:
-            float gate_esp = 1.0;
-            float qubit_esp = 1.0;
-            float total_esp = 1.0;
+            float esp = 1.0;
         };
     } // namespace esp
 
