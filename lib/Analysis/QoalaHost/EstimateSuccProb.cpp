@@ -1,3 +1,4 @@
+#include "Analysis/NetQASM/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -9,65 +10,46 @@
 #define DEBUG_TYPE "qoalahost-esp"
 
 using namespace mlir;
-using namespace qoala::dialects;
+using namespace qoala::dialects::qoalahost;
 
 namespace qoala::analysis::esp {
 
     QoalaHostEstimateSuccProb::QoalaHostEstimateSuccProb(Operation *op, AnalysisManager &am) {
-        // Bla bla
-        auto module = dyn_cast<ModuleOp>(*op);
 
-        const auto &analysis = am.getAnalysis<qubitlife::QoalaHostQubitLifetime>();
-        const auto lifeTimes = analysis.getLifetimes();
+        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
+
+        const auto &lifetimeAnalysis = am.getAnalysis<qubitlife::QoalaHostQubitLifetime>();
+        const auto lifeTimes = lifetimeAnalysis.getLifetimes();
         const auto numQubits = lifeTimes.size();
 
-        auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        const auto &gatecountAnalysis = am.getAnalysis<gatecount::QoalaHostGateCount>();
+        const auto oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
+        const auto twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
-        assert(!mainFuncs.empty() && "No main function found in module.");
-
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-
-        const auto callOps = mainFunc.getOps<qoalahost::CallOp>();
-
+        // From PhysRevLett.130.213601
         const float singleQubitOpErr = 0.01;
-        const float dualQubitOpErr = 0.1;
-        const uint32_t t1 = 500;
-        const uint32_t t2 = 500;
+        const float dualQubitOpErr = 0.05;
+        // micro seconds
+        const uint32_t t1 = 62000;
+        const uint32_t t2 = 62000;
 
-        for (auto callOp : callOps) {
-            auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
-            callee.walk([&](Operation *opInCallee) {
-                llvm::TypeSwitch<Operation *>(opInCallee)
-                        .Case([&](const netqasm::ifaces::MeasOp measureOp) {
-                            LLVM_DEBUG(llvm::dbgs() << "Found MeasureOp: " << measureOp << "\n");
-                            gate_esp *= (1 - singleQubitOpErr);
-                        })
-                        .Case<netqasm::ifaces::SingleQubitOp>([&](const netqasm::ifaces::SingleQubitOp singleQubitOp) {
-                            LLVM_DEBUG(llvm::dbgs() << "Found SingleQubitOp: " << singleQubitOp << "\n");
-                            gate_esp *= (1 - singleQubitOpErr);
-                        })
-                        .Case<netqasm::ifaces::DualQubitOp>([&](const netqasm::ifaces::DualQubitOp dualQubitOp) {
-                            LLVM_DEBUG(llvm::dbgs() << "Found DualQubitOp: " << dualQubitOp << "\n");
-                            gate_esp *= (1 - dualQubitOpErr);
-                        });
-            });
-        }
+        for (auto qubitId : lifeTimes) {
+            float qubit_esp = 1.0;
 
-        llvm::outs() << "Gate ESP: " << gate_esp << ".\n";
-
-        for (const auto &pair : lifeTimes) {
-
-            float exp1 = (t1 + t2) * pair.second / static_cast<float>((t1 * t2));
-            float exp2 = pair.second / static_cast<float>(t1);
+            float exp1 = (t1 + t2) * lifeTimes.at(qubitId.first) / static_cast<float>((t1 * t2));
+            float exp2 = lifeTimes.at(qubitId.first) / static_cast<float>(t1);
 
             qubit_esp *= (std::exp(-exp1) + std::exp(-exp2));
+
+            qubit_esp *= pow(1 - singleQubitOpErr, oneQubitGateCount.at(qubitId.first));
+            qubit_esp *= pow(1 - dualQubitOpErr, twoQubitGateCount.at(qubitId.first));
+
+            LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubit_esp << "\n");
+            esp *= qubit_esp;
         }
-        qubit_esp /= pow(2, numQubits);
-        llvm::outs() << "Qubit ESP: " << qubit_esp << ".\n";
-
-        total_esp *= (gate_esp * qubit_esp);
+        esp /= pow(2, numQubits);
+        LLVM_DEBUG(llvm::dbgs() << "Totat ESP: " << esp << "\n");
+        
     }
-
-    float QoalaHostEstimateSuccProb::getESP() const { return total_esp; }
 
 } // namespace qoala::analysis::esp
