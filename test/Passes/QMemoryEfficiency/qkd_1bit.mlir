@@ -11,7 +11,7 @@ module {
       netqasm.return %m : i1
     }
 
-    qoalahost.main_func @main() {
+    qoalahost.main_func @test_qkd_1bit_qmem() {
       qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       %bit = qoalahost.call @req1() : () -> i1
     

@@ -48,7 +48,7 @@ module {
       netqasm.return %m : i1
     }
 
-    qoalahost.main_func @main() {
+    qoalahost.main_func @test_qkd_4bits_alap_qmem() {
       qoalahost.blk_meta  {block_id = "block_0", predecessors = [], deadlines = {}, dependencies = [], prev_comm = "", prev_ent = ""}
       %zero = arith.constant 0 : index
       qoalahost.nop_term
