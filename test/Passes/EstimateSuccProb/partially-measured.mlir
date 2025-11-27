@@ -1,5 +1,5 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-esp | FileCheck %s
-//CHECK:  [ESP]: 1.000000e+00
+//CHECK:  [ESP]: 5.245710e-01
 
 module {
   qremote.remote @Bob
@@ -14,13 +14,17 @@ module {
     netqasm.eprs %0 {remote = @Bob}
     netqasm.return %0 : i32
   }
-  netqasm.local_routine @single_gates(%arg0: i32, %arg1: i32) {
+  netqasm.local_routine @cnot_rot(%arg0: i32, %arg1: i32) {
+    netqasm.cnot %arg0, %arg1
     netqasm.rot_x %arg0 (0 : ui32, 1 : ui32)
-    netqasm.rot_y %arg1 (0 : ui32, 1 : ui32)
-    netqasm.rot_z %arg0 (0 : ui32, 1 : ui32)
-    netqasm.hadamard %arg1
     netqasm.rot_y %arg0 (0 : ui32, 1 : ui32)
+    netqasm.rot_z %arg0 (0 : ui32, 1 : ui32)
+    netqasm.hadamard %arg0
     netqasm.return
+  }
+  netqasm.local_routine @meas_local(%arg0: i32) -> i1 {
+    %0 = netqasm.measure %arg0 : i1
+    netqasm.return %0 : i1
   }
   qoalahost.main_func @no_measure_esp() {
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
@@ -30,6 +34,9 @@ module {
     %1 = qoalahost.call @local_qubit() : () -> i32
   ^bb2:  // no predecessors
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
-    qoalahost.call @single_gates(%0, %1) : (i32, i32) -> ()
+    qoalahost.call @cnot_rot(%0, %1) : (i32, i32) -> ()
+  ^bb3:  // no predecessors
+    qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    %2 = qoalahost.call @meas_local(%1) : (i32) -> i1
   }
 }

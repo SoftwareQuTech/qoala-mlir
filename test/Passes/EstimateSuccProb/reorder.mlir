@@ -1,3 +1,6 @@
+// RUN: qoala-opt %s --qoalahost-show-analysis-esp | FileCheck %s
+//CHECK:  [ESP]: 5.295039e-01
+
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
@@ -27,7 +30,7 @@ module {
     %0 = netqasm.measure %arg0 : i1
     netqasm.return %0 : i1
   }
-  qoalahost.main_func @test_reordering_teleport() {
+  qoalahost.main_func @test_teleport_esp() {
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @entanglement() : () -> i32
   ^bb1:  // no predecessors
