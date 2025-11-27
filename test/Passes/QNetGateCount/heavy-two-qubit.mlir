@@ -15,7 +15,7 @@
 // CHECK:    * qubit[1]: 4
 
 module {
-    qnet.func @heavy_two_qubit() {
+    qnet.func @test_heavy_two_qubit_gate_count() {
         %q0 = qnet.new_qubit : !qnet.qubit
         %q1 = qnet.hadamard %q0 : !qnet.qubit
 

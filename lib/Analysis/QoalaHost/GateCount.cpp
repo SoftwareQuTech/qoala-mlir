@@ -59,6 +59,9 @@ namespace qoala::analysis::gatecount {
             }
 
             for (auto &op : entryBlock) {
+                if (llvm::isa<netqasm::MeasureOp, netqasm::EprsMeasureOp>(op)) {
+                    continue;
+                }
                 if (llvm::isa<netqasm::QInitOp, netqasm::EprsOp>(op)) {
                     auto newQubit = op.getOperands().front();
                     if (calleeToCaller.contains(newQubit)) {
