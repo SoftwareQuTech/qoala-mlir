@@ -62,7 +62,7 @@ namespace qoala::analysis::gatecount {
                 if (llvm::isa<netqasm::QInitOp, netqasm::EprsOp>(op)) {
                     auto newQubit = op.getOperands().front();
                     if (calleeToCaller.contains(newQubit)) {
-                        std::string qId = blckId.substr(6) + "::" + std::to_string(opIdx);
+                        std::string qId = blckId + "::" + std::to_string(opIdx);
                         qubitId[calleeToCaller[newQubit]] = qId;
                         detailedOneQubitGateCount[qId] = 0;
                         detailedTwoQubitGateCount[qId] = 0;

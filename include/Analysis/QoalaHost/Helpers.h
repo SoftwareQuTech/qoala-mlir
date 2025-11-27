@@ -542,7 +542,7 @@ namespace qoala::analysis {
 
         class LiveQubit : public reordering::MILPQubit {
             /**
-             * Class used to kepp track of the last two-qubit op applied to a qubit.
+             * Class used to keep track of the last two-qubit op applied to a qubit.
              */
 
         public:
@@ -565,7 +565,7 @@ namespace qoala::analysis {
 
         private:
             // A map from qubit IDs to their lifetimes.
-            std::unordered_map<std::string, uint32_t> qubitLifeTimes;
+            std::unordered_map<std::string, uint32_t> qubitLifetimes;
         };
 
     } // namespace qubitlife

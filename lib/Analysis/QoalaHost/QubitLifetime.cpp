@@ -61,7 +61,7 @@ namespace qoala::analysis::qubitlife {
                 assert(false);
             }
 
-            std::string id = allocOp->getId().substr(6);
+            std::string id = allocOp->getId();
             std::shared_ptr<LiveQubit> qubitPtr = std::make_shared<LiveQubit>(id);
 
             // Attach known alloc/meas to the qubit model object
@@ -241,20 +241,20 @@ namespace qoala::analysis::qubitlife {
     static void updateQubitLifetime(const Task &scheduledTask, uint32_t currentTime,
                                     const std::unordered_map<std::string, std::string> &qubitInits,
                                     const std::unordered_map<std::string, std::string> &qubitMeas,
-                                    std::unordered_map<std::string, uint32_t> &qubitLifeTimes) {
+                                    std::unordered_map<std::string, uint32_t> &qubitLifetimes) {
 
         // Check if it is an init task
         auto initIt = qubitInits.find(scheduledTask.getName());
         if (initIt != qubitInits.end()) {
             // Life time should start after initialization is completed
-            qubitLifeTimes.emplace(initIt->second, currentTime);
+            qubitLifetimes.emplace(initIt->second, currentTime);
         }
 
         // Check if it is a measurement task
         auto measIt = qubitMeas.find(scheduledTask.getName());
         if (measIt != qubitMeas.end()) {
-            auto lifetimeIt = qubitLifeTimes.find(measIt->second);
-            if (lifetimeIt != qubitLifeTimes.end()) {
+            auto lifetimeIt = qubitLifetimes.find(measIt->second);
+            if (lifetimeIt != qubitLifetimes.end()) {
                 uint32_t initTime = lifetimeIt->second;
                 lifetimeIt->second = currentTime - initTime;
                 LLVM_DEBUG(llvm::dbgs() << "Qubit '" << measIt->second << "' measured at time " << currentTime
@@ -272,7 +272,7 @@ namespace qoala::analysis::qubitlife {
                                     std::unordered_map<std::string, std::vector<std::string>> &taskDependences,
                                     const std::unordered_map<std::string, std::string> &qubitInits,
                                     const std::unordered_map<std::string, std::string> &qubitMeas,
-                                    std::unordered_map<std::string, uint32_t> &qubitLifeTimes) {
+                                    std::unordered_map<std::string, uint32_t> &qubitLifetimes) {
 
         if (!taskIndex.has_value()) {
             taskTime = globalTime;
@@ -293,7 +293,7 @@ namespace qoala::analysis::qubitlife {
         LLVM_DEBUG(llvm::dbgs() << "Scheduling Task: " << task.getName() << " at time " << globalTime << "\n");
 
         // Update qubit lifetime if needed
-        updateQubitLifetime(task, globalTime, qubitInits, qubitMeas, qubitLifeTimes);
+        updateQubitLifetime(task, globalTime, qubitInits, qubitMeas, qubitLifetimes);
 
         // Update the state
         taskTime = globalTime;
@@ -442,7 +442,7 @@ namespace qoala::analysis::qubitlife {
         uint32_t qpuTime = 0;
         uint32_t globalTime = 0;
 
-        qubitLifeTimes.reserve(qubits.size());
+        qubitLifetimes.reserve(qubits.size());
 
         LLVM_DEBUG(llvm::dbgs() << "\n=== Starting Task Scheduling ===\n");
 
@@ -461,15 +461,15 @@ namespace qoala::analysis::qubitlife {
 
             // Schedule qpu task if ready
             scheduleTaskIfReady(qpuTasks, nextQpuTaskIdx, qpuTime, globalTime, taskDependences, qubitInits, qubitMeas,
-                                qubitLifeTimes);
+                                qubitLifetimes);
 
             // Schedule cpu task if ready
             scheduleTaskIfReady(cpuTasks, nextCpuTaskIdx, cpuTime, globalTime, taskDependences, qubitInits, qubitMeas,
-                                qubitLifeTimes);
+                                qubitLifetimes);
         }
 
         LLVM_DEBUG(llvm::dbgs() << "\n=== Qubit Lifetimes ===\n");
-        for (const auto &[qubitId, lifetime] : qubitLifeTimes) {
+        for (const auto &[qubitId, lifetime] : qubitLifetimes) {
             LLVM_DEBUG(llvm::dbgs() << qubitId << ": " << lifetime << "\n");
         }
         LLVM_DEBUG(llvm::dbgs() << "\nTotal Execution Time: " << globalTime << "\n");
@@ -479,6 +479,6 @@ namespace qoala::analysis::qubitlife {
     }
 
     // Return computed qubit life times.
-    const std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifeTimes; }
+    const std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifetimes; }
 
 } // namespace qoala::analysis::qubitlife
