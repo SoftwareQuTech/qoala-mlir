@@ -24,5 +24,7 @@ namespace qoala::analysis {
         if (failed(precedences::addPrecedences(module))) {
             signalPassFailure();
         }
+
+        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
     }
 } // namespace qoala::analysis

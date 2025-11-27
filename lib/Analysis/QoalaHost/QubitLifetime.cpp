@@ -479,6 +479,8 @@ namespace qoala::analysis::qubitlife {
     }
 
     // Return computed qubit life times.
-    const std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const { return qubitLifetimes; }
+    const std::unordered_map<std::string, uint32_t> QoalaHostQubitLifetime::getLifetimes() const {
+        return qubitLifetimes;
+    }
 
 } // namespace qoala::analysis::qubitlife

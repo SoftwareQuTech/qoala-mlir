@@ -24,7 +24,7 @@ namespace qoala::analysis::gatecount {
         assert(!mainFuncs.empty() && "No main function found in module.");
 
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        
+
         // Walk through all operations in the main function
         for (auto callOp : mainFunc.getOps<qoalahost::CallOp>()) {
             // The call itself counts as an op, start from 1
@@ -36,14 +36,14 @@ namespace qoala::analysis::gatecount {
 
             // Get the callee
             auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
-            
+
             // Get the operands (qubit arguments passed to the call) if any
             auto operands = callOp.getOperands();
-            
+
             // Get the entry block and its arguments if any
             auto &entryBlock = callee.front();
             auto blockArgs = entryBlock.getArguments();
-            
+
             mlir::DenseMap<mlir::Value, mlir::Value> calleeToCaller;
 
             // Map call operands to callee block arguments if anygetBlockArgForCallerValue
@@ -78,7 +78,7 @@ namespace qoala::analysis::gatecount {
                     gateCount++;
                     twoQubitGateCount++;
                     for (auto operand : op.getOperands()) {
-                        if (calleeToCaller.contains(operand)){
+                        if (calleeToCaller.contains(operand)) {
                             auto qId = qubitId.at(calleeToCaller.at(operand));
                             detailedGateCount[qId] += 1;
                             detailedTwoQubitGateCount[qId] += 1;
@@ -88,7 +88,6 @@ namespace qoala::analysis::gatecount {
                 ++opIdx;
             }
         }
-
     }
 
 } // namespace qoala::analysis::gatecount

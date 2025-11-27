@@ -10,7 +10,8 @@ namespace qoala::analysis {
 #define GEN_PASS_DEF_QOALAHOSTGATECOUNTSHOWANALYSIS
 #include "Dialect/QoalaHost/Passes.h.inc"
 
-    class QoalaHostGateCountShowAnalysis : public impl::QoalaHostGateCountShowAnalysisBase<QoalaHostGateCountShowAnalysis> {
+    class QoalaHostGateCountShowAnalysis
+        : public impl::QoalaHostGateCountShowAnalysisBase<QoalaHostGateCountShowAnalysis> {
         using QoalaHostGateCountShowAnalysisBase::QoalaHostGateCountShowAnalysisBase;
 
         void runOnOperation() override;

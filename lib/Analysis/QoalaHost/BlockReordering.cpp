@@ -151,5 +151,7 @@ namespace qoala::analysis {
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
         mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
+
+        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
     }
 } // namespace qoala::analysis

@@ -10,6 +10,7 @@
 #define DEBUG_TYPE "qoalahost-esp"
 
 using namespace mlir;
+using namespace qoala::analysis;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::options;
 
@@ -30,7 +31,8 @@ namespace qoala::analysis::esp {
         for (auto qubitId : lifeTimes) {
             float qubit_esp = 1.0;
 
-            float exp1 = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifeTimes.at(qubitId.first) / static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
+            float exp1 = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifeTimes.at(qubitId.first) /
+                         static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
             float exp2 = lifeTimes.at(qubitId.first) / static_cast<float>(qoalaOptQubitLifetime);
 
             qubit_esp *= (std::exp(-exp1) + std::exp(-exp2));
@@ -43,7 +45,10 @@ namespace qoala::analysis::esp {
         }
         esp /= pow(2, numQubits);
         LLVM_DEBUG(llvm::dbgs() << "Totat ESP: " << esp << "\n");
-        
+    }
+
+    bool isInvalidated(const AnalysisManager::PreservedAnalyses &pa) {
+        return !pa.isPreserved<gatecount::QoalaHostGateCount>() || !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
     }
 
 } // namespace qoala::analysis::esp

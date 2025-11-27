@@ -38,8 +38,8 @@ static opt<uint32_t, /*ExternalStorage=*/true>
 
 float qoala::options::qoalaOptSingleGateError = 0.01;
 static opt<float, /*ExternalStorage=*/true>
-        qoalaOptSingleGateErrorOption("qoala-opt-single-gate-error", desc("Error rate of a single gate operation."), NotHidden,
-                                    location(qoala::options::qoalaOptSingleGateError));
+        qoalaOptSingleGateErrorOption("qoala-opt-single-gate-error", desc("Error rate of a single gate operation."),
+                                      NotHidden, location(qoala::options::qoalaOptSingleGateError));
 
 uint32_t qoala::options::qoalaOptTwoGateDuration = 50;
 static opt<uint32_t, /*ExternalStorage=*/true>
@@ -47,9 +47,10 @@ static opt<uint32_t, /*ExternalStorage=*/true>
                                       NotHidden, location(qoala::options::qoalaOptTwoGateDuration));
 
 float qoala::options::qoalaOptTwoGateError = 0.05;
-static opt<float, /*ExternalStorage=*/true>
-        qoalaOptTwoGateErrorOption("qoala-opt-two-gate-error", desc("Error rate of a double gate operation."), NotHidden,
-                                    location(qoala::options::qoalaOptTwoGateError));
+static opt<float, /*ExternalStorage=*/true> qoalaOptTwoGateErrorOption("qoala-opt-two-gate-error",
+                                                                       desc("Error rate of a double gate operation."),
+                                                                       NotHidden,
+                                                                       location(qoala::options::qoalaOptTwoGateError));
 
 uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency", NotHidden,
