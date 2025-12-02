@@ -18,16 +18,24 @@ namespace qoala::analysis::esp {
 
     QoalaHostEstimateSuccProb::QoalaHostEstimateSuccProb(Operation *op, AnalysisManager &am) {
 
-        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
+        // Compute the Estimated Succes Probability (ESP) of a programm.
+        // Use qubit lifetime and gate count for the computation.
+        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostESPPass\n");
 
+        // Get the qubit lifetime
         const auto &lifetimeAnalysis = am.getAnalysis<qubitlife::QoalaHostQubitLifetime>();
         const auto lifeTimes = lifetimeAnalysis.getLifetimes();
         const auto numQubits = lifeTimes.size();
 
+        // Get the gate count
         const auto &gatecountAnalysis = am.getAnalysis<gatecount::QoalaHostGateCount>();
         const auto oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
         const auto twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
+        // For each qubit compute the ESP as the product of its gates fidelity (1-error rate)
+        // multiplied by the expected fidelity, given by: 1/2 * [e^-(T1+T2)*l/(T1*T2) + e^-(l/T1)].
+        // Where l is the qubit lifetime.
+        // Total ESP is given by the product of each qubit ESP
         for (auto qubitId : lifeTimes) {
             float qubit_esp = 1.0;
 
@@ -43,10 +51,12 @@ namespace qoala::analysis::esp {
             LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubit_esp << "\n");
             esp *= qubit_esp;
         }
+        // This is a coefficient obtained by collecting the 1/2 from each qubit fidelity formula
         esp /= pow(2, numQubits);
         LLVM_DEBUG(llvm::dbgs() << "Totat ESP: " << esp << "\n");
     }
 
+    // This analysis is preserved as long as its dependencies are preserved
     bool isInvalidated(const AnalysisManager::PreservedAnalyses &pa) {
         return !pa.isPreserved<gatecount::QoalaHostGateCount>() || !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
     }

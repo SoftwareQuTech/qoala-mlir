@@ -16,7 +16,13 @@ using namespace qoala::dialects;
 namespace qoala::analysis::gatecount {
 
     QoalaHostGateCount::QoalaHostGateCount(Operation *op) {
+        // Count the gates qubit-wise, and grouped by one-qubit and two-qubit gates
+        // as they have different error rates and so contribute differently
+        // to the fidelity of each qubit
 
+        LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostGateCountPass\n");
+
+        // Map Values to qubit ids, ids should be the same as in qubit lifetimes
         llvm::DenseMap<Value, std::string> qubitId;
 
         auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<qoalahost::MainFuncOp>();
@@ -44,25 +50,30 @@ namespace qoala::analysis::gatecount {
             auto &entryBlock = callee.front();
             auto blockArgs = entryBlock.getArguments();
 
+            // Map call operands to callee block arguments if anygetBlockArgForCallerValue
             mlir::DenseMap<mlir::Value, mlir::Value> calleeToCaller;
 
-            // Map call operands to callee block arguments if anygetBlockArgForCallerValue
             for (auto [callArg, blockArg] : llvm::zip(operands, blockArgs)) {
                 calleeToCaller[blockArg] = callArg;
             }
 
+            // Map from retunred Values inside calle to returned values in main func
             auto returnOp = *entryBlock.getOps<netqasm::ReturnOp>().begin();
 
-            // Map from retunred Values inside calle to returned values in main func
             for (auto returnVal : llvm::enumerate(returnOp->getOperands())) {
                 calleeToCaller[returnVal.value()] = callOp.getResult(returnVal.index());
             }
 
+            // Count gates
             for (auto &op : entryBlock) {
                 if (llvm::isa<netqasm::MeasureOp, netqasm::EprsMeasureOp>(op)) {
+                    // Do not count measure ops
+                    // In the future, could look into readout error and count them separetly
                     continue;
                 }
                 if (llvm::isa<netqasm::QInitOp, netqasm::EprsOp>(op)) {
+                    // Do not count initialization as a gate,
+                    // used as a reference point to start raking a qubit and its gates
                     auto newQubit = op.getOperands().front();
                     if (calleeToCaller.contains(newQubit)) {
                         std::string qId = blckId + "::" + std::to_string(opIdx);
@@ -88,6 +99,7 @@ namespace qoala::analysis::gatecount {
                         }
                     }
                 }
+                // Increase op index for the current call block
                 ++opIdx;
             }
         }
