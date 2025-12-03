@@ -25,6 +25,8 @@ namespace qoala::analysis::gatecount {
         // Map Values to qubit ids, ids should be the same as in qubit lifetimes
         llvm::DenseMap<Value, std::string> qubitId;
 
+        std::unordered_map<std::string, uint32_t> tempOneQubitGateCount;
+
         auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<qoalahost::MainFuncOp>();
 
         assert(!mainFuncs.empty() && "No main function found in module.");
@@ -66,10 +68,14 @@ namespace qoala::analysis::gatecount {
 
             // Count gates
             for (auto &op : entryBlock) {
-                if (llvm::isa<netqasm::MeasureOp, netqasm::EprsMeasureOp>(op)) {
+                if (llvm::isa<netqasm::MeasureOp>(op)) {
                     // Do not count measure ops
                     // In the future, could look into readout error and count them separetly
-                    continue;
+                    auto qId = qubitId.at(calleeToCaller.at(op.getOperands().front()));
+                    gateCount += tempOneQubitGateCount[qId];
+                    oneQubitGateCount += tempOneQubitGateCount[qId];
+                    detailedGateCount[qId] += tempOneQubitGateCount[qId];
+                    detailedOneQubitGateCount[qId] += tempOneQubitGateCount[qId];
                 }
                 if (llvm::isa<netqasm::QInitOp, netqasm::EprsOp>(op)) {
                     // Do not count initialization as a gate,
@@ -78,22 +84,29 @@ namespace qoala::analysis::gatecount {
                     if (calleeToCaller.contains(newQubit)) {
                         std::string qId = blckId + "::" + std::to_string(opIdx);
                         qubitId[calleeToCaller[newQubit]] = qId;
+                        tempOneQubitGateCount[qId] = 0;
                         detailedOneQubitGateCount[qId] = 0;
                         detailedTwoQubitGateCount[qId] = 0;
                         detailedGateCount[qId] = 0;
                     }
                 } else if (llvm::isa<netqasm::ifaces::SingleQubitOp>(op)) {
-                    gateCount++;
-                    oneQubitGateCount++;
+                    // gateCount++;
+                    // oneQubitGateCount++;
                     auto qId = qubitId.at(calleeToCaller.at(op.getOperands().front()));
-                    detailedGateCount[qId] += 1;
-                    detailedOneQubitGateCount[qId] += 1;
+                    tempOneQubitGateCount[qId] += 1;
+                    // detailedGateCount[qId] += 1;
+                    // detailedOneQubitGateCount[qId] += 1;
                 } else if (llvm::isa<netqasm::ifaces::DualQubitOp>(op)) {
                     gateCount++;
                     twoQubitGateCount++;
                     for (auto operand : op.getOperands()) {
                         if (calleeToCaller.contains(operand)) {
                             auto qId = qubitId.at(calleeToCaller.at(operand));
+                            gateCount += tempOneQubitGateCount[qId];
+                            oneQubitGateCount += tempOneQubitGateCount[qId];
+                            detailedGateCount[qId] += tempOneQubitGateCount[qId];
+                            detailedOneQubitGateCount[qId] += tempOneQubitGateCount[qId];
+                            tempOneQubitGateCount[qId] = 0;
                             detailedGateCount[qId] += 1;
                             detailedTwoQubitGateCount[qId] += 1;
                         }

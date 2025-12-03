@@ -47,22 +47,22 @@ module {
   qoalahost.main_func @test_heavy_two_qubit_gate_count() {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @local_qubit0() : () -> i32
-  ^bb1:  // no predecessors
+  ^bb1:
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @local_qubit1() : () -> i32
-  ^bb2:  // no predecessors
+  ^bb2:
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @cnot0(%1, %0) : (i32, i32) -> ()
-  ^bb3:  // no predecessors
+  ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @cnot1(%0, %1) : (i32, i32) -> ()
-  ^bb4:  // no predecessors
+  ^bb4:
     qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @hadamard(%0) : (i32) -> ()
-  ^bb5:  // no predecessors
+  ^bb5:
     qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @cz(%0, %1) : (i32, i32) -> ()
-  ^bb6:  // no predecessors
+  ^bb6:
     qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.return
   }
