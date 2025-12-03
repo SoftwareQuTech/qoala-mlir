@@ -24,7 +24,10 @@ namespace qoala::analysis::gatecount {
 
         // Map Values to qubit ids, ids should be the same as in qubit lifetimes
         llvm::DenseMap<Value, std::string> qubitId;
-
+        // Temporary one-qubit gate counts, add them to final counts only if qubits are measured
+        // or when a two-qubit gate is encountered. Gate counts at this level are used
+        // for the ESP pass, consequently gates should be counted only when they can
+        // affect the final ESP, meaning that the interested qubit si either measured or interacts with other qubits.
         std::unordered_map<std::string, uint32_t> tempOneQubitGateCount;
 
         auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<qoalahost::MainFuncOp>();
@@ -68,9 +71,10 @@ namespace qoala::analysis::gatecount {
 
             // Count gates
             for (auto &op : entryBlock) {
+                // Do not count measure ops
+                // In the future, could look into readout error and count them separetly
                 if (llvm::isa<netqasm::MeasureOp>(op)) {
-                    // Do not count measure ops
-                    // In the future, could look into readout error and count them separetly
+                    // Update counts with temp one-qubit gate count
                     auto qId = qubitId.at(calleeToCaller.at(op.getOperands().front()));
                     gateCount += tempOneQubitGateCount[qId];
                     oneQubitGateCount += tempOneQubitGateCount[qId];
@@ -90,25 +94,24 @@ namespace qoala::analysis::gatecount {
                         detailedGateCount[qId] = 0;
                     }
                 } else if (llvm::isa<netqasm::ifaces::SingleQubitOp>(op)) {
-                    // gateCount++;
-                    // oneQubitGateCount++;
+                    // Update temp one-qubit gate count
                     auto qId = qubitId.at(calleeToCaller.at(op.getOperands().front()));
                     tempOneQubitGateCount[qId] += 1;
-                    // detailedGateCount[qId] += 1;
-                    // detailedOneQubitGateCount[qId] += 1;
                 } else if (llvm::isa<netqasm::ifaces::DualQubitOp>(op)) {
                     gateCount++;
                     twoQubitGateCount++;
                     for (auto operand : op.getOperands()) {
                         if (calleeToCaller.contains(operand)) {
                             auto qId = qubitId.at(calleeToCaller.at(operand));
+                            detailedGateCount[qId] += 1;
+                            detailedTwoQubitGateCount[qId] += 1;
+
+                            // Update counts with temp one-qubit gate count
                             gateCount += tempOneQubitGateCount[qId];
                             oneQubitGateCount += tempOneQubitGateCount[qId];
                             detailedGateCount[qId] += tempOneQubitGateCount[qId];
                             detailedOneQubitGateCount[qId] += tempOneQubitGateCount[qId];
                             tempOneQubitGateCount[qId] = 0;
-                            detailedGateCount[qId] += 1;
-                            detailedTwoQubitGateCount[qId] += 1;
                         }
                     }
                 }
