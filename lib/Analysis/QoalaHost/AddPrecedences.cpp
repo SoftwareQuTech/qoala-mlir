@@ -25,6 +25,7 @@ namespace qoala::analysis {
             signalPassFailure();
         }
 
-        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
+        // Preserve both gate count and qubit lifetime analyses
+        markAnalysesPreserved<gatecount::QoalaHostGateCount, qubitlife::QoalaHostQubitLifetime>();
     }
 } // namespace qoala::analysis
