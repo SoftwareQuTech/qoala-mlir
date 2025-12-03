@@ -22,7 +22,7 @@ module {
     netqasm.rot_y %arg0 (0 : ui32, 1 : ui32)
     netqasm.return
   }
-  qoalahost.main_func @no_measure_esp() {
+  qoalahost.main_func @no_measure_without_dual_gates_esp() {
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @entanglement() : () -> i32
   ^bb1:  // no predecessors

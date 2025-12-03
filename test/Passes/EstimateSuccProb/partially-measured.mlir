@@ -29,13 +29,13 @@ module {
   qoalahost.main_func @no_measure_esp() {
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @entanglement() : () -> i32
-  ^bb1:  // no predecessors
+  ^bb1:
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @local_qubit() : () -> i32
-  ^bb2:  // no predecessors
+  ^bb2:
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @cnot_rot(%0, %1) : (i32, i32) -> ()
-  ^bb3:  // no predecessors
+  ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     %2 = qoalahost.call @meas_local(%1) : (i32) -> i1
   }
