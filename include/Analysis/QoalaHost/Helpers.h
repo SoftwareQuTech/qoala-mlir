@@ -622,11 +622,11 @@ namespace qoala::analysis {
 
             [[nodiscard]]
             float getESP() const {
-                return esp;
+                return totalEsp;
             };
 
         private:
-            float esp = 1.0;
+            float totalEsp = 1.0;
         };
     } // namespace esp
 

@@ -16,6 +16,22 @@ using namespace qoala::options;
 
 namespace qoala::analysis::esp {
 
+    static float calculateQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
+        // qubitEsp = prod(gate_fidelities) * exp(-T1/T2 * lifetime) where fidelity = (1 - error_rate)^gate_counts
+        float qubitEsp = 1.0f;
+        // T1/T2 decay factors
+        float t1DecayExp = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifetime /
+                           static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
+        float t2DecayExp = lifetime / static_cast<float>(qoalaOptQubitLifetime);
+
+        qubitEsp *= (std::exp(-t1DecayExp) + std::exp(-t2DecayExp));
+
+        qubitEsp *= std::pow(1.0f - qoalaOptSingleGateError, oneQubitGates);
+        qubitEsp *= std::pow(1.0f - qoalaOptTwoGateError, twoQubitGates);
+
+        return qubitEsp;
+    }
+
     QoalaHostEstimateSuccProb::QoalaHostEstimateSuccProb(Operation *op, AnalysisManager &am) {
 
         // Compute the Estimated Succes Probability (ESP) of a programm.
@@ -32,28 +48,23 @@ namespace qoala::analysis::esp {
         const auto oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
         const auto twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
-        // For each qubit compute the ESP as the product of its gates fidelity (1-error rate)
-        // multiplied by the expected fidelity, given by: 1/2 * [e^-(T1+T2)*l/(T1*T2) + e^-(l/T1)].
-        // Where l is the qubit lifetime.
+        // For each qubit compute the ESP as:
+        // qubitEsp = prod(gate_fidelities) * exp(-T1/T2 * lifetime) where fidelity = (1 - error_rate)^gate_counts
         // Total ESP is given by the product of each qubit ESP
+
         for (auto qubitId : lifeTimes) {
-            float qubit_esp = 1.0;
+            auto lifetime = lifeTimes.at(qubitId.first);
+            auto oneQubitGates = oneQubitGateCount.at(qubitId.first);
+            auto twoQubitGates = twoQubitGateCount.at(qubitId.first);
 
-            float exp1 = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifeTimes.at(qubitId.first) /
-                         static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
-            float exp2 = lifeTimes.at(qubitId.first) / static_cast<float>(qoalaOptQubitLifetime);
+            auto qubitEsp = calculateQubitEsp(lifetime, oneQubitGates, twoQubitGates);
+            LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubitEsp << "\n");
 
-            qubit_esp *= (std::exp(-exp1) + std::exp(-exp2));
-
-            qubit_esp *= pow(1 - qoalaOptSingleGateError, oneQubitGateCount.at(qubitId.first));
-            qubit_esp *= pow(1 - qoalaOptTwoGateError, twoQubitGateCount.at(qubitId.first));
-
-            LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubit_esp << "\n");
-            esp *= qubit_esp;
+            totalEsp *= qubitEsp;
         }
         // This is a coefficient obtained by collecting the 1/2 from each qubit fidelity formula
-        esp /= pow(2, numQubits);
-        LLVM_DEBUG(llvm::dbgs() << "Totat ESP: " << esp << "\n");
+        totalEsp /= pow(2, numQubits);
+        LLVM_DEBUG(llvm::dbgs() << "Totat ESP: " << totalEsp << "\n");
     }
 
     // This analysis is preserved as long as its dependencies are preserved
