@@ -17,14 +17,18 @@ using namespace qoala::options;
 namespace qoala::analysis::esp {
 
     static float calculateQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
-        // qubitEsp = prod(gate_fidelities) * exp(-T1/T2 * lifetime) where fidelity = (1 - error_rate)^gate_counts
+        // qubitEsp = prod(gate_fidelities) * [exp(-(T1+T2)/(T1*T2) * lifetime)+exp(-lifetime/T1)]
+        // where fidelity = (1 - error_rate)^gate_counts
         float qubitEsp = 1.0f;
-        // T1/T2 decay factors
-        float t1DecayExp = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifetime /
-                           static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
-        float t2DecayExp = lifetime / static_cast<float>(qoalaOptQubitLifetime);
+        // decay factors
+        float t1t2tDecayExp = (qoalaOptQubitLifetime + qoalaOptQubitLifetime) * lifetime /
+                              static_cast<float>((qoalaOptQubitLifetime * qoalaOptQubitLifetime));
+        float t1DecayExp = lifetime / static_cast<float>(qoalaOptQubitLifetime);
 
-        qubitEsp *= (std::exp(-t1DecayExp) + std::exp(-t2DecayExp));
+        LLVM_DEBUG(llvm::dbgs() << "e^-" << t1t2tDecayExp << " + e^-" << t1DecayExp << " = " << std::exp(-t1t2tDecayExp)
+                                << " + " << std::exp(-t1DecayExp) << " \n");
+
+        qubitEsp *= (std::exp(-t1t2tDecayExp) + std::exp(-t1DecayExp));
 
         qubitEsp *= std::pow(1.0f - qoalaOptSingleGateError, oneQubitGates);
         qubitEsp *= std::pow(1.0f - qoalaOptTwoGateError, twoQubitGates);
