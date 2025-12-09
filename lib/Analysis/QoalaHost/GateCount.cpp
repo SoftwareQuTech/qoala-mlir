@@ -79,7 +79,7 @@ namespace qoala::analysis::gatecount {
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
         // Walk through all operations in the main function
-        for (auto callOp : mainFunc.getOps<qoalahost::CallOp>()) {
+        mainFunc.walk([&](qoalahost::CallOp callOp) {
             // The call itself counts as an op, start from 1
             uint32_t opIdx = 1;
 
@@ -93,8 +93,8 @@ namespace qoala::analysis::gatecount {
             auto calleeToCaller = mapCallArgsToCallee(callOp, callee);
 
             // Count gates
-            for (auto &op : callee.front()) {
-                llvm::TypeSwitch<mlir::Operation *>(&op)
+            callee.walk([&](mlir::Operation *op) {
+                llvm::TypeSwitch<mlir::Operation *>(op)
                         .Case<netqasm::MeasureOp>([&](auto meas) {
                             // Do not count measure ops
                             // In the future, could look into readout error and count them separetly
@@ -139,8 +139,8 @@ namespace qoala::analysis::gatecount {
                         });
                 // Increase op index for the current call block
                 ++opIdx;
-            }
-        }
+            });
+        });
     }
 
 } // namespace qoala::analysis::gatecount
