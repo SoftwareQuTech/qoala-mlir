@@ -1,5 +1,5 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-esp | FileCheck %s
-//CHECK:  [ESP]: 1.000000e+00
+// CHECK:  [ESP]: {{1\.0+e\+00}}
 
 module {
   qremote.remote @Bob
