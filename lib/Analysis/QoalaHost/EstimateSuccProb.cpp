@@ -40,6 +40,10 @@ namespace qoala::analysis::esp {
 
         // Compute the Estimated Succes Probability (ESP) of a programm.
         // Use qubit lifetime and gate count for the computation.
+        // Qubits IDs found with lifetime analysis are assumed to map, one to one,
+        // to the ones fuound with gate count analysis. This shoudl hold true as the IDs are
+        // derived from block and operations index, and any pass that would change such properties should invalidate
+        // lifetime, requiring this pass to recompute lifetime right before gatecount.
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostESPPass\n");
 
         // Get the qubit lifetime
