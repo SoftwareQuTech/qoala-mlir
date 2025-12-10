@@ -9,7 +9,7 @@ namespace qoala::conversion::hir {
     /* Implementation of the qoala types converter */
     QoalaHIRToQoalaMIRTypeConverter::QoalaHIRToQoalaMIRTypeConverter(MLIRContext *ctx) {
         // Default conversion for non qnet::QubitType instances
-        addConversion([](Type type) -> Type { return type; });
+        addConversion([](const Type type) -> Type { return type; });
         addConversion([ctx](qnet::QubitType type) -> Type {
             // Qubit Types are mapped into i32 (pointers)
             return IntegerType::get(ctx, 32);
@@ -53,7 +53,7 @@ namespace qoala::conversion::hir {
     /* Implementation of the operations that entangle qubits */
     std::unique_ptr<OpAndValues> EprsOpLowering::createNewOpAndValues(qnet::EprsOp op, qnet::EprsOp::Adaptor adaptor,
                                                                       ConversionPatternRewriter &rewriter) const {
-        Location loc = op.getLoc();
+        const Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
 
@@ -67,7 +67,7 @@ namespace qoala::conversion::hir {
     std::unique_ptr<OpAndValues>
     EprsMeasureOpLowering::createNewOpAndValues(qnet::EprsMeasureOp op, qnet::EprsMeasureOp::Adaptor adaptor,
                                                 ConversionPatternRewriter &rewriter) const {
-        Location loc = op.getLoc();
+        const Location loc = op.getLoc();
         // We first create a new qalloc operation
         auto newAllocOp = rewriter.create<qmem::QAllocOp>(loc);
         Type mappedOutType = typeConverter->convertType(op.getOutcome().getType());
@@ -80,7 +80,7 @@ namespace qoala::conversion::hir {
     std::unique_ptr<OpAndValues> NewQubitLowering::createNewOpAndValues(qnet::NewQubitOp op,
                                                                         qnet::NewQubitOp::Adaptor adaptor,
                                                                         ConversionPatternRewriter &rewriter) const {
-        Location loc = op.getLoc();
+        const Location loc = op.getLoc();
         // First, we convert the qnet.qubit type into its mapped type
         Type mappedQubitType = typeConverter->convertType(op.getQout().getType());
 
@@ -237,6 +237,38 @@ namespace qoala::conversion::hir {
         Type outType = typeConverter->convertType(op.getCout().getType());
         auto newSend = rewriter.create<qmem::RecvFloatsOp>(op.getLoc(), outType, adaptor.getRemoteAttr(),
                                                            adaptor.getLengthAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> SendIntOpLowering::createNewOpAndValues(qnet::SendIntOp op,
+                                                                         qnet::SendIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
+        auto newSend = rewriter.create<qmem::SendIntOp>(op.getLoc(), adaptor.getCin(), adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> RecvIntOpLowering::createNewOpAndValues(qnet::RecvIntOp op,
+                                                                         qnet::RecvIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
+        // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
+        Type outType = typeConverter->convertType(op.getCout().getType());
+        auto newRec = rewriter.create<qmem::RecvIntOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newRec.getOperation(), newRec->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> SendFloatOpLowering::createNewOpAndValues(qnet::SendFloatOp op,
+                                                                           qnet::SendFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
+        auto newSend = rewriter.create<qmem::SendFloatOp>(op.getLoc(), adaptor.getCin(), adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> RecvFloatOpLowering::createNewOpAndValues(qnet::RecvFloatOp op,
+                                                                           qnet::RecvFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
+        // The output type is unchanged by this conversion;we will pass it "as is" to the new operation
+        Type outType = typeConverter->convertType(op.getCout().getType());
+        auto newSend = rewriter.create<qmem::RecvFloatOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }
 } // namespace qoala::conversion::hir

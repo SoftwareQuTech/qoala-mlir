@@ -54,9 +54,10 @@ namespace qoala::conversion {
         hir::QoalaHIRToQoalaMIRTypeConverter typeConverter(&context);
         patterns.add<hir::FuncOpLowering, hir::ReturnOpLowering, hir::EprsOpLowering, hir::EprsMeasureOpLowering,
                      hir::NewQubitLowering, hir::RemoteOpLowering, hir::RecvIntsOpLowering, hir::RecvFloatsOpLowering,
-                     hir::SendIntsOpLowering, hir::SendFloatsOpLowering, hir::RotateXLowering, hir::RotateYLowering,
-                     hir::RotateZLowering, hir::HadamardLowering, hir::CNotLowering, hir::CzLowering,
-                     hir::CRotXLowering, hir::MeasureLowering>(typeConverter, &context);
+                     hir::SendIntsOpLowering, hir::SendFloatsOpLowering, hir::RecvIntOpLowering,
+                     hir::RecvFloatOpLowering, hir::SendIntOpLowering, hir::SendFloatOpLowering, hir::RotateXLowering,
+                     hir::RotateYLowering, hir::RotateZLowering, hir::HadamardLowering, hir::CNotLowering,
+                     hir::CzLowering, hir::CRotXLowering, hir::MeasureLowering>(typeConverter, &context);
 
         // We finally apply a **full** conversion, since we correctly defined all the
         // dialects that are "legal" in the target IR
