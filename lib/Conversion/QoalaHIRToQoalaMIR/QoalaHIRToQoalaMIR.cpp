@@ -51,7 +51,7 @@ namespace qoala::conversion {
         // For some reason, declaring the UnrealizedConversionCastOp operation as illegal in the
         // target has no effect. (i.e. the IR will be tagged as valid, despite still having some
         // UnrealizedConversionCastOp instances)
-        //target.addIllegalOp<UnrealizedConversionCastOp>();
+        // target.addIllegalOp<UnrealizedConversionCastOp>();
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);

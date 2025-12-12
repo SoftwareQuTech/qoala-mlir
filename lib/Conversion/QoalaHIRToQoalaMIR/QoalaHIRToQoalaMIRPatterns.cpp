@@ -20,10 +20,11 @@ namespace qoala::conversion::hir {
         // after conversion, then we need to provide a "materialization", i.e. how
         // to cast from one type to the other Here we provide a "cast" to transform
         // from source type (qnet::QubitType) to target type (qmem::QubitType = i32)
-        addTargetMaterialization([](OpBuilder &builder, Type resultType, ValueRange inputs, const Location loc) -> Value {
-            // The conversion is simply a "builtin::unrealized_cast" operation
-            return builder.create<UnrealizedConversionCastOp>(loc, resultType, inputs).getResult(0);
-        });
+        addTargetMaterialization(
+                [](OpBuilder &builder, Type resultType, ValueRange inputs, const Location loc) -> Value {
+                    // The conversion is simply a "builtin::unrealized_cast" operation
+                    return builder.create<UnrealizedConversionCastOp>(loc, resultType, inputs).getResult(0);
+                });
         // Here we provide a "cast" to transform from target type (lir::QubitType)
         // to source type (qnet::QubitType)
         addSourceMaterialization(
@@ -189,7 +190,7 @@ namespace qoala::conversion::hir {
         auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptedQin0, adaptedQin1);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newCz.getOperation(),  ValueRange{adaptedQin0, adaptedQin1});
+        return std::make_unique<OpAndValues>(newCz.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
     }
 
     std::unique_ptr<OpAndValues> CRotXLowering::createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
@@ -203,8 +204,7 @@ namespace qoala::conversion::hir {
         Value adaptedAngle = adaptor.getAngle();
         op.getQout0().replaceAllUsesWith(adaptedQin0);
         op.getQout1().replaceAllUsesWith(adaptedQin1);
-        auto newCRotX =
-                rewriter.create<qmem::CrotXOp>(op.getLoc(), adaptedQin0, adaptedQin1, adaptedAngle);
+        auto newCRotX = rewriter.create<qmem::CrotXOp>(op.getLoc(), adaptedQin0, adaptedQin1, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         // In this particular case we only need the first 2 operands
