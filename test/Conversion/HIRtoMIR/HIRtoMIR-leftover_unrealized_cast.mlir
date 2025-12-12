@@ -3,8 +3,8 @@
 module {
   //CHECK: qmem.remote @[[REMOTEBOB:.*]]
   qnet.remote @Bob
-  // CHECK: qmem.func @test_lefover_unrealized_cast()
-  qnet.func @test_lefover_unrealized_cast() {
+  // CHECK: qmem.func @test_leftover_unrealized_cast()
+  qnet.func @test_leftover_unrealized_cast() {
 
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTEBOB]]}

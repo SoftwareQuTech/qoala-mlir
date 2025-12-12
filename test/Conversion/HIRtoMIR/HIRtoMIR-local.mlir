@@ -7,10 +7,12 @@ module {
   qnet.func @test_local_quantum_program() {
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.init %[[QBIT0]]
+    // CHECK-NOT: builtin.unrealized_conversion_cast
     %0 = qnet.new_qubit : !qnet.qubit
 
     // CHECK: %[[QBIT1:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.init %[[QBIT1]]
+    // CHECK-NOT: builtin.unrealized_conversion_cast
     %1 = qnet.new_qubit : !qnet.qubit
 
     %cst = arith.constant 2.120000e+01 : f32
