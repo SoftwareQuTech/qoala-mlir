@@ -26,7 +26,7 @@ namespace qoala::conversion {
 
     void QoalaHIRToQoalaMIRPass::runOnOperation() {
         MLIRContext &context = getContext();
-        Operation *operation = getOperation();
+        ModuleOp module = getOperation();
         // Get a conversion target to define our target dialects
         ConversionTarget target(context);
         // We add the legal dialects that we aim to keep in the target
@@ -48,6 +48,10 @@ namespace qoala::conversion {
                 //qnet::SomeOtherOp
         >();
          */
+        // For some reason, declaring the UnrealizedConversionCastOp operation as illegal in the
+        // target has no effect. (i.e. the IR will be tagged as valid, despite still having some
+        // UnrealizedConversionCastOp instances)
+        //target.addIllegalOp<UnrealizedConversionCastOp>();
 
         // We add the conversion pattern to the context
         RewritePatternSet patterns(&context);
@@ -59,10 +63,27 @@ namespace qoala::conversion {
                      hir::RotateYLowering, hir::RotateZLowering, hir::HadamardLowering, hir::CNotLowering,
                      hir::CzLowering, hir::CRotXLowering, hir::MeasureLowering>(typeConverter, &context);
 
-        // We finally apply a **full** conversion, since we correctly defined all the
+        // We apply a **full** conversion, since we correctly defined all the
         // dialects that are "legal" in the target IR
-        if (failed(applyFullConversion(operation, target, std::move(patterns)))) {
-            LLVM_DEBUG(llvm::dbgs() << *operation << "\n");
+        if (failed(applyFullConversion(module.getOperation(), target, std::move(patterns)))) {
+            LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            signalPassFailure();
+        }
+        // Finally, we have to get rid of any leftover UnrealizedConversionCastOp... provided that
+        // they don't have any uses. If we find one that has one or more uses, then the dialect
+        // conversion process is bugged.
+        // NB: This is an ugly, yet effective solution.
+        WalkResult result = module.walk([](const UnrealizedConversionCastOp leftoverCast) -> WalkResult {
+            if (leftoverCast->getUses().empty()) {
+                leftoverCast->erase();
+                return WalkResult::advance();
+            }
+            leftoverCast->emitOpError("Leftover unrealized cast still has usages. ")
+                    << "This is a bug on the implementation of the HIR to MIR lowering.";
+            return WalkResult::interrupt();
+        });
+
+        if (result.wasInterrupted()) {
             signalPassFailure();
         }
     }

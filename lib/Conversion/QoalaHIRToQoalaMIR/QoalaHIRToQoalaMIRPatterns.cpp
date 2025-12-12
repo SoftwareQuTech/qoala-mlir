@@ -1,6 +1,8 @@
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 #include "Conversion/Helpers/Helpers.h"
 
+#define DEBUG_TYPE "qoala-hir-to-qoala-patterns"
+
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::helpers;
@@ -18,14 +20,14 @@ namespace qoala::conversion::hir {
         // after conversion, then we need to provide a "materialization", i.e. how
         // to cast from one type to the other Here we provide a "cast" to transform
         // from source type (qnet::QubitType) to target type (qmem::QubitType = i32)
-        addTargetMaterialization([&](OpBuilder &builder, Type resultType, ValueRange inputs, Location loc) -> Value {
+        addTargetMaterialization([](OpBuilder &builder, Type resultType, ValueRange inputs, const Location loc) -> Value {
             // The conversion is simply a "builtin::unrealized_cast" operation
             return builder.create<UnrealizedConversionCastOp>(loc, resultType, inputs).getResult(0);
         });
         // Here we provide a "cast" to transform from target type (lir::QubitType)
         // to source type (qnet::QubitType)
         addSourceMaterialization(
-                [&](OpBuilder &builder, Type resultType, ValueRange inputs, Location loc) -> std::optional<Value> {
+                [](OpBuilder &builder, Type resultType, ValueRange inputs, const Location loc) -> std::optional<Value> {
                     // The conversion is simply a "builtin::unrealized_cast" operation
                     return builder.create<UnrealizedConversionCastOp>(loc, resultType, inputs).getResult(0);
                 });
@@ -143,10 +145,11 @@ namespace qoala::conversion::hir {
                                                                        ConversionPatternRewriter &rewriter) const {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptor.getQin());
+        auto adaptedQin = adaptor.getQin();
+        auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptedQin);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newMeasure.getOperation(), adaptor.getQin());
+        return std::make_unique<OpAndValues>(newMeasure.getOperation(), adaptedQin);
     }
 
     std::unique_ptr<OpAndValues> CNotLowering::createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
@@ -155,13 +158,15 @@ namespace qoala::conversion::hir {
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason (probably a misuse of MLIR or a bug) , if we use the rewriter object for
         // this purpose, it ends up on a SIGSEGV in the internals of the replacement of the operation
-        // By using the "replaceAllUsesWith" directly from the value to replace, makes it work correctlyW
-        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
-        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
-        auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
+        // By using the "replaceAllUsesWith" directly from the value to replace, makes it work correctly
+        Value adaptedQin0 = adaptor.getQin0();
+        Value adaptedQin1 = adaptor.getQin1();
+        op.getQout0().replaceAllUsesWith(adaptedQin0);
+        op.getQout1().replaceAllUsesWith(adaptedQin1);
+        auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptedQin0, adaptedQin1);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot->getOperands());
+        return std::make_unique<OpAndValues>(newCnot.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
     }
 
     std::unique_ptr<OpAndValues> CzLowering::createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
