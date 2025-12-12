@@ -303,7 +303,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(),
                                                              rewriter.getUI32IntegerAttr(intsAngle[0]),
@@ -320,7 +320,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(),
                                                              rewriter.getUI32IntegerAttr(intsAngle[0]),
@@ -337,7 +337,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         rewriter.getUI32IntegerAttr(intsAngle[0]);
         auto newRotate = rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(),
@@ -354,7 +354,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::CrotXIntOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
                                                            rewriter.getUI32IntegerAttr(intsAngle[0]),

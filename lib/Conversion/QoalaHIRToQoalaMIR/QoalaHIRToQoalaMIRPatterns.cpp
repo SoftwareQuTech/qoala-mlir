@@ -99,33 +99,39 @@ namespace qoala::conversion::hir {
                                                                        ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
-        auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedAngle = adaptor.getAngle();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
     }
 
     std::unique_ptr<OpAndValues> RotateYLowering::createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
                                                                        ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
-        auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedAngle = adaptor.getAngle();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
     }
 
     std::unique_ptr<OpAndValues> RotateZLowering::createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
                                                                        ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
-        auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptor.getQin(), adaptor.getAngle());
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedAngle = adaptor.getAngle();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
     }
 
     std::unique_ptr<OpAndValues> HadamardLowering::createNewOpAndValues(qnet::HadamardOp op,
@@ -133,11 +139,12 @@ namespace qoala::conversion::hir {
                                                                         ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
-        rewriter.replaceAllUsesWith(op.getQout(), adaptor.getQin());
-        auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptor.getQin());
+        Value adaptedQin = adaptor.getQin();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptedQin);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
+        return std::make_unique<OpAndValues>(newHadamard.getOperation(), adaptedQin);
     }
 
     std::unique_ptr<OpAndValues> MeasureLowering::createNewOpAndValues(qnet::MeasureOp op,
@@ -145,7 +152,7 @@ namespace qoala::conversion::hir {
                                                                        ConversionPatternRewriter &rewriter) const {
         // Measure yields an i1 type in both dialect spaces... this value does not need lowering, so we don't
         // need to remap the uses of the measure value.
-        auto adaptedQin = adaptor.getQin();
+        Value adaptedQin = adaptor.getQin();
         auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptedQin);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
@@ -175,12 +182,14 @@ namespace qoala::conversion::hir {
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
         // in the internals of the replacement of the operation
-        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
-        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
-        auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
+        Value adaptedQin0 = adaptor.getQin0();
+        Value adaptedQin1 = adaptor.getQin1();
+        op.getQout0().replaceAllUsesWith(adaptedQin0);
+        op.getQout1().replaceAllUsesWith(adaptedQin1);
+        auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptedQin0, adaptedQin1);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newCz.getOperation(), newCz->getOperands());
+        return std::make_unique<OpAndValues>(newCz.getOperation(),  ValueRange{adaptedQin0, adaptedQin1});
     }
 
     std::unique_ptr<OpAndValues> CRotXLowering::createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
@@ -189,16 +198,17 @@ namespace qoala::conversion::hir {
         // the mapped value of the respective "qin" operand of this operation
         // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
         // in the internals of the replacement of the operation
-        op.getQout0().replaceAllUsesWith(adaptor.getQin0());
-        op.getQout1().replaceAllUsesWith(adaptor.getQin1());
+        Value adaptedQin0 = adaptor.getQin0();
+        Value adaptedQin1 = adaptor.getQin1();
+        Value adaptedAngle = adaptor.getAngle();
+        op.getQout0().replaceAllUsesWith(adaptedQin0);
+        op.getQout1().replaceAllUsesWith(adaptedQin1);
         auto newCRotX =
-                rewriter.create<qmem::CrotXOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(), adaptor.getAngle());
+                rewriter.create<qmem::CrotXOp>(op.getLoc(), adaptedQin0, adaptedQin1, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         // In this particular case we only need the first 2 operands
-        auto opOperands = newCRotX->getOpOperands();
-        OperandRange firstTwoOperands(opOperands.data(), 2);
-        return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
+        return std::make_unique<OpAndValues>(newCRotX.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
     }
 
     /* Implementation of the specific conversion between similar ops
