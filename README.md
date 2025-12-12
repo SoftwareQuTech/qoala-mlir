@@ -255,6 +255,7 @@ section:
 
 ```toml
 args = [
+    "-DSCIP_DIR=/usr/lib/cmake/scip",
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
     "-DPython3_EXECUTABLE=/abs/path/to/venv-311/bin/python",
     "-DCMAKE_C_COMPILER=clang-20",
@@ -263,8 +264,12 @@ args = [
 ]
 ```
 Also note that this arguments make use of the fact that the MLIR headers were installed with the prefix
-`/opt/mlir`. In the same way, you can also specify another compiler by modifying the `DCMAKE_C_COMPILER`,
-`DCMAKE_CXX_COMPILER` and `DCMAKE_LNKER` variables.
+`/opt/mlir`. You also need to provide cmake with the location of the cmake scripts from SCIP by correctly
+setting the `SCIP_DIR` variable. If you installed SCIP from an already-compiled package, the value provided
+above should not be changed. Otherwise, please make sure that this path matches your SCIP installation.
+
+Finally, you can also specify another compiler by modifying the `DCMAKE_C_COMPILER`, `DCMAKE_CXX_COMPILER`
+and `DCMAKE_LNKER` variables.
 
 Once all this is configured, we can trigger the building by invoking the following command:
 
