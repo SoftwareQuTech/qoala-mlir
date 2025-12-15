@@ -106,7 +106,12 @@ namespace qoala::conversion::hir {
         auto newRotate = rewriter.create<qmem::RotateXOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
     std::unique_ptr<OpAndValues> RotateYLowering::createNewOpAndValues(qnet::RotYOp op, qnet::RotYOp::Adaptor adaptor,
@@ -119,7 +124,12 @@ namespace qoala::conversion::hir {
         auto newRotate = rewriter.create<qmem::RotateYOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
     std::unique_ptr<OpAndValues> RotateZLowering::createNewOpAndValues(qnet::RotZOp op, qnet::RotZOp::Adaptor adaptor,
@@ -132,7 +142,12 @@ namespace qoala::conversion::hir {
         auto newRotate = rewriter.create<qmem::RotateZOp>(op.getLoc(), adaptedQin, adaptedAngle);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), adaptedQin);
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
     std::unique_ptr<OpAndValues> HadamardLowering::createNewOpAndValues(qnet::HadamardOp op,
@@ -145,7 +160,12 @@ namespace qoala::conversion::hir {
         auto newHadamard = rewriter.create<qmem::HadamardOp>(op.getLoc(), adaptedQin);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newHadamard.getOperation(), adaptedQin);
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
     }
 
     std::unique_ptr<OpAndValues> MeasureLowering::createNewOpAndValues(qnet::MeasureOp op,
@@ -157,7 +177,12 @@ namespace qoala::conversion::hir {
         auto newMeasure = rewriter.create<qmem::MeasureOp>(op.getLoc(), rewriter.getI1Type(), adaptedQin);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newMeasure.getOperation(), adaptedQin);
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newMeasure.getOperation(), newMeasure.getQ());
     }
 
     std::unique_ptr<OpAndValues> CNotLowering::createNewOpAndValues(qnet::CnotOp op, qnet::CnotOp::Adaptor adaptor,
@@ -174,7 +199,12 @@ namespace qoala::conversion::hir {
         auto newCnot = rewriter.create<qmem::CnotOp>(op.getLoc(), adaptedQin0, adaptedQin1);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newCnot.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newCnot.getOperation(), newCnot.getOperands());
     }
 
     std::unique_ptr<OpAndValues> CzLowering::createNewOpAndValues(qnet::CzOp op, qnet::CzOp::Adaptor adaptor,
@@ -190,7 +220,12 @@ namespace qoala::conversion::hir {
         auto newCz = rewriter.create<qmem::CzOp>(op.getLoc(), adaptedQin0, adaptedQin1);
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
-        return std::make_unique<OpAndValues>(newCz.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newCz.getOperation(), newCz.getOperands());
     }
 
     std::unique_ptr<OpAndValues> CRotXLowering::createNewOpAndValues(qnet::CrotXOp op, qnet::CrotXOp::Adaptor adaptor,
@@ -208,7 +243,14 @@ namespace qoala::conversion::hir {
         // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
         // which are the "modified" values on the qubits
         // In this particular case we only need the first 2 operands
-        return std::make_unique<OpAndValues>(newCRotX.getOperation(), ValueRange{adaptedQin0, adaptedQin1});
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        const auto opOperands = newCRotX->getOpOperands();
+        OperandRange firstTwoOperands(opOperands.data(), 2);
+        return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
     }
 
     /* Implementation of the specific conversion between similar ops
