@@ -1,7 +1,10 @@
 #include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
+
+#include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QRemote/QRemote.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Casting.h"
 #include "mlir/IR/Operation.h"
 
 #include "llvm/Support/Debug.h"
@@ -11,9 +14,23 @@
 using namespace mlir;
 using namespace qoala::translate;
 using namespace qoala::dialects::qremote;
+using namespace qoala::dialects::netqasm;
 
 static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, const ModuleTranslation *moduleTranslation) {
-    moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr());
+    // We analyze the usages of remoteOp. If there are classical comms, add classical socket declaration
+    // with the remote. If there are quantum ops, also add EPR socket declaration with the remote.
+    const auto remoteOpUses = remoteOp->getUses();
+    const bool classicalCommUse =
+            std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
+                Operation *use = opOperand.getOwner();
+                return llvm::isa<qoala::helpers::ClassicalCommInterface>(use);
+            });
+    const bool quantumCommUse =
+            std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
+                Operation *use = opOperand.getOwner();
+                return llvm::isa<EprsOp, EprsMeasureOp>(use);
+            });
+    moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr(), classicalCommUse, quantumCommUse);
     return success();
 }
 

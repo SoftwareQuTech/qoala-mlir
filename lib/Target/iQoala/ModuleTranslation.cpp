@@ -144,10 +144,9 @@ namespace qoala::translate {
         return topFrameOp;
     }
 
-    void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
-        // TODO - Accept booleans to add classical and quantum sockets declarations.
-        //  Pass these values to the iQoalaModule
-        this->iQoalaModule->addRemoteDeclaration(remoteName);
+    void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName, const bool classicalSocket,
+                                                 const bool eprsSocket) const {
+        this->iQoalaModule->addRemoteDeclaration(remoteName, classicalSocket, eprsSocket);
     }
 
     std::optional<uint8_t> ModuleTranslation::getEPRSocketIDForRemote(const StringRef remoteName) const {

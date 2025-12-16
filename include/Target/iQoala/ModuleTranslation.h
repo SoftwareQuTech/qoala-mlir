@@ -87,7 +87,7 @@ namespace qoala::translate {
 
         mlir::LogicalResult convertOperation(mlir::Operation &op);
         mlir::LogicalResult convertFunctionSignatures();
-        void addRemoteDeclaration(llvm::StringRef remoteName) const;
+        void addRemoteDeclaration(llvm::StringRef remoteName, bool classicalSocket, bool eprsSocket) const;
         [[nodiscard]]
         std::optional<uint8_t> getEPRSocketIDForRemote(llvm::StringRef remoteName) const;
         [[nodiscard]]
