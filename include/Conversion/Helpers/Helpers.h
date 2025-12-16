@@ -47,6 +47,12 @@ namespace qoala::helpers {
          * IMPORTANT: The returned operation *MUST* yield the same number of values
          * than the operation to be replaced. If this is not the case, this class is not
          * suitable for the purpose.
+         * IMPORTANT: When using the adaptor, save the returned values in a local variable,
+         * and use those instead of constantly asking for the same to the adaptor. This is
+         * due to the fact that MLIR can decide to run conversion patterns in parallel.
+         * This will lead to data race, since the adaptor always has "the most updated
+         * version of the adapted value". IF you ask for a value only once, it should not
+         * be a problem.
          * @param op The operation on the source dialect to be replaced
          * @param adaptor The adaptor of th source operation to get data from
          * @param rewriter The rewriter object to easily create new operations on the
