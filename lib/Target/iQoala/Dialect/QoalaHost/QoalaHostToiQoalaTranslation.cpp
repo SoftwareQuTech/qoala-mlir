@@ -365,7 +365,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_CMSG, {}, {},
                         {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
@@ -380,7 +380,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // 2. Create the actual recv_cmsg MC instruction
                 const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_MSG, {op.getResult()}, {LOCAL},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_CMSG, {op.getResult()}, {LOCAL},
                         {csocketOperand.value()});
                 return recvInstr ? success() : failure();
             })
@@ -396,7 +396,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_CMSG, {}, {},
                         {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
@@ -411,7 +411,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
 
                 // 2. Create the actual recv_cmsg MC instruction
                 const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_MSG, {op.getResult()}, {LOCAL},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_CMSG, {op.getResult()}, {LOCAL},
                         {csocketOperand.value()});
                 return recvInstr ? success() : failure();
             })

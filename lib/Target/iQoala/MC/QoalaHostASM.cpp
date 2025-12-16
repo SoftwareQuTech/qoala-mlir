@@ -148,7 +148,7 @@ namespace qoala::assembly {
                        "QoalaHost instruction builder: return_result operation returns a value that is not a register");
                 type = CL;
                 break;
-            case OP_SEND_MSG: {
+            case OP_SEND_CMSG: {
                 // Since the value to send was passed as an "extraOperand", we need to fix the order of the
                 // operands. At this point mcOperands[0] is the value to send, and mcOperands[1] is the csocket
                 // reference. If we don't swap their positions, the send_cmsg instruction will be printed with
@@ -166,7 +166,7 @@ namespace qoala::assembly {
                 type = CC;
                 break;
             }
-            case OP_RECV_MSG:
+            case OP_RECV_CMSG:
                 assert(mcOperands.size() == 2 &&
                        "QoalaHost instruction builder: recv_cmsg operation expected 2 operands.");
                 assert(mcOperands[1]->isLocalRegister() &&
@@ -339,13 +339,13 @@ namespace qoala::assembly {
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("blt", os, false, true);
                 break;
-            case OP_SEND_MSG:
+            case OP_SEND_CMSG:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
                 printInstrGeneric("send_cmsg", os);
                 break;
-            case OP_RECV_MSG:
+            case OP_RECV_CMSG:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());

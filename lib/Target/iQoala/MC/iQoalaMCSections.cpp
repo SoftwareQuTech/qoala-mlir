@@ -132,7 +132,7 @@ namespace qoala::iqoala {
                     return failure();
                 }
                 // The other one should be the recv_msg itself
-                if (block->getInstruction(1)->getOpcode() != assembly::QoalaHostMCInstr::OP_RECV_MSG) {
+                if (block->getInstruction(1)->getOpcode() != assembly::QoalaHostMCInstr::OP_RECV_CMSG) {
                     return failure();
                 }
 
