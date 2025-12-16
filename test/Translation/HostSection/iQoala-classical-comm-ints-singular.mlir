@@ -5,20 +5,20 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
-// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[VAL_5:.*]] = assign_cval() : 5
 // CHECK-NEXT: %[[VAL_0:.*]] = assign_cval() : 0
-// CHECK-NEXT: ^b[[BLOCK1:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK: ^b[[BLOCK1:.*]] { type = CC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_A:.*]] = assign_cval() : 0
-// CHECK-NEXT: %[[RECV_INT_A:.*]] = recv_cmsg([[CSOCK_A]])
-// CHECK-NEXT: ^b[[BLOCK2:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: %[[RECV_INT_A:.*]] = recv_cmsg(%[[CSOCK_A]])
+// CHECK: ^b[[BLOCK2:.*]] { type = CC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_B:.*]] = assign_cval() : 0
-// CHECK-NEXT: %[[RECV_INT_B:.*]] = recv_cmsg([[CSOCK_B]])
-// CHECK-NEXT: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: %[[RECV_INT_B:.*]] = recv_cmsg(%[[CSOCK_B]])
+// CHECK: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = [b[[BLOCK0]]]; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_C:.*]] = assign_cval() : 0
-// CHECK-NEXT: send_cmsg([[CSOCK_C]], %[[VAL_0]])
+// CHECK-NEXT: send_cmsg(%[[CSOCK_C]], %[[VAL_0]])
 // CHECK-NEXT: %[[CSOCK_D:.*]] = assign_cval() : 0
-// CHECK-NEXT: send_cmsg([[CSOCK_D]], %[[VAL_5]])
+// CHECK-NEXT: send_cmsg(%[[CSOCK_D]], %[[VAL_5]])
 
 module {
   qremote.remote @Bob

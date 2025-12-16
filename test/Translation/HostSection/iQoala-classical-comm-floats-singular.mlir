@@ -5,28 +5,28 @@
 // CHECK-NEXT: csockets: 0 -> Bob
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
-// CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[VAL_5:.*]] = assign_cval() : 5
 // CHECK-NEXT: %[[VAL_0:.*]] = assign_cval() : 0
-// CHECK-NEXT: ^b[[BLOCK1:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK: ^b[[BLOCK1:.*]] { type = CC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_A:.*]] = assign_cval() : 0
-// CHECK-NEXT: %[[RECV_INT_A:.*]] = recv_cmsg([[CSOCK_A]])
-// CHECK-NEXT: ^b[[BLOCK2:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: %[[RECV_INT_A:.*]] = recv_cmsg(%[[CSOCK_A]])
+// CHECK: ^b[[BLOCK2:.*]] { type = CC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_B:.*]] = assign_cval() : 0
-// CHECK-NEXT: %[[RECV_INT_B:.*]] = recv_cmsg([[CSOCK_B]])
-// CHECK-NEXT: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: %[[RECV_INT_B:.*]] = recv_cmsg(%[[CSOCK_B]])
+// CHECK: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = [b[[BLOCK0]]]; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[CSOCK_C:.*]] = assign_cval() : 0
-// CHECK-NEXT: send_cmsg([[CSOCK_C]], %[[VAL_0]])
+// CHECK-NEXT: send_cmsg(%[[CSOCK_C]], %[[VAL_0]])
 // CHECK-NEXT: %[[CSOCK_D:.*]] = assign_cval() : 0
-// CHECK-NEXT: send_cmsg([[CSOCK_D]], %[[VAL_5]])
+// CHECK-NEXT: send_cmsg(%[[CSOCK_D]], %[[VAL_5]])
 
 module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   qoalahost.main_func @test_remote_quantum_program() {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    %c5_i32 = arith.constant 5.0000 : i32
-    %c0_i32 = arith.constant 0.000 : i32
+    %c5_i32 = arith.constant 5.0000 : f32
+    %c0_i32 = arith.constant 0.000 : f32
     qoalahost.nop_term
   ^bb1:  // no predecessors
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
