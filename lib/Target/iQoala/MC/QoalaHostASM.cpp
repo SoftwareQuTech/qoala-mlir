@@ -51,9 +51,7 @@ namespace qoala::assembly {
         }
 
         InstrType type = UNKNOWN;
-        uint32_t i = 0;
         uint32_t numResults = 1;
-        iQoalaMCOperand *callee = nullptr;
 
         switch (opCode) {
             case OP_ASSIGN_CVAL:
@@ -109,7 +107,9 @@ namespace qoala::assembly {
                 type = CL;
                 break;
             case OP_RUN_SUBROUTINE:
-            case OP_RUN_REQUEST:
+            case OP_RUN_REQUEST: {
+                uint32_t i = 0;
+                iQoalaMCOperand *callee = nullptr;
                 // The total number of operands should be equals to the number of register references +
                 // the number of extra operands.
                 // We don't consider the number of the MLIR operation operands, since for call operations, we expect
@@ -140,6 +140,7 @@ namespace qoala::assembly {
                 numResults = resRegRefs.size();
                 type = CL;
                 break;
+            }
             case OP_RETURN_RESULT:
                 assert(mcOperands.size() == 1 &&
                        "QoalaHost instruction builder: return_result operation returns more than 1 value");
@@ -147,15 +148,24 @@ namespace qoala::assembly {
                        "QoalaHost instruction builder: return_result operation returns a value that is not a register");
                 type = CL;
                 break;
-            case OP_SEND_MSG:
+            case OP_SEND_MSG: {
+                // Since the value to send was passed as an "extraOperand", we need to fix the order of the
+                // operands. At this point mcOperands[0] is the value to send, and mcOperands[1] is the csocket
+                // reference. If we don't swap their positions, the send_cmsg instruction will be printed with
+                // the operands swapped.
+                iQoalaMCOperand *valueToSend = mcOperands[0];
+                iQoalaMCOperand *csocketReference = mcOperands[1];
+                mcOperands[1] = valueToSend;
+                mcOperands[0] = csocketReference;
                 assert(mcOperands.size() == 2 &&
                        "QoalaHost instruction builder: send_cmsg operation expected 2 operands.");
                 assert(mcOperands[0]->isLocalRegister() &&
-                       "QoalaHost instruction builder: send_cmsg csocket reference is not a local register");
-                assert(mcOperands[1]->isLocalRegister() &&
                        "QoalaHost instruction builder: send_cmsg sent value reference is not a local register");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: send_cmsg csocket reference is not a local register");
                 type = CC;
                 break;
+            }
             case OP_RECV_MSG:
                 assert(mcOperands.size() == 2 &&
                        "QoalaHost instruction builder: recv_cmsg operation expected 2 operands.");
