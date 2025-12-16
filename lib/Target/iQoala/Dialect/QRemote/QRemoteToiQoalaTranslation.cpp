@@ -20,17 +20,20 @@ static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, const Module
     // We analyze the usages of remoteOp. If there are classical comms, add classical socket declaration
     // with the remote. If there are quantum ops, also add EPR socket declaration with the remote.
     const auto remoteOpUses = remoteOp->getUses();
-    const bool classicalCommUse =
-            std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
-                Operation *use = opOperand.getOwner();
-                return llvm::isa<qoala::helpers::ClassicalCommInterface>(use);
-            });
-    const bool quantumCommUse =
-            std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
-                Operation *use = opOperand.getOwner();
-                return llvm::isa<EprsOp, EprsMeasureOp>(use);
-            });
-    moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr(), classicalCommUse, quantumCommUse);
+    const bool classicalCommUse = std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
+        Operation *use = opOperand.getOwner();
+        return llvm::isa<qoala::helpers::ClassicalCommInterface>(use);
+    });
+    const bool quantumCommUse = std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
+        Operation *use = opOperand.getOwner();
+        return llvm::isa<EprsOp, EprsMeasureOp>(use);
+    });
+    const bool addedRemote =
+            moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr(), classicalCommUse, quantumCommUse);
+    if (!addedRemote) {
+        remoteOp.emitWarning("Remote with name '" + remoteOp.getName() + "' is not used. " +
+                             "The remote reference was not added as an iQoala parameter.");
+    }
     return success();
 }
 

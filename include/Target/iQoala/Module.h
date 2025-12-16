@@ -16,7 +16,7 @@ namespace qoala::iqoala {
         iQoalaContext *getiQoalaContext() const;
 
         void setModuleName(mlir::StringRef newModuleName);
-        void addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true,
+        bool addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true,
                                   bool eprsSocket = true);
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();

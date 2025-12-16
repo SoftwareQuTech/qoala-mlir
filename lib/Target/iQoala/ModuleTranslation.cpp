@@ -144,9 +144,9 @@ namespace qoala::translate {
         return topFrameOp;
     }
 
-    void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName, const bool classicalSocket,
+    bool ModuleTranslation::addRemoteDeclaration(const StringRef remoteName, const bool classicalSocket,
                                                  const bool eprsSocket) const {
-        this->iQoalaModule->addRemoteDeclaration(remoteName, classicalSocket, eprsSocket);
+        return this->iQoalaModule->addRemoteDeclaration(remoteName, classicalSocket, eprsSocket);
     }
 
     std::optional<uint8_t> ModuleTranslation::getEPRSocketIDForRemote(const StringRef remoteName) const {
