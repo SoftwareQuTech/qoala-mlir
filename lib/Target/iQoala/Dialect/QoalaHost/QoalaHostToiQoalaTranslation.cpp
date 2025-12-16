@@ -163,6 +163,24 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     return success();
 }
 
+static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
+                                                               StringRef remoteName) {
+    const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
+    if (!eprsSocketID) {
+        op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+        return std::nullopt;
+    }
+
+    iQoalaMCOperand *remoteCSocketVal =
+            iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
+    const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_ASSIGN_CVAL, {}, {LOCAL}, {remoteCSocketVal},
+            /*useOpOperands=*/false);
+    // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
+    // We can get a reference to that by simply accessing the first operand of the new instruction.
+    return csocketInstr->getOperand(0);
+}
+
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -337,59 +355,67 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // Here we need to do 2 things:
                 // 1. Create a constant value that references the csocket from the META section
                 const StringRef remoteName = op.getRemote();
-                const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
-                if (!eprsSocketID) {
-                    return op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+                std::optional<iQoalaMCOperand *> csocketOperand =
+                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
+                if (!csocketOperand) {
+                    return failure();
                 }
-
-                iQoalaMCOperand *immediateVal =
-                        iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
-                const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL, {},
-                        {LOCAL}, {immediateVal});
-                // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
-                // We can get a reference to that by simply accessing the first operand of the new instruction.
-                iQoalaMCOperand *csocketOperand = csocketInstr->getOperand(0);
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
                 // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
                 //  Pass that reference as the second operand of the send_cmsg MC instruction
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {},
-                        {LOCAL}, {csocketOperand});
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {LOCAL},
+                        {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
-            .Case([&](const RecvFloatOp op) -> LogicalResult {
-                return op->emitOpError("Receiving float is not supported yet: '") << *op << "'\n";
+            .Case([&](RecvFloatOp op) -> LogicalResult {
+                // 1. Create a constant value that references the csocket from the META section
+                const StringRef remoteName = op.getRemote();
+                std::optional<iQoalaMCOperand *> csocketOperand =
+                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
+                if (!csocketOperand) {
+                    return failure();
+                }
+
+                // 2. Create the actual recv_cmsg MC instruction
+                const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_MSG, {op.getResult()}, {LOCAL},
+                        {csocketOperand.value()});
+                return recvInstr ? success() : failure();
             })
             .Case([&](SendIntOp op) -> LogicalResult {
                 // Here we need to do 2 things:
                 // 1. Create a constant value that references the csocket from the META section
                 const StringRef remoteName = op.getRemote();
-                const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
-                if (!eprsSocketID) {
-                    return op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+                std::optional<iQoalaMCOperand *> csocketOperand =
+                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
+                if (!csocketOperand) {
+                    return failure();
                 }
-
-                iQoalaMCOperand *immediateVal =
-                        iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
-                const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL, {},
-                        {LOCAL}, {immediateVal});
-                // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
-                // We can get a reference to that by simply accessing the first operand of the new instruction.
-                iQoalaMCOperand *csocketOperand = csocketInstr->getOperand(0);
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
                 // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
                 //  Pass that reference as the second operand of the send_cmsg MC instruction
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {},
-                        {LOCAL}, {csocketOperand});
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {LOCAL},
+                        {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
             .Case([&](RecvIntOp op) -> LogicalResult {
-                return op->emitOpError("Receiving float is not supported yet: '") << *op << "'\n";
+                // 1. Create a constant value that references the csocket from the META section
+                const StringRef remoteName = op.getRemote();
+                std::optional<iQoalaMCOperand *> csocketOperand =
+                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
+                if (!csocketOperand) {
+                    return failure();
+                }
+
+                // 2. Create the actual recv_cmsg MC instruction
+                const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_MSG, {op.getResult()}, {LOCAL},
+                        {csocketOperand.value()});
+                return recvInstr ? success() : failure();
             })
             // Plural versions of the classical comm ops
             .Case([](const SendFloatsOp op) -> LogicalResult {
