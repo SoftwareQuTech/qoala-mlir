@@ -404,7 +404,7 @@ namespace qoala::translate {
         moduleTranslation.iQoalaModule->deleteEmptyHostBlocks();
         if (failed(moduleTranslation.iQoalaModule->setQoalaHostBlockTypes())) {
             originalModule->emitError() << "Translation yielded a QoalaHost block of type QC, QL or CC "
-                                           "with more than 1 instruction";
+                                           "that does not match the required number of instructions";
             return nullptr;
         }
 

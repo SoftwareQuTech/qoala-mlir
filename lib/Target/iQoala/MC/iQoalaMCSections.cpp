@@ -123,9 +123,19 @@ namespace qoala::iqoala {
                 continue;
             }
             if (block->blockContainsRecvMsg()) {
-                if (block->getNumInstructions() != 1) {
+                // In this type of blocks we expect exactly 2 instructions
+                if (block->getNumInstructions() != 2) {
                     return failure();
                 }
+                // One should be an "assign_cval" that specifies the csocket ID
+                if (block->getInstruction(0)->getOpcode() != assembly::QoalaHostMCInstr::OP_ASSIGN_CVAL) {
+                    return failure();
+                }
+                // The other one should be the recv_msg itself
+                if (block->getInstruction(1)->getOpcode() != assembly::QoalaHostMCInstr::OP_RECV_MSG) {
+                    return failure();
+                }
+
                 block->setType(Block::CC);
             }
             // By default, block are CL type, so if none of the cases

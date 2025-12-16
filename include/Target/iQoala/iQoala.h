@@ -262,6 +262,16 @@ namespace qoala::iqoala {
         }
 
         [[nodiscard]]
+        assembly::QoalaHostMCInstr *getInstruction(const uint8_t index) const {
+            return this->instructions[index];
+        }
+
+        [[nodiscard]]
+        assembly::QoalaHostMCInstr *operator[](const uint8_t index) const {
+            return this->getInstruction(index);
+        }
+
+        [[nodiscard]]
         bool blockContainsRunRequest() const;
         [[nodiscard]]
         bool blockContainsRunSubRoutine() const;
