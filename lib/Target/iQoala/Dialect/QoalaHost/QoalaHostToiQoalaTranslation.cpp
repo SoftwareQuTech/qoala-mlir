@@ -333,17 +333,63 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             // Singular versions of the classical comm ops
-            .Case([](const SendFloatOp op) -> LogicalResult {
-                return op->emitOpError("Sending float is not supported yet: '") << *op << "'\n";
+            .Case([&](SendFloatOp op) -> LogicalResult {
+                // Here we need to do 2 things:
+                // 1. Create a constant value that references the csocket from the META section
+                const StringRef remoteName = op.getRemote();
+                const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
+                if (!eprsSocketID) {
+                    return op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+                }
+
+                iQoalaMCOperand *immediateVal =
+                        iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
+                const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL, {},
+                        {LOCAL}, {immediateVal});
+                // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
+                // We can get a reference to that by simply accessing the first operand of the new instruction.
+                iQoalaMCOperand *csocketOperand = csocketInstr->getOperand(0);
+
+                // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
+                // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
+                //  Pass that reference as the second operand of the send_cmsg MC instruction
+                const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {},
+                        {LOCAL}, {csocketOperand});
+                return sendCMSGInstr ? success() : failure();
             })
-            .Case([](const RecvFloatOp op) -> LogicalResult {
+            .Case([&](const RecvFloatOp op) -> LogicalResult {
                 return op->emitOpError("Receiving float is not supported yet: '") << *op << "'\n";
             })
-            .Case([](SendIntOp op) -> LogicalResult {
-                return success();
+            .Case([&](SendIntOp op) -> LogicalResult {
+                // Here we need to do 2 things:
+                // 1. Create a constant value that references the csocket from the META section
+                const StringRef remoteName = op.getRemote();
+                const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
+                if (!eprsSocketID) {
+                    return op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+                }
+
+                iQoalaMCOperand *immediateVal =
+                        iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
+                const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL, {},
+                        {LOCAL}, {immediateVal});
+                // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
+                // We can get a reference to that by simply accessing the first operand of the new instruction.
+                iQoalaMCOperand *csocketOperand = csocketInstr->getOperand(0);
+
+                // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
+                // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
+                //  Pass that reference as the second operand of the send_cmsg MC instruction
+                const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {},
+                        {LOCAL}, {csocketOperand});
+                return sendCMSGInstr ? success() : failure();
             })
-            .Case([](RecvIntOp op) -> LogicalResult {
-                return success();
+            .Case([&](RecvIntOp op) -> LogicalResult {
+                return op->emitOpError("Receiving float is not supported yet: '") << *op << "'\n";
             })
             // Plural versions of the classical comm ops
             .Case([](const SendFloatsOp op) -> LogicalResult {
@@ -354,11 +400,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
-            .Case([](SendIntsOp op) -> LogicalResult {
+            .Case([](const SendIntsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return success();
             })
-            .Case([](RecvIntsOp op) -> LogicalResult {
+            .Case([](const RecvIntsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return success();
             })

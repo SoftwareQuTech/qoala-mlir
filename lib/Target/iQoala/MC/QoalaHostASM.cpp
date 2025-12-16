@@ -25,8 +25,8 @@ namespace qoala::assembly {
             mcOperands.push_back(resultRegOperand);
         }
 
-        // If the operation yielded a result, it is assumed that the first operand contains the register reference for
-        // it
+        // If the operation yielded a result, it is assumed that the first operand contains the
+        // register reference for it
         if (mapResults) {
             for (uint32_t i = 0; i < resVals.size(); ++i) {
                 assert(mcOperands[i]->getRegRef()->isLocal() &&

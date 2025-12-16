@@ -244,9 +244,13 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 // The registration of the remote (remoteID and eprsSocketID)
                 // Search for the Remote name and its eprsSocketID in the module
                 const StringRef remoteName = op.getRemoteAttr().getValue();
-                const uint8_t eprsSocketID = module->getEPRSSocketIDForRemote(remoteName);
+                const std::optional<uint8_t> eprsSocketID = module->getEPRSSocketIDForRemote(remoteName);
+                if (!eprsSocketID) {
+                    op->emitOpError("Unknown EPRS socket ID for remote '" + remoteName + "'");
+                    return failure();
+                }
                 const std::string remoteParamName = module->getParamNameForRemote(remoteName.str());
-                reqRoutine->reportRemote(remoteParamName, eprsSocketID);
+                reqRoutine->reportRemote(remoteParamName, eprsSocketID.value());
                 return success();
             })
             .Case([](EprsMeasureOp op) -> LogicalResult {

@@ -79,11 +79,11 @@ namespace qoala::iqoala {
         return this->iQoalaProgram.netQASMSection.getRoutines();
     }
 
-    uint8_t iQoalaModule::getClassicalSocketIDForRemote(const StringRef &remoteName) const {
+    std::optional<uint8_t> iQoalaModule::getClassicalSocketIDForRemote(const StringRef &remoteName) const {
         return this->iQoalaProgram.metaSection.getClassicalSocketForRemote(remoteName.str());
     }
 
-    uint8_t iQoalaModule::getEPRSSocketIDForRemote(const StringRef &remoteName) const {
+    std::optional<uint8_t> iQoalaModule::getEPRSSocketIDForRemote(const StringRef &remoteName) const {
         return this->iQoalaProgram.metaSection.getEPRSSocketForRemote(remoteName.str());
     }
 

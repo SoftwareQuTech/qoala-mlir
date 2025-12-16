@@ -314,9 +314,9 @@ namespace qoala::iqoala {
         void addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID);
         void addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID);
         [[nodiscard]]
-        uint8_t getClassicalSocketForRemote(const std::string &remoteName) const;
+        std::optional<uint8_t> getClassicalSocketForRemote(const std::string &remoteName) const;
         [[nodiscard]]
-        uint8_t getEPRSSocketForRemote(const std::string &remoteName) const;
+        std::optional<uint8_t> getEPRSSocketForRemote(const std::string &remoteName) const;
         [[nodiscard]]
         std::string getParamNameForRemote(const std::string &remoteName) const;
         void setName(const std::string &programName);

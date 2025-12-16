@@ -66,12 +66,18 @@ namespace qoala::iqoala {
         this->eprsSocketsMap.emplace(remoteName, socketID);
     }
 
-    uint8_t MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
+        if (this->classicalSocketsMap.find(remoteName) != this->classicalSocketsMap.end()) {
+            return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
-    uint8_t MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
+        if (this->eprsSocketsMap.find(remoteName) != this->eprsSocketsMap.end()) {
+            return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
     std::string MetaSection::getParamNameForRemote(const std::string &remoteName) const {

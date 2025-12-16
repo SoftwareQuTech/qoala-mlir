@@ -57,7 +57,8 @@ namespace qoala::translate {
          * This class represents the "stack" when translating the module
          * It contains reference of the translated frames (starting from the MainFuncOp)
          * but also it keeps a map of the mapped MLIR values *in their respective scopes*.
-         * This allows mapping the same value multiple times, since it will be
+         * This allows mapping the same value multiple times, since mapping a value will
+         * be bound to the current scope on the stack.
          */
         class ModuleStack {
         public:
@@ -87,6 +88,10 @@ namespace qoala::translate {
         mlir::LogicalResult convertOperation(mlir::Operation &op);
         mlir::LogicalResult convertFunctionSignatures();
         void addRemoteDeclaration(llvm::StringRef remoteName) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getEPRSocketIDForRemote(llvm::StringRef remoteName) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getClassicalSocketIDForRemote(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
 
         /* Block-related functions */
@@ -116,6 +121,7 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
+        [[nodiscard]]
         std::optional<iqoala::Block *> findIdPrecedence(const llvm::StringRef &key) const;
 
         void addIdPrecedence(const llvm::StringRef &key, iqoala::Block *block) {
