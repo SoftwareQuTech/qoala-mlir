@@ -90,7 +90,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
 
 template<typename RotationOp>
 static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslation *moduleTranslation,
-                                                NetQASMMCInstr::OpCode opCode) {
+                                                const NetQASMMCInstr::OpCode opCode) {
     iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegRefForValue(op.getQ());
     assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
     const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);

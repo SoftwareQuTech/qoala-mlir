@@ -155,12 +155,8 @@ namespace qoala::assembly {
     uint32_t iQoalaMCInstruction::getNumOperands() const { return this->operands.size(); }
 
     bool iQoalaMCInstruction::hasPlaceholderOperand() const {
-        for (const iQoalaMCOperand *operand : this->operands) {
-            if (operand->isPlaceHolder()) {
-                return true;
-            }
-        }
-        return false;
+        return std::any_of(this->operands.begin(), this->operands.end(),
+                           [](const iQoalaMCOperand *operand) { return operand->isPlaceHolder(); });
     }
 
     void iQoalaMCInstruction::replaceOperand(const uint32_t i, iQoalaMCOperand *newOperand) {

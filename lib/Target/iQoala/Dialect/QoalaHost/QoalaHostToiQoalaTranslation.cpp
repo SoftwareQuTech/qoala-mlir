@@ -178,7 +178,9 @@ static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation
             /*useOpOperands=*/false);
     // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
     // We can get a reference to that by simply accessing the first operand of the new instruction.
-    return csocketInstr->getOperand(0);
+    // HOWEVER, we need to return a copy of tha reference to avoid a double free at the end.
+    return iQoalaMCOperand::createRegisterOperand(
+            iQoalaRegReference::createRegReference(csocketInstr->getOperand(0)->getRegRef()));
 }
 
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
