@@ -362,10 +362,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
-                // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
-                //  Pass that reference as the second operand of the send_cmsg MC instruction
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {LOCAL},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {},
                         {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
@@ -395,10 +393,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
-                // TODO - Get the *single* operand of the send_float op, and map it to the iQoalaRegref.
-                //  Pass that reference as the second operand of the send_cmsg MC instruction
                 const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {LOCAL},
+                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_MSG, {}, {},
                         {csocketOperand.value()});
                 return sendCMSGInstr ? success() : failure();
             })
