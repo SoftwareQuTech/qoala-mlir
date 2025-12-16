@@ -28,7 +28,7 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
     ];
 }
 
-def ClassicaCommInterface : OpInterface<"ClassicaCommInterface"> {
+def ClassicalCommInterface : OpInterface<"ClassicalCommInterface"> {
     let description = [{
         Interface for QoalaHost operations representing classical communication.
     }];

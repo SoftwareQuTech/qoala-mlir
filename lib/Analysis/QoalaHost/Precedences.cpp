@@ -233,7 +233,7 @@ namespace qoala::analysis::precedences {
 
         llvm::DenseMap<Block *, MemEffectInfo> callSiteEffects;
 
-        auto classicalCommOps = mainFunc.getOps<helpers::ClassicaCommInterface>();
+        auto classicalCommOps = mainFunc.getOps<helpers::ClassicalCommInterface>();
         for (auto classicalCommOp : classicalCommOps) {
             commOps.push_back(classicalCommOp.getOperation());
         }
