@@ -268,14 +268,6 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 (void) moduleTranslation->popFrame();
                 return success();
             })
-            .Case([](SendIntOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
-            .Case([](RecvIntOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
             .Case([](NopTOp op) -> LogicalResult {
                 // There is nothing to do here
                 return success();
@@ -299,8 +291,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                         return failure();
                     }
                 }
-                const StringRef prevComm = op.getPrevCommAttr().getValue();
-                if (!prevComm.empty()) {
+                if (const StringRef prevComm = op.getPrevCommAttr().getValue(); !prevComm.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
                         block->setPrevComm(blk.value());
                     } else {
@@ -309,8 +300,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 } else {
                     block->setPrevComm(nullptr);
                 }
-                const StringRef prevEnt = op.getPrevEntAttr().getValue();
-                if (!prevEnt.empty()) {
+                if (const StringRef prevEnt = op.getPrevEntAttr().getValue(); !prevEnt.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
                         block->setPrevEnt(blk.value());
                     } else {
@@ -331,7 +321,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
 
                     if (auto predecessor = moduleTranslation->findIdPrecedence(key)) {
-                        const uint32_t deadline = static_cast<uint32_t>(intAttr.getInt());
+                        const auto deadline = static_cast<uint32_t>(intAttr.getInt());
                         block->addDeadline(predecessor.value(), deadline);
                     } else {
                         return failure();
@@ -342,13 +332,35 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 moduleTranslation->addIdPrecedence(op.getBlockId(), block);
                 return success();
             })
+            // Singular versions of the classical comm ops
             .Case([](const SendFloatOp op) -> LogicalResult {
+                return op->emitOpError("Sending float is not supported yet: '") << *op << "'\n";
+            })
+            .Case([](const RecvFloatOp op) -> LogicalResult {
+                return op->emitOpError("Receiving float is not supported yet: '") << *op << "'\n";
+            })
+            .Case([](SendIntOp op) -> LogicalResult {
+                return success();
+            })
+            .Case([](RecvIntOp op) -> LogicalResult {
+                return success();
+            })
+            // Plural versions of the classical comm ops
+            .Case([](const SendFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
-            .Case([](const RecvFloatOp op) -> LogicalResult {
+            .Case([](const RecvFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
+            })
+            .Case([](SendIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
+            })
+            .Case([](RecvIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QoalaHost operation to iQoala: '") << *op << "'\n";
