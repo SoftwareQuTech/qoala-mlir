@@ -148,11 +148,19 @@ namespace qoala::assembly {
                 type = CL;
                 break;
             case OP_SEND_MSG:
-                // TODO - assert the operands
+                assert(mcOperands.size() == 2 &&
+                       "QoalaHost instruction builder: send_cmsg operation expected 2 operands.");
+                assert(mcOperands[0]->isLocalRegister() &&
+                       "QoalaHost instruction builder: send_cmsg csocket reference is not a local register");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: send_cmsg sent value reference is not a local register");
                 type = CC;
                 break;
             case OP_RECV_MSG:
-                // TODO - assert the operands
+                assert(mcOperands.size() == 2 &&
+                       "QoalaHost instruction builder: recv_cmsg operation expected 2 operands.");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: recv_cmsg csocket reference is not a local register");
                 type = CC;
                 break;
             case OP_BI_COND_MULTIPLY:
