@@ -283,4 +283,3 @@ FlatSymbolRefAttr qoalahost::RecvIntsOp::getUsedRemoteAttr() { return this->getR
 StringRef qoalahost::RecvFloatsOp::getUsedRemoteName() { return this->getRemote(); }
 
 FlatSymbolRefAttr qoalahost::RecvFloatsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
