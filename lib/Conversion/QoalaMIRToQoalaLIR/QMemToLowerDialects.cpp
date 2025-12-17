@@ -6,6 +6,7 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
@@ -153,6 +154,14 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         if (failed(analysis::precedences::addPrecedences(module))) {
+            signalPassFailure();
+        }
+
+        // Stage 6: Insert socket IDs placeholders.
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Adding Socket IDs placeholders *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        if (failed(analysis::remoteids::addRemoteIDs(module))) {
             signalPassFailure();
         }
     }
