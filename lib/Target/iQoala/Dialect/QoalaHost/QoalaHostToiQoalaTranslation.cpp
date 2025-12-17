@@ -183,6 +183,35 @@ static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation
             iQoalaRegReference::createRegReference(csocketInstr->getOperand(0)->getRegRef()));
 }
 
+static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const StringRef &remoteName) {
+    // Here we need to do 2 things:
+    // 1. Create a constant value that references the csocket from the META section
+    std::optional<iQoalaMCOperand *> csocketOperand = addSocketRefAssignCVal(moduleTranslation, op, remoteName);
+    if (!csocketOperand) {
+        return failure();
+    }
+
+    // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
+    const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand.value()});
+    return sendCMSGInstr ? success() : failure();
+}
+
+static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const Value &opResult, const StringRef &remoteName) {
+    // 1. Create a constant value that references the csocket from the META section
+    std::optional<iQoalaMCOperand *> csocketOperand = addSocketRefAssignCVal(moduleTranslation, op, remoteName);
+    if (!csocketOperand) {
+        return failure();
+    }
+
+    // 2. Create the actual recv_cmsg MC instruction
+    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand.value()});
+    return recvInstr ? success() : failure();
+}
+
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -353,67 +382,27 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 return success();
             })
             // Singular versions of the classical comm ops
-            .Case([&](SendFloatOp op) -> LogicalResult {
-                // Here we need to do 2 things:
-                // 1. Create a constant value that references the csocket from the META section
-                const StringRef remoteName = op.getRemote();
-                std::optional<iQoalaMCOperand *> csocketOperand =
-                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
-                if (!csocketOperand) {
-                    return failure();
-                }
-
-                // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
-                const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_CMSG, {}, {},
-                        {csocketOperand.value()});
-                return sendCMSGInstr ? success() : failure();
-            })
-            .Case([&](RecvFloatOp op) -> LogicalResult {
-                // 1. Create a constant value that references the csocket from the META section
-                const StringRef remoteName = op.getRemote();
-                std::optional<iQoalaMCOperand *> csocketOperand =
-                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
-                if (!csocketOperand) {
-                    return failure();
-                }
-
-                // 2. Create the actual recv_cmsg MC instruction
-                const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_CMSG, {op.getResult()}, {LOCAL},
-                        {csocketOperand.value()});
-                return recvInstr ? success() : failure();
-            })
             .Case([&](SendIntOp op) -> LogicalResult {
-                // Here we need to do 2 things:
-                // 1. Create a constant value that references the csocket from the META section
-                const StringRef remoteName = op.getRemote();
-                std::optional<iQoalaMCOperand *> csocketOperand =
-                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
-                if (!csocketOperand) {
-                    return failure();
-                }
-
-                // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
-                const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SEND_CMSG, {}, {},
-                        {csocketOperand.value()});
-                return sendCMSGInstr ? success() : failure();
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
+            })
+            .Case([&](SendFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a send_int operation.
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
             })
             .Case([&](RecvIntOp op) -> LogicalResult {
-                // 1. Create a constant value that references the csocket from the META section
-                const StringRef remoteName = op.getRemote();
-                std::optional<iQoalaMCOperand *> csocketOperand =
-                        addSocketRefAssignCVal(moduleTranslation, op.getOperation(), remoteName);
-                if (!csocketOperand) {
-                    return failure();
-                }
-
-                // 2. Create the actual recv_cmsg MC instruction
-                const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                        moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RECV_CMSG, {op.getResult()}, {LOCAL},
-                        {csocketOperand.value()});
-                return recvInstr ? success() : failure();
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
+            })
+            .Case([&](RecvFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a recv_int operation.
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
             })
             // Plural versions of the classical comm ops
             .Case([](const SendFloatsOp op) -> LogicalResult {
