@@ -34,4 +34,21 @@ def ClassicalCommInterface : OpInterface<"ClassicalCommInterface"> {
     }];
     let cppNamespace = "qoala::helpers";
 }
+
+def UsesRemoteInterface : OpInterface<"UsesRemoteInterface"> {
+    let description = [{
+        Interface for QoalaHost and NetQASM operations that use a remote reference.
+    }];
+    let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Returns a StringRef with the name of the used remote.
+        }], "llvm::StringRef", "getUsedRemoteName", (ins)
+        >,
+        InterfaceMethod<[{
+            Returns remote attribute used by this operation
+        }], "mlir::FlatSymbolRefAttr", "getUsedRemoteAttr", (ins)
+        >
+    ];
+}
 #endif // GENERIC_IFACES_TD

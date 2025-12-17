@@ -205,7 +205,7 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
 
 def SendIntOp : UsingRemote_Op<"send_int", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins I32:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -225,7 +225,7 @@ def SendIntOp : UsingRemote_Op<"send_int", [
  */
 def RecvIntOp : UsingRemote_Op<"recv_int", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs I32:$cout);
     let assemblyFormat = [{
@@ -235,7 +235,7 @@ def RecvIntOp : UsingRemote_Op<"recv_int", [
 
 def SendFloatOp : UsingRemote_Op<"send_float", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins F32:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -244,7 +244,7 @@ def SendFloatOp : UsingRemote_Op<"send_float", [
 
 def RecvFloatOp : UsingRemote_Op<"recv_float", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote);
     let results = (outs F32:$cout);
     let assemblyFormat = [{
@@ -257,7 +257,7 @@ def RecvFloatOp : UsingRemote_Op<"recv_float", [
  */
 def SendIntsOp : UsingRemote_Op<"send_ints", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -268,7 +268,7 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [
 
 def RecvIntsOp : UsingRemote_Op<"recv_ints", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
@@ -280,7 +280,7 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [
 
 def SendFloatsOp : UsingRemote_Op<"send_floats", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
@@ -291,7 +291,7 @@ def SendFloatsOp : UsingRemote_Op<"send_floats", [
 
 def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
-    DeclareOpInterfaceMethods<ClassicalCommInterface>]> {
+    DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
     //  it should have been lowered to memref. This issue will be addressed by #72
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);

@@ -117,6 +117,14 @@ uint32_t netqasm::EprsMeasureOp::getDuration() {
     return options::qoalaOptLinkDuration + options::qoalaOptSingleGateDuration;
 }
 
+StringRef netqasm::EprsMeasureOp::getUsedRemoteName() { return this->getRemote(); }
+
+FlatSymbolRefAttr netqasm::EprsMeasureOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
+
+StringRef netqasm::EprsOp::getUsedRemoteName() { return this->getRemote(); }
+
+FlatSymbolRefAttr netqasm::EprsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
+
 std::string netqasm::NetQASMDialect::getAllowedDialectNames() {
     return getDialectNamesList<
 #define GET_ALLOWED_DIALECTS
