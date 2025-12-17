@@ -353,4 +353,17 @@ def BlkMeta : QoalaHost_Op<"blk_meta", [HasParent<"MainFuncOp">]> {
   }];
 }
 
+def RemoteIDRefOp : QoalaHost_Op<"remote_id_ref", [HasParent<"MainFuncOp">]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let summary = [{
+        A placeholder operation that represents a socket ID (either classical or
+        quantum) that will be filled when translating LIR to iQoala.
+        By itself, this operation carries no semantics, but it is helpful to get
+        closer to the iQoala format in HIR.
+    }];
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
 #endif // QOALAHOST_OPS_TD
