@@ -154,7 +154,7 @@ namespace qoala::translate {
     }
 
     std::optional<uint8_t> ModuleTranslation::getClassicalSocketIDForRemote(const StringRef remoteName) const {
-        return this->iQoalaModule->getEPRSSocketIDForRemote(remoteName);
+        return this->iQoalaModule->getClassicalSocketIDForRemote(remoteName);
     }
 
     void ModuleTranslation::setModuleName(const StringRef moduleName) const {

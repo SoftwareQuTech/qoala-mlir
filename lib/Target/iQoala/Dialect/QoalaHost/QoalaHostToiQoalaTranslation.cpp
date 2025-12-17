@@ -165,9 +165,9 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
 
 static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
                                                                StringRef remoteName) {
-    const std::optional<uint8_t> eprsSocketID = moduleTranslation->getEPRSocketIDForRemote(remoteName);
+    const std::optional<uint8_t> eprsSocketID = moduleTranslation->getClassicalSocketIDForRemote(remoteName);
     if (!eprsSocketID) {
-        op->emitError("Remote with name '") << remoteName << "' was found in the META section.";
+        op->emitError("Remote with name '") << remoteName << "' was not found in the META section.";
         return std::nullopt;
     }
 
