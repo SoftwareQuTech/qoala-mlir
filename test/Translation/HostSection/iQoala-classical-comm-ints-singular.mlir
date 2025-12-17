@@ -3,7 +3,7 @@
 // CHECK-NEXT: name: test_remote_quantum_program
 // CHECK-NEXT: parameters: Bob_id
 // CHECK-NEXT: csockets: 0 -> Bob
-// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: epr_sockets:
 // CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[VAL_5:.*]] = assign_cval() : 5

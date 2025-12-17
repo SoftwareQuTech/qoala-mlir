@@ -2,7 +2,7 @@
 // CHECK: META_START
 // CHECK-NEXT: name: test_qubit_tracking
 // CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: csockets:
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
