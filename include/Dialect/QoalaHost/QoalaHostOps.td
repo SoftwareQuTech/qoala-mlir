@@ -22,6 +22,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QoalaHost/QoalaHostDialect.td"
 include "Analysis/Helpers/GenericInterfaces.td"
+include "Analysis/Helpers/QoalaHostInterfaces.td"
 
 
 class QoalaHost_Op<string mnemonic, list<Trait> traits = []> :

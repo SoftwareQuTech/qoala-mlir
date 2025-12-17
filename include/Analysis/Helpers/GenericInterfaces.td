@@ -28,13 +28,6 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
     ];
 }
 
-def ClassicalCommInterface : OpInterface<"ClassicalCommInterface"> {
-    let description = [{
-        Interface for QoalaHost operations representing classical communication.
-    }];
-    let cppNamespace = "qoala::helpers";
-}
-
 def UsesRemoteInterface : OpInterface<"UsesRemoteInterface"> {
     let description = [{
         Interface for QoalaHost and NetQASM operations that use a remote reference.
