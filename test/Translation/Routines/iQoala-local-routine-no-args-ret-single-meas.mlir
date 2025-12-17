@@ -1,9 +1,9 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META_START
 // CHECK-NEXT: name: test_call_local_routine
-// CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
-// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: parameters:
+// CHECK-NEXT: csockets:
+// CHECK-NEXT: epr_sockets:
 // CHECK-NEXT: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
@@ -27,7 +27,6 @@
 // CHECK-NEXT: NETQASM_END
 
 module {
-  qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> i1 {
     %0 = netqasm.qalloc  : i32
