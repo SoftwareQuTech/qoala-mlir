@@ -116,7 +116,7 @@ namespace qoala::conversion {
         configureQMemToQRemoteTarget(qMemToQRemoteTarget);
         populateQMemToQRemotePatterns(context, qMemToQRemotePatterns, typeConverter);
 
-        // Stage 6: Lower the remote declarations
+        // Stage 1: Lower the remote declarations
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering Remote declarations *\n");
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
@@ -124,7 +124,7 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 7: Convert QMem to QoalaHost
+        // Stage 2: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
@@ -132,7 +132,7 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 8: Convert QMem to QoalaHost
+        // Stage 3: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
@@ -140,7 +140,7 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 9: Move Entanglement Blocks at the beginning
+        // Stage 4: Move Entanglement Blocks at the beginning
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Moving Entanglement Blocks *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
@@ -148,7 +148,7 @@ namespace qoala::conversion {
             analysis::reordering::groupEntanglementBlocksFirst(module);
         }
 
-        // Stage 9: Add Block Precedences
+        // Stage 5: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");

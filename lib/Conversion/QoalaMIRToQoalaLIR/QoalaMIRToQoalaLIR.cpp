@@ -88,7 +88,7 @@ namespace qoala::conversion {
         // According to the MLIR programmer manual, each pass *must* leave valid IR
         // after running:
         // https://mlir.llvm.org/getting_started/DeveloperGuide/#ir-should-be-valid-before-and-after-each-pass
-        // For this reason, we group app the transformations in a single pass
+        // For this reason, we group all the MIR to LIR logic in a single pass
         passManager.addPass(createLowerQMemToLowerDialects());
 
         LLVM_DEBUG(llvm::dbgs() << "pass pipeline:\n");

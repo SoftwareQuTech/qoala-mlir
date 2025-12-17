@@ -522,17 +522,18 @@ namespace qoala::analysis {
     } // namespace reordering
 
     namespace qubitlife {
-
         // Conceptually different from reordering::MILPTask
         // Represent smaller tasks that alwasy end with either
         // an init, measure or two-quit op.
         class Task {
         public:
-            Task(std::string n = "", uint32_t t = 0): name(n), time(t) { }
+            explicit Task(std::string n, const uint32_t t): name(std::move(n)), time(t) { }
 
-            std::string getName() const { return name; }
+            [[nodiscard]]
+            std::string getName() const { return this->name; }
 
-            uint32_t getTime() const { return time; }
+            [[nodiscard]]
+            uint32_t getTime() const { return this->time; }
 
         private:
             std::string name;
@@ -545,11 +546,12 @@ namespace qoala::analysis {
              */
 
         public:
-            LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
+            explicit LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
 
-            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { twoQubitOp_ = twoQubitOp; }
+            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { this->twoQubitOp_ = twoQubitOp; }
 
-            reordering::MILPOperation *getTwoQubitOp() const { return twoQubitOp_; }
+            [[nodiscard]]
+            reordering::MILPOperation *getTwoQubitOp() const { return this->twoQubitOp_; }
 
         private:
             reordering::MILPOperation *twoQubitOp_;
@@ -557,10 +559,14 @@ namespace qoala::analysis {
 
         class QoalaHostQubitLifetime {
         public:
-            QoalaHostQubitLifetime(mlir::Operation *op);
+            explicit QoalaHostQubitLifetime(mlir::Operation *op);
 
+            /**
+             * Return the computed qubit life times.
+             * @return A map with the computed qubit life times
+             */
             [[nodiscard]]
-            std::unordered_map<std::string, uint32_t> getLifetimes() const;
+            std::unordered_map<std::string, uint32_t> getLifetimes() const { return this->qubitLifeTimes; }
 
         private:
             // A map from qubits IDs to their init and measure tasks IDs.
