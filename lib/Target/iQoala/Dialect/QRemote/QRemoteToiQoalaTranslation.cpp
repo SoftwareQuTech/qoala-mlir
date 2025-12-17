@@ -1,5 +1,7 @@
 #include "Target/iQoala/Dialect/QRemote/QRemoteToiQoalaTranslation.h"
 
+#include "Analysis/Helpers/NetQASMInterfaces.h"
+#include "Analysis/Helpers/QoalaHostInterfaces.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QRemote/QRemote.h"
 #include "Target/iQoala/ModuleTranslation.h"
@@ -11,22 +13,34 @@
 
 #define DEBUG_TYPE "qremote-translation"
 
+using namespace llvm;
 using namespace mlir;
 using namespace qoala::translate;
-using namespace qoala::dialects::qremote;
-using namespace qoala::dialects::netqasm;
+using namespace qoala::dialects;
 
-static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, const ModuleTranslation *moduleTranslation) {
+static LogicalResult translateRemoteDeclaration(qremote::RemoteOp &remoteOp,
+                                                const ModuleTranslation *moduleTranslation) {
     // We analyze the usages of remoteOp. If there are classical comms, add classical socket declaration
     // with the remote. If there are quantum ops, also add EPR socket declaration with the remote.
-    const auto remoteOpUses = remoteOp->getUses();
-    const bool classicalCommUse = std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
-        Operation *use = opOperand.getOwner();
-        return llvm::isa<qoala::helpers::ClassicalCommInterface>(use);
-    });
-    const bool quantumCommUse = std::any_of(remoteOpUses.begin(), remoteOpUses.end(), [](const OpOperand &opOperand) {
-        Operation *use = opOperand.getOwner();
-        return llvm::isa<EprsOp, EprsMeasureOp>(use);
+    auto module = remoteOp->getParentOfType<ModuleOp>();
+    const StringRef usedRemoteName = remoteOp.getName();
+    bool classicalCommUse = false;
+    bool quantumCommUse = false;
+    bool *classCommUsePtr = &classicalCommUse;
+    bool *quantumCommUsePtr = &quantumCommUse;
+
+    module.walk([&](qoala::helpers::UsesRemoteInterface commOp) -> WalkResult {
+        if (isa<qoalahost::ifaces::ClassicalCommInterface>(commOp.getOperation())) {
+            if (commOp.getUsedRemoteName() == usedRemoteName) {
+                *classCommUsePtr = true;
+            }
+        }
+        if (isa<netqasm::ifaces::EntangledQubitOp>(commOp.getOperation())) {
+            if (commOp.getUsedRemoteName() == usedRemoteName) {
+                *quantumCommUsePtr = true;
+            }
+        }
+        return WalkResult::advance();
     });
     const bool addedRemote =
             moduleTranslation->addRemoteDeclaration(remoteOp.getSymNameAttr(), classicalCommUse, quantumCommUse);
@@ -39,7 +53,9 @@ static LogicalResult translateRemoteDeclaration(RemoteOp &remoteOp, const Module
 
 static LogicalResult translateQRemoteOperation(Operation *operation, const ModuleTranslation *moduleTranslation) {
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
-            .Case([&](RemoteOp op) -> LogicalResult { return translateRemoteDeclaration(op, moduleTranslation); })
+            .Case([&](qremote::RemoteOp op) -> LogicalResult {
+                return translateRemoteDeclaration(op, moduleTranslation);
+            })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QRemote operation to iQoala: '") << *op << "'\n";
             });
