@@ -65,6 +65,21 @@ namespace qoala::analysis::isolate {
     }
 
     void createNewEmptyFirstBlock(ConversionPatternRewriter &rewriter, qoalahost::MainFuncOp &mainFunc) {
+        // Check if any of the declared remotes is used; If it is, we know we have to create an empty
+        // block for the socket IDs placeholders
+        auto module = mainFunc->getParentOfType<ModuleOp>();
+        const auto remoteDeclarations = module.getOps<qremote::RemoteOp>();
+        const bool anyRemoteIsUsed =
+                std::any_of(remoteDeclarations.begin(), remoteDeclarations.end(), [&](qremote::RemoteOp op) {
+                    if (!op.getSymbolUses(mainFunc)->empty()) {
+                        return true;
+                    }
+                    return false;
+                });
+        if (!anyRemoteIsUsed) {
+            return;
+        }
+        // At this point we know we have to create an empty block
         Block &firstBlock = mainFunc.front();
         Operation &firstOperation = firstBlock.front();
         // We split the first block at the first operation. This method returns a new Block pointer,
@@ -81,9 +96,20 @@ namespace qoala::analysis::isolate {
         const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
         assert(!mainFuncs.empty() && "No main function? This is embarrassing");
         auto mainFunc = *mainFuncs.begin();
-        if (Block &firstBlock = mainFunc.front(); firstBlock.getOperations().size() == 1) {
-            assert(isa<qoalahost::NopTOp>(firstBlock.front()) && "Single operation of an empty"
-                                                                 "block is not a NopTOp.");
+        LLVM_DEBUG(llvm::dbgs() << "+++++++++++++ Module:\n" << module << "\n");
+        Block &firstBlock = mainFunc.front();
+        if (firstBlock.getOperations().size() == 1 && isa<qoalahost::NopTOp>(firstBlock.front())) {
+            // This is a safety check. When translating the qmem:FuncOp into qoalahost::MainFuncOp we
+            // create the empty block for the socket IDs *only* if the remote (symbol) is used somewhere
+            // inside the MainFuncOp. If this is not the case, the block is not created.
+            // This additional avoids ending up with a case where we need to delete an unnecessary block
+            // that defines arguments of the main function. Deleting such a block would result on a failure,
+            // due to the block still having "uses" (use of the arguments).
+            for (auto blockArgument : firstBlock.getArguments()) {
+                assert(!blockArgument.getUses().empty() && "Trying to delete a frist block whose arguments"
+                                                           "has uses. This is a bug on the implementation.");
+            }
+            // We only delete the first block, if it has one operation, and it is a NopTOp
             firstBlock.erase();
         }
     }
