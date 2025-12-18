@@ -468,10 +468,14 @@ namespace qoala::analysis {
             explicit Task(std::string n, const uint32_t t): name(std::move(n)), time(t) { }
 
             [[nodiscard]]
-            std::string getName() const { return this->name; }
+            std::string getName() const {
+                return this->name;
+            }
 
             [[nodiscard]]
-            uint32_t getTime() const { return this->time; }
+            uint32_t getTime() const {
+                return this->time;
+            }
 
         private:
             std::string name;
@@ -489,7 +493,9 @@ namespace qoala::analysis {
             void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { this->twoQubitOp_ = twoQubitOp; }
 
             [[nodiscard]]
-            reordering::MILPOperation *getTwoQubitOp() const { return this->twoQubitOp_; }
+            reordering::MILPOperation *getTwoQubitOp() const {
+                return this->twoQubitOp_;
+            }
 
         private:
             reordering::MILPOperation *twoQubitOp_;
@@ -504,7 +510,9 @@ namespace qoala::analysis {
              * @return A map with the computed qubit life times
              */
             [[nodiscard]]
-            std::unordered_map<std::string, uint32_t> getLifetimes() const { return this->qubitLifeTimes; }
+            std::unordered_map<std::string, uint32_t> getLifetimes() const {
+                return this->qubitLifeTimes;
+            }
 
         private:
             // A map from qubits IDs to their init and measure tasks IDs.

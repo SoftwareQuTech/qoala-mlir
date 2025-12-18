@@ -2,8 +2,8 @@
 #include "Analysis/Helpers/NetQASMInterfaces.h"
 #include "Analysis/Helpers/QoalaHostInterfaces.h"
 #include "Analysis/QoalaHost/RemoteIDs.h"
-#include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/QRemote/QRemote.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "add-remote-id-placeholders"
 

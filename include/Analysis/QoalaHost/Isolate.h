@@ -70,8 +70,7 @@ namespace qoala::analysis::isolate {
      * terminators as needed
      * @param mainFunc The MainFuncOp operation on which to insert the new block in.
      */
-    void createNewEmptyFirstBlock(mlir::ConversionPatternRewriter &rewriter,
-                                  dialects::qoalahost::MainFuncOp &mainFunc);
+    void createNewEmptyFirstBlock(mlir::ConversionPatternRewriter &rewriter, dialects::qoalahost::MainFuncOp &mainFunc);
 
     /**
      * Get the MainFuncOp from the given MLIR module and checks the first block.
@@ -80,6 +79,6 @@ namespace qoala::analysis::isolate {
      * @param module The MLIR module to analyze.
      */
     void removeFirstBlockFromMainFuncIfEmpty(mlir::ModuleOp &module);
-} // namespace isolate
+} // namespace qoala::analysis::isolate
 
 #endif // QOALA_MLIR_ISOLATE_H

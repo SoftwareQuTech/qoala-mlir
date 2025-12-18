@@ -6,8 +6,8 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
-#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Analysis/QoalaHost/Isolate.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
