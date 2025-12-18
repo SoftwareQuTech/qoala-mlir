@@ -126,6 +126,8 @@ namespace qoala::conversion {
         }
 
         // Stage 2: Convert QMem to QoalaHost
+        // This stage will insert an empty block at the beginning, which will be populated
+        // in stage 4 if needed
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
@@ -141,7 +143,18 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 4: Move Entanglement Blocks at the beginning
+        // Stage 4: Insert socket IDs placeholders.
+        // We perform this *before* block (re)ordering analysis.
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Adding Socket IDs placeholders *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        if (failed(analysis::remoteids::addRemoteIDs(module))) {
+            signalPassFailure();
+        }
+        // TODO - If after this application, the first block is still empty, we can safely
+        //  remote the first block.
+
+        // Stage 5: Move Entanglement Blocks at the beginning
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Moving Entanglement Blocks *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
@@ -149,19 +162,11 @@ namespace qoala::conversion {
             analysis::reordering::groupEntanglementBlocksFirst(module);
         }
 
-        // Stage 5: Add Block Precedences
+        // Stage 6: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         if (failed(analysis::precedences::addPrecedences(module))) {
-            signalPassFailure();
-        }
-
-        // Stage 6: Insert socket IDs placeholders.
-        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
-        LLVM_DEBUG(llvm::dbgs() << "* Adding Socket IDs placeholders *\n");
-        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
-        if (failed(analysis::remoteids::addRemoteIDs(module))) {
             signalPassFailure();
         }
     }
