@@ -7,7 +7,7 @@ def SimpleCloneInterface : OpInterface<"SimpleCloneInterface"> {
     let description = [{
         Interface for operations that can be cloned in a simple way
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns a clone of this operation
@@ -21,7 +21,7 @@ def OpQubitsInterface : OpInterface<"OpQubitsInterface"> {
     let description = [{
         Interface used to simply return the qubit values of the operation
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns a vector of the operations that define the qubits used by this operation
@@ -34,7 +34,7 @@ def DefineQubitsInterface : OpInterface<"DefineQubitsInterface"> {
     let description = [{
         Interface used to identify an operaiton that defines the value of a qubit
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns a vector of the oprtations that define the qubits used by this operation
@@ -47,7 +47,7 @@ def EntangleInterface : OpInterface<"EntangleInterface"> {
     let description = [{
         Interface for Operations that have the Entangle trait in Qmem.
     }];
-    let cppNamespace = "::qoala::helpers";
+    let cppNamespace = "qoala::helpers";
     let methods = [
         InterfaceMethod<[{
             Returns the remote of the Eprs operation.

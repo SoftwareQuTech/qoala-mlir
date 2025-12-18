@@ -30,7 +30,7 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
 
 def UsesRemoteInterface : OpInterface<"UsesRemoteInterface"> {
     let description = [{
-        Interface for QoalaHost and NetQASM operations that use a remote reference.
+        Interface for QMem, QoalaHost and NetQASM operations that use a remote reference.
     }];
     let cppNamespace = "qoala::helpers";
     let methods = [
