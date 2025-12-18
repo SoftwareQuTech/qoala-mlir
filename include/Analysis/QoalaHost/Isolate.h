@@ -72,6 +72,14 @@ namespace qoala::analysis::isolate {
      */
     void createNewEmptyFirstBlock(mlir::ConversionPatternRewriter &rewriter,
                                   dialects::qoalahost::MainFuncOp &mainFunc);
+
+    /**
+     * Get the MainFuncOp from the given MLIR module and checks the first block.
+     * If it's empty (i.e. it contains only a single terminator operation), then
+     * it deletes the block, since it is considered to be empty.
+     * @param module The MLIR module to analyze.
+     */
+    void removeFirstBlockFromMainFuncIfEmpty(mlir::ModuleOp &module);
 } // namespace isolate
 
 #endif // QOALA_MLIR_ISOLATE_H

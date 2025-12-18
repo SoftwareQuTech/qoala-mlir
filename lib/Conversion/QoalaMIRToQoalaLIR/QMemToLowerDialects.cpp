@@ -7,6 +7,7 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/QoalaHost/RemoteIDs.h"
+#include "Analysis/QoalaHost/Isolate.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
@@ -151,8 +152,9 @@ namespace qoala::conversion {
         if (failed(analysis::remoteids::addRemoteIDs(module))) {
             signalPassFailure();
         }
-        // TODO - If after this application, the first block is still empty, we can safely
-        //  remote the first block.
+        // If after this application, the first block is still empty, we can safely
+        // remote the first block.
+        analysis::isolate::removeFirstBlockFromMainFuncIfEmpty(module);
 
         // Stage 5: Move Entanglement Blocks at the beginning
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");

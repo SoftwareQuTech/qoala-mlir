@@ -76,4 +76,15 @@ namespace qoala::analysis::isolate {
         rewriter.setInsertionPoint(&firstBlock, firstBlock.begin());
         rewriter.create<qoalahost::NopTOp>(firstOperation.getLoc());
     }
+
+    void removeFirstBlockFromMainFuncIfEmpty(ModuleOp &module) {
+        const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main function? This is embarrassing");
+        auto mainFunc = *mainFuncs.begin();
+        if (Block &firstBlock = mainFunc.front(); firstBlock.getOperations().size() == 1) {
+            assert(isa<qoalahost::NopTOp>(firstBlock.front()) && "Single operation of an empty"
+                                                                 "block is not a NopTOp.");
+            firstBlock.erase();
+        }
+    }
 } // namespace qoala::analysis::isolate
