@@ -4,6 +4,8 @@
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
+#include "Analysis/QoalaHost/Isolate.h"
+
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "mir-to-lir-patterns"

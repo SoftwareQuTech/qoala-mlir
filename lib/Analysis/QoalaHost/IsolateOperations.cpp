@@ -1,4 +1,4 @@
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Isolate.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #include "llvm/Support/Debug.h"
