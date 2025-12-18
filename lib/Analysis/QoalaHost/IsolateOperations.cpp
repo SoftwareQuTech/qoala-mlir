@@ -1,3 +1,4 @@
+#include "Analysis/Helpers/GenericInterfaces.h"
 #include "Analysis/QoalaHost/Isolate.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
@@ -68,13 +69,23 @@ namespace qoala::analysis::isolate {
         // Check if any of the declared remotes is used; If it is, we know we have to create an empty
         // block for the socket IDs placeholders
         auto module = mainFunc->getParentOfType<ModuleOp>();
+        // At this point, the IR is in a "hybrid" state; qmem.remote was lowered (so we *can* as for the
+        // qremote::RemoteOp), however, other qmem operations have not been lowered just yet.
+        // Being this said, we have to analyze the "usages" of the remote declared symbol by manually
+        // walking over all the qmem operations that might use a remote
         const auto remoteDeclarations = module.getOps<qremote::RemoteOp>();
         const bool anyRemoteIsUsed =
-                std::any_of(remoteDeclarations.begin(), remoteDeclarations.end(), [&](qremote::RemoteOp op) {
-                    if (!op.getSymbolUses(mainFunc)->empty()) {
-                        return true;
-                    }
-                    return false;
+                std::any_of(remoteDeclarations.begin(), remoteDeclarations.end(), [&](qremote::RemoteOp remoteDecl) {
+                    bool anyIsUsed = false;
+                    bool *anyIsUsedPtr = &anyIsUsed;
+                    module.walk([&](helpers::UsesRemoteInterface op) -> WalkResult {
+                        if (remoteDecl.getName() == op.getUsedRemoteName()) {
+                            *anyIsUsedPtr = true;
+                            return WalkResult::interrupt();
+                        }
+                        return WalkResult::advance();
+                    });
+                    return anyIsUsed;
                 });
         if (!anyRemoteIsUsed) {
             return;
