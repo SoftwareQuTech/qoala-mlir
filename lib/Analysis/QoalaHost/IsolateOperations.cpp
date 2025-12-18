@@ -96,7 +96,6 @@ namespace qoala::analysis::isolate {
         const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
         assert(!mainFuncs.empty() && "No main function? This is embarrassing");
         auto mainFunc = *mainFuncs.begin();
-        LLVM_DEBUG(llvm::dbgs() << "+++++++++++++ Module:\n" << module << "\n");
         Block &firstBlock = mainFunc.front();
         if (firstBlock.getOperations().size() == 1 && isa<qoalahost::NopTOp>(firstBlock.front())) {
             // This is a safety check. When translating the qmem:FuncOp into qoalahost::MainFuncOp we

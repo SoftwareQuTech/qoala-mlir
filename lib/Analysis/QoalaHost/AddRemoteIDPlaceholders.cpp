@@ -1,0 +1,58 @@
+#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/Helpers/NetQASMInterfaces.h"
+#include "Analysis/Helpers/QoalaHostInterfaces.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
+
+using namespace mlir;
+using namespace qoala::dialects;
+
+namespace qoala::analysis::remoteids {
+    LogicalResult addRemoteIDs(ModuleOp &module) {
+        // TODO - Big skeleton
+        //  1. Create a new block at the beginning of the main function (
+        //  2. Analyze the "usages of the QRemote.remote op (see the example in the translation)
+        //  3. Insert a placeholder for each of the csocket/qsocket found
+        const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        const auto remoteDeclarations = module.getOps<dialects::qremote::RemoteOp>();
+        if (mainFuncs.empty()) {
+            module->emitError("No main QoalaHost main function found in the module");
+            return failure();
+        }
+
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        Block &firstBlock = mainFunc.front();
+        assert(firstBlock.getOperations().size() == 1 && "Trying to insert remote ID palceholders on"
+                                                         "a non \"empty\" first block.");
+
+        for (auto remoteDecl : remoteDeclarations) {
+            // We analyze the usages of remoteOp. If there are classical comms, add classical socket declaration
+            // with the remote. If there are quantum ops, also add EPR socket declaration with the remote.
+            const StringRef usedRemoteName = remoteDecl.getName();
+            bool classicalCommUse = false;
+            bool quantumCommUse = false;
+            bool *classCommUsePtr = &classicalCommUse;
+            bool *quantumCommUsePtr = &quantumCommUse;
+
+            module.walk([&](helpers::UsesRemoteInterface commOp) -> WalkResult {
+                if (isa<qoalahost::ifaces::ClassicalCommInterface>(commOp.getOperation())) {
+                    if (commOp.getUsedRemoteName() == usedRemoteName) {
+                        *classCommUsePtr = true;
+                    }
+                }
+                if (isa<netqasm::ifaces::EntangledQubitOp>(commOp.getOperation())) {
+                    if (commOp.getUsedRemoteName() == usedRemoteName) {
+                        *quantumCommUsePtr = true;
+                    }
+                }
+                return WalkResult::advance();
+            });
+            OpBuilder builder(&firstBlock, firstBlock.begin());
+            builder.create<qoalahost::RemoteIDRefOp>(
+                    firstBlock.begin()->getLoc(), FlatSymbolRefAttr::get(remoteDecl.getSymNameAttr()),
+                    builder.getBoolAttr(classicalCommUse), builder.getBoolAttr(quantumCommUse));
+        }
+
+        return success();
+    }
+} // namespace qoala::analysis::remoteids
