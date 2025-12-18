@@ -1,6 +1,7 @@
 #ifndef QOALA_MLIR_ISOLATE_H
 #define QOALA_MLIR_ISOLATE_H
 
+#include "Dialect/QoalaHost/QoalaHost.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::analysis::isolate {
@@ -60,6 +61,17 @@ namespace qoala::analysis::isolate {
             isolateOp(opToIsolate, rewriter);
         }
     }
+
+    /**
+     * Inserts a new, empty block at the beginning of the given function. This
+     * method also creates a NopTOp (terminator nop) at the end of the newly created
+     * block, so the IR stays in a valid state after the application of this function.
+     * @param rewriter A ConversionPatternRewriter object to create new block
+     * terminators as needed
+     * @param mainFunc The MainFuncOp operation on which to insert the new block in.
+     */
+    void createNewEmptyFirstBlock(mlir::ConversionPatternRewriter &rewriter,
+                                  dialects::qoalahost::MainFuncOp &mainFunc);
 } // namespace isolate
 
 #endif // QOALA_MLIR_ISOLATE_H

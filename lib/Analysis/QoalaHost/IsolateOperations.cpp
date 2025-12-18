@@ -63,4 +63,17 @@ namespace qoala::analysis::isolate {
         // lower operations that were in the original block (including the original
         // terminator) will end up in bottomBlock
     }
+
+    void createNewEmptyFirstBlock(ConversionPatternRewriter &rewriter, qoalahost::MainFuncOp &mainFunc) {
+        Block &firstBlock = mainFunc.front();
+        Operation &firstOperation = firstBlock.front();
+        // We split the first block at the first operation. This method returns a new Block pointer,
+        // which contains all (and including) the operation at which we splat.
+        // The original block ("firstBlock") will contain everything that was *before* the split point.
+        // Hence, after this split, teh first block should be empty.
+        firstBlock.splitBlock(&firstOperation);
+        // We also have to insert a terminator operation in the empty block, so the IR stays valid
+        rewriter.setInsertionPoint(&firstBlock, firstBlock.begin());
+        rewriter.create<qoalahost::NopTOp>(firstOperation.getLoc());
+    }
 } // namespace qoala::analysis::isolate
