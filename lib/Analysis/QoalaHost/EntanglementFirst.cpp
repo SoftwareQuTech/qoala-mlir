@@ -47,7 +47,25 @@ namespace qoala::analysis::reordering {
 
         // Leave all other blocks as-is (or optionally sort them later)
         LLVM_DEBUG(llvm::dbgs() << "[Grouping] Moved " << entBlocks.size()
-                                << " entanglement blocks to the beginning\n");
+        << " entanglement blocks to the beginning\n");
+        // Additional fix; block containing the qoalahost.remote_id_ref operation *must* be the very first one
+        moveRemoteReferencesBlockToBegin(moduleOp);
     }
 
+
+    void moveRemoteReferencesBlockToBegin(ModuleOp &moduleOp) {
+        const auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main func? This is embarrassing.");
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+
+        const auto frontInsertionPoint = &mainFunc.front();
+        for (Block &block : mainFunc.getBlocks()) {
+            const bool blockHasRemoteRefPlaceholder =
+                    std::any_of(block.getOperations().begin(), block.getOperations().end(),
+                                [](const Operation &op) { return isa<qoalahost::RemoteIDRefOp>(op); });
+            if (blockHasRemoteRefPlaceholder) {
+                block.moveBefore(frontInsertionPoint);
+            }
+        }
+    }
 } // namespace qoala::analysis::reordering

@@ -457,6 +457,14 @@ namespace qoala::analysis {
          * @param moduleOp The module whose main function will be reordered.
          */
         void groupEntanglementBlocksFirst(mlir::ModuleOp moduleOp);
+
+        /**
+         * Finds the qoalahost::MainFuncOp operation of the given module, and fixes
+         * the position (moves it to the beginning, leaving it as the first) of the
+         * block containing the qoalahost.remote_id_ref operations.
+         * @param moduleOp The module on which to apply this fix.
+         */
+        void moveRemoteReferencesBlockToBegin(mlir::ModuleOp &moduleOp);
     } // namespace reordering
 
     namespace qubitlife {
