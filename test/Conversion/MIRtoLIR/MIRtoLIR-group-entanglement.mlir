@@ -43,7 +43,12 @@ module {
 
     // CHECK: qoalahost.main_func @test_group_ent()
     qmem.func @test_group_ent() {
-        // CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        // First block is the one containing the remote ID placeholder opertion
+        // CHECK-NEXT: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK-NEXT: qoalahost.remote_id_ref  {classical = false, quantum = true, remote = @[[REMOTEBOB]]}
+        // CHECK-NEXT: qoalahost.nop_term
+
+        // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
         %0 = qmem.qalloc : i32
         qmem.eprs %0 {remote = @Bob}
@@ -51,12 +56,12 @@ module {
         %1 = qmem.qalloc : i32
         qmem.eprs %1 {remote = @Bob}
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_0"}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
         // CHECK-NEXT: qoalahost.call @[[WRAPPER3]]() : () -> ()
         %2 = qmem.qalloc : i32
         qmem.eprs %2 {remote = @Charlie}
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_2"}
         // CHECK-NEXT: qoalahost.call @[[WRAPPER0]]() : () -> (i1, i1)
         %3 = qmem.qalloc : i32
         %4 = qmem.eprs_measure %3 {remote = @Charlie} : i1
@@ -64,20 +69,20 @@ module {
         %5 = qmem.qalloc : i32
         %6 = qmem.eprs_measure %5 {remote = @Charlie} : i1
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_2"}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_3"}
         // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i1
         %7 = qmem.qalloc : i32
         %8 = qmem.eprs_measure %7 {remote = @Bob} : i1
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
         qmem.hadamard %0
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN0]]) : (i32) -> ()
         qmem.hadamard %0
 
-        // CHECK: qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        // CHECK: qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: qoalahost.return
         qmem.return
     }

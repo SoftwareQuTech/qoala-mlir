@@ -25,7 +25,7 @@ module {
 
     // CHECK: qoalahost.main_func @test_group_ent()
     // First block is the one containing the remote ID placeholder opertion
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.remote_id_ref  {classical = false, quantum = true, remote = @[[REMOTEBOB]]}
     // CHECK-NEXT: qoalahost.nop_term
 
