@@ -124,6 +124,36 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
 
         blkIds.insert(op.getBlockId());
     }
+
+    // Verification of the first block. *If there is a remote declared and used*, then the first block:
+    // * MUST contain 1 blk_meta at the start
+    // * MUST contain 1 NopTOp at the end
+    // * All other operations in between *must* be RemoteIDRefOp
+    auto module = this->getOperation()->getParentOfType<ModuleOp>();
+    if (!module.getOps<qremote::RemoteOp>().empty()) {
+        // There is at elast one remote declared and used -> apply the validation of the first block
+        Block &firstBlock = this->front();
+        auto &blockOperations = firstBlock.getOperations();
+        Operation &firstOp = blockOperations.front();
+        Operation &lastOp = blockOperations.back();
+
+        if (!isa<BlkMeta>(firstOp)) {
+            return firstOp.emitError() << "First operation of the block it not a qoalahost.blk_meta.";
+        }
+        if (!isa<NopTOp>(lastOp)) {
+            return lastOp.emitError() << "Last operation of the block it not a qoalahost.nop_term.";
+        }
+
+        for (Operation &op : blockOperations) {
+            if (&op == &firstOp || &op == &lastOp) {
+                continue;
+            }
+            if (!isa<RemoteIDRefOp>(op)) {
+                return op.emitError() << "first block contains an operation not allowed in this block.";
+            }
+        }
+    }
+
     return success();
 }
 
