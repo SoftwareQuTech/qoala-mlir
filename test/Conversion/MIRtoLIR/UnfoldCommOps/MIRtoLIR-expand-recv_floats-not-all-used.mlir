@@ -7,6 +7,11 @@ module {
 
   // CHECK: qoalahost.main_func @test_recv_floats_not_all_used()
   qmem.func @test_recv_floats_not_all_used() -> i32 {
+    // First block is the one containing the remote ID placeholder opertion
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @[[REMOTEBOB]]}
+    // CHECK-NEXT: qoalahost.nop_term
+
     // CHECK-NOT: arith.constant 0 : index
     // CHECK-NOT: arith.constant 1 : index
     // CHECK-NOT: arith.constant 2 : index

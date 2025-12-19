@@ -7,6 +7,11 @@ module {
 
   // CHECK: qoalahost.main_func @test_send_values()
   qmem.func @test_send_values() {
+    // First block is the one containing the remote ID placeholder opertion
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @[[REMOTEBOB]]}
+    // CHECK-NEXT: qoalahost.nop_term
+
     // tensor.from elements are folded into a "arith.constant dense", and placed at the start of the file
     // HOWEVER, when unfolding the send_ints/floats operations we will expand those "dense" attributes
     // in to declarations of constants, i.e., we will revert what constant propagation will do right before
