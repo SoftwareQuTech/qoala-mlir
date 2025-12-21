@@ -8,7 +8,7 @@ module {
   // CHECK: qoalahost.main_func @test_recv_ints_all_used()
   qmem.func @test_recv_ints_all_used() -> i32 {
     // First block is the one containing the remote ID placeholder opertion
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @[[REMOTEBOB]]}
     // CHECK-NEXT: qoalahost.nop_term
 
@@ -33,11 +33,11 @@ module {
     // CHECK: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
 
-    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK: ^[[BLK_1:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
 
-    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK: ^[[BLK_2:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
 
@@ -47,7 +47,7 @@ module {
     %1 = arith.addi %recv_0, %recv_2 : i32
     %2 = arith.muli %1, %recv_0 : i32
     qmem.return %2 : i32
-    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK: ^[[BLK_3:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RES_1:.*]] = arith.addi %[[RECV_0]], %[[RECV_2]] : i32
     // CHECK-NEXT: %[[RES_2:.*]] = arith.muli %[[RES_1]], %[[RECV_0]] : i32
