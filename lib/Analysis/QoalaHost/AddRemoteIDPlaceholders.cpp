@@ -51,11 +51,13 @@ namespace qoala::analysis::remoteids {
                 }
                 return WalkResult::advance();
             });
-            // Insert a placeholder for each of the csocket/qsocket found
-            OpBuilder builder(&firstBlock, firstBlock.begin());
-            builder.create<qoalahost::RemoteIDRefOp>(
-                    firstBlock.begin()->getLoc(), FlatSymbolRefAttr::get(remoteDecl.getSymNameAttr()),
-                    builder.getBoolAttr(classicalCommUse), builder.getBoolAttr(quantumCommUse));
+            // Insert a placeholder if a usage of the classical socket was found
+            if (classicalCommUse) {
+                OpBuilder builder(&firstBlock, firstBlock.begin());
+                builder.create<qoalahost::RemoteIDRefOp>(
+                        firstBlock.begin()->getLoc(), FlatSymbolRefAttr::get(remoteDecl.getSymNameAttr()),
+                        builder.getBoolAttr(classicalCommUse), builder.getBoolAttr(quantumCommUse));
+            }
         }
 
         return success();
