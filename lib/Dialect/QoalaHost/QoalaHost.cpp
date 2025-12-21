@@ -72,7 +72,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // 1. There must exactly one qoalahost.blk_meta operation per block
     // 2. The qoalahost.blk_meta operation is always the first one of its block
     // 3. A block whose identifier is present in the blk_meta of another must be declared before
-    StringSet<> blkIds;
+    std::set<std::string> blkIds;
     for (Block &block : getBody()) {
         auto blkMetas = block.getOps<BlkMeta>();
 
@@ -97,12 +97,12 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         // We also ensure that the blocks are defined is a sane order. A block can be a precedence of another one
         // iif it is declared first.
         for (StringRef pred : op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
-            if (!blkIds.contains(pred.str())) {
+            if (blkIds.find(pred.str()) == blkIds.end()) {
                 return op.emitOpError() << "contains a predecessor before its declaration.";
             }
         }
         for (StringRef pred : op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
-            if (!blkIds.contains(pred.str())) {
+            if (blkIds.find(pred.str()) == blkIds.end()) {
                 return op.emitOpError() << "contains a dependency before its declaration.";
             }
         }
@@ -116,13 +116,15 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         }
 
         DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
+        LLVM_DEBUG(llvm::dbgs()  << "**** DeadAttr" << deadlinesAttr);
         for (NamedAttribute pair : deadlinesAttr.getValue()) {
-            if (!blkIds.contains(pair.getName().getValue())) {
-                return op.emitOpError() << "contains a block identifier in deadlines before its declaration.";
+            std::string key(pair.getName().strref());
+            if (blkIds.find(key) == blkIds.end()) {
+                return op.emitOpError() << "contains a block identifier in deadlines before its declaration: '" << key << "'.";
             }
         }
 
-        blkIds.insert(op.getBlockId());
+        blkIds.insert(op.getBlockId().str());
     }
 
     // Verification of the first block. *If there is a remote declared and used*, then the first block:

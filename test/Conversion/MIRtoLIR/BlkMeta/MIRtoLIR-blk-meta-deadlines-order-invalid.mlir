@@ -29,7 +29,7 @@ module {
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
-    // expected-error@+1 {{'qoalahost.blk_meta' op contains a block identifier in deadlines before its declaration.}}
+    // expected-error@+1 {{'qoalahost.blk_meta' op contains a block identifier in deadlines before its declaration: 'block_3'}}
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {"block_1" = 10, "block_3" = 20}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @__qoala_wrapper1(%0, %2#0) : (i32, i32) -> i1
   ^bb3:
