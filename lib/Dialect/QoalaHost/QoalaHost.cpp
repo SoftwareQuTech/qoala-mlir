@@ -137,11 +137,14 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         Operation &firstOp = blockOperations.front();
         Operation &lastOp = blockOperations.back();
 
-        if (!isa<BlkMeta>(firstOp)) {
-            return firstOp.emitError() << "First operation of the block it not a qoalahost.blk_meta.";
+        if (blockOperations.size() < 3) {
+            return this->emitOpError()
+                   << "First block remote references: First block does not have enough operations (3+) to be valid.";
         }
-        if (!isa<NopTOp>(lastOp)) {
-            return lastOp.emitError() << "Last operation of the block it not a qoalahost.nop_term.";
+
+        if (!isa<BlkMeta>(firstOp)) {
+            return firstOp.emitError()
+                   << "First block remote references: First operation of the block it not a qoalahost.blk_meta.";
         }
 
         for (Operation &op : blockOperations) {
@@ -149,8 +152,14 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
                 continue;
             }
             if (!isa<RemoteIDRefOp>(op)) {
-                return op.emitError() << "first block contains an operation not allowed in this block.";
+                return op.emitError()
+                       << "First block remote references: First block contains an operation not allowed in there.";
             }
+        }
+
+        if (!isa<NopTOp>(lastOp)) {
+            return lastOp.emitError()
+                   << "First block remote references: Last operation of the block it not a qoalahost.nop_term.";
         }
     }
 
