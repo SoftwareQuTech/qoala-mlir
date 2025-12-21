@@ -52,13 +52,13 @@ module {
 
   // CHECK: qoalahost.main_func @test_local_quantum_program()
   qmem.func @test_local_quantum_program() {
-    // CHECK: qoalahost.blk_meta {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
     qmem.init %0
 
-    // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_1:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
     %1 = qmem.qalloc : i32
     qmem.init %1
@@ -67,57 +67,57 @@ module {
     %cst = arith.constant 0.5890485 : f32
     %cst_0 = arith.constant 2.356194 : f32
 
-    // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", deadlines = {}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_2:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER2]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_x %0, %cst_0
 
     %cst_1 = arith.constant 0.785398 : f32
 
-    // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_3:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_3:.*]]", deadlines = {}, dependencies = ["[[BLOCK_2]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_y %0, %cst_1
 
-    // CHECK: ^[[BLOCK_4:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", deadlines = {}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_4:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]]) : (i32) -> ()
     qmem.rot_z %0, %cst
 
-    // CHECK: ^[[BLOCK_5:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", deadlines = {}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_5:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_5:.*]]", deadlines = {}, dependencies = ["[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER5]](%[[REG_MAIN1]]) : (i32) -> ()
     qmem.hadamard %1
 
-    // CHECK: ^[[BLOCK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", deadlines = {}, dependencies = ["block_4", "block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_6:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_6:.*]]", deadlines = {}, dependencies = ["[[BLOCK_4]]", "[[BLOCK_5]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER6]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cnot %0, %1
 
     %cst_2 = arith.constant 1.570796 : f32
 
-    // CHECK: ^[[BLOCK_7:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_7", deadlines = {}, dependencies = ["block_6"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_7:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_7:.*]]", deadlines = {}, dependencies = ["[[BLOCK_6]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER7]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.cz %0, %1
 
-    // CHECK: ^[[BLOCK_8:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_8", deadlines = {}, dependencies = ["block_7"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_8:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_8:.*]]", deadlines = {}, dependencies = ["[[BLOCK_7]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[REG_MAIN0]], %[[REG_MAIN1]]) : (i32, i32) -> ()
     qmem.crot_x %0, %1, %cst_2
 
-    // CHECK: ^[[BLOCK_9:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_9", deadlines = {}, dependencies = ["block_8"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_9:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_9:.*]]", deadlines = {}, dependencies = ["[[BLOCK_8]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER9]](%[[REG_MAIN0]]) : (i32) -> i1
     %2 = qmem.measure %0 : i1
 
-    // CHECK: ^[[BLOCK_10:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_10", deadlines = {}, dependencies = ["block_8"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_10:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_10:.*]]", deadlines = {}, dependencies = ["[[BLOCK_8]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN7:.*]] = qoalahost.call @[[WRAPPER10]](%[[REG_MAIN1]]) : (i32) -> i1
     %3 = qmem.measure %1 : i1
 
-    // CHECK: ^[[BLOCK_11:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_11", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: ^[[BLK_11:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_11:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: qoalahost.return
     qmem.return
   }
