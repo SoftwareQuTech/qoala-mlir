@@ -56,6 +56,16 @@ void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
                                              getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
+static bool shouldVerifyFirstBlock(ModuleOp &module, qoalahost::MainFuncOp *mainFunc) {
+    auto declaredRemotes = module.getOps<qremote::RemoteOp>();
+
+    if (declaredRemotes.empty()) {
+        return false;
+    }
+
+    return !mainFunc->getOps<qoalahost::ifaces::ClassicalCommInterface>().empty();
+}
+
 /* Region verifiers for MainFuncOp */
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
@@ -132,8 +142,8 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // * MUST contain 1 NopTOp at the end
     // * All other operations in between *must* be RemoteIDRefOp
     auto module = this->getOperation()->getParentOfType<ModuleOp>();
-    if (!module.getOps<qremote::RemoteOp>().empty()) {
-        // There is at elast one remote declared and used -> apply the validation of the first block
+    if (shouldVerifyFirstBlock(module, this)) {
+        // There is at least one remote declared and used -> apply the validation of the first block
         Block &firstBlock = this->front();
         auto &blockOperations = firstBlock.getOperations();
         Operation &firstOp = blockOperations.front();
