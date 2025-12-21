@@ -3,7 +3,6 @@
 // We need to add the "--verify-diagnostics" option to check for the error
 
 module {
-  qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 10 : i32

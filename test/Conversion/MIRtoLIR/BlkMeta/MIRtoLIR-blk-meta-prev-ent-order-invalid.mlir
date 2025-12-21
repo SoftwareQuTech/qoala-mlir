@@ -16,7 +16,7 @@ module {
     netqasm.return
   }
   qoalahost.main_func @test_prev_ent_order_invalid() {
-    // expected-error@+1 {{'qoalahost.blk_meta' op contains a previous ent precedence before its decalration.}}
+    // expected-error@+1 {{'qoalahost.blk_meta' op contains a previous ent precedence before its declaration.}}
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_1"}
     qoalahost.call @__qoala_wrapper0() : () -> ()
   ^bb1: 
