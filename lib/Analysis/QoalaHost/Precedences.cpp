@@ -286,6 +286,17 @@ namespace qoala::analysis::precedences {
                     }
                 }
             }
+            // Add extra data dependency on the first block if the *classical comm operation* uses a remote:
+            // Do we need to add data dependencies on operations dialects::netqasm::ifaces::EntangledQubitOp?
+            //  (EprsOp and EprsMeasureOp). Maybe not, since they are
+            if (isa<qoalahost::ifaces::ClassicalCommInterface>(op)) {
+                Block *producerBlock = &mainFunc.front();
+                assert(!producerBlock->getOps<qoalahost::RemoteIDRefOp>().empty());
+                if (blockDeps[consumerBlock].insert(producerBlock).second) {
+                    LLVM_DEBUG(llvm::dbgs()
+                               << blockIdMap[consumerBlock] << " depends on " << blockIdMap[producerBlock] << "\n");
+                }
+            }
         });
 
         resolveMemorySideEffects(callSiteEffects, blockIdMap, blockDeps);
