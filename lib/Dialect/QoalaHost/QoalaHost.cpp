@@ -118,19 +118,22 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         }
         std::string prevComm = op.getPrevCommAttr().getValue().str();
         if (!prevComm.empty() && !blkIds.count(prevComm)) {
-            return op.emitOpError() << "contains a previous comm precedence before its declaration: '" << prevComm << "'.";
+            return op.emitOpError() << "contains a previous comm precedence before its declaration: '" << prevComm
+                                    << "'.";
         }
         std::string prevEnt = op.getPrevEntAttr().getValue().str();
         if (!prevEnt.empty() && !blkIds.count(prevEnt)) {
-            return op.emitOpError() << "contains a previous ent precedence before its declaration: '" << prevEnt << "'.";
+            return op.emitOpError() << "contains a previous ent precedence before its declaration: '" << prevEnt
+                                    << "'.";
         }
 
         DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
-        LLVM_DEBUG(llvm::dbgs()  << "**** DeadAttr" << deadlinesAttr << "\n");
+        LLVM_DEBUG(llvm::dbgs() << "**** DeadAttr" << deadlinesAttr << "\n");
         for (NamedAttribute pair : deadlinesAttr.getValue()) {
             std::string key(pair.getName().strref());
             if (blkIds.find(key) == blkIds.end()) {
-                return op.emitOpError() << "contains a block identifier in deadlines before its declaration: '" << key << "'.";
+                return op.emitOpError() << "contains a block identifier in deadlines before its declaration: '" << key
+                                        << "'.";
             }
         }
 
