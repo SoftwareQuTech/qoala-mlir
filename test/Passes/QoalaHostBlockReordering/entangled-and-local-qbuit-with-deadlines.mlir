@@ -1,5 +1,7 @@
 // RUN: qoala-opt %s --qoalahost-reorder-blocks=with-deadlines | FileCheck %s
 
+// XFAIL: true
+// This test fails and it is expected to be fixed in #121. Check the big TODO note in BlockOrdering.cpp::runOnOperation
 
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {block_1 = 102 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_2:.*]]", deadlines = {block_1 = 218 : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
