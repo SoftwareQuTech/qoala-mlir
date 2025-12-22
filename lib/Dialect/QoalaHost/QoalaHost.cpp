@@ -126,7 +126,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         }
 
         DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
-        LLVM_DEBUG(llvm::dbgs()  << "**** DeadAttr" << deadlinesAttr);
+        LLVM_DEBUG(llvm::dbgs()  << "**** DeadAttr" << deadlinesAttr << "\n");
         for (NamedAttribute pair : deadlinesAttr.getValue()) {
             std::string key(pair.getName().strref());
             if (blkIds.find(key) == blkIds.end()) {
