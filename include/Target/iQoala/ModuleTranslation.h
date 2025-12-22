@@ -128,6 +128,10 @@ namespace qoala::translate {
             this->precedencesIdsToIQoalaBlocks[key] = block;
         }
 
+        [[nodiscard]]
+        assembly::iQoalaRegReference *getRegRefForCSocketName(const mlir::StringRef remoteName) const;
+        void setRegRefForCSocketName(const llvm::StringRef &remoteName, assembly::iQoalaRegReference *regRef);
+
     protected:
         /* Functions for following "call convention" for arguments in the local quantum routines */
         mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg,
@@ -158,6 +162,8 @@ namespace qoala::translate {
 
         // Map for tracking the precedence ID (added by the AddBlockPrecedences pass) and its Block
         llvm::StringMap<iqoala::Block *> precedencesIdsToIQoalaBlocks;
+        // Map for tracking the classical remote id (csocket) references to the iQoalaRegRefs that hold those values.
+        mlir::DenseMap<llvm::StringRef, assembly::iQoalaRegReference *> csocketsMap;
     };
 } // namespace qoala::translate
 

@@ -163,7 +163,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     return success();
 }
 
-static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
+static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
                                                                StringRef remoteName) {
     const std::optional<uint8_t> eprsSocketID = moduleTranslation->getClassicalSocketIDForRemote(remoteName);
     if (!eprsSocketID) {
@@ -178,38 +178,39 @@ static std::optional<iQoalaMCOperand *> addSocketRefAssignCVal(ModuleTranslation
             /*useOpOperands=*/false);
     // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
     // We can get a reference to that by simply accessing the first operand of the new instruction.
-    // HOWEVER, we need to return a copy of tha reference to avoid a double free at the end.
-    return iQoalaMCOperand::createRegisterOperand(
-            iQoalaRegReference::createRegReference(csocketInstr->getOperand(0)->getRegRef()));
+    return csocketInstr->getOperand(0)->getRegRef();
 }
 
 static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const StringRef &remoteName) {
-    // Here we need to do 2 things:
-    // 1. Create a constant value that references the csocket from the META section
-    std::optional<iQoalaMCOperand *> csocketOperand = addSocketRefAssignCVal(moduleTranslation, op, remoteName);
-    if (!csocketOperand) {
-        return failure();
-    }
-
-    // 2. Use that constant and the actual value to send to create the send_cmsg instruction.
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand = iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Use that constant and the actual value to send to create the send_cmsg instruction.
     const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand.value()});
+            moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand});
     return sendCMSGInstr ? success() : failure();
 }
 
 static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const Value &opResult, const StringRef &remoteName) {
-    // 1. Create a constant value that references the csocket from the META section
-    std::optional<iQoalaMCOperand *> csocketOperand = addSocketRefAssignCVal(moduleTranslation, op, remoteName);
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand = iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Create the actual recv_cmsg MC instruction
+    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand});
+    return recvInstr ? success() : failure();
+}
+
+static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, RemoteIDRefOp &op) {
+    // Create a constant value that references the csocket from the META section
+    std::optional<iQoalaRegReference *> csocketOperand = addSocketRefAssignCVal(moduleTranslation, op.getOperation(), op.getRemote());
     if (!csocketOperand) {
         return failure();
     }
-
-    // 2. Create the actual recv_cmsg MC instruction
-    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand.value()});
-    return recvInstr ? success() : failure();
+    moduleTranslation->setRegRefForCSocketName(op.getRemote(), *csocketOperand);
+    return success();
 }
 
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
@@ -320,6 +321,12 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             .Case([](NopTOp op) -> LogicalResult {
                 // There is nothing to do here
                 return success();
+            })
+            .Case([&](RemoteIDRefOp op) -> LogicalResult {
+                if (op.getClassical()) {
+                    return processRemoteIDRefOp(moduleTranslation, op);
+                }
+                return failure();
             })
             .Case([&](BlkMeta op) -> LogicalResult {
                 qoala::iqoala::Block *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());

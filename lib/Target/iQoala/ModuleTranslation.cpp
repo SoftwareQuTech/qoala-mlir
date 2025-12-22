@@ -38,6 +38,8 @@ namespace qoala::translate {
         return module->getRegion(0).front();
     }
 
+
+
     ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
 
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
@@ -155,6 +157,13 @@ namespace qoala::translate {
 
     std::optional<uint8_t> ModuleTranslation::getClassicalSocketIDForRemote(const StringRef remoteName) const {
         return this->iQoalaModule->getClassicalSocketIDForRemote(remoteName);
+    }
+
+    iQoalaRegReference *ModuleTranslation::getRegRefForCSocketName(const StringRef remoteName) const {
+        return this->csocketsMap.at(remoteName);
+    }
+    void ModuleTranslation::setRegRefForCSocketName(const StringRef &remoteName, iQoalaRegReference *regRef) {
+        this->csocketsMap[remoteName] = regRef;
     }
 
     void ModuleTranslation::setModuleName(const StringRef moduleName) const {
