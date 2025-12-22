@@ -10,7 +10,7 @@ module {
     qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @Bob}
     qoalahost.nop_term
   ^bb1:
-    // expected-error@+1 {{'qoalahost.blk_meta' op contains a previous comm precedence before its declaration.}}
+    // expected-error@+1 {{'qoalahost.blk_meta' op contains a previous comm precedence before its declaration: 'block_2'}}
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "block_2", prev_ent = ""}
     %cst = arith.constant dense<2> : tensor<1xi32>
     %cst_0 = arith.constant dense<2.120000e+01> : tensor<1xf32>

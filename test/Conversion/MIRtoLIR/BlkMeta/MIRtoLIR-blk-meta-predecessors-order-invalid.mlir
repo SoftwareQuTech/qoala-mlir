@@ -23,7 +23,7 @@ module {
     %cstB = arith.constant 5 : i32
     cf.br ^bb2
   ^bb1:
-    // expected-error@+1 {{'qoalahost.blk_meta' op contains a predecessor before its declaration.}}
+    // expected-error@+1 {{'qoalahost.blk_meta' op contains a predecessor before its declaration: 'block_2'}}
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = ["block_2"], prev_comm = "", prev_ent = ""}
     cf.br ^bb3
   ^bb2:

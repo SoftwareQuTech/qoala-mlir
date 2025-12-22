@@ -108,21 +108,21 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         // iif it is declared first.
         for (StringRef pred : op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return op.emitOpError() << "contains a predecessor before its declaration.";
+                return op.emitOpError() << "contains a predecessor before its declaration: '" << pred << "'.";
             }
         }
         for (StringRef pred : op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return op.emitOpError() << "contains a dependency before its declaration.";
+                return op.emitOpError() << "contains a dependency before its declaration: '" << pred << "'.";
             }
         }
         std::string prevComm = op.getPrevCommAttr().getValue().str();
         if (!prevComm.empty() && !blkIds.count(prevComm)) {
-            return op.emitOpError() << "contains a previous comm precedence before its declaration.";
+            return op.emitOpError() << "contains a previous comm precedence before its declaration: '" << prevComm << "'.";
         }
         std::string prevEnt = op.getPrevEntAttr().getValue().str();
         if (!prevEnt.empty() && !blkIds.count(prevEnt)) {
-            return op.emitOpError() << "contains a previous ent precedence before its declaration.";
+            return op.emitOpError() << "contains a previous ent precedence before its declaration: '" << prevEnt << "'.";
         }
 
         DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();

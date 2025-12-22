@@ -1,7 +1,9 @@
 // RUN: qoala-opt %s --qoalahost-reorder-blocks --qoala-opt-group-ent-reqs | FileCheck %s
 
-// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_0"}
+// "block_99"  is the first block with the remote reference id placeholder
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_99:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "[[BLOCK_0]]"}
 
 module {
   qremote.remote @Bob
@@ -43,8 +45,12 @@ module {
     netqasm.return %m1 : i1
   }
   qoalahost.main_func @test_reordering_teleport() {
-    qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    %1 = qoalahost.call @entanglement() : () -> i32
+    qoalahost.blk_meta  {block_id = "block_99", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.remote_id_ref  {classical = true, quantum = true, remote = @Bob}
+    qoalahost.nop_term
+    ^bb0:
+        qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        %1 = qoalahost.call @entanglement() : () -> i32
     ^bb1:
         qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_0"}
         %2 = qoalahost.call @entanglement_2() : () -> i32
