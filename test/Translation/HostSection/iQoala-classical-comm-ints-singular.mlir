@@ -2,11 +2,11 @@
 // CHECK: META_START
 // CHECK-NEXT: name: test_remote_quantum_program
 // CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: csockets: [[BOB_SOCKET_ID:.*]] -> Bob
 // CHECK-NEXT: epr_sockets:
 // CHECK-NEXT: META_END
-// CHECK: ^b[[BLOCK0:.*]]:
-// CHECK-NEXT: %[[CSOCK_BOB:.*]] = assign_cval() : 0
+// CHECK: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: %[[CSOCK_BOB:.*]] = assign_cval() : [[BOB_SOCKET_ID]]
 // CHECK: ^b[[BLOCK1:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[VAL_5:.*]] = assign_cval() : 5
 // CHECK-NEXT: %[[VAL_0:.*]] = assign_cval() : 0
