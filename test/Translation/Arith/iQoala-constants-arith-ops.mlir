@@ -37,7 +37,6 @@
 // CHECK-NEXT: NETQASM_END
 
 module {
-  qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> () {
     %cstA = arith.constant 10 : i32
