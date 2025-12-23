@@ -32,12 +32,16 @@ module {
   qoalahost.main_func @test_reordering_teleport() {
     // CHECK: ^b[[BLK_0:.*]]
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // We assert that there is *not* a "%[0-9]+ = " in front of the "run_request" keywork. This checks that the call
+    // does not return any value to the qoalahost section.
     // CHECK-NOT:%{{[0-9]+}} =
     // CHECK:run_request() : entanglement
     %1 = qoalahost.call @entanglement() : () -> i32
     ^bb1:
         // CHECK: ^b[[BLK_1:.*]]
         qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = 396 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        // We assert that there is *not* a "%[0-9]+ = " in front of the "run_request" keywork. This checks that the call
+        // does not return any value to the qoalahost section.
         // CHECK-NOT:%{{[0-9]+}} =
         // CHECK:run_subroutine() : local_qubit
         %0 = qoalahost.call @local_qubit() : () -> i32

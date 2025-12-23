@@ -6,9 +6,9 @@
 // CHECK-SAME: epr_sockets: {{[[:space:]]}}
 // CHECK-SAME: META_END
 // CHECK: ^b[[BLOCK0:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
-// CHECK-NEXT: %[[HOST_REG0:.*]] = run_subroutine() : __qoala_wrapper0
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
-// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper1
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper1
 // CHECK: ^b[[BLOCK2:.*]] { type = QL; predecessors = []; dependencies = [b0]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper2
 // CHECK: ^b[[BLOCK3:.*]] { type = QL; predecessors = []; dependencies = [b0, b1]; prev_comm = ; prev_ent = ; deadlines = [] }
