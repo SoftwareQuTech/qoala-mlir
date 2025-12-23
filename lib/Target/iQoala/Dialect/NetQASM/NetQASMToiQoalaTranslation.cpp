@@ -233,6 +233,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
 
                 const uint8_t qubitNum = quantumRoutine->releaseQubit(op.getQ());
                 context->releaseQubit(qubitNum);
+                quantumRoutine->addConsumedQubitID(qubitNum);
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MEAS, {op.getResult()}, {M});
                 return instruction ? success() : failure();

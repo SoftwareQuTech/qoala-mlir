@@ -33,8 +33,11 @@ namespace qoala::translate {
             [[nodiscard]]
             assembly::iQoalaRegReference *getRegReferenceForValue(const mlir::Value &value) const;
             void mapQubitIDInScope(const mlir::Value &value, uint8_t qubitID);
+            void unmapQubitInScope(uint8_t qubitID);
             [[nodiscard]]
             uint8_t getMappedQubitInScope(const mlir::Value &value) const;
+            [[nodiscard]]
+            bool qubitValueWasReleased(const mlir::Value &value) const;
 
             [[nodiscard]]
             mlir::Operation *getOperation() const {
@@ -54,6 +57,7 @@ namespace qoala::translate {
             mlir::Operation *operation;
             mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> valuesInScope;
             mlir::DenseMap<mlir::Value, uint8_t> valuesToQubitIDs;
+            mlir::DenseSet<mlir::Value> freedQubitValues;
         };
 
         /**
@@ -78,12 +82,15 @@ namespace qoala::translate {
             bool valueIsMapped(const mlir::Value &value);
 
             /* Specific methods for mapping MLIR values to qubit IDs. We need these MLIR values *will not*
-            * be mapped to a iQoalaRegReference */
+             * be mapped to a iQoalaRegReference */
             void mapValueToQubitID(const mlir::Value &value, uint8_t qubitID);
+            void unmapQubitID(uint8_t qubitID);
             [[nodiscard]]
             bool valueIsMappedToQubitIDInCurrentStackFrame(const mlir::Value &value) const;
             [[nodiscard]]
             uint8_t getMappedQubitIDInCurrentStackFrame(const mlir::Value &value) const;
+            [[nodiscard]]
+            bool qubitValueWasFreedInCurrentStackFrame(const mlir::Value &value) const;
 
             assembly::iQoalaRegReference *getRegRefForValue(const mlir::Value &value);
 
@@ -124,10 +131,13 @@ namespace qoala::translate {
         assembly::iQoalaRegReference *getMappedRegRefForValue(const mlir::Value &mlirVal, bool copy = true);
         bool valueIsMappedInCurrentFrame(const mlir::Value &value);
         void mapValueToQubitID(const mlir::Value &value, uint8_t qubitID);
+        void unmapQubitID(uint8_t qubitID);
         [[nodiscard]]
         uint8_t getMappedQubitID(const mlir::Value &value) const;
         [[nodiscard]]
         bool valueIsMappedToQubit(const mlir::Value &value) const;
+        [[nodiscard]]
+        bool qubitValueWasReleased(const mlir::Value &value) const;
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;

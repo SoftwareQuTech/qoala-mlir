@@ -100,7 +100,8 @@ static std::vector<iQoalaMCInstruction *> filterInstructionsFromRoutine(const Qu
     return result;
 }
 
-static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee) {
+static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee,
+                                          std::vector<uint8_t> &qubitsToUnmap) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -159,8 +160,10 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
 
     // We finally mark the operation as visited, and perform any finalization in the routine body
     context->markOperationAsVisited(calledFunction);
-    // TODO - Remove the consumed qubits from the mapped ones in the modul
-    std::vector<uint8_t> consumedQubits = routine->getConsumedQubitIDs();
+    for (const uint8_t qubit : routine->getConsumedQubitIDs()) {
+        // Save the qubits to unmap for the caller
+        qubitsToUnmap.push_back(qubit);
+    }
     routine->finalizeRoutine();
     return success();
 }
@@ -234,8 +237,17 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
                 const std::string calleeStr = callee.str();
+                std::vector<uint8_t> qubitsToUnmap;
 
-                if (failed(processCallToRoutine(moduleTranslation, op, callee))) {
+                for (Value callArg : op.getArgOperands()) {
+                    LLVM_DEBUG(llvm::dbgs() << "Checking if callArrg '" << callArg << "'is a released qubit.\n");
+                    if (moduleTranslation->qubitValueWasReleased(callArg)) {
+                        op.emitOpError("makes use of an already freed or measured qubit.");
+                        return failure();
+                    }
+                }
+
+                if (failed(processCallToRoutine(moduleTranslation, op, callee, qubitsToUnmap))) {
                     return failure();
                 }
 
@@ -257,10 +269,12 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
 
                 for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
-                    Value valueAtCaller = op.getResult(retIndex);
-                    // We get the register reference for the value, but NOT a copy of the object, since we need
-                    // to mutate the original one
-                    moduleTranslation->mapValueToQubitID(valueAtCaller, qubitId);
+                    if (qubitId != 0xFF) {
+                        Value valueAtCaller = op.getResult(retIndex);
+                        // We map the MLIR value with the qubitID in the current stack frame held by
+                        // the moduleTranslation object
+                        moduleTranslation->mapValueToQubitID(valueAtCaller, qubitId);
+                    }
                 }
 
                 // The qubit references returned by the local routine *must not* be used as yielded values
@@ -283,8 +297,8 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 SmallVector<iQoalaMCOperand *> callMCOperands;
                 for (const Value callArg : op.getOperands()) {
                     if (!moduleTranslation->valueIsMappedToQubit(callArg)) {
-                        // If the value is mapped to a qubit, then we don't need to use it
-                        // as an operand of the MC instruction
+                        // If the value is *not* mapped to a qubit, then we need to use it
+                        // as an operand of the MC call instruction
                         iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(callArg);
                         assert(regRef && "QoalaHost call op builder: operand not mapped");
                         assert(regRef->isLocal() && "QoalaHost call op builder: mapped register is not local");
@@ -302,6 +316,11 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
                         /*useOpOperands=*/false);
+                // After everything, we effectively unmap the free'd qubits from the current stack frame
+                for (const uint8_t qubitID : qubitsToUnmap) {
+                    // Remove the consumed qubits from the mapped ones in the module
+                    moduleTranslation->unmapQubitID(qubitID);
+                }
                 return instruction ? success() : failure();
             })
             .Case([&](ReturnOp op) -> LogicalResult {

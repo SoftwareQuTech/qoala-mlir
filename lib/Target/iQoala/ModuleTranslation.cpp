@@ -86,11 +86,25 @@ namespace qoala::translate {
         this->valuesToQubitIDs.try_emplace(value, qubitID);
     }
 
+    void ModuleTranslation::ModuleStackFrame::unmapQubitInScope(const uint8_t qubitID) {
+        for (auto [value, mappedQubitID] : this->valuesToQubitIDs) {
+            if (mappedQubitID == qubitID) {
+                this->valuesToQubitIDs.erase(value);
+                LLVM_DEBUG(llvm::dbgs() << "Unmapping value '" << value << "'\n");
+                this->freedQubitValues.insert(value);
+            }
+        }
+    }
+
     uint8_t ModuleTranslation::ModuleStackFrame::getMappedQubitInScope(const Value &value) const {
         if (this->valuesToQubitIDs.contains(value)) {
             return this->valuesToQubitIDs.at(value);
         }
         return 0xFF;
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::qubitValueWasReleased(const Value &value) const {
+        return this->freedQubitValues.contains(value);
     }
 
     bool ModuleTranslation::ModuleStackFrame::isModule() const { return isa<ModuleOp>(this->operation); }
@@ -140,6 +154,11 @@ namespace qoala::translate {
         currentFrame->mapQubitIDInScope(value, qubitID);
     }
 
+    void ModuleTranslation::ModuleStack::unmapQubitID(const uint8_t qubitID) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->unmapQubitInScope(qubitID);
+    }
+
     bool ModuleTranslation::ModuleStack::valueIsMappedToQubitIDInCurrentStackFrame(const Value &value) const {
         const ModuleStackFrame *currentFrame = this->frames.top();
         return currentFrame->getMappedQubitInScope(value) != 0xFF;
@@ -148,6 +167,11 @@ namespace qoala::translate {
     uint8_t ModuleTranslation::ModuleStack::getMappedQubitIDInCurrentStackFrame(const Value &value) const {
         const ModuleStackFrame *currentFrame = this->frames.top();
         return currentFrame->getMappedQubitInScope(value);
+    }
+
+    bool ModuleTranslation::ModuleStack::qubitValueWasFreedInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->qubitValueWasReleased(value);
     }
 
     iQoalaRegReference *ModuleTranslation::ModuleStack::getRegRefForValue(const Value &value) {
@@ -224,12 +248,18 @@ namespace qoala::translate {
         this->translationStack.mapValueToQubitID(value, qubitID);
     }
 
+    void ModuleTranslation::unmapQubitID(const uint8_t qubitID) { this->translationStack.unmapQubitID(qubitID); }
+
     uint8_t ModuleTranslation::getMappedQubitID(const Value &value) const {
         return this->translationStack.getMappedQubitIDInCurrentStackFrame(value);
     }
 
     bool ModuleTranslation::valueIsMappedToQubit(const Value &value) const {
         return this->translationStack.valueIsMappedToQubitIDInCurrentStackFrame(value);
+    }
+
+    bool ModuleTranslation::qubitValueWasReleased(const Value &value) const {
+        return this->translationStack.qubitValueWasFreedInCurrentStackFrame(value);
     }
 
     iQoalaRegReference *ModuleTranslation::getMappedRegRefForValue(const Value &mlirVal, const bool copy) {

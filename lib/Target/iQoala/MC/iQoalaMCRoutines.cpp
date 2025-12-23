@@ -31,13 +31,9 @@ namespace qoala::iqoala {
         return 0xFF;
     }
 
-    void QuantumRoutine::addConsumedQubitID(const uint8_t qubitID) {
-        this->consumedQubits.push_back(qubitID);
-    }
+    void QuantumRoutine::addConsumedQubitID(const uint8_t qubitID) { this->consumedQubits.push_back(qubitID); }
 
-    std::vector<uint8_t> QuantumRoutine::getConsumedQubitIDs() const {
-        return this->consumedQubits;
-    }
+    std::vector<uint8_t> QuantumRoutine::getConsumedQubitIDs() const { return this->consumedQubits; }
 
     LocalQuantumRoutine *LocalQuantumRoutine::createLocalRoutine(const StringRef name) {
         return new LocalQuantumRoutine(name);
