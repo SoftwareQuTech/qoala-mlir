@@ -8,12 +8,6 @@ namespace qoala::assembly {
 
     uint32_t iQoalaRegReference::getNum() const { return this->num; }
 
-    uint32_t iQoalaRegReference::getQubitID() const { return this->qubitID; }
-
-    void iQoalaRegReference::setQubitID(const uint32_t qubitID) { this->qubitID = qubitID; }
-
-    bool iQoalaRegReference::representsAQubit() const { return this->qubitID != 0xFF; }
-
     bool iQoalaRegReference::isLocal() const { return this->type == LOCAL; }
 
     bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/ return this->type >= 1; }
@@ -248,7 +242,7 @@ namespace qoala::assembly {
                 os << "Q";
                 break;
         }
-        os << "', number: '" << this->num << ", qubitID: '" << this->qubitID << "'\n";
+        os << "', number: '" << this->num << "'\n";
     }
 
     // Implementations of the "<<" operator

@@ -70,6 +70,11 @@ namespace qoala::iqoala {
         virtual uint8_t releaseQubit(const mlir::Value &value);
         virtual void finalizeRoutine() = 0;
 
+        // Functions to access the consumed qubits
+        void addConsumedQubitID(uint8_t qubitID);
+        [[nodiscard]]
+        std::vector<uint8_t> getConsumedQubitIDs() const;
+
         // LLVM RTTI
         [[nodiscard]]
         QuantumRoutineKind getKind() const {
@@ -87,6 +92,10 @@ namespace qoala::iqoala {
         // The list of NetQASM MC instructions for this quantum routine. In the particular case of a request routine
         // this list SHOULD be unused! (i.e. always empty)
         std::vector<assembly::iQoalaMCInstruction *> instructions;
+        // Vector used to report back to the qoalahost section all the *consumed* qubits (i.e. mlir values that were
+        // mapped to a qubit value, were free'd by the routine). This vector is used to inform the qoalahost section
+        // that the consumed qubitIDs no longer have to be mapped to the qubit IDs.
+        std::vector<uint8_t> consumedQubits;
     };
 
     /* A class representing a local quantum routine. These routines only host a list of

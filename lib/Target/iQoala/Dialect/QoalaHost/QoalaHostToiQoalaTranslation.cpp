@@ -115,7 +115,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     // a qubit in the current stack frame:
     DenseMap<Value, uint32_t> valueToQubitMap;
     for (Value arg : op.getOperands()) {
-        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg, /*copy=*/false)->getQubitID());
+        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedQubitID(arg));
     }
 
     // Some preparations before processing arguments
@@ -159,6 +159,8 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
 
     // We finally mark the operation as visited, and perform any finalization in the routine body
     context->markOperationAsVisited(calledFunction);
+    // TODO - Remove the consumed qubits from the mapped ones in the modul
+    std::vector<uint8_t> consumedQubits = routine->getConsumedQubitIDs();
     routine->finalizeRoutine();
     return success();
 }
@@ -250,6 +252,17 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     return failure();
                 }
 
+                // We need to identify the yielded values that represent a qubit and map them
+                // in the qoalahost section to the physical qubitID
+                const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
+
+                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
+                    Value valueAtCaller = op.getResult(retIndex);
+                    // We get the register reference for the value, but NOT a copy of the object, since we need
+                    // to mutate the original one
+                    moduleTranslation->mapValueToQubitID(valueAtCaller, qubitId);
+                }
+
                 // The qubit references returned by the local routine *must not* be used as yielded values
                 // by this call op. This information will be kept inside the "uses" and "keeps" header section
                 // of the local routines
@@ -259,7 +272,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 std::vector<Value> yieldedResults;
                 std::vector<iQoalaRegType> localRegTypes;
                 for (Value result : op.getResults()) {
-                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(result)) {
+                    if (!moduleTranslation->valueIsMappedToQubit(result)) {
                         yieldedResults.push_back(result);
                         localRegTypes.push_back(LOCAL);
                     }
@@ -269,7 +282,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // mapped to a qubit, then we don't need to pass it as a routine argument.
                 SmallVector<iQoalaMCOperand *> callMCOperands;
                 for (const Value callArg : op.getOperands()) {
-                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(callArg)) {
+                    if (!moduleTranslation->valueIsMappedToQubit(callArg)) {
                         // If the value is mapped to a qubit, then we don't need to use it
                         // as an operand of the MC instruction
                         iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(callArg);
@@ -289,19 +302,6 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
                         /*useOpOperands=*/false);
-
-                // Then, we need to identify the yielded values that represent a qubit and map them
-                // in the qoalahost section to the physical qubitID
-                const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
-
-                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
-                    Value valueAtCaller = op.getResult(retIndex);
-                    // We get the register reference for the value, but NOT a copy of the object, since we need
-                    // to mutate the original one
-                    iQoalaRegReference *regRefCaller =
-                            moduleTranslation->getMappedRegRefForValue(valueAtCaller, /*copy=*/false);
-                    regRefCaller->setQubitID(qubitId);
-                }
                 return instruction ? success() : failure();
             })
             .Case([&](ReturnOp op) -> LogicalResult {

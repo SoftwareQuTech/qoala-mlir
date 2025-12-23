@@ -57,7 +57,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
         LocalQuantumRoutine *localRoutine =
                 moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
 
-        if (localRoutine->getQubitNum(op.getOperand(i)) != 0xFF) {
+        if (const uint8_t qubitNum = localRoutine->getQubitNum(op.getOperand(i)); qubitNum != 0xFF) {
             // returned qubit values must not be reported as return values
             continue;
         }
@@ -150,6 +150,7 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
 
                 const uint8_t qubitNum = quantumRoutine->releaseQubit(op.getQ());
                 context->releaseQubit(qubitNum);
+                quantumRoutine->addConsumedQubitID(qubitNum);
                 return success();
             })
             .Case([&](QInitOp op) -> LogicalResult {
@@ -182,8 +183,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                         reqRoutine->changeReqTypeToMeasure();
                     }
                     for (uint32_t i = 0; i < op.getNumOperands(); i++) {
-                        // We also need to report the returned variable name
-                        if (reqRoutine->getQubitNum(op.getOperand(i)) == 0xFF) {
+                        if (const uint8_t qubitID = reqRoutine->getQubitNum(op.getOperand(i)); qubitID == 0xFF) {
+                            // We also need to report the returned variable name
                             reqRoutine->addReturnValue(qoala::helpers::formatString(returnNameFormat, i));
                         }
                     }

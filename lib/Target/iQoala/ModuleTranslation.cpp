@@ -44,7 +44,7 @@ namespace qoala::translate {
 
     std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const StringRef &key) const {
         if (this->precedencesIdsToIQoalaBlocks.contains(key)) {
-            return std::optional(precedencesIdsToIQoalaBlocks.at(key));
+            return {precedencesIdsToIQoalaBlocks.at(key)};
         }
         return std::nullopt;
     }
@@ -80,6 +80,17 @@ namespace qoala::translate {
             return this->valuesInScope.at(value);
         }
         return nullptr;
+    }
+
+    void ModuleTranslation::ModuleStackFrame::mapQubitIDInScope(const Value &value, const uint8_t qubitID) {
+        this->valuesToQubitIDs.try_emplace(value, qubitID);
+    }
+
+    uint8_t ModuleTranslation::ModuleStackFrame::getMappedQubitInScope(const Value &value) const {
+        if (this->valuesToQubitIDs.contains(value)) {
+            return this->valuesToQubitIDs.at(value);
+        }
+        return 0xFF;
     }
 
     bool ModuleTranslation::ModuleStackFrame::isModule() const { return isa<ModuleOp>(this->operation); }
@@ -122,6 +133,21 @@ namespace qoala::translate {
 
     bool ModuleTranslation::ModuleStack::valueIsMapped(const Value &value) {
         return this->getRegRefForValue(value) != nullptr;
+    }
+
+    void ModuleTranslation::ModuleStack::mapValueToQubitID(const Value &value, const uint8_t qubitID) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->mapQubitIDInScope(value, qubitID);
+    }
+
+    bool ModuleTranslation::ModuleStack::valueIsMappedToQubitIDInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getMappedQubitInScope(value) != 0xFF;
+    }
+
+    uint8_t ModuleTranslation::ModuleStack::getMappedQubitIDInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getMappedQubitInScope(value);
     }
 
     iQoalaRegReference *ModuleTranslation::ModuleStack::getRegRefForValue(const Value &value) {
@@ -194,11 +220,16 @@ namespace qoala::translate {
         return this->translationStack.getRegRefForValue(value);
     }
 
-    bool ModuleTranslation::valueIsMappedToQubitInCurrentFrame(const Value &value) {
-        if (const iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(value)) {
-            return regRef->representsAQubit();
-        }
-        return false;
+    void ModuleTranslation::mapValueToQubitID(const Value &value, const uint8_t qubitID) {
+        this->translationStack.mapValueToQubitID(value, qubitID);
+    }
+
+    uint8_t ModuleTranslation::getMappedQubitID(const Value &value) const {
+        return this->translationStack.getMappedQubitIDInCurrentStackFrame(value);
+    }
+
+    bool ModuleTranslation::valueIsMappedToQubit(const Value &value) const {
+        return this->translationStack.valueIsMappedToQubitIDInCurrentStackFrame(value);
     }
 
     iQoalaRegReference *ModuleTranslation::getMappedRegRefForValue(const Value &mlirVal, const bool copy) {
