@@ -223,14 +223,6 @@ LogicalResult qoalahost::CallOp::verify() {
     return success();
 }
 
-uint32_t qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendIntOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendFloatOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
 uint32_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
 uint32_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
@@ -242,10 +234,6 @@ BlockType qoalahost::RecvIntOp::getBlockType(const llvm::StringMap<Operation *> 
 BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
 BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
-
-uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
 uint32_t qoalahost::RecvIntsOp::getDuration() {
     // TODO - This need to be improved because this is just a rough estimation about how long does a recv op takes
