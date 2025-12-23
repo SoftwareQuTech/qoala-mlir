@@ -306,35 +306,3 @@ std::string qoalahost::QoalaHostDialect::getAllowedDialectNames() {
 #include "Dialect/QoalaHost/QoalaHost.h"
             >();
 }
-
-StringRef qoalahost::SendIntOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::SendIntOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::SendFloatOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::SendFloatOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::SendIntsOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::SendIntsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::SendFloatsOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::SendFloatsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::RecvIntOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::RecvIntOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::RecvFloatOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::RecvFloatOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::RecvIntsOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::RecvIntsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }
-
-StringRef qoalahost::RecvFloatsOp::getUsedRemoteName() { return this->getRemote(); }
-
-FlatSymbolRefAttr qoalahost::RecvFloatsOp::getUsedRemoteAttr() { return this->getRemoteAttr(); }

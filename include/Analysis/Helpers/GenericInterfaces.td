@@ -36,11 +36,15 @@ def UsesRemoteInterface : OpInterface<"UsesRemoteInterface"> {
     let methods = [
         InterfaceMethod<[{
             Returns a StringRef with the name of the used remote.
-        }], "llvm::StringRef", "getUsedRemoteName", (ins)
+        }], "llvm::StringRef", "getUsedRemoteName", (ins),
+        /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{ return $_op.getRemote(); }]
         >,
         InterfaceMethod<[{
             Returns remote attribute used by this operation
-        }], "mlir::FlatSymbolRefAttr", "getUsedRemoteAttr", (ins)
+        }], "mlir::FlatSymbolRefAttr", "getUsedRemoteAttr", (ins),
+        /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{ return $_op.getRemoteAttr(); }]
         >
     ];
 }
