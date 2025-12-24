@@ -23,7 +23,7 @@ module {
   netqasm.request_routine @entangle_measure() -> i1 {
     %0 = netqasm.qalloc  : i32
     %2 = netqasm.eprs_measure %0  {remote = @Bob} : i1
-    netqasm.return %2: i1
+    netqasm.return %2 : i1
   }
   qoalahost.main_func @test_reordering_teleport() {
     // We do not assert the presence of block_99 (^b0), since it will be deleted by the transaltion for being empty.

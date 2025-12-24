@@ -93,16 +93,25 @@ namespace qoala::iqoala {
         return block;
     }
 
+    void HostSection::removeReferencesToRemovedBlock(std::set<Block *> removedBlocks) const {
+        for (Block *block : this->hostBlocks) {
+            block->removeAllBlockReferences(removedBlocks);
+        }
+    }
+
     void HostSection::deleteEmptyBlocks() {
         std::vector<Block *> blocksCpy;
+        std::set<Block *> removedBlocksPtrs;
         for (Block *block : this->hostBlocks) {
             if (!block->isEmpty()) {
                 blocksCpy.push_back(block);
             } else {
+                removedBlocksPtrs.emplace(block);
                 delete block;
             }
         }
         this->hostBlocks = blocksCpy;
+        this->removeReferencesToRemovedBlock(removedBlocksPtrs);
     }
 
     LogicalResult HostSection::setBlockTypes() const {

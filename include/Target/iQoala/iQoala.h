@@ -303,6 +303,13 @@ namespace qoala::iqoala {
         void addDeadline(Block *blk, const uint32_t deadline) { this->deadlines[blk] = deadline; }
 
     private:
+        void removePredecessorIfExists(const Block *pred);
+        void removeDependencyIfExists(const Block *dep);
+        void removePrevCommIfExists(const Block *oldPrevComm);
+        void removePrevEntIfExists(const Block *oldPrevEnt);
+        void removeAllBlockReferences(const std::set<Block *> &blockPtrs);
+
+    private:
         // type of the Block (CL, CC, QL, QC)
         BlockType type;
         // Name of the block
@@ -318,6 +325,7 @@ namespace qoala::iqoala {
         Block *prevEnt;
         std::vector<Block *> successors;
         std::unordered_map<Block *, int> deadlines;
+        friend class HostSection;
     };
 
     /* Sections of the iQoala program */
@@ -369,6 +377,9 @@ namespace qoala::iqoala {
         mlir::LogicalResult setBlockTypes() const;
 
         void print(mlir::raw_ostream &os) const override;
+
+    private:
+        void removeReferencesToRemovedBlock(std::set<Block *> removedBlocks) const;
 
     private:
         // The host section only contains a list of "Blocks".

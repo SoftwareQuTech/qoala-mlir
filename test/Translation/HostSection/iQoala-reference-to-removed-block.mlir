@@ -41,7 +41,7 @@ module {
     // For some reason, there is a dependency on "block_99" (together with a valid one). We don't expect the reference to
     // "block_99" in the final iQoala, since the translate tool should remove this reference, since block_99 will be
     // empty after translation
-    // CHECK: ^[[BLK_2:.*]] { type = QC; predecessors = []; dependencies = ["[[BLK_1]]"]; prev_comm = ; prev_ent = ; deadlines = [] }:
+    // CHECK: ^[[BLK_2:.*]] { type = QC; predecessors = []; dependencies = [[[BLK_1]]]; prev_comm = ; prev_ent = ; deadlines = [] }:
     ^bb2:
         qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_1", "block_99"], predecessors = [], prev_comm = "", prev_ent = ""}
         %1 = qoalahost.call @entangle_measure() : () -> i1
@@ -53,7 +53,7 @@ module {
         %2 = arith.constant 4 : i32
         qoalahost.nop_term
 
-    // CHECK: ^[[BLK_4:.*]] { type = CL; predecessors = ["[[BLK_1]]"]; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+    // CHECK: ^[[BLK_4:.*]] { type = CL; predecessors = [[[BLK_1]]]; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
     ^bb4:
         qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = [], predecessors = ["block_1", "block_99"], prev_comm = "", prev_ent = ""}
         %3 = arith.constant 8 : i32
