@@ -5,7 +5,6 @@
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
-
 #include "Tools/QoalaOpt.h"
 #include "llvm/ADT/StringSet.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
@@ -157,8 +156,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         Operation &lastOp = blockOperations.back();
 
         if (blockOperations.size() < 3) {
-            return this->emitOpError()
-                   << "Remote references block does not have enough operations (3+) to be valid.";
+            return this->emitOpError() << "Remote references block does not have enough operations (3+) to be valid.";
         }
 
         if (!isa<BlkMeta>(firstOp)) {
@@ -171,8 +169,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
                 continue;
             }
             if (!isa<RemoteIDRefOp>(op)) {
-                return op.emitError()
-                       << "Remote references block contains an operation not allowed in there.";
+                return op.emitError() << "Remote references block contains an operation not allowed in there.";
             }
         }
 
