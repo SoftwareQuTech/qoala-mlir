@@ -103,16 +103,6 @@ namespace qoala::analysis {
             reordering::BlockPrecedenceList deadlinesPrecedences =
                     createPrecedenceFromOrder(&moduleOp, orderedBlockIds, idToBlockMap);
 
-            // TODO - THe following tests fail with a "usage of an undeclared block reference in the deadlines
-            //  section":
-            //   * test/Passes/QoalaHostBlockReordering/deadlines-program-horizon-too-low.mlir
-            //   * test/Passes/QoalaHostBlockReordering/entangled-and-local-qbuit-with-deadlines.mlir
-            //   * test/Passes/QoalaHostBlockReordering/local-entangled-classical-break-with-deadlines.mlir
-            //  This is likely due to the fact that the deadlines are computed *without* considering that
-            //  the block containing the RemoteRefOp *must* stay on the first place.
-            //  It is likely that adding this restriction to the optimization problem below would fix the issue
-            //  This issue will be addressed on ticket #121
-
             // Phase 1: maximize gmin
             reordering::MILPBlockDeadlineModel deadlinePrimary;
             if (!deadlinePrimary.initialize()) {
