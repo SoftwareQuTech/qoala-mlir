@@ -66,12 +66,18 @@ namespace qoala::iqoala {
         this->eprsSocketsMap.emplace(remoteName, socketID);
     }
 
-    uint8_t MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
+        if (this->classicalSocketsMap.find(remoteName) != this->classicalSocketsMap.end()) {
+            return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
-    uint8_t MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
+        if (this->eprsSocketsMap.find(remoteName) != this->eprsSocketsMap.end()) {
+            return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
     std::string MetaSection::getParamNameForRemote(const std::string &remoteName) const {
@@ -117,9 +123,15 @@ namespace qoala::iqoala {
                 continue;
             }
             if (block->blockContainsRecvMsg()) {
+                // In this type of blocks we expect exactly 2 instructions
                 if (block->getNumInstructions() != 1) {
                     return failure();
                 }
+                // ...which should be the recv_msg itself
+                if (block->getInstruction(0)->getOpcode() != assembly::QoalaHostMCInstr::OP_RECV_CMSG) {
+                    return failure();
+                }
+
                 block->setType(Block::CC);
             }
             // By default, block are CL type, so if none of the cases

@@ -144,8 +144,25 @@ namespace qoala::translate {
         return topFrameOp;
     }
 
-    void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
-        this->iQoalaModule->addRemoteDeclaration(remoteName);
+    bool ModuleTranslation::addRemoteDeclaration(const StringRef remoteName, const bool classicalSocket,
+                                                 const bool eprsSocket) const {
+        return this->iQoalaModule->addRemoteDeclaration(remoteName, classicalSocket, eprsSocket);
+    }
+
+    std::optional<uint8_t> ModuleTranslation::getEPRSocketIDForRemote(const StringRef remoteName) const {
+        return this->iQoalaModule->getEPRSSocketIDForRemote(remoteName);
+    }
+
+    std::optional<uint8_t> ModuleTranslation::getClassicalSocketIDForRemote(const StringRef remoteName) const {
+        return this->iQoalaModule->getClassicalSocketIDForRemote(remoteName);
+    }
+
+    iQoalaRegReference *ModuleTranslation::getRegRefForCSocketName(const StringRef remoteName) const {
+        return this->csocketsMap.at(remoteName);
+    }
+
+    void ModuleTranslation::setRegRefForCSocketName(const StringRef &remoteName, iQoalaRegReference *regRef) {
+        this->csocketsMap[remoteName] = regRef;
     }
 
     void ModuleTranslation::setModuleName(const StringRef moduleName) const {
@@ -394,7 +411,7 @@ namespace qoala::translate {
         moduleTranslation.iQoalaModule->deleteEmptyHostBlocks();
         if (failed(moduleTranslation.iQoalaModule->setQoalaHostBlockTypes())) {
             originalModule->emitError() << "Translation yielded a QoalaHost block of type QC, QL or CC "
-                                           "with more than 1 instruction";
+                                           "that does not match the required number of instructions";
             return nullptr;
         }
 

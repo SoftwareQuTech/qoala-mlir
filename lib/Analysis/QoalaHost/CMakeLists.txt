@@ -1,4 +1,5 @@
 add_mlir_dialect_library(MLIRQoalaHostAnalysis
+        AddRemoteIDPlaceholders.cpp
         IsolateOperations.cpp
         Precedences.cpp
         AddPrecedences.cpp

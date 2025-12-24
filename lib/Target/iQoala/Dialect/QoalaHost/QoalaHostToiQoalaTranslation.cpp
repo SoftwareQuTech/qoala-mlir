@@ -163,6 +163,59 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     return success();
 }
 
+static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
+                                                                  StringRef remoteName) {
+    const std::optional<uint8_t> eprsSocketID = moduleTranslation->getClassicalSocketIDForRemote(remoteName);
+    if (!eprsSocketID) {
+        op->emitError("Remote with name '") << remoteName << "' was not found in the META section.";
+        return std::nullopt;
+    }
+
+    iQoalaMCOperand *remoteCSocketVal =
+            iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
+    const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_ASSIGN_CVAL, {}, {LOCAL}, {remoteCSocketVal},
+            /*useOpOperands=*/false);
+    // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
+    // We can get a reference to that by simply accessing the first operand of the new instruction.
+    return csocketInstr->getOperand(0)->getRegRef();
+}
+
+static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const StringRef &remoteName) {
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand =
+            iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Use that constant and the actual value to send to create the send_cmsg instruction.
+    const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand});
+    return sendCMSGInstr ? success() : failure();
+}
+
+static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const Value &opResult, const StringRef &remoteName) {
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand =
+            iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Create the actual recv_cmsg MC instruction
+    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand});
+    return recvInstr ? success() : failure();
+}
+
+static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, RemoteIDRefOp &op) {
+    // Create a constant value that references the csocket from the META section
+    std::optional<iQoalaRegReference *> csocketOperand =
+            addSocketRefAssignCVal(moduleTranslation, op.getOperation(), op.getRemote());
+    if (!csocketOperand) {
+        return failure();
+    }
+    moduleTranslation->setRegRefForCSocketName(op.getRemote(), *csocketOperand);
+    return success();
+}
+
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -268,17 +321,15 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 (void) moduleTranslation->popFrame();
                 return success();
             })
-            .Case([](SendIntOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
-            .Case([](RecvIntOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
             .Case([](NopTOp op) -> LogicalResult {
                 // There is nothing to do here
                 return success();
+            })
+            .Case([&](RemoteIDRefOp op) -> LogicalResult {
+                if (op.getClassical()) {
+                    return processRemoteIDRefOp(moduleTranslation, op);
+                }
+                return failure();
             })
             .Case([&](BlkMeta op) -> LogicalResult {
                 qoala::iqoala::Block *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
@@ -299,8 +350,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                         return failure();
                     }
                 }
-                const StringRef prevComm = op.getPrevCommAttr().getValue();
-                if (!prevComm.empty()) {
+                if (const StringRef prevComm = op.getPrevCommAttr().getValue(); !prevComm.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
                         block->setPrevComm(blk.value());
                     } else {
@@ -309,8 +359,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 } else {
                     block->setPrevComm(nullptr);
                 }
-                const StringRef prevEnt = op.getPrevEntAttr().getValue();
-                if (!prevEnt.empty()) {
+                if (const StringRef prevEnt = op.getPrevEntAttr().getValue(); !prevEnt.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
                         block->setPrevEnt(blk.value());
                     } else {
@@ -331,7 +380,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
 
                     if (auto predecessor = moduleTranslation->findIdPrecedence(key)) {
-                        const uint32_t deadline = static_cast<uint32_t>(intAttr.getInt());
+                        const auto deadline = static_cast<uint32_t>(intAttr.getInt());
                         block->addDeadline(predecessor.value(), deadline);
                     } else {
                         return failure();
@@ -342,13 +391,45 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 moduleTranslation->addIdPrecedence(op.getBlockId(), block);
                 return success();
             })
-            .Case([](const SendFloatOp op) -> LogicalResult {
+            // Singular versions of the classical comm ops
+            .Case([&](SendIntOp op) -> LogicalResult {
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
+            })
+            .Case([&](SendFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a send_int operation.
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
+            })
+            .Case([&](RecvIntOp op) -> LogicalResult {
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
+            })
+            .Case([&](RecvFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a recv_int operation.
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
+            })
+            // Plural versions of the classical comm ops
+            .Case([](const SendFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
-            .Case([](const RecvFloatOp op) -> LogicalResult {
+            .Case([](const RecvFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
+            })
+            .Case([](const SendIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
+            })
+            .Case([](const RecvIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QoalaHost operation to iQoala: '") << *op << "'\n";

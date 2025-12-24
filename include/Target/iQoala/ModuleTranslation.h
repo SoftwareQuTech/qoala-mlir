@@ -57,7 +57,8 @@ namespace qoala::translate {
          * This class represents the "stack" when translating the module
          * It contains reference of the translated frames (starting from the MainFuncOp)
          * but also it keeps a map of the mapped MLIR values *in their respective scopes*.
-         * This allows mapping the same value multiple times, since it will be
+         * This allows mapping the same value multiple times, since mapping a value will
+         * be bound to the current scope on the stack.
          */
         class ModuleStack {
         public:
@@ -86,7 +87,11 @@ namespace qoala::translate {
 
         mlir::LogicalResult convertOperation(mlir::Operation &op);
         mlir::LogicalResult convertFunctionSignatures();
-        void addRemoteDeclaration(llvm::StringRef remoteName) const;
+        bool addRemoteDeclaration(llvm::StringRef remoteName, bool classicalSocket, bool eprsSocket) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getEPRSocketIDForRemote(llvm::StringRef remoteName) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getClassicalSocketIDForRemote(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
 
         /* Block-related functions */
@@ -116,11 +121,16 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
+        [[nodiscard]]
         std::optional<iqoala::Block *> findIdPrecedence(const llvm::StringRef &key) const;
 
         void addIdPrecedence(const llvm::StringRef &key, iqoala::Block *block) {
             this->precedencesIdsToIQoalaBlocks[key] = block;
         }
+
+        [[nodiscard]]
+        assembly::iQoalaRegReference *getRegRefForCSocketName(const mlir::StringRef remoteName) const;
+        void setRegRefForCSocketName(const llvm::StringRef &remoteName, assembly::iQoalaRegReference *regRef);
 
     protected:
         /* Functions for following "call convention" for arguments in the local quantum routines */
@@ -152,6 +162,8 @@ namespace qoala::translate {
 
         // Map for tracking the precedence ID (added by the AddBlockPrecedences pass) and its Block
         llvm::StringMap<iqoala::Block *> precedencesIdsToIQoalaBlocks;
+        // Map for tracking the classical remote id (csocket) references to the iQoalaRegRefs that hold those values.
+        mlir::DenseMap<llvm::StringRef, assembly::iQoalaRegReference *> csocketsMap;
     };
 } // namespace qoala::translate
 

@@ -38,30 +38,30 @@ module {
 
   // CHECK: qoalahost.main_func @test_entangle_quantum_program()
   qmem.func @test_entangle_quantum_program() {
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_0", predecessors = []}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", predecessors = []}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER0]]() : () -> ()
     %0 = qmem.qalloc : i32
     qmem.eprs %0 {remote = @Bob}
 
-    // CHECK: ^[[BLOCK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_1", predecessors = []}
+    // CHECK: ^[[BLK_1:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", predecessors = []}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER1]]() : () -> ()
     %1 = qmem.qalloc : i32
     qmem.eprs %1 {remote = @Bob}
 
-    // CHECK: ^[[BLOCK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_2", predecessors = []}
+    // CHECK: ^[[BLK_2:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", predecessors = []}
     // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     %2 = qmem.qalloc : i32
     qmem.eprs %2 {remote = @Bob}
 
-    // CHECK: ^[[BLOCK_3:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_3", predecessors = []}
+    // CHECK: ^[[BLK_3:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_3:.*]]", predecessors = []}
     // CHECK-NEXT: %[[REG_MAIN1:.*]] = qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %3 = qmem.recv_floats  {length = 2 : i32, remote = @Bob} : tensor<2xf32>
 
-    // CHECK: ^[[BLOCK_4:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_4", predecessors = []}
+    // CHECK: ^[[BLK_4:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", predecessors = []}
     %c0 = arith.constant 0 : index
     // CHECK: %[[EXTRACTED:.*]] = tensor.extract %[[REG_MAIN1]]
     %extracted = tensor.extract %3[%c0] : tensor<2xf32>
@@ -70,13 +70,13 @@ module {
     // TODO - Decide if a call to __qoala_convert_float_angle must be in an isolated block (doesn't hurt)
     // CHECK-NEXT: %[[REG_MAIN2:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[EXTRACTED]]) : (f32) -> (i32, i32)
 
-    // CHECK: ^[[BLOCK_5:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_5", predecessors = ["block_2", "block_4"]}
+    // CHECK: ^[[BLK_5:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_5:.*]]", predecessors = ["[[BLOCK_2]]", "[[BLOCK_4]]"]}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]], %[[REG_MAIN2]]#0, %[[REG_MAIN2]]#1) : (i32, i32, i32) -> ()
     qmem.rot_x %2, %extracted
 
-    // CHECK: ^[[BLOCK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_6", predecessors = []}
+    // CHECK: ^[[BLK_6:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_6:.*]]", predecessors = []}
     // CHECK: %[[REG_MAIN3:.*]] = qoalahost.recv_floats {length = 2 : i32, remote = @[[REMOTEBOB]]} : tensor<2xf32>
     %4 = qmem.recv_floats  {length = 2 : i32, remote = @Bob} : tensor<2xf32>
 
@@ -87,19 +87,19 @@ module {
     // TODO - Decide if a call to __qoala_convert_float_angle must be in an isolated block (doesn't hurt)
     // CHECK: %[[REG_MAIN4:.*]]:2 = qoalahost.call @__qoala_convert_float_angle(%[[EXTRACTED_0]]) : (f32) -> (i32, i32)
 
-    // CHECK: ^[[BLOCK_7:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_7", predecessors = ["block_0", "block_6"]}
+    // CHECK: ^[[BLK_7:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_7:.*]]", predecessors = ["[[BLOCK_0]]", "[[BLOCK_6]]"]}
     // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN0]], %[[REG_MAIN4]]#0, %[[REG_MAIN4]]#1) : (i32, i32, i32) -> ()
     qmem.rot_y %2, %extracted_0
 
-    // CHECK: ^[[BLOCK_8:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_8", predecessors = []}
+    // CHECK: ^[[BLK_8:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_8:.*]]", predecessors = []}
     // CHECK-NEXT: %[[REG_MAIN6:.*]] = qoalahost.call @[[WRAPPER5]]() : () -> i1
     %6 = qmem.qalloc : i32
     %7 = qmem.eprs_measure %6 {remote = @Bob} : i1
 
-    // CHECK: ^[[BLOCK_9:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "block_9", predecessors = []}
+    // CHECK: ^[[BLK_9:.*]]:
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_9:.*]]", predecessors = []}
     // CHECK: qoalahost.return
     qmem.return
   }

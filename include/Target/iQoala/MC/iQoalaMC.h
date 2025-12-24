@@ -307,7 +307,10 @@ namespace qoala::assembly {
     class QoalaHostMCInstr : public iQoalaMCInstruction {
     public:
         enum OpCode {
-            OP_UNKNOWN = 0,
+            // 0x100 = 256: The lower opCodes (0-255) are reserved for NetQASM instructions
+            // By setting this value to a higher value we avoid scenarios where the OpCode gets
+            // misinterpreted as an instruction from another set.
+            OP_UNKNOWN = 0x100,
             OP_ASSIGN_CVAL,
             OP_ADD,
             OP_SUBTRACT,
@@ -318,8 +321,8 @@ namespace qoala::assembly {
             OP_BNE,
             OP_BGT,
             OP_BLT,
-            OP_SEND_MSG,
-            OP_RECV_MSG,
+            OP_SEND_CMSG,
+            OP_RECV_CMSG,
             OP_RUN_SUBROUTINE,
             OP_RUN_REQUEST,
             OP_SUBMIT_ROUTINES,

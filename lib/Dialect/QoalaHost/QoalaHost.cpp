@@ -1,9 +1,12 @@
 #include <set>
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
+
 #include "Tools/QoalaOpt.h"
+#include "llvm/ADT/StringSet.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
@@ -35,7 +38,7 @@ ParseResult qoalahost::MainFuncOp::parse(OpAsmParser &parser, OperationState &re
 
 void qoalahost::MainFuncOp::build(OpBuilder &builder, OperationState &state, StringRef name, FunctionType type,
                                   ArrayRef<NamedAttribute> attrs, ArrayRef<DictionaryAttr> argAttrs) {
-    state.addAttribute(mlir::SymbolTable::getSymbolAttrName(), builder.getStringAttr(name));
+    state.addAttribute(SymbolTable::getSymbolAttrName(), builder.getStringAttr(name));
     state.addAttribute(getFunctionTypeAttrName(state.name), TypeAttr::get(type));
     state.attributes.append(attrs.begin(), attrs.end());
     state.addRegion();
@@ -53,6 +56,14 @@ void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
                                              getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
+static bool shouldCheckForRemoteRefsBlock(ModuleOp &module, qoalahost::MainFuncOp *mainFunc) {
+    if (module.getOps<qremote::RemoteOp>().empty()) {
+        return false;
+    }
+
+    return !mainFunc->getOps<qoalahost::ifaces::ClassicalCommInterface>().empty();
+}
+
 /* Region verifiers for MainFuncOp */
 LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     for (Operation &operation : this->getBody().getOps()) {
@@ -68,7 +79,7 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
     // Verification of qoalahost.blk_meta sanity.
     // 1. There must exactly one qoalahost.blk_meta operation per block
     // 2. The qoalahost.blk_meta operation is always the first one of its block
-    // 3. A block block whose identifier is present in the blk_meta of another must be decalred before
+    // 3. A block whose identifier is present in the blk_meta of another must be declared before
     std::set<std::string> blkIds;
     for (Block &block : getBody()) {
         auto blkMetas = block.getOps<BlkMeta>();
@@ -95,32 +106,77 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         // iif it is declared first.
         for (StringRef pred : op.getPredecessorsAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return op.emitOpError() << "contains a predecessor before its declaration.";
+                return op.emitOpError() << "contains a predecessor before its declaration: '" << pred << "'.";
             }
         }
         for (StringRef pred : op.getDependenciesAttr().getAsValueRange<StringAttr>()) {
             if (blkIds.find(pred.str()) == blkIds.end()) {
-                return op.emitOpError() << "contains a depdency before its declaration.";
+                return op.emitOpError() << "contains a dependency before its declaration: '" << pred << "'.";
             }
         }
         std::string prevComm = op.getPrevCommAttr().getValue().str();
         if (!prevComm.empty() && !blkIds.count(prevComm)) {
-            return op.emitOpError() << "contains a previous comm precedence before its decalration.";
+            return op.emitOpError() << "contains a previous comm precedence before its declaration: '" << prevComm
+                                    << "'.";
         }
         std::string prevEnt = op.getPrevEntAttr().getValue().str();
         if (!prevEnt.empty() && !blkIds.count(prevEnt)) {
-            return op.emitOpError() << "contains a previous ent precedence before its decalration.";
+            return op.emitOpError() << "contains a previous ent precedence before its declaration: '" << prevEnt
+                                    << "'.";
         }
 
-        mlir::DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
-        for (mlir::NamedAttribute pair : deadlinesAttr.getValue()) {
-            std::string key = std::string(pair.getName().strref());
+        DictionaryAttr deadlinesAttr = op.getDeadlinesAttr();
+        LLVM_DEBUG(llvm::dbgs() << "**** DeadAttr" << deadlinesAttr << "\n");
+        for (NamedAttribute pair : deadlinesAttr.getValue()) {
+            std::string key(pair.getName().strref());
             if (blkIds.find(key) == blkIds.end()) {
-                return op.emitOpError() << "contains a block idenetifer in deadlines before its declaration.";
+                return op.emitOpError() << "contains a block identifier in deadlines before its declaration: '" << key
+                                        << "'.";
             }
         }
 
         blkIds.insert(op.getBlockId().str());
+    }
+
+    // Verification of the RemoteIDRefOp block. *If there is a remote declared and used*, then there
+    // should be one block which:
+    // * MUST contain 1 blk_meta at the start
+    // * MUST contain 1 NopTOp at the end
+    // * All other operations in between *must* be RemoteIDRefOp
+    auto module = this->getOperation()->getParentOfType<ModuleOp>();
+    if (shouldCheckForRemoteRefsBlock(module, this)) {
+        // There is at least one remote declared and used -> apply the validation of the remote refs block
+        std::optional<Block *> remoteRefsBlock = analysis::remoteids::getRemoteRefsBlock(module);
+        if (!remoteRefsBlock) {
+            this->emitOpError("Remote references block was not found and remote is declared asn used.");
+            return failure();
+        }
+        auto &blockOperations = remoteRefsBlock.value()->getOperations();
+        Operation &firstOp = blockOperations.front();
+        Operation &lastOp = blockOperations.back();
+
+        if (blockOperations.size() < 3) {
+            return this->emitOpError() << "Remote references block does not have enough operations (3+) to be valid.";
+        }
+
+        if (!isa<BlkMeta>(firstOp)) {
+            return firstOp.emitError()
+                   << "Remote references block: First operation of the block is not a qoalahost.blk_meta.";
+        }
+
+        for (Operation &op : blockOperations) {
+            if (&op == &firstOp || &op == &lastOp) {
+                continue;
+            }
+            if (!isa<RemoteIDRefOp>(op)) {
+                return op.emitError() << "Remote references block contains an operation not allowed in there.";
+            }
+        }
+
+        if (!isa<NopTOp>(lastOp)) {
+            return lastOp.emitError()
+                   << "Remote references block: Last operation of the block it not a qoalahost.nop_term.";
+        }
     }
 
     return success();
@@ -168,14 +224,6 @@ LogicalResult qoalahost::CallOp::verify() {
     return success();
 }
 
-uint32_t qoalahost::CallOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::NopOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendIntOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendFloatOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
 uint32_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
 uint32_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
@@ -187,10 +235,6 @@ BlockType qoalahost::RecvIntOp::getBlockType(const llvm::StringMap<Operation *> 
 BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
 BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
-
-uint32_t qoalahost::SendIntsOp::getDuration() { return options::qoalaOptHostInstrTime; }
-
-uint32_t qoalahost::SendFloatsOp::getDuration() { return options::qoalaOptHostInstrTime; }
 
 uint32_t qoalahost::RecvIntsOp::getDuration() {
     // TODO - This need to be improved because this is just a rough estimation about how long does a recv op takes

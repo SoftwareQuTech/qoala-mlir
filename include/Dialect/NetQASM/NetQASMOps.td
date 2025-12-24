@@ -306,7 +306,7 @@ def MeasureOp : NetQASM_Op<"measure",
 
 def EprsOp: UsingRemote_Op<"eprs",
     [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>,
-     DeclareOpInterfaceMethods<EntangledQubitOp>]> {
+     DeclareOpInterfaceMethods<EntangledQubitOp>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (
         ins Arg<I32, "qubits", [MemWrite]>:$q,
         FlatSymbolRefAttr:$remote
@@ -318,7 +318,8 @@ def EprsOp: UsingRemote_Op<"eprs",
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure",
     [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>,
-     DeclareOpInterfaceMethods<MeasOp>, DeclareOpInterfaceMethods<EntangledQubitOp>]> {
+     DeclareOpInterfaceMethods<MeasOp>, DeclareOpInterfaceMethods<EntangledQubitOp>,
+     DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (
       ins Arg<I32, "qubits", [MemWrite]>:$q,
       FlatSymbolRefAttr:$remote

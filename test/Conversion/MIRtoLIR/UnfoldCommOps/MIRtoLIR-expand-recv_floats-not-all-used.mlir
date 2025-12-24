@@ -7,6 +7,11 @@ module {
 
   // CHECK: qoalahost.main_func @test_recv_floats_not_all_used()
   qmem.func @test_recv_floats_not_all_used() -> i32 {
+    // First block is the one containing the remote ID placeholder opertion
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @[[REMOTEBOB]]}
+    // CHECK-NEXT: qoalahost.nop_term
+
     // CHECK-NOT: arith.constant 0 : index
     // CHECK-NOT: arith.constant 1 : index
     // CHECK-NOT: arith.constant 2 : index
@@ -28,11 +33,11 @@ module {
     // CHECK: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_0:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
 
-    // CHECK: ^[[BLOCK_1:.*]]:
+    // CHECK: ^[[BLK_1:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_1:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
 
-    // CHECK: ^[[BLOCK_2:.*]]:
+    // CHECK: ^[[BLK_2:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RECV_2:.*]] = qoalahost.recv_float {remote = @[[REMOTEBOB]]} : f32
 
@@ -42,7 +47,7 @@ module {
     %1 = arith.addf %recv_0, %recv_2 : f32
     %2 = arith.mulf %1, %recv_0 : f32
     qmem.return %2 : f32
-    // CHECK: ^[[BLOCK_3:.*]]:
+    // CHECK: ^[[BLK_3:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta
     // CHECK-NEXT: %[[RES_1:.*]] = arith.addf %[[RECV_0]], %[[RECV_2]] : f32
     // CHECK-NEXT: %[[RES_2:.*]] = arith.mulf %[[RES_1]], %[[RECV_0]] : f32

@@ -1,0 +1,6 @@
+#ifndef QOALA_MLIR_QOALAHOSTINTERFACES_H
+#define QOALA_MLIR_QOALAHOSTINTERFACES_H
+
+#include "Analysis/Helpers/QoalaHostInterfaces.h.inc"
+
+#endif // QOALA_MLIR_QOALAHOSTINTERFACES_H

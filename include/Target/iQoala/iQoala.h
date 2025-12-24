@@ -262,6 +262,16 @@ namespace qoala::iqoala {
         }
 
         [[nodiscard]]
+        assembly::QoalaHostMCInstr *getInstruction(const uint8_t index) const {
+            return this->instructions[index];
+        }
+
+        [[nodiscard]]
+        assembly::QoalaHostMCInstr *operator[](const uint8_t index) const {
+            return this->getInstruction(index);
+        }
+
+        [[nodiscard]]
         bool blockContainsRunRequest() const;
         [[nodiscard]]
         bool blockContainsRunSubRoutine() const;
@@ -314,9 +324,9 @@ namespace qoala::iqoala {
         void addClassicalSocketForRemote(const std::string &remoteName, uint8_t socketID);
         void addEPRSSocketForRemote(const std::string &remoteName, uint8_t socketID);
         [[nodiscard]]
-        uint8_t getClassicalSocketForRemote(const std::string &remoteName) const;
+        std::optional<uint8_t> getClassicalSocketForRemote(const std::string &remoteName) const;
         [[nodiscard]]
-        uint8_t getEPRSSocketForRemote(const std::string &remoteName) const;
+        std::optional<uint8_t> getEPRSSocketForRemote(const std::string &remoteName) const;
         [[nodiscard]]
         std::string getParamNameForRemote(const std::string &remoteName) const;
         void setName(const std::string &programName);

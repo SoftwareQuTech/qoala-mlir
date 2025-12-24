@@ -233,7 +233,7 @@ namespace qoala::analysis::precedences {
 
         llvm::DenseMap<Block *, MemEffectInfo> callSiteEffects;
 
-        auto classicalCommOps = mainFunc.getOps<helpers::ClassicaCommInterface>();
+        auto classicalCommOps = mainFunc.getOps<qoalahost::ifaces::ClassicalCommInterface>();
         for (auto classicalCommOp : classicalCommOps) {
             commOps.push_back(classicalCommOp.getOperation());
         }
@@ -284,6 +284,17 @@ namespace qoala::analysis::precedences {
                         LLVM_DEBUG(llvm::dbgs()
                                    << blockIdMap[consumerBlock] << " depends on " << blockIdMap[producerBlock] << "\n");
                     }
+                }
+            }
+            // Add extra data dependency on the first block if the *classical comm operation* uses a remote:
+            // Do we need to add data dependencies on operations dialects::netqasm::ifaces::EntangledQubitOp?
+            //  (EprsOp and EprsMeasureOp). Maybe not, since they are
+            if (isa<qoalahost::ifaces::ClassicalCommInterface>(op)) {
+                Block *producerBlock = &mainFunc.front();
+                assert(!producerBlock->getOps<qoalahost::RemoteIDRefOp>().empty());
+                if (blockDeps[consumerBlock].insert(producerBlock).second) {
+                    LLVM_DEBUG(llvm::dbgs()
+                               << blockIdMap[consumerBlock] << " depends on " << blockIdMap[producerBlock] << "\n");
                 }
             }
         });

@@ -70,6 +70,11 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 }
                 return op.emitOpError("Arith constant operation not in host or netqasm section!\n");
             })
+            .Case<arith::ConstantFloatOp>([&](arith::ConstantFloatOp op) -> LogicalResult {
+                // TODO - Float constants are not lowered just yet, since it seems qoala-sim does not support them
+                op.emitError("Float values are not supported in qoala-sim.");
+                return failure();
+            })
             .Case<arith::CmpIOp>([&](arith::CmpIOp op) -> LogicalResult {
                 // In this case, we simply map the operation to the MLIR value yielded.
                 // We will use this later when encountering the cf.cond_br instruction to select

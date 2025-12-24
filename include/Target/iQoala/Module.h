@@ -16,7 +16,7 @@ namespace qoala::iqoala {
         iQoalaContext *getiQoalaContext() const;
 
         void setModuleName(mlir::StringRef newModuleName);
-        void addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true,
+        bool addRemoteDeclaration(const mlir::StringRef &remoteName, bool classicalSocket = true,
                                   bool eprsSocket = true);
         void addRoutine(QuantumRoutine *newRoutine);
         Block *addHostBlock();
@@ -31,9 +31,9 @@ namespace qoala::iqoala {
         [[nodiscard]]
         std::vector<LocalQuantumRoutine *> getLocalRoutines() const;
         [[nodiscard]]
-        uint8_t getClassicalSocketIDForRemote(const mlir::StringRef &remoteName) const;
+        std::optional<uint8_t> getClassicalSocketIDForRemote(const mlir::StringRef &remoteName) const;
         [[nodiscard]]
-        uint8_t getEPRSSocketIDForRemote(const mlir::StringRef &remoteName) const;
+        std::optional<uint8_t> getEPRSSocketIDForRemote(const mlir::StringRef &remoteName) const;
         [[nodiscard]]
         std::string getParamNameForRemote(const std::string &remoteName) const;
 

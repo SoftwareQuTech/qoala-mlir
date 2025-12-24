@@ -30,7 +30,7 @@ namespace qoala::iqoala {
     bool Block::blockContainsRecvMsg() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
                            [](const assembly::QoalaHostMCInstr *instruction) {
-                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_MSG) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_CMSG) {
                                    return true;
                                }
                                return false;

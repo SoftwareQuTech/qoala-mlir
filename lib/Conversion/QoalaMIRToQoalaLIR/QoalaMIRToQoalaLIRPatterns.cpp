@@ -4,6 +4,8 @@
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
+#include "Analysis/QoalaHost/Isolate.h"
+
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "mir-to-lir-patterns"
@@ -55,6 +57,8 @@ namespace qoala::conversion::mir {
             return false;
         };
         analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, func::CallOp>(newFunc, rewriter, opCheck);
+        // Insert a new block at the beginning to insert the socket IDs placeholders
+        analysis::isolate::createNewEmptyFirstBlock(rewriter, newFunc);
         LLVM_DEBUG(llvm::dbgs() << "***** AFTER *****\n" << newFunc << "\n***************\n");
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }

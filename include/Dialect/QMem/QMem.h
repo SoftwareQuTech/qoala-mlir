@@ -18,6 +18,7 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
+#include "Analysis/Helpers/GenericInterfaces.h"
 #include "Analysis/Helpers/QMemInterfaces.h"
 #include "Dialect/QMem/Traits.h"
 

@@ -6,6 +6,8 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Isolate.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
@@ -116,7 +118,7 @@ namespace qoala::conversion {
         configureQMemToQRemoteTarget(qMemToQRemoteTarget);
         populateQMemToQRemotePatterns(context, qMemToQRemotePatterns, typeConverter);
 
-        // Stage 6: Lower the remote declarations
+        // Stage 1: Lower the remote declarations
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering Remote declarations *\n");
         LLVM_DEBUG(llvm::dbgs() << "********************************\n");
@@ -124,7 +126,9 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 7: Convert QMem to QoalaHost
+        // Stage 2: Convert QMem to QoalaHost
+        // This stage will insert an empty block at the beginning, which will be populated
+        // in stage 4 if needed
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to QoalaHost *\n");
         LLVM_DEBUG(llvm::dbgs() << "******************************\n");
@@ -132,7 +136,7 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 8: Convert QMem to QoalaHost
+        // Stage 3: Convert QMem to QoalaHost
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Lowering QMem to NetQASM *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
@@ -140,7 +144,22 @@ namespace qoala::conversion {
             signalPassFailure();
         }
 
-        // Stage 9: Move Entanglement Blocks at the beginning
+        // Stage 4: Insert socket IDs placeholders.
+        // We perform this *before* block (re)ordering analysis.
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        LLVM_DEBUG(llvm::dbgs() << "* Adding Socket IDs placeholders *\n");
+        LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
+        if (failed(analysis::remoteids::addRemoteIDs(module))) {
+            signalPassFailure();
+        }
+        // If after this application, the first block is still empty, we can safely
+        // remote the first block.
+        analysis::isolate::removeFirstBlockFromMainFuncIfEmpty(module);
+        // After this, the block containing the RemoteRefOps (if it exists) *can*
+        // be moved within the body of the main function... as long as the data
+        // dependency is maintained by the reordering. We trust this will happen.
+
+        // Stage 5: Move Entanglement Blocks at the beginning
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Moving Entanglement Blocks *\n");
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");
@@ -148,7 +167,7 @@ namespace qoala::conversion {
             analysis::reordering::groupEntanglementBlocksFirst(module);
         }
 
-        // Stage 9: Add Block Precedences
+        // Stage 6: Add Block Precedences
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");

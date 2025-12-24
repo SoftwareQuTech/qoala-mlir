@@ -28,10 +28,24 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
     ];
 }
 
-def ClassicaCommInterface : OpInterface<"ClassicaCommInterface"> {
+def UsesRemoteInterface : OpInterface<"UsesRemoteInterface"> {
     let description = [{
-        Interface for QoalaHost operations representing classical communication.
+        Interface for QMem, QoalaHost and NetQASM operations that use a remote reference.
     }];
     let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Returns a StringRef with the name of the used remote.
+        }], "llvm::StringRef", "getUsedRemoteName", (ins),
+        /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{ return $_op.getRemote(); }]
+        >,
+        InterfaceMethod<[{
+            Returns remote attribute used by this operation
+        }], "mlir::FlatSymbolRefAttr", "getUsedRemoteAttr", (ins),
+        /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{ return $_op.getRemoteAttr(); }]
+        >
+    ];
 }
 #endif // GENERIC_IFACES_TD

@@ -7,9 +7,9 @@
 
 // CHECK: META_START
 // CHECK-NEXT: name: test_branching_eq
-// CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
-// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: parameters:
+// CHECK-NEXT: csockets:
+// CHECK-NEXT: epr_sockets:
 // CHECK-NEXT: META_END
 // CHECK-NEXT: ^b0 { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
@@ -45,7 +45,6 @@
 // CHECK-NEXT: NETQASM_END
 
 module {
-  qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
     %cstA = arith.constant 10 : i32

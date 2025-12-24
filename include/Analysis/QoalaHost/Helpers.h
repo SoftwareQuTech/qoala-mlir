@@ -2,13 +2,10 @@
 #define QOALAHOST_HELPERS_H
 
 #include <set>
-#include <unordered_set>
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
-#include <scip/scipdefplugins.h>
 
 // TODO including "Dialect/QoalaHost/QoalaHost.h" creates
 // circular inclusion issues at compile time. See qoala-kanban-board#110.
@@ -16,65 +13,6 @@
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
 
 namespace qoala::analysis {
-    namespace isolate {
-        mlir::Operation *getNextOperation(mlir::Operation *op);
-
-        /**
-         * Isolate the given operation in its own block.
-         * @param opToIsolate Operation to isolate in its own block.
-         * @param rewriter The convertion patter rewriter to create new block
-         * terminators as needed.
-         */
-        void isolateOp(mlir::Operation *opToIsolate, mlir::ConversionPatternRewriter &rewriter);
-
-        using OpCheck = bool (*)(mlir::Operation *);
-
-        /**
-         * Isolate all the nested operations of a given type. The search will start from
-         * a given base operation and isolate all the found operations into a single
-         * block. Since creating new isolated blocks might create new blocks with no
-         * terminator operations, this method will also create new terminator operations
-         * as needed. This function also allows passing an extra check function to
-         * exclude the isolation of certain nested operations despite they match the
-         * types.
-         * @tparam FuncOpTy Type of the base function to start exploring for nested
-         * operations. This type should usually be "qoalahost::MainFuncOp", but can
-         * easily be other type with a nested region.
-         * @tparam OpTy Types of the operations to isolate.
-         * @param baseOp The base operation to explore for functions to isolate.
-         * @param rewriter A ConversionPatternRewriter object to create new block
-         * terminators as needed
-         * @param extraCheck An optional extra check function. If this given check
-         * returns false, the involved operation will not be marked to isolate, even if
-         * it is of the good type.
-         */
-        template<typename FuncOpTy, typename... OpTy>
-        void isolateOpsInNewBlocks(FuncOpTy &baseOp, mlir::ConversionPatternRewriter &rewriter,
-                                   const std::optional<OpCheck> extraCheck = std::nullopt) {
-            auto mainFunction = llvm::dyn_cast<FuncOpTy>(&baseOp);
-            assert(mainFunction && "Trying to isolate the operations on an operation "
-                                   "that is not a qoalahost.main_func");
-            mlir::SmallVector<mlir::Operation *> opsToIsolate;
-
-            // To correctly isolate the op, we will simply "mark them", since modifying
-            // the structure of the blocks will invalidate the internal iterators
-            // of the walk functions.
-            mainFunction->walk([&](mlir::Operation *op) {
-                if (llvm::isa<OpTy...>(op)) {
-                    if (extraCheck.has_value() && !extraCheck.value()(op)) {
-                        return;
-                    }
-                    opsToIsolate.push_back(op);
-                }
-            });
-
-            // Once we marked all the ops, we isolate them
-            for (mlir::Operation *opToIsolate : opsToIsolate) {
-                isolateOp(opToIsolate, rewriter);
-            }
-        }
-    } // namespace isolate
-
     namespace precedences {
         /**
          * Track precedences (data dependencies, predecessors, communication/entanglement ordering).
@@ -519,20 +457,33 @@ namespace qoala::analysis {
          * @param moduleOp The module whose main function will be reordered.
          */
         void groupEntanglementBlocksFirst(mlir::ModuleOp moduleOp);
+
+        /**
+         * Finds the qoalahost::MainFuncOp operation of the given module, and fixes
+         * the position (moves it to the beginning, leaving it as the first) of the
+         * block containing the qoalahost.remote_id_ref operations.
+         * @param moduleOp The module on which to apply this fix.
+         */
+        void moveRemoteReferencesBlockToBegin(mlir::ModuleOp &moduleOp);
     } // namespace reordering
 
     namespace qubitlife {
-
         // Conceptually different from reordering::MILPTask
         // Represent smaller tasks that alwasy end with either
         // an init, measure or two-quit op.
         class Task {
         public:
-            Task(std::string n = "", uint32_t t = 0): name(n), time(t) { }
+            explicit Task(std::string n, const uint32_t t): name(std::move(n)), time(t) { }
 
-            std::string getName() const { return name; }
+            [[nodiscard]]
+            std::string getName() const {
+                return this->name;
+            }
 
-            uint32_t getTime() const { return time; }
+            [[nodiscard]]
+            uint32_t getTime() const {
+                return this->time;
+            }
 
         private:
             std::string name;
@@ -545,11 +496,14 @@ namespace qoala::analysis {
              */
 
         public:
-            LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
+            explicit LiveQubit(const std::string &id): reordering::MILPQubit(id), twoQubitOp_(nullptr) { }
 
-            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { twoQubitOp_ = twoQubitOp; }
+            void setTwoQubitOp(reordering::MILPOperation *twoQubitOp) { this->twoQubitOp_ = twoQubitOp; }
 
-            reordering::MILPOperation *getTwoQubitOp() const { return twoQubitOp_; }
+            [[nodiscard]]
+            reordering::MILPOperation *getTwoQubitOp() const {
+                return this->twoQubitOp_;
+            }
 
         private:
             reordering::MILPOperation *twoQubitOp_;
@@ -557,10 +511,16 @@ namespace qoala::analysis {
 
         class QoalaHostQubitLifetime {
         public:
-            QoalaHostQubitLifetime(mlir::Operation *op);
+            explicit QoalaHostQubitLifetime(mlir::Operation *op);
 
+            /**
+             * Return the computed qubit life times.
+             * @return A map with the computed qubit life times
+             */
             [[nodiscard]]
-            std::unordered_map<std::string, uint32_t> getLifetimes() const;
+            std::unordered_map<std::string, uint32_t> getLifetimes() const {
+                return this->qubitLifeTimes;
+            }
 
         private:
             // A map from qubits IDs to their init and measure tasks IDs.
