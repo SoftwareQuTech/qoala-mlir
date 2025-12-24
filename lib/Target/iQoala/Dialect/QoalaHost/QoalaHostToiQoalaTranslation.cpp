@@ -348,7 +348,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 if (op.getClassical()) {
                     return processRemoteIDRefOp(moduleTranslation, op);
                 }
-                return failure();
+                // We *only* translate the RemoteIDRefOp if it needs to be resolved for a csocket.
+                // Otherwise, we can safely ignore (not translate it), since EPRS sockets do not
+                // need to retrieve the socket ID in a local qoalahost register.
+                return success();
             })
             .Case([&](BlkMeta op) -> LogicalResult {
                 qoala::iqoala::Block *block = moduleTranslation->getMappediQoalaBlock(op->getBlock());
