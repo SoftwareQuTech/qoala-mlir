@@ -5,12 +5,11 @@
 // (b) when using netqasm.qalloc + netqasm.qinit in a loca routine.
 // There are two cases in LIR that *cannot* return qubit values to the qoalahost section:
 // 1. when a local routine uses netqasm.qalloc + netqasm.qinit and then netqasm.measure *within the
-//    same local routine, and
+//    same local routine*, and
 // 2. when a request routine uses netqasm.eprs_measure.
 // In these two cases, the lifetime of a qubit is "local" to the routine (either local or request)
 // and that (qubit) value is *not* returned back to the qoalahost section.
-// These two special cases can easily be tested by looking at the number of returned values and
-// asserting the "uses" and "keeps" values of the routines headers.
+// These two special cases are tested in iQoala-call-routines-use-qubit-scope.mlir
 
 module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
