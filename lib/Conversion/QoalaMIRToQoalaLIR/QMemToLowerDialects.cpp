@@ -155,6 +155,9 @@ namespace qoala::conversion {
         // If after this application, the first block is still empty, we can safely
         // remote the first block.
         analysis::isolate::removeFirstBlockFromMainFuncIfEmpty(module);
+        // After this, the block containing the RemoteRefOps (if it exists) *can*
+        // be moved within the body of the main function... as long as the data
+        // dependency is maintained by the reordering. We trust this will happen.
 
         // Stage 5: Move Entanglement Blocks at the beginning
         LLVM_DEBUG(llvm::dbgs() << "*********************************\n");

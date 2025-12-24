@@ -161,8 +161,5 @@ namespace qoala::analysis {
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
         mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
-
-        // Final fix; block containing the qoalahost.remote_id_ref operation *must* be the very first one
-        reordering::moveRemoteReferencesBlockToBegin(moduleOp);
     }
 } // namespace qoala::analysis

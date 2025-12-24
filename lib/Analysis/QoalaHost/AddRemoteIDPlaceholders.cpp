@@ -62,4 +62,27 @@ namespace qoala::analysis::remoteids {
 
         return success();
     }
+
+    std::optional<Block *> getRemoteRefsBlock(ModuleOp &module) {
+        const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        const auto remoteDeclarations = module.getOps<qremote::RemoteOp>();
+        if (mainFuncs.empty()) {
+            module->emitError("No main QoalaHost main function found in the module");
+            return std::nullopt;
+        }
+        if (remoteDeclarations.empty()) {
+            // No remote declarations to process... nothing to do here
+            return std::nullopt;
+        }
+
+        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        auto remoteRefOps = mainFunc.getOps<qoalahost::RemoteIDRefOp>();
+
+        if (remoteRefOps.empty()) {
+            mainFunc.emitOpError();
+            return std::nullopt;
+        }
+
+        return (*remoteRefOps.begin())->getBlock();
+    }
 } // namespace qoala::analysis::remoteids

@@ -48,8 +48,6 @@ namespace qoala::analysis::reordering {
         // Leave all other blocks as-is (or optionally sort them later)
         LLVM_DEBUG(llvm::dbgs() << "[Grouping] Moved " << entBlocks.size()
                                 << " entanglement blocks to the beginning\n");
-        // Additional fix; block containing the qoalahost.remote_id_ref operation *must* be the very first one
-        moveRemoteReferencesBlockToBegin(moduleOp);
     }
 
     void moveRemoteReferencesBlockToBegin(ModuleOp &moduleOp) {

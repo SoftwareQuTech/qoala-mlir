@@ -1,12 +1,13 @@
 #include <set>
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
-#include <llvm/ADT/StringSet.h>
 
 #include "Tools/QoalaOpt.h"
+#include "llvm/ADT/StringSet.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
 using namespace mlir;
@@ -56,10 +57,8 @@ void qoalahost::MainFuncOp::print(OpAsmPrinter &p) {
                                              getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-static bool shouldVerifyFirstBlock(ModuleOp &module, qoalahost::MainFuncOp *mainFunc) {
-    auto declaredRemotes = module.getOps<qremote::RemoteOp>();
-
-    if (declaredRemotes.empty()) {
+static bool shouldCheckForRemoteRefsBlock(ModuleOp &module, qoalahost::MainFuncOp *mainFunc) {
+    if (module.getOps<qremote::RemoteOp>().empty()) {
         return false;
     }
 
@@ -140,26 +139,31 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
         blkIds.insert(op.getBlockId().str());
     }
 
-    // Verification of the first block. *If there is a remote declared and used*, then the first block:
+    // Verification of the RemoteIDRefOp block. *If there is a remote declared and used*, then there
+    // should be one block which:
     // * MUST contain 1 blk_meta at the start
     // * MUST contain 1 NopTOp at the end
     // * All other operations in between *must* be RemoteIDRefOp
     auto module = this->getOperation()->getParentOfType<ModuleOp>();
-    if (shouldVerifyFirstBlock(module, this)) {
-        // There is at least one remote declared and used -> apply the validation of the first block
-        Block &firstBlock = this->front();
-        auto &blockOperations = firstBlock.getOperations();
+    if (shouldCheckForRemoteRefsBlock(module, this)) {
+        // There is at least one remote declared and used -> apply the validation of the remote refs block
+        std::optional<Block *> remoteRefsBlock = analysis::remoteids::getRemoteRefsBlock(module);
+        if (!remoteRefsBlock) {
+            this->emitOpError("Remote references block was not found and remote is declared asn used.");
+            return failure();
+        }
+        auto &blockOperations = remoteRefsBlock.value()->getOperations();
         Operation &firstOp = blockOperations.front();
         Operation &lastOp = blockOperations.back();
 
         if (blockOperations.size() < 3) {
             return this->emitOpError()
-                   << "First block remote references: First block does not have enough operations (3+) to be valid.";
+                   << "Remote references block does not have enough operations (3+) to be valid.";
         }
 
         if (!isa<BlkMeta>(firstOp)) {
             return firstOp.emitError()
-                   << "First block remote references: First operation of the block it not a qoalahost.blk_meta.";
+                   << "Remote references block: First operation of the block is not a qoalahost.blk_meta.";
         }
 
         for (Operation &op : blockOperations) {
@@ -168,13 +172,13 @@ LogicalResult qoalahost::MainFuncOp::verifyRegions() {
             }
             if (!isa<RemoteIDRefOp>(op)) {
                 return op.emitError()
-                       << "First block remote references: First block contains an operation not allowed in there.";
+                       << "Remote references block contains an operation not allowed in there.";
             }
         }
 
         if (!isa<NopTOp>(lastOp)) {
             return lastOp.emitError()
-                   << "First block remote references: Last operation of the block it not a qoalahost.nop_term.";
+                   << "Remote references block: Last operation of the block it not a qoalahost.nop_term.";
         }
     }
 
