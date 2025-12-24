@@ -1,15 +1,14 @@
 // RUN: qoala-opt %s --qoalahost-reorder-blocks=with-deadlines | FileCheck %s
 
-// XFAIL: true
-// This test fails and it is expected to be fixed in #121. Check the big TODO note in BlockOrdering.cpp::runOnOperation
-
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {block_1 = 102 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_2:.*]]", deadlines = {block_1 = 218 : i64}, dependencies = ["block_0"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_3:.*]]", deadlines = {block_1 = 332 : i64}, dependencies = ["block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_5:.*]]", deadlines = {block_1 = 486 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_4:.*]]", deadlines = {block_1 = 601 : i64}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_6:.*]]", deadlines = {block_1 = 716 : i64}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_7:.*]]", deadlines = {block_1 = 819 : i64}, dependencies = ["block_5"], predecessors = [], prev_comm = "block_6", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_1:.*]]", deadlines = {[[BLOCK_2]] = 102 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_3:.*]]", deadlines = {[[BLOCK_2]] = 218 : i64}, dependencies = ["[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_4:.*]]", deadlines = {[[BLOCK_2]] = 332 : i64}, dependencies = ["[[BLOCK_2]]", "[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_6:.*]]", deadlines = {[[BLOCK_2]] = 486 : i64}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_5:.*]]", deadlines = {[[BLOCK_2]] = 601 : i64}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {[[BLOCK_2]] = 716 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_8:.*]]", deadlines = {[[BLOCK_2]] = 819 : i64}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_6]]"], predecessors = [], prev_comm = "[[BLOCK_5]]", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_7:.*]]", deadlines = {[[BLOCK_2]] = 922 : i64}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_5]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 
 module {
   qremote.remote @Bob
@@ -63,13 +62,13 @@ module {
         qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m1 = qoalahost.call @bsm_meas_ent(%1) : (i32) -> i1
     ^bb7:
-        qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_0", "block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m0_ext = arith.extsi %m0 : i1 to i32
         %m0_tensor = tensor.from_elements %m0_ext : tensor<1xi32>
         qoalahost.send_ints %m0_tensor {remote = @Bob} : tensor<1xi32>
         qoalahost.nop_term
     ^bb8:
-        qoalahost.blk_meta  {block_id = "block_8", deadlines = {}, dependencies = ["block_6"], predecessors = [], prev_comm = "block_5", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_8", deadlines = {}, dependencies = ["block_0", "block_6"], predecessors = [], prev_comm = "block_5", prev_ent = ""}
         %m1_ext = arith.extsi %m1 : i1 to i32
         %m1_tensor = tensor.from_elements %m1_ext : tensor<1xi32>
         qoalahost.send_ints %m1_tensor {remote = @Bob} : tensor<1xi32>

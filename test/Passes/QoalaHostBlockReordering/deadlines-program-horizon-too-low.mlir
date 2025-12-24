@@ -1,8 +1,5 @@
 // RUN: qoala-opt %s --qoala-opt-program-horizon=1 --qoalahost-reorder-blocks=with-deadlines 2>&1 | FileCheck %s --check-prefix=ERR
 
-// XFAIL: true
-// This test fails and it is expected to be fixed in #121. Check the big TODO note in BlockOrdering.cpp::runOnOperation
-
 // ERR: [Deadlines] Provided program horizon (
 // ERR-SAME: ) is smaller than the aggregate duration lower bound (
 // ERR-SAME: ). Falling back to default horizon (
