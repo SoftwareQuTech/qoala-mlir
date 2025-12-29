@@ -28,7 +28,8 @@ namespace qoala::analysis::netqasm {
                 //   a qubit.
                 if (auto definingOp = returnVal.value().getDefiningOp()) {
                     if (isa<QAllocOp>(definingOp)) {
-                        result.emplace(returnVal.index(), quantumRoutine->getQubitNum(returnVal.value()));
+                        uint8_t qubitID = quantumRoutine->getQubitNum(returnVal.value());
+                        result.emplace(returnVal.index(), qubitID);
                     }
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the

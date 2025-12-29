@@ -224,17 +224,12 @@ namespace qoala::assembly {
         uint32_t i = 1;
         uint32_t last = 0;
         if (this->numResults > 0) {
-            if (this->numResults == 1) {
-                os << *this->operands[1] << " = ";
-                i++;
-            } else {
-                // The call returns multiple results, print a tuple of results.
-                os << "tuple<";
-                for (; i <= this->numResults; i++) {
-                    os << *this->operands[i] << (i < this->numResults ? "; " : "");
-                }
-                os << "> = ";
+            // Print a tuple of results.
+            os << "tuple<";
+            for (; i <= this->numResults; i++) {
+                os << *this->operands[i] << (i < this->numResults ? "; " : "");
             }
+            os << "> = ";
         }
 
         os << mnemonic << "(";

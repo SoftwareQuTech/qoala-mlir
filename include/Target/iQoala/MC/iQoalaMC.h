@@ -86,11 +86,6 @@ namespace qoala::assembly {
         [[nodiscard]]
         uint32_t getNum() const;
         [[nodiscard]]
-        uint32_t getQubitID() const;
-        void setQubitID(uint32_t qubitID);
-        [[nodiscard]]
-        bool representsAQubit() const;
-        [[nodiscard]]
         bool isLocal() const;
         [[nodiscard]]
         bool isQuantum() const;
@@ -98,8 +93,6 @@ namespace qoala::assembly {
     private:
         iQoalaRegType type;
         uint32_t num;
-        /* QubitID for the regRef object. Will hold the value 0xFF if the regReg does not represent a qubit */
-        uint32_t qubitID = 0xFF;
     };
 
     class iQoalaMCOperand : public iQoalaMC {

@@ -278,3 +278,31 @@ Once all this is configured, we can trigger the building by invoking the followi
 ```
 
 After some time, the wheel will be created inside the `dist` folder.
+
+
+## Helpful options for developing
+
+To ease the development process, the `qoala-opt` tool support some options:
+
+* `--debug`: Turns on the debug print on the terminal. This effectively allows the print of the
+  `LLVM_DEBUG(llvm::dbgs() << ...);` statements, which otherwise will simply be suppressed.
+* `--debug-only=<debug-filter>`: Sometimes, enabling `--debug` produces a very verbose ouptut, since it enables
+  *all* the print debug statements. To fine-tune this, you can use this option passing a comma-separated list of
+  "filters". Each one of this filter is the string value defined in the `DEBUG_TYPE` macro, which is needed to
+  use the `LLVM_DEBUG` macro. For example, using `#define DEBUG_TYPE "my-value"` in a source file, and the using
+  `--debug-only=my-value` will enable *only* the debug print in the file(s) whet `#define DEBUG_TYPE "my-value"`
+  was used. As mentioned before, you can enable multiple filter by using a comma-separated list:
+  `--debug-only=my-value,my-other-value`.
+* `--mlir-print-op-generic`: By default, printing an operation on teh terminal invokes the `verify` method. In some
+  occasions, you want to debug the verifier, printing an op from the verifier can result in an infinite call loop (
+  verifier -> print -> verifier -> print...).  This can be avoided by enabling printing operations in "generic" form,
+  which does not invoke the verifier on print, and it more resilient to invalid IR.
+* `--mlir-print-assume-verified`: Similar as before, but allows using custom IR printers, without calling the verifier
+  before printing. This also avoids infinite call loops.
+* `--mlir-disable-threading`: By default, all MLIR passes (including lowering passes) will run in multiple threads,
+  since they are organized in nested pipelines. This improves the performance, but might impact the order of the
+  debug printing. This can be fixed by disabling the internal MLIR multithreading.
+* `--mlir-print-value-users`: Print users of operation results and block arguments as a comment in the IR. This could
+  be useful to eas "manual data flow analysis" when debugging the compiler.
+* `--print-ir-after=<pass>`, `--print-after-all`, `--print-ir-before=<pass>`, `--print-before-all`: Prints the IR
+  immediately before/after the given pass or all passes.
