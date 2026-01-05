@@ -198,8 +198,7 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class XLowering
-        : public helpers::OpLoweringTemplate<dialects::qnet::XOp, dialects::qmem::XOp> {
+    class XLowering : public helpers::OpLoweringTemplate<dialects::qnet::XOp, dialects::qmem::XOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -209,8 +208,7 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class YLowering
-        : public helpers::OpLoweringTemplate<dialects::qnet::YOp, dialects::qmem::YOp> {
+    class YLowering : public helpers::OpLoweringTemplate<dialects::qnet::YOp, dialects::qmem::YOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -220,8 +218,7 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ZLowering
-        : public helpers::OpLoweringTemplate<dialects::qnet::ZOp, dialects::qmem::ZOp> {
+    class ZLowering : public helpers::OpLoweringTemplate<dialects::qnet::ZOp, dialects::qmem::ZOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;

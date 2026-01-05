@@ -168,9 +168,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
     }
 
-    std::unique_ptr<OpAndValues> XLowering::createNewOpAndValues(qnet::XOp op,
-                                                                        qnet::XOp::Adaptor adaptor,
-                                                                        ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> XLowering::createNewOpAndValues(qnet::XOp op, qnet::XOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         Value adaptedQin = adaptor.getQin();
@@ -186,9 +185,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newX.getOperation(), newX.getQ());
     }
 
-    std::unique_ptr<OpAndValues> YLowering::createNewOpAndValues(qnet::YOp op,
-                                                                        qnet::YOp::Adaptor adaptor,
-                                                                        ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> YLowering::createNewOpAndValues(qnet::YOp op, qnet::YOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         Value adaptedQin = adaptor.getQin();
@@ -204,9 +202,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newY.getOperation(), newY.getQ());
     }
 
-    std::unique_ptr<OpAndValues> ZLowering::createNewOpAndValues(qnet::ZOp op,
-                                                                        qnet::ZOp::Adaptor adaptor,
-                                                                        ConversionPatternRewriter &rewriter) const {
+    std::unique_ptr<OpAndValues> ZLowering::createNewOpAndValues(qnet::ZOp op, qnet::ZOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
         Value adaptedQin = adaptor.getQin();
