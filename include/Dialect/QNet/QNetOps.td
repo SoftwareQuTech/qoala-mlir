@@ -254,6 +254,30 @@ def HadamardOp : QNet_Op<"hadamard", [QubitOpIface, HermitianOpIface]> {
     }];
 }
 
+def XOp : QNet_Op<"x", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def YOp : QNet_Op<"y", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def ZOp : QNet_Op<"z", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
 def CnotOp : QNet_Op<"cnot", [DeclareOpInterfaceMethods<QubitOpIface, ["isTwoQubitOp"]>, HermitianOpIface]> {
     let arguments = (ins QubitType:$qin0, QubitType:$qin1);
     let results = (outs QubitType:$qout0, QubitType:$qout1);

@@ -117,6 +117,9 @@ namespace qoala::assembly {
                 assert(mcOperands[1]->isExpression() && "NetQASM 3-reg instruction: operand 2 must be an expression");
                 break;
             case OP_H:
+            case OP_X:
+            case OP_Y:
+            case OP_Z:
             case OP_INIT:
                 assert(mcOperands.size() == 1 && "NetQASM instruction builder: expected 1 operand");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg instruction: operand 0 must be a register");

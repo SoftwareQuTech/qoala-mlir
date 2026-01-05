@@ -242,6 +242,27 @@ def HadamardOp : QMem_Op<"hadamard"> {
     }];
 }
 
+def XOp : QMem_Op<"x"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def YOp : QMem_Op<"y"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def ZOp : QMem_Op<"z"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
 def CnotOp : QMem_Op<"cnot"> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$qin0, Arg<I32, "qubit", [MemWrite]>:$qin1);
     let assemblyFormat = [{

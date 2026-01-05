@@ -19,7 +19,7 @@ namespace qoala::analysis {
     };
 
     static bool isCandidateForErasure(Operation *op) {
-        return isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, CnotOp, CzOp, CrotXOp>(op);
+        return isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, XOp, YOp, ZOp, CnotOp, CzOp, CrotXOp>(op);
     }
 
     void QNetDeadCodeEliminationPass::runOnOperation() {

@@ -249,6 +249,24 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard->getResults());
     }
 
+    std::unique_ptr<OpAndValues> XLowering::createNewOpAndValues(qmem::XOp op, qmem::XOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newX = rewriter.create<netqasm::XOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newX.getOperation(), newX->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> YLowering::createNewOpAndValues(qmem::YOp op, qmem::YOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newY = rewriter.create<netqasm::YOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newY.getOperation(), newY->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> ZLowering::createNewOpAndValues(qmem::ZOp op, qmem::ZOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newZ = rewriter.create<netqasm::ZOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newZ.getOperation(), newZ->getResults());
+    }
+
     std::unique_ptr<OpAndValues> CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
                                                                     ConversionPatternRewriter &rewriter) const {
         auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());

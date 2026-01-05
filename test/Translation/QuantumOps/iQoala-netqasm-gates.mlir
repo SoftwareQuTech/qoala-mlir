@@ -24,6 +24,9 @@
 // CHECK-NEXT: h [[QBIT0]]
 // CHECK-NEXT: cnot [[QBIT0]] [[QBIT1]]
 // CHECK-NEXT: cphase [[QBIT0]] [[QBIT1]]
+// CHECK-NEXT: x [[QBIT0]]
+// CHECK-NEXT: y [[QBIT0]]
+// CHECK-NEXT: z [[QBIT0]]
 // CHECK-NEXT: meas [[QBIT0]] [[M_REG0:.*]]
 // CHECK-NEXT: meas [[QBIT1]] [[M_REG1:.*]]
 // CHECK-NEXT: store [[M_REG0]] @output[0]
@@ -40,6 +43,9 @@ module {
     netqasm.hadamard %0
     netqasm.cnot %0, %1
     netqasm.cz %0, %1
+    netqasm.x %0
+    netqasm.y %0
+    netqasm.z %0
     %2 = netqasm.measure %0 : i1
     %3 = netqasm.measure %1 : i1
     netqasm.return %2, %3 : i1, i1

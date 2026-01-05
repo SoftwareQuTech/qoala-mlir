@@ -207,6 +207,21 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_H, {}, {});
                 return instruction ? success() : failure();
             })
+            .Case([&](XOp op) -> LogicalResult {
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                        moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_X, {}, {});
+                return instruction ? success() : failure();
+            })
+            .Case([&](YOp op) -> LogicalResult {
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                        moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_Y, {}, {});
+                return instruction ? success() : failure();
+            })
+            .Case([&](ZOp op) -> LogicalResult {
+                const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+                        moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_Z, {}, {});
+                return instruction ? success() : failure();
+            })
             .Case([&](CnotOp op) -> LogicalResult {
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                         moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_CNOT, {}, {});

@@ -32,8 +32,17 @@ module {
     // CHECK: qmem.hadamard %[[QBIT1]]
     %5 = qnet.hadamard %1 : !qnet.qubit
 
+    // CHECK: qmem.x %[[QBIT1]]
+    %6 = qnet.x %5 : !qnet.qubit
+
+    // CHECK: qmem.y %[[QBIT1]]
+    %7 = qnet.y %6 : !qnet.qubit
+
+    // CHECK: qmem.z %[[QBIT1]]
+    %8 = qnet.z %7 : !qnet.qubit
+
     // CHECK: qmem.cnot %[[QBIT0]], %[[QBIT1]]
-    %qout0, %qout1 = qnet.cnot %4, %1 : !qnet.qubit, !qnet.qubit
+    %qout0, %qout1 = qnet.cnot %4, %8 : !qnet.qubit, !qnet.qubit
 
     %cst_2 = arith.constant 2.710000e+00 : f32
 
@@ -44,10 +53,10 @@ module {
     %qout0_2, %qout1_2 = qnet.crot_x %qout0_1, %qout1_1, %cst_2 : !qnet.qubit, !qnet.qubit
 
     // CHECK: qmem.measure %[[QBIT0]] : i1
-    %6 = qnet.measure %qout0_2 : i1
+    %9 = qnet.measure %qout0_2 : i1
 
     // CHECK: qmem.measure %[[QBIT1]] : i1
-    %7 = qnet.measure %qout1_2 : i1
+    %10 = qnet.measure %qout1_2 : i1
 
     // CHECK: qmem.return
     qnet.return

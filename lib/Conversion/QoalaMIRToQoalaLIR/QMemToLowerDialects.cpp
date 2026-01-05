@@ -28,8 +28,8 @@ namespace qoala::helpers {
         target.addIllegalDialect<qmem::QMemDialect>();
         target.addLegalOp<
                 // We declare as "legal" all the operations that directly map to NetQASM operations
-                qmem::CnotOp, qmem::CzOp, qmem::EprsMeasureOp, qmem::EprsOp, qmem::HadamardOp, qmem::InitOp,
-                qmem::MeasureOp, qmem::QAllocOp>();
+                qmem::CnotOp, qmem::CzOp, qmem::EprsMeasureOp, qmem::EprsOp, qmem::HadamardOp, qmem::XOp, qmem::YOp,
+                qmem::ZOp, qmem::InitOp, qmem::MeasureOp, qmem::QAllocOp>();
         if (intRotsAreLegal) {
             target.addLegalOp<qmem::RotateXIntOp, qmem::RotateYIntOp, qmem::RotateZIntOp, qmem::CrotXIntOp>();
         } else {
@@ -65,9 +65,9 @@ namespace qoala::helpers {
                                        TypeConverter &typeConverter) {
         patterns.add<mir::MeasureOpLowering, mir::EprsOpLowering, mir::EprsMeasureOpLowering,
                      mir::NetQASMFunctionLowering, mir::NetQASMReturnOpLowering, mir::QAllocLowering,
-                     mir::QInitLowering, mir::HadamardLowering, mir::CNotLowering, mir::CzLowering,
-                     mir::RotateXIntLowering, mir::RotateYIntLowering, mir::RotateZIntLowering, mir::CRotXIntLowering>(
-                typeConverter, &context);
+                     mir::QInitLowering, mir::HadamardLowering, mir::XLowering, mir::YLowering, mir::ZLowering,
+                     mir::CNotLowering, mir::CzLowering, mir::RotateXIntLowering, mir::RotateYIntLowering,
+                     mir::RotateZIntLowering, mir::CRotXIntLowering>(typeConverter, &context);
     }
 
     void configureQMemToQRemoteTarget(ConversionTarget &target) {

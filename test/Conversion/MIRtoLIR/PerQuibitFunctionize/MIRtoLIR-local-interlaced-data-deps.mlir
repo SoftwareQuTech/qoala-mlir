@@ -32,6 +32,9 @@ module {
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[QUBIT_E:.*]]: i32) -> i1
+  // CHECK-NEXT: netqasm.x %[[QUBIT_E]]
+  // CHECK-NEXT: netqasm.y %[[QUBIT_E]]
+  // CHECK-NEXT: netqasm.z %[[QUBIT_E]]
   // CHECK-NEXT: %[[REG2_0:.*]] = netqasm.measure %[[QUBIT_E]] : i1
   // CHECK-NEXT: netqasm.return %[[REG2_0]] : i1
 
@@ -81,6 +84,10 @@ module {
 
     %cst_2 = arith.constant 1.570796 : f32
     qmem.crot_x %0, %1, %cst_2
+
+    qmem.x %0
+    qmem.y %0
+    qmem.z %0
 
     // CHECK: ^[[BLK_5:.*]]:
     // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_5:.*]]", deadlines = {}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
