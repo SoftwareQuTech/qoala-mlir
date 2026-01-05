@@ -96,6 +96,24 @@ Operation *HadamardOp::simpleClone(OpBuilder &builder, const Location loc) {
 
 std::vector<Operation *> HadamardOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
+Operation *XOp::simpleClone(OpBuilder &builder, const Location loc) {
+    return builder.create<XOp>(loc, getQ());
+}
+
+std::vector<Operation *> XOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
+
+Operation *YOp::simpleClone(OpBuilder &builder, const Location loc) {
+    return builder.create<YOp>(loc, getQ());
+}
+
+std::vector<Operation *> YOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
+
+Operation *ZOp::simpleClone(OpBuilder &builder, const Location loc) {
+    return builder.create<ZOp>(loc, getQ());
+}
+
+std::vector<Operation *> ZOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
+
 Operation *InitOp::simpleClone(OpBuilder &builder, const Location loc) { return builder.create<InitOp>(loc, getQ()); }
 
 std::vector<Operation *> InitOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }

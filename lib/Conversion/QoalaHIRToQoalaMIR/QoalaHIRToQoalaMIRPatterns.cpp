@@ -168,6 +168,60 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard.getQ());
     }
 
+    std::unique_ptr<OpAndValues> XLowering::createNewOpAndValues(qnet::XOp op,
+                                                                        qnet::XOp::Adaptor adaptor,
+                                                                        ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newX = rewriter.create<qmem::XOp>(op.getLoc(), adaptedQin);
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newX.getOperation(), newX.getQ());
+    }
+
+    std::unique_ptr<OpAndValues> YLowering::createNewOpAndValues(qnet::YOp op,
+                                                                        qnet::YOp::Adaptor adaptor,
+                                                                        ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newY = rewriter.create<qmem::YOp>(op.getLoc(), adaptedQin);
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newY.getOperation(), newY.getQ());
+    }
+
+    std::unique_ptr<OpAndValues> ZLowering::createNewOpAndValues(qnet::ZOp op,
+                                                                        qnet::ZOp::Adaptor adaptor,
+                                                                        ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newZ = rewriter.create<qmem::ZOp>(op.getLoc(), adaptedQin);
+        // This is a tricky replacement.... we need to replace the operation *WITH THE VALUES OF THE OPERANDS*
+        // which are the "modified" values on the qubits
+        // WARNING - Do not use the values returned by the adaptor here! The CXX runtime might decide to release
+        // the object since they are returned in an unpredicted way (as members of the OpAndValues object).
+        // In thi sense, the CXX runtime will simply release the objects, so the references in the object will
+        // become invalid. This produces a SIGSEGV when trying to replace the op with teh new values in the
+        // matchAndRewrite function (one level up).
+        return std::make_unique<OpAndValues>(newZ.getOperation(), newZ.getQ());
+    }
+
     std::unique_ptr<OpAndValues> MeasureLowering::createNewOpAndValues(qnet::MeasureOp op,
                                                                        qnet::MeasureOp::Adaptor adaptor,
                                                                        ConversionPatternRewriter &rewriter) const {

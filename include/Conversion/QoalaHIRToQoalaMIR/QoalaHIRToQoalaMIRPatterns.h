@@ -198,6 +198,39 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class XLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::XOp, dialects::qmem::XOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::XOp op, dialects::qnet::XOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class YLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::YOp, dialects::qmem::YOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::YOp op, dialects::qnet::YOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class ZLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::ZOp, dialects::qmem::ZOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::ZOp op, dialects::qnet::ZOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
     class CNotLowering : public helpers::OpLoweringTemplate<dialects::qnet::CnotOp, dialects::qmem::CnotOp> {
     public:
         // Constructor simply matches the super class
