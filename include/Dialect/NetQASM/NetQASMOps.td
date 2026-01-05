@@ -252,6 +252,30 @@ def HadamardOp : NetQASM_Op<"hadamard",
     }];
 }
 
+def XOp : NetQASM_Op<"x",
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def YOp : NetQASM_Op<"y",
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def ZOp : NetQASM_Op<"z",
+    [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<SingleQubitOp>]> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
 def CnotOp : NetQASM_Op<"cnot",
     [DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration"]>, DeclareOpInterfaceMethods<DualQubitOp>]> {
     let arguments = (
