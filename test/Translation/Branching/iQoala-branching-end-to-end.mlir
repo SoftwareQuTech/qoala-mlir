@@ -35,6 +35,25 @@
 // qoala-opt --lower-qoala-hir-to-mir test-hir.ll > test-mir.ll
 // qoala-opt --lower-qoala-mir-to-lir test-mir.ll > test-lir.ll
 
+// In this example we will only assert the structure of the CFG
+// CHECK: ^b6 { type = CL; predecessors = []; dependencies = [b1, b5]; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: beq(%2, %1) : b7
+// CHECK-NEXT: jump() : b9
+
+// CHECK: ^b7 { type = QL; predecessors = [b6]; dependencies = [b2]; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper2
+
+// CHECK: ^b8 { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: jump() : b11
+
+// CHECK: ^b9 { type = QL; predecessors = [b6]; dependencies = [b3]; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper3
+
+// CHECK: ^b10 { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK-NEXT: jump() : b11
+
+// CHECK:^b11 { type = CL; predecessors = [b10, b8]; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
+
 module {
   qremote.remote @Alice
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
