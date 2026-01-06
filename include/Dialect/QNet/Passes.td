@@ -25,6 +25,8 @@ def QNetPeepholeOptimizations : Pass<"qnet-peephole-optimizations", "qoala::dial
                "Run hermitian cancellations as part of the peephole optimizations.">,
         Option<"rotationFolding", "rotation-folding", "bool", /*default=*/"true",
                "Apply rotation merges as part of the peephole optimizations.">,
+        Option<"pauliGatesToRotations", "pauli-to-rotations", "bool", /*default=*/"false",
+               "Convert Pauli gates to their rotation equivalence.">,
     ];
 }
 
