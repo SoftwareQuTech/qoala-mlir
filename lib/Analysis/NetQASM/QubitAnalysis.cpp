@@ -44,22 +44,19 @@ namespace qoala::analysis::netqasm {
     bool blockArgIsQubit(const BlockArgument &blockArg) {
         // A naïve way to figure out if the function (block) argument is a qubit:
         // Check if they are used as operands on operations that accept qubits:
-        for (auto &use : blockArg.getUses()) {
-            Operation *user = use.getOwner();
+        const auto uses = blockArg.getUses();
+        return std::any_of(uses.begin(), uses.end(), [](OpOperand &use) -> bool {
+            const Operation *user = use.getOwner();
             // These operations only use qubits as operands
-            if (isa<QInitOp, MeasureOp, QFreeOp, HadamardOp, CnotOp, CzOp, EprsOp, EprsMeasureOp>(user)) {
-                return true;
-            }
-            // There operations use qubits on the first operand
-            if (isa<RotateXOp, RotateYOp, RotateZOp>(user) && use.getOperandNumber() == 0) {
+            if (isa<QInitOp, QFreeOp, ifaces::SingleQubitOp>(user) && use.getOperandNumber() == 0) {
                 return true;
             }
             // These operations use qubits on the first or second operand
-            if (isa<CrotXOp>(user) && use.getOperandNumber() <= 1) {
+            if (isa<ifaces::DualQubitOp>(user) && use.getOperandNumber() <= 1) {
                 return true;
             }
-        }
-        return false;
+            return false;
+        });
     }
 
     Value ArgValueMap::getCallerValueForArg(const BlockArgument &blockArg) const {
