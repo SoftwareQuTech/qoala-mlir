@@ -93,11 +93,9 @@ namespace qoala::iqoala {
         return block;
     }
 
-
     bool HostSection::blockIsUsedAsJumpDestination(const Block *destination) const {
         return std::any_of(this->hostBlocks.begin(), this->hostBlocks.end(),
-                           [&](Block *block) -> bool { return block->containsJumpTo(destination); }
-        );
+                           [&](Block *block) -> bool { return block->containsJumpTo(destination); });
     }
 
     void HostSection::removeReferencesToRemovedBlock(const std::set<Block *> &removedBlocks) const {
