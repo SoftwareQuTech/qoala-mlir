@@ -44,6 +44,8 @@ namespace qoala::assembly {
         [[nodiscard]]
         bool isInstructionRef() const;
         [[nodiscard]]
+        std::string getSymbolName() const;
+        [[nodiscard]]
         mlir::Operation *getTargetOp() const;
         void resolveDisplacement(int32_t displacement);
         void print(mlir::raw_ostream &os) const override;

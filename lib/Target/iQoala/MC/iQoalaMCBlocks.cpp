@@ -72,6 +72,21 @@ namespace qoala::iqoala {
                            });
     }
 
+    bool Block::containsJumpTo(const Block *destination) {
+        return std::any_of(this->instructions.begin(), this->instructions.end(),
+                           [&](const assembly::QoalaHostMCInstr *instruction) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_JUMP) {
+                                   const assembly::iQoalaMCOperand *blockDst = instruction->getOperand(0);
+                                   assert(blockDst->isExpression());
+                                   const assembly::iQoalaMCExpr *blockDstExpression = blockDst->getExpression();
+                                   assert(blockDstExpression->isSymbolRef());
+                                   const std::string referencedBlock = blockDstExpression->getSymbolName();
+                                   return destination->getName() == referencedBlock;
+                               }
+                               return false;
+                           });
+    }
+
     raw_ostream &operator<<(raw_ostream &os, const Block::BlockType block) {
         switch (block) {
             case Block::CC:

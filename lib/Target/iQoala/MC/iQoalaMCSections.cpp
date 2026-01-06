@@ -93,7 +93,14 @@ namespace qoala::iqoala {
         return block;
     }
 
-    void HostSection::removeReferencesToRemovedBlock(std::set<Block *> removedBlocks) const {
+
+    bool HostSection::blockIsUsedAsJumpDestination(const Block *destination) const {
+        return std::any_of(this->hostBlocks.begin(), this->hostBlocks.end(),
+                           [&](Block *block) -> bool { return block->containsJumpTo(destination); }
+        );
+    }
+
+    void HostSection::removeReferencesToRemovedBlock(const std::set<Block *> &removedBlocks) const {
         for (Block *block : this->hostBlocks) {
             block->removeAllBlockReferences(removedBlocks);
         }
@@ -103,7 +110,14 @@ namespace qoala::iqoala {
         std::vector<Block *> blocksCpy;
         std::set<Block *> removedBlocksPtrs;
         for (Block *block : this->hostBlocks) {
-            if (!block->isEmpty()) {
+            // We want to preserve the blocks that are used as a jump destination, even if
+            // they are empty. Removing these blocks might have the potential to heavily modify
+            // the CFG of the program.
+            // A particualr case for this is when the last block contains a "void return" (a return
+            // instruction that return no values). In this case, the return operation is not translated
+            // to any instruction in iQoala, leaving the last block empty.
+            // A solution elegant olsolution
+            if (this->blockIsUsedAsJumpDestination(block) || !block->isEmpty()) {
                 blocksCpy.push_back(block);
             } else {
                 removedBlocksPtrs.emplace(block);
