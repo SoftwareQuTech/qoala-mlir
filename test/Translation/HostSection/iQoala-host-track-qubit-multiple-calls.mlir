@@ -19,7 +19,7 @@
 // CHECK-NEXT: %[[HOST_REG3:.*]] = run_subroutine() : __qoala_wrapper2
 // CHECK: ^b[[BLOCK4:.*]] { type = CL, predecessors = [b2, b3] }
 // CHECK-NEXT: %[[HOST_REG4:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG3]])
-// CHECK-NEXT: return_value(%[[HOST_REG4]])
+// CHECK-NEXT: return_result(%[[HOST_REG4]])
 
 // WARNING: This using the same request routine multiple times does not work
 // correctly.

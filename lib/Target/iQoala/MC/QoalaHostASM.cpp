@@ -369,7 +369,7 @@ namespace qoala::assembly {
                 printCallInstr("run_request", os);
                 break;
             case OP_RETURN_RESULT:
-                printInstrGeneric("return_value", os);
+                printInstrGeneric("return_result", os);
                 break;
             case OP_SUBMIT_ROUTINES:
                 assert(false && "Submit routines is not supported yet!");

@@ -333,7 +333,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                             {retValueOperand},
                             /*useOpOperands=*/false);
                     if (!instruction) {
-                        op.emitOpError("Return op: could not create return_value instruction");
+                        op.emitOpError("Return op: could not create return_result instruction");
                         return failure();
                     }
                 }

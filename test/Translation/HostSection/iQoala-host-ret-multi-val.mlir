@@ -11,9 +11,9 @@
 // CHECK-NEXT: tuple<%[[HOST_REG1:.*]]> = run_subroutine() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK2:.*]] { type = CL; predecessors = []; dependencies = [b0, b1]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG1]], %[[HOST_REG0]])
-// CHECK-NEXT: return_value(%[[HOST_REG2]])
-// CHECK-NEXT: return_value(%[[HOST_REG0]])
-// CHECK-NEXT: return_value(%[[HOST_REG1]])
+// CHECK-NEXT: return_result(%[[HOST_REG2]])
+// CHECK-NEXT: return_result(%[[HOST_REG0]])
+// CHECK-NEXT: return_result(%[[HOST_REG1]])
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
