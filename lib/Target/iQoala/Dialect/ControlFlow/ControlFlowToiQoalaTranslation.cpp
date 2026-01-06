@@ -141,7 +141,7 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
     }
     if (auto constantCondition = dyn_cast_or_null<arith::ConstantIntOp>(conditionOp)) {
         assert(constantCondition.getType().isInteger(1) && "Constant condition is not a boolean (i1)");
-        op.emitError("Branching based on a consta");
+        op.emitError("Branching based on a boolean constant is not supported yet");
         return failure();
     }
     // The mapped operation is not an integer comparison -> error

@@ -111,10 +111,11 @@ namespace qoala::iqoala {
             // We want to preserve the blocks that are used as a jump destination, even if
             // they are empty. Removing these blocks might have the potential to heavily modify
             // the CFG of the program.
-            // A particualr case for this is when the last block contains a "void return" (a return
+            // A particular case for this is when the last block contains a "void return" (a return
             // instruction that return no values). In this case, the return operation is not translated
             // to any instruction in iQoala, leaving the last block empty.
-            // A solution elegant olsolution
+            // An elegant solution would be to allow a "void return" as an iQoala MC Instruction: a return
+            // instruction that does not return any vaulue.
             if (this->blockIsUsedAsJumpDestination(block) || !block->isEmpty()) {
                 blocksCpy.push_back(block);
             } else {
