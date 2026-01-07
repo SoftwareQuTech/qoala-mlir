@@ -258,6 +258,56 @@ namespace qoala::analysis {
         }
     };
 
+    static double normalizeToMinusPiPi(double x) {
+        // Canonical range: (-pi, pi]
+        const double twoPi = 2.0 * M_PI;
+
+        // remainder in (-2pi, 2pi) similar to fmod
+        x = std::remainder(x, twoPi); // gives result in [-pi, pi]
+
+        // We want (-pi, pi], so map -pi to +pi
+        if (x <= -M_PI) {
+            x += twoPi;
+        }
+        // Now x in (-pi, pi]
+        return x;
+    }
+
+    struct NormalizeRotationAnglePattern final : mlir::OpInterfaceRewritePattern<RotationOpIface> {
+        using OpInterfaceRewritePattern::OpInterfaceRewritePattern;
+
+        mlir::LogicalResult matchAndRewrite(RotationOpIface rot, mlir::PatternRewriter &rewriter) const override {
+            mlir::Operation *op = rot.getOperation();
+
+            const auto aAttr = mlir::dyn_cast_or_null<mlir::FloatAttr>(rot.getAngleAttr());
+            if (!aAttr) {
+                return mlir::failure();
+            }
+
+            // Convert to double, normalize
+            const double a = aAttr.getValue().convertToDouble();
+            if (!std::isfinite(a)) {
+                return mlir::failure();
+            }
+
+            const double norm = normalizeToMinusPiPi(a);
+
+            // If already canonical (exactly equal), do nothing.
+            // Note: for floats, equality is OK here because we are rewriting constants
+            // and want to avoid churn. If you prefer, compare within a tiny tolerance.
+            if (norm == a) {
+                return mlir::failure();
+            }
+
+            // Rebuild constant with same float type as original attribute
+            mlir::Type ty = aAttr.getType();
+            mlir::FloatAttr newAttr = mlir::FloatAttr::get(ty, norm);
+
+            rot.setAngleAttr(newAttr);
+            return mlir::success();
+        }
+    };
+
     static bool isMultipleOfTwoPi(const mlir::FloatAttr angleAttr, double epsilon) {
         if (!angleAttr) {
             return false;
@@ -330,7 +380,8 @@ namespace qoala::analysis {
     void QNetPeepholeOptimizationsPass::runOnOperation() {
         LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermitianCancel
                                 << ", rotationFold=" << this->rotationFolding << ", pauliToRotations="
-                                << this->pauliGatesToRotations << ", twoPiEpsilon=" << this->twoPiEpsilon << "\n");
+                                << this->pauliGatesToRotations << ", twoPiEpsilon=" << this->twoPiEpsilon
+                                << "normalizeAngles=" << this->normalizeAngles << "\n");
 
         RewritePatternSet patterns(&getContext());
         if (this->hermitianCancel) {
@@ -342,6 +393,9 @@ namespace qoala::analysis {
         }
         if (this->rotationFolding) {
             patterns.add<FoldRotationPairPattern>(&getContext());
+        }
+        if (this->normalizeAngles) {
+            patterns.add<NormalizeRotationAnglePattern>(&getContext());
         }
         if (this->twoPiEpsilon >= 0.0) {
             patterns.add<EliminateFullTurnRotationPattern>(&getContext(), this->twoPiEpsilon);

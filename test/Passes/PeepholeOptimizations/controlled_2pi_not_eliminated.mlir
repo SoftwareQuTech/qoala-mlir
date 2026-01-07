@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qnet-peephole-optimizations="two-pi-epsilon=1e-6" | FileCheck %s
+// RUN: qoala-opt %s --qnet-peephole-optimizations="two-pi-epsilon=1e-6 normalize-angles=false" | FileCheck %s
 
 module {
   qnet.func @controlled_2pi_not_eliminated() {

@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qnet-peephole-optimizations='pauli-to-rotations=true rotation-folding=false' | FileCheck %s
+// RUN: qoala-opt %s --qnet-peephole-optimizations="pauli-to-rotations=true rotation-folding=false normalize-angles=false" | FileCheck %s
 
 module {
     qnet.func @pauli_and_rotfold() {
