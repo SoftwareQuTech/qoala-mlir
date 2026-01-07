@@ -1,8 +1,14 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 #define DEBUG_TYPE "qnet-dead-code-elimination-pass"
 
@@ -20,6 +26,118 @@ namespace qoala::analysis {
 
     static bool isCandidateForErasure(Operation *op) {
         return isa<NewQubitOp, RotXOp, RotYOp, RotZOp, HadamardOp, XOp, YOp, ZOp, CnotOp, CzOp, CrotXOp>(op);
+    }
+
+    static bool isQNetObservableClassicalUse(OpOperand &use) {
+        Operation *user = use.getOwner();
+        Value usedVal = use.get();
+
+        // qnet.return: returning the measurement result to the caller is observable.
+        if (isa<ReturnOp>(user)) {
+            return true;
+        }
+
+        // qnet.send_*: exporting the value to a remote node is observable.
+        // Only treat the 'cin' operand as the exported payload.
+        if (auto send = dyn_cast<SendIntOp>(user)) {
+            return usedVal == send.getCin();
+        }
+        if (auto send = dyn_cast<SendFloatOp>(user)) {
+            return usedVal == send.getCin();
+        }
+        if (auto send = dyn_cast<SendIntsOp>(user)) {
+            return usedVal == send.getCin();
+        }
+        if (auto send = dyn_cast<SendFloatsOp>(user)) {
+            return usedVal == send.getCin();
+        }
+
+        return false;
+    }
+
+    static bool isObservableClassicalUse(OpOperand &use) {
+        Operation *user = use.getOwner();
+        Value usedVal = use.get();
+
+        // First handle QNet-specific sinks.
+        if (isQNetObservableClassicalUse(use)) {
+            return true;
+        }
+
+        // Function return.
+        if (isa<func::ReturnOp>(user)) {
+            return true;
+        }
+
+        // Classical CFG branching.
+        if (auto condBr = dyn_cast<cf::CondBranchOp>(user)) {
+            return usedVal == condBr.getCondition();
+        }
+
+        if (auto sw = dyn_cast<cf::SwitchOp>(user)) {
+            return usedVal == sw.getFlag();
+        }
+
+        // Structured control flow.
+        if (auto ifOp = dyn_cast<scf::IfOp>(user)) {
+            return usedVal == ifOp.getCondition();
+        }
+
+        // Stores are observable effects (value escapes).
+        // If we want to be stricter, we can only treat the *stored value* operand as observable.
+        // But we are not using this op at the moment anyway...
+        if (auto store = dyn_cast<memref::StoreOp>(user)) {
+            return usedVal == store.getValueToStore();
+        }
+
+        // Calls / ops with side effects: if the measurement-derived value is used by an op that
+        // may have effects, treat it as observable.
+        // This is conservative, but matches "externally visible effects" well.
+        if (auto iface = dyn_cast<mlir::MemoryEffectOpInterface>(user)) {
+            if (!iface.hasNoEffect()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool measurementResultIsObserved(MeasureOp measure) {
+        // A MeasureOp might produce one classical result.
+        // We treat it as observed if the result reaches an observable sink.
+        Value outcome = measure.getOutcome();
+
+        SmallVector<Value> worklist;
+        worklist.push_back(outcome);
+
+        DenseSet<Value> visited;
+
+        while (!worklist.empty()) {
+            Value v = worklist.pop_back_val();
+            if (!visited.insert(v).second) {
+                continue;
+            }
+
+            for (OpOperand &use : v.getUses()) {
+                // If v reaches an observable sink, the measurement is observed.
+                if (isObservableClassicalUse(use)) {
+                    return true;
+                }
+
+                Operation *user = use.getOwner();
+
+                // Don't propagate through terminators (except ReturnOp which we already handled).
+                if (user->hasTrait<mlir::OpTrait::IsTerminator>()) {
+                    continue;
+                }
+
+                // Propagate influence forward: any result of an op using v may carry the value onward.
+                for (Value res : user->getResults()) {
+                    worklist.push_back(res);
+                }
+            }
+        }
+
+        return false;
     }
 
     void QNetDeadCodeEliminationPass::runOnOperation() {
@@ -41,7 +159,8 @@ namespace qoala::analysis {
         // - The pass assumes the IR is already in SSA form and free of structural errors; no CFG analysis is performed
         // here.
 
-        LLVM_DEBUG(llvm::dbgs() << "[QNet][DCE] starts...\n");
+        LLVM_DEBUG(llvm::dbgs() << "[QNet][DCE] starts, with classical awareness=" << this->withClassicalAwareness
+                                << "\n");
 
         FuncOp mainFunc = getOperation();
 
@@ -49,11 +168,22 @@ namespace qoala::analysis {
         DenseSet<Operation *> live;
 
         // Collect initial liveness roots and must-keep operations:
-        // - Measurements are always considered live roots.
-        // - EPR creation are inserted into the live set unconditionally as they must never be removed.
+        // - By default, all measurements are treated as liveness roots.
+        // - When `withClassicalAwareness` is enabled, a measurement is a liveness root only if its
+        //   classical outcome is observably consumed (e.g. returned or sent to a remote node).
+        // - EPR creation operations are inserted into the live set unconditionally, as they must
+        //   never be removed.
         mainFunc.walk([&](Operation *op) {
-            if (isa<MeasureOp>(op)) {
-                worklist.push_back(op);
+            if (auto meas = dyn_cast<MeasureOp>(op)) {
+                if (!withClassicalAwareness) {
+                    // Default behavior: all measurements are roots.
+                    worklist.push_back(op);
+                } else {
+                    // Refined behavior: only measurements with observed classical results are roots.
+                    if (measurementResultIsObserved(meas)) {
+                        worklist.push_back(op);
+                    }
+                }
             }
             if (isa<EprsOp>(op) || isa<EprsMeasureOp>(op)) {
                 live.insert(op);
@@ -78,6 +208,14 @@ namespace qoala::analysis {
         // Identify dead operations.
         std::vector<Operation *> toErase;
         mainFunc.walk([&](Operation *op) {
+            // In refined mode, dead measurements can be erased too.
+            if (withClassicalAwareness && isa<MeasureOp>(op)) {
+                if (!live.contains(op)) {
+                    toErase.push_back(op);
+                }
+                return;
+            }
+
             if (isCandidateForErasure(op)) {
                 if (!live.contains(op)) {
                     toErase.push_back(op);
