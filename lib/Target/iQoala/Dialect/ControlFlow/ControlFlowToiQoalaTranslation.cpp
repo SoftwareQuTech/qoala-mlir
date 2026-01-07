@@ -88,9 +88,9 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
     // beq (%op1, %op2) : <dest_if_true>
     // jump () : <dest_if_false>
 
-    const Value condition = op.getCondition();
-    Operation *cmpOp = moduleTranslation->getMappedCmpOperation(condition);
-    if (auto cmpIOp = dyn_cast<arith::CmpIOp>(cmpOp)) {
+    const Value &condition = op.getCondition();
+    Operation *conditionOp = moduleTranslation->getMappedCmpOperation(condition);
+    if (auto cmpIOp = dyn_cast_or_null<arith::CmpIOp>(conditionOp)) {
         // Process the destinations of the MLIR conditional jump
         const Block *trueDestBlock = op.getTrueDest();
         const Block *falseDestBlock = op.getFalseDest();
@@ -138,6 +138,11 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
             return failure();
         }
         return success();
+    }
+    if (auto constantCondition = dyn_cast_or_null<arith::ConstantIntOp>(conditionOp)) {
+        assert(constantCondition.getType().isInteger(1) && "Constant condition is not a boolean (i1)");
+        op.emitError("Branching based on a boolean constant is not supported yet");
+        return failure();
     }
     // The mapped operation is not an integer comparison -> error
     op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction");

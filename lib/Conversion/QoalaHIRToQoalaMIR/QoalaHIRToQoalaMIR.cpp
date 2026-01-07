@@ -1,5 +1,6 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Pass/Pass.h"
@@ -34,6 +35,8 @@ namespace qoala::conversion {
         target.addLegalDialect<BuiltinDialect>();
         target.addLegalDialect<arith::ArithDialect>();
         target.addLegalDialect<tensor::TensorDialect>();
+        // Control Flow dialect can exist in MIR, so we declare it legal in the targ
+        target.addLegalDialect<cf::ControlFlowDialect>();
         // We define the QNet dialect as "illegal", so the conversion will fail
         // if there are any qnet operations in the converted IR
         target.addIllegalDialect<qnet::QNetDialect>();

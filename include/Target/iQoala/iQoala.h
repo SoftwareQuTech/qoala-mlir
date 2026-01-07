@@ -286,6 +286,8 @@ namespace qoala::iqoala {
         bool blockContainsRunSubRoutine() const;
         [[nodiscard]]
         bool blockContainsRecvMsg() const;
+        [[nodiscard]]
+        bool containsJumpTo(const Block *destination);
 
         void print(mlir::raw_ostream &os) const override;
         void appendInstruction(assembly::QoalaHostMCInstr *instruction);
@@ -379,7 +381,8 @@ namespace qoala::iqoala {
         void print(mlir::raw_ostream &os) const override;
 
     private:
-        void removeReferencesToRemovedBlock(std::set<Block *> removedBlocks) const;
+        void removeReferencesToRemovedBlock(const std::set<Block *> &removedBlocks) const;
+        bool blockIsUsedAsJumpDestination(const Block *destination) const;
 
     private:
         // The host section only contains a list of "Blocks".
