@@ -159,7 +159,8 @@ namespace qoala::analysis {
         // - The pass assumes the IR is already in SSA form and free of structural errors; no CFG analysis is performed
         // here.
 
-        LLVM_DEBUG(llvm::dbgs() << "[QNet][DCE] starts...\n");
+        LLVM_DEBUG(llvm::dbgs() << "[QNet][DCE] starts, with classical awareness=" << this->withClassicalAwareness
+                                << "\n");
 
         FuncOp mainFunc = getOperation();
 
