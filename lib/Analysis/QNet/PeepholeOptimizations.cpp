@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
@@ -106,7 +107,7 @@ namespace qoala::analysis {
     };
 
     static mlir::Value materializePiF32(mlir::PatternRewriter &rewriter, mlir::Location loc) {
-        const float pi = static_cast<float>(std::acos(-1.0f));
+        const float pi = static_cast<float>(M_PI);
         auto piAttr = mlir::FloatAttr::get(rewriter.getF32Type(), pi);
         return rewriter.create<mlir::arith::ConstantOp>(loc, rewriter.getF32Type(), piAttr).getResult();
     }
