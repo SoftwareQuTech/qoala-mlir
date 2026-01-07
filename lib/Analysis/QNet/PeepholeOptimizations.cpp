@@ -1,6 +1,9 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -100,6 +103,52 @@ namespace qoala::analysis {
 
             LLVM_DEBUG(llvm::dbgs() << "[HermitianCancel]   Cancellation complete\n");
             return success();
+        }
+    };
+
+    static mlir::Value materializePiF32(mlir::PatternRewriter &rewriter, mlir::Location loc) {
+        const float pi = static_cast<float>(M_PI);
+        auto piAttr = mlir::FloatAttr::get(rewriter.getF32Type(), pi);
+        return rewriter.create<mlir::arith::ConstantOp>(loc, rewriter.getF32Type(), piAttr).getResult();
+    }
+
+    // PauliOpT must implement QubitOpIface.
+    // RotOpT is assumed to take operands: (qubit, angle)
+    template<typename PauliOpT, typename RotOpT>
+    struct PauliToRotationPattern final : mlir::OpRewritePattern<PauliOpT> {
+        using mlir::OpRewritePattern<PauliOpT>::OpRewritePattern;
+
+        mlir::LogicalResult matchAndRewrite(PauliOpT pauli, mlir::PatternRewriter &rewriter) const override {
+            mlir::Operation *op = pauli.getOperation();
+
+            auto qubitIface = mlir::dyn_cast<qoala::helpers::QubitOpIface>(op);
+            if (!qubitIface) {
+                return mlir::failure();
+            }
+
+            // Only handle single-qubit Paulis
+            // NOTE: this should be doable on CZ but we do not implement CRotZ
+            if (qubitIface.isTwoQubitOp()) {
+                return mlir::failure();
+            }
+
+            mlir::OperandRange qops = qubitIface.getQubitOperands();
+            if (qops.size() != 1) {
+                LLVM_DEBUG(llvm::dbgs() << "[PauliToRot] Skip: expected 1 qubit operand, got " << qops.size() << " for "
+                                        << op->getName() << "\n");
+                return mlir::failure();
+            }
+
+            mlir::Value qubit = qops.front();
+            mlir::Value piVal = materializePiF32(rewriter, pauli.getLoc());
+
+            // Rot*Op expects (qubit, angle) as operands => 2 operands total.
+            llvm::SmallVector<mlir::Value, 2> rotOperands{qubit, piVal};
+
+            auto rot = rewriter.create<RotOpT>(pauli.getLoc(), op->getResultTypes(), rotOperands);
+
+            rewriter.replaceOp(op, rot->getResults());
+            return mlir::success();
         }
     };
 
@@ -211,16 +260,22 @@ namespace qoala::analysis {
 
     class QNetPeepholeOptimizationsPass : public impl::QNetPeepholeOptimizationsBase<QNetPeepholeOptimizationsPass> {
         using QNetPeepholeOptimizationsBase::QNetPeepholeOptimizationsBase;
+
         void runOnOperation() override;
     };
 
     void QNetPeepholeOptimizationsPass::runOnOperation() {
         LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermitianCancel
-                                << ", rotationFold=" << this->rotationFolding << "\n");
+                                << ", rotationFold=" << this->rotationFolding
+                                << ", pauliToRotations=" << this->pauliGatesToRotations << "\n");
 
         RewritePatternSet patterns(&getContext());
         if (this->hermitianCancel) {
             patterns.add<CancelHermitianPairPattern>(&getContext());
+        }
+        if (this->pauliGatesToRotations) {
+            patterns.add<PauliToRotationPattern<XOp, RotXOp>, PauliToRotationPattern<YOp, RotYOp>,
+                         PauliToRotationPattern<ZOp, RotZOp>>(&getContext());
         }
         if (this->rotationFolding) {
             patterns.add<FoldRotationPairPattern>(&getContext());
