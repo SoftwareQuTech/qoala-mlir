@@ -11,6 +11,10 @@ def QNetCheckLinear : Pass<"qnet-check-linear"> {
 def QNetDeadCodeElimination : Pass<"qnet-dead-code-elimination", "qoala::dialects::qnet::FuncOp"> {
   let summary = "Run Dead Code Elimination (DCE) on quantum code.";
   let dependentDialects = ["qoala::dialects::qnet::QNetDialect"];
+  let options = [
+        Option<"withClassicalAwareness", "with-classical-awareness", "bool", /*default=*/"false",
+               "Only treat measurements whose classical results are observably used as liveness roots.">,
+    ];
 }
 
 def QNetGateCountShowAnalysis: Pass<"qnet-show-analysis-gate-count", "mlir::ModuleOp"> {
