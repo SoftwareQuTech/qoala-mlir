@@ -258,6 +258,79 @@ namespace qoala::analysis {
         }
     };
 
+    static bool isMultipleOfTwoPi(const mlir::FloatAttr angleAttr, double epsilon) {
+        if (!angleAttr) return false;
+        if (!(epsilon >= 0.0)) return false; // NaN-safe, and negative eps disables
+
+        const double twoPi = 2.0 * M_PI;
+
+        // Convert APFloat -> double
+        const double a = angleAttr.getValue().convertToDouble();
+
+        // Handle non-finite values defensively
+        if (!std::isfinite(a)) return false;
+
+        // Find nearest integer multiple k of 2π
+        const double k = std::nearbyint(a / twoPi);
+        const double diff = std::fabs(a - k * twoPi);
+
+        return diff <= epsilon;
+    }
+
+    struct EliminateFullTurnRotationPattern final : mlir::OpInterfaceRewritePattern<RotationOpIface> {
+        explicit EliminateFullTurnRotationPattern(mlir::MLIRContext *ctx, double epsilon,
+                                                mlir::PatternBenefit benefit = 1)
+            : OpInterfaceRewritePattern<RotationOpIface>(ctx, benefit), epsilon(epsilon) {}
+
+        mlir::LogicalResult matchAndRewrite(RotationOpIface rot, mlir::PatternRewriter &rewriter) const override {
+            mlir::Operation *op = rot.getOperation();
+            LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi] Checking op: " << op->getName() << " @" << op->getLoc() << "\n");
+
+            // Need a foldable constant angle
+            const auto aAttr = mlir::dyn_cast_or_null<mlir::FloatAttr>(rot.getAngleAttr());
+            if (!aAttr) {
+                LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi]   -> Skip: non-constant angle\n");
+                return mlir::failure();
+            }
+
+            if (!isMultipleOfTwoPi(aAttr, epsilon)) {
+                LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi]   -> Skip: not within eps of k*2pi (eps=" << epsilon << ")\n");
+                return mlir::failure();
+            }
+
+            // Eliminate rotation: passthrough controls + target.
+            // Assumptions:
+            //  - rotation results are (controls..., target) in that order
+            //  - rotation operands include controls and target (angle may be attr/operand, but iface gives us these)
+            const mlir::ValueRange ctrls = rot.getControls();
+            const mlir::Value tgt = rot.getTarget();
+
+            llvm::SmallVector<mlir::Value, 8> replacements;
+            replacements.reserve(ctrls.size() + 1);
+
+            // passthrough controls
+            for (mlir::Value c : ctrls)
+                replacements.push_back(c);
+
+            // passthrough target
+            replacements.push_back(tgt);
+
+            // Sanity: result arity should match replacement count
+            if (op->getNumResults() != replacements.size()) {
+                LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi]   -> Skip: result arity mismatch. results="
+                                        << op->getNumResults() << " replacements=" << replacements.size() << "\n");
+                return mlir::failure();
+            }
+
+            LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi]   Matched k*2pi rotation, eliminating as identity\n");
+            rewriter.replaceOp(op, replacements);
+            return mlir::success();
+        }
+
+        private:
+            double epsilon;
+    };
+
     class QNetPeepholeOptimizationsPass : public impl::QNetPeepholeOptimizationsBase<QNetPeepholeOptimizationsPass> {
         using QNetPeepholeOptimizationsBase::QNetPeepholeOptimizationsBase;
 
@@ -266,8 +339,9 @@ namespace qoala::analysis {
 
     void QNetPeepholeOptimizationsPass::runOnOperation() {
         LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole Optimizations] starts, hermitianCancel=" << this->hermitianCancel
-                                << ", rotationFold=" << this->rotationFolding
-                                << ", pauliToRotations=" << this->pauliGatesToRotations << "\n");
+                            << ", rotationFold=" << this->rotationFolding
+                            << ", pauliToRotations=" << this->pauliGatesToRotations
+                            << ", twoPiEpsilon=" << this->twoPiEpsilon << "\n");
 
         RewritePatternSet patterns(&getContext());
         if (this->hermitianCancel) {
@@ -279,6 +353,9 @@ namespace qoala::analysis {
         }
         if (this->rotationFolding) {
             patterns.add<FoldRotationPairPattern>(&getContext());
+        }
+        if (this->twoPiEpsilon >= 0.0) {
+            patterns.add<EliminateFullTurnRotationPattern>(&getContext(), this->twoPiEpsilon);
         }
 
         GreedyRewriteConfig cfg;
