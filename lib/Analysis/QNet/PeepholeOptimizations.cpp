@@ -260,10 +260,6 @@ namespace qoala::analysis {
     class QNetPeepholeOptimizationsPass : public impl::QNetPeepholeOptimizationsBase<QNetPeepholeOptimizationsPass> {
         using QNetPeepholeOptimizationsBase::QNetPeepholeOptimizationsBase;
 
-        void getDependentDialects(mlir::DialectRegistry &registry) const override {
-            registry.insert<mlir::arith::ArithDialect>();
-        }
-
         void runOnOperation() override;
     };
 

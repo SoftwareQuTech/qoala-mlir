@@ -20,6 +20,7 @@ def QNetGateCountShowAnalysis: Pass<"qnet-show-analysis-gate-count", "mlir::Modu
 
 def QNetPeepholeOptimizations : Pass<"qnet-peephole-optimizations", "qoala::dialects::qnet::FuncOp"> {
   let summary = "Run peephole optimizations (e.g. hermitian cancellation, rotation merging) on quantum code.";
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
         Option<"hermitianCancel", "hermitian-cancel", "bool", /*default=*/"true",
                "Run hermitian cancellations as part of the peephole optimizations.">,
