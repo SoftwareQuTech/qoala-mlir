@@ -56,7 +56,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 if (op.getType().isInteger(1)) {
                     // If the defined constant is an "i1", it represents a boolean. In this sense,
                     // it *can be used as the "comparison value" for a branching instruction.
-                    // Considering this, we need to map the result value with teh operation.
+                    // Considering this, we need to map the result value with the operation.
                     moduleTranslation->mapCmpValue(op.getResult(), op.getOperation());
                 }
                 iQoalaMCOperand *immediateVal =

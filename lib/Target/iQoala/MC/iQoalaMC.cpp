@@ -111,7 +111,7 @@ namespace qoala::assembly {
     bool iQoalaMCExpr::isInstructionRef() const { return this->kind == INSTRUCTION_REFERENCE; }
 
     std::string iQoalaMCExpr::getSymbolName() const {
-        assert(this->isSymbolRef() && "iQoalaMCExpr: Trying to get the SymbolRef f ormrom a non-SymbolRef iQ");
+        assert(this->isSymbolRef() && "iQoalaMCExpr: Trying to get the SymbolRef from a non-SymbolRef iQ");
         return this->symbolName;
     }
 
