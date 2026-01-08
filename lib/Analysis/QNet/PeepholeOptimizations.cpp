@@ -313,7 +313,7 @@ namespace qoala::analysis {
             return false;
         }
         if (!(epsilon >= 0.0)) {
-            return false; // NaN-safe, and negative eps disables
+            return false; // NaN-safe, and negative eps disabled
         }
 
         const double twoPi = 2.0 * M_PI;
@@ -326,7 +326,7 @@ namespace qoala::analysis {
             return false;
         }
 
-        // Find nearest integer multiple k of 2π
+        // Find nearest integer multiple k of 2pi
         const double k = std::nearbyint(a / twoPi);
         const double diff = std::fabs(a - k * twoPi);
 
