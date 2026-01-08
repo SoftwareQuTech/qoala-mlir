@@ -11,7 +11,7 @@ namespace qoala::options {
     extern uint32_t qoalaOptSingleGateDuration;
     extern float qoalaOptSingleGateError;
     extern uint32_t qoalaOptTwoGateDuration;
-    extern float qoalaOptTwoGateError;
+    extern float qoalaOptDualGateError;
     extern uint32_t qoalaOptLatency;
     extern uint32_t qoalaOptLinkDuration;
     extern uint32_t qoalaOptHostInstrTime;

@@ -31,7 +31,7 @@ namespace qoala::analysis::esp {
         qubitEsp *= (std::exp(-t1t2tDecayExp) + std::exp(-t1DecayExp));
 
         qubitEsp *= std::pow(1.0f - qoalaOptSingleGateError, oneQubitGates);
-        qubitEsp *= std::pow(1.0f - qoalaOptTwoGateError, twoQubitGates);
+        qubitEsp *= std::pow(1.0f - qoalaOptDualGateError, twoQubitGates);
 
         return qubitEsp;
     }
