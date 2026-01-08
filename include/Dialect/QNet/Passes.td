@@ -32,6 +32,10 @@ def QNetPeepholeOptimizations : Pass<"qnet-peephole-optimizations", "qoala::dial
                "Apply rotation merges as part of the peephole optimizations.">,
         Option<"pauliGatesToRotations", "pauli-to-rotations", "bool", /*default=*/"false",
                "Convert Pauli gates to their rotation equivalence.">,
+        Option<"twoPiEpsilon", "two-pi-epsilon", "double", /*default=*/"0.0",
+           "Tolerance for recognizing rotation angles equivalent to multiples of 2*pi.">,
+        Option<"normalizeAngles", "normalize-angles", "bool", /*default=*/"true",
+                "Normalize rotation angles betwee -pi and pi.">,
     ];
 }
 

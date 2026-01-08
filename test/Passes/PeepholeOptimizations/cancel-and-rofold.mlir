@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qnet-peephole-optimizations | FileCheck %s
+// RUN: qoala-opt %s --qnet-peephole-optimizations="normalize-angles=false" | FileCheck %s
 
 module {
     qnet.func @cancel_simple() {

@@ -1,4 +1,4 @@
-// RUN: qoala-opt %s --qnet-peephole-optimizations=rotation-folding | FileCheck %s
+// RUN: qoala-opt %s --qnet-peephole-optimizations="rotation-folding=true normalize-angles=false" | FileCheck %s
 
 module {
     qnet.func @rotation_folding_simple() {
