@@ -12,7 +12,7 @@ variables:
   # Your project will use these paths INSIDE the toolchain image:
   MLIR_DIR_IN_IMAGE: "/workspace/llvm/build/lib/cmake/mlir"
   VENV_DIR_IN_IMAGE: "/workspace/llvm-venv"
-  SCIP_DIR_IN_IMAGE: "/opt/scip/lib/cmake/scip" 
+  SCIP_DIR_IN_IMAGE: "/usr/lib/cmake/scip"
 
 clang-format:check:
   stage: lint
@@ -76,10 +76,10 @@ qoalac:build:
     - source "$VENV_DIR_IN_IMAGE/bin/activate"
 
     - |
-        mkdir build && cd build && LD=ld.ldd-17 cmake -G Ninja .. \
-          -DCMAKE_C_COMPILER=clang-17 \
-          -DCMAKE_CXX_COMPILER=clang++-17 \
-          -DCMAKE_LINKER=ld.ldd-17 \
+        mkdir build && cd build && LD=ld.ldd-21 cmake -G Ninja .. \
+          -DCMAKE_C_COMPILER=clang-21 \
+          -DCMAKE_CXX_COMPILER=clang++-21 \
+          -DCMAKE_LINKER=ld.ldd-21 \
           -DMLIR_DIR="$MLIR_DIR_IN_IMAGE" \
           -DSCIP_DIR="$SCIP_DIR_IN_IMAGE" \
           -DPython3_EXECUTABLE="$VENV_DIR_IN_IMAGE/bin/python3"

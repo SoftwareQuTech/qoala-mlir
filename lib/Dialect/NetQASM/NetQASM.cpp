@@ -103,6 +103,12 @@ uint32_t netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateD
 
 uint32_t netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
+uint32_t netqasm::XOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+
+uint32_t netqasm::YOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+
+uint32_t netqasm::ZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+
 uint32_t netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
 uint32_t netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }

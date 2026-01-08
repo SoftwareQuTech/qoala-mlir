@@ -100,7 +100,8 @@ static std::vector<iQoalaMCInstruction *> filterInstructionsFromRoutine(const Qu
     return result;
 }
 
-static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee) {
+static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, CallOp &op, const StringRef &callee,
+                                          std::vector<uint8_t> &qubitsToUnmap) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
@@ -115,7 +116,7 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     // a qubit in the current stack frame:
     DenseMap<Value, uint32_t> valueToQubitMap;
     for (Value arg : op.getOperands()) {
-        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedRegRefForValue(arg, /*copy=*/false)->getQubitID());
+        valueToQubitMap.try_emplace(arg, moduleTranslation->getMappedQubitID(arg));
     }
 
     // Some preparations before processing arguments
@@ -159,7 +160,64 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
 
     // We finally mark the operation as visited, and perform any finalization in the routine body
     context->markOperationAsVisited(calledFunction);
+    for (const uint8_t qubit : routine->getConsumedQubitIDs()) {
+        // Save the qubits to unmap for the caller
+        qubitsToUnmap.push_back(qubit);
+    }
     routine->finalizeRoutine();
+    return success();
+}
+
+static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslation *moduleTranslation, Operation *op,
+                                                                  StringRef remoteName) {
+    const std::optional<uint8_t> eprsSocketID = moduleTranslation->getClassicalSocketIDForRemote(remoteName);
+    if (!eprsSocketID) {
+        op->emitError("Remote with name '") << remoteName << "' was not found in the META section.";
+        return std::nullopt;
+    }
+
+    iQoalaMCOperand *remoteCSocketVal =
+            iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
+    const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_ASSIGN_CVAL, {}, {LOCAL}, {remoteCSocketVal},
+            /*useOpOperands=*/false);
+    // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
+    // We can get a reference to that by simply accessing the first operand of the new instruction.
+    return csocketInstr->getOperand(0)->getRegRef();
+}
+
+static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const StringRef &remoteName) {
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand =
+            iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Use that constant and the actual value to send to create the send_cmsg instruction.
+    const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand});
+    return sendCMSGInstr ? success() : failure();
+}
+
+static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
+                                               const Value &opResult, const StringRef &remoteName) {
+    // Get the RegRef for the given remote name
+    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    iQoalaMCOperand *csocketOperand =
+            iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
+    // Create the actual recv_cmsg MC instruction
+    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand});
+    return recvInstr ? success() : failure();
+}
+
+static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, RemoteIDRefOp &op) {
+    // Create a constant value that references the csocket from the META section
+    std::optional<iQoalaRegReference *> csocketOperand =
+            addSocketRefAssignCVal(moduleTranslation, op.getOperation(), op.getRemote());
+    if (!csocketOperand) {
+        return failure();
+    }
+    moduleTranslation->setRegRefForCSocketName(op.getRemote(), *csocketOperand);
     return success();
 }
 
@@ -179,8 +237,17 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 QoalaHostMCInstr::OpCode opCode = QoalaHostMCInstr::OP_UNKNOWN;
                 const StringRef callee = op.getCallee();
                 const std::string calleeStr = callee.str();
+                std::vector<uint8_t> qubitsToUnmap;
 
-                if (failed(processCallToRoutine(moduleTranslation, op, callee))) {
+                for (Value callArg : op.getArgOperands()) {
+                    LLVM_DEBUG(llvm::dbgs() << "Checking if callArrg '" << callArg << "'is a released qubit.\n");
+                    if (moduleTranslation->qubitValueWasReleased(callArg)) {
+                        op.emitOpError("makes use of an already freed or measured qubit.");
+                        return failure();
+                    }
+                }
+
+                if (failed(processCallToRoutine(moduleTranslation, op, callee, qubitsToUnmap))) {
                     return failure();
                 }
 
@@ -197,6 +264,19 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     return failure();
                 }
 
+                // We need to identify the yielded values that represent a qubit and map them
+                // in the qoalahost section to the physical qubitID
+                const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
+
+                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
+                    if (qubitId != 0xFF) {
+                        Value valueAtCaller = op.getResult(retIndex);
+                        // We map the MLIR value with the qubitID in the current stack frame held by
+                        // the moduleTranslation object
+                        moduleTranslation->mapValueToQubitID(valueAtCaller, qubitId);
+                    }
+                }
+
                 // The qubit references returned by the local routine *must not* be used as yielded values
                 // by this call op. This information will be kept inside the "uses" and "keeps" header section
                 // of the local routines
@@ -206,7 +286,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 std::vector<Value> yieldedResults;
                 std::vector<iQoalaRegType> localRegTypes;
                 for (Value result : op.getResults()) {
-                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(result)) {
+                    if (!moduleTranslation->valueIsMappedToQubit(result)) {
                         yieldedResults.push_back(result);
                         localRegTypes.push_back(LOCAL);
                     }
@@ -216,9 +296,9 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // mapped to a qubit, then we don't need to pass it as a routine argument.
                 SmallVector<iQoalaMCOperand *> callMCOperands;
                 for (const Value callArg : op.getOperands()) {
-                    if (!moduleTranslation->valueIsMappedToQubitInCurrentFrame(callArg)) {
-                        // If the value is mapped to a qubit, then we don't need to use it
-                        // as an operand of the MC instruction
+                    if (!moduleTranslation->valueIsMappedToQubit(callArg)) {
+                        // If the value is *not* mapped to a qubit, then we need to use it
+                        // as an operand of the MC call instruction
                         iQoalaRegReference *regRef = moduleTranslation->getMappedRegRefForValue(callArg);
                         assert(regRef && "QoalaHost call op builder: operand not mapped");
                         assert(regRef->isLocal() && "QoalaHost call op builder: mapped register is not local");
@@ -236,18 +316,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
                         /*useOpOperands=*/false);
-
-                // Then, we need to identify the yielded values that represent a qubit and map them
-                // in the qoalahost section to the physical qubitID
-                const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
-
-                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
-                    Value valueAtCaller = op.getResult(retIndex);
-                    // We get the register reference for the value, but NOT a copy of the object, since we need
-                    // to mutate the original one
-                    iQoalaRegReference *regRefCaller =
-                            moduleTranslation->getMappedRegRefForValue(valueAtCaller, /*copy=*/false);
-                    regRefCaller->setQubitID(qubitId);
+                // After everything, we effectively unmap the free'd qubits from the current stack frame
+                for (const uint8_t qubitID : qubitsToUnmap) {
+                    // Remove the consumed qubits from the mapped ones in the module
+                    moduleTranslation->unmapQubitID(qubitID);
                 }
                 return instruction ? success() : failure();
             })
@@ -261,23 +333,24 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                             {retValueOperand},
                             /*useOpOperands=*/false);
                     if (!instruction) {
-                        op.emitOpError("Return op: could not create return_value instruction");
+                        op.emitOpError("Return op: could not create return_result instruction");
                         return failure();
                     }
                 }
                 (void) moduleTranslation->popFrame();
                 return success();
             })
-            .Case([](SendIntsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
-            .Case([](RecvIntsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
-                return success();
-            })
             .Case([](NopTOp op) -> LogicalResult {
                 // There is nothing to do here
+                return success();
+            })
+            .Case([&](RemoteIDRefOp op) -> LogicalResult {
+                if (op.getClassical()) {
+                    return processRemoteIDRefOp(moduleTranslation, op);
+                }
+                // We *only* translate the RemoteIDRefOp if it needs to be resolved for a csocket.
+                // Otherwise, we can safely ignore (not translate it), since EPRS sockets do not
+                // need to retrieve the socket ID in a local qoalahost register.
                 return success();
             })
             .Case([&](BlkMeta op) -> LogicalResult {
@@ -299,8 +372,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                         return failure();
                     }
                 }
-                const StringRef prevComm = op.getPrevCommAttr().getValue();
-                if (!prevComm.empty()) {
+                if (const StringRef prevComm = op.getPrevCommAttr().getValue(); !prevComm.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevComm)) {
                         block->setPrevComm(blk.value());
                     } else {
@@ -309,8 +381,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 } else {
                     block->setPrevComm(nullptr);
                 }
-                const StringRef prevEnt = op.getPrevEntAttr().getValue();
-                if (!prevEnt.empty()) {
+                if (const StringRef prevEnt = op.getPrevEntAttr().getValue(); !prevEnt.empty()) {
                     if (const auto blk = moduleTranslation->findIdPrecedence(prevEnt)) {
                         block->setPrevEnt(blk.value());
                     } else {
@@ -331,7 +402,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     }
 
                     if (auto predecessor = moduleTranslation->findIdPrecedence(key)) {
-                        const uint32_t deadline = static_cast<uint32_t>(intAttr.getInt());
+                        const auto deadline = static_cast<uint32_t>(intAttr.getInt());
                         block->addDeadline(predecessor.value(), deadline);
                     } else {
                         return failure();
@@ -342,6 +413,30 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 moduleTranslation->addIdPrecedence(op.getBlockId(), block);
                 return success();
             })
+            // Singular versions of the classical comm ops
+            .Case([&](SendIntOp op) -> LogicalResult {
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
+            })
+            .Case([&](SendFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a send_int operation.
+                return processSendClassicalValue(moduleTranslation, op.getOperation(), op.getRemote());
+            })
+            .Case([&](RecvIntOp op) -> LogicalResult {
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
+            })
+            .Case([&](RecvFloatOp op) -> LogicalResult {
+                // TODO - In the current state, float constants are not translated into iQoala floats (it
+                //  seems they are not supported by qoala-sim) For this reason, the lowering process fails
+                //  before reaching this point
+                // Since there is no difference between integer and float at iQoala level, this case is
+                // symmetrical to translating a recv_int operation.
+                return processRecvClassicalValue(moduleTranslation, op.getOperation(), op.getResult(), op.getRemote());
+            })
+            // Plural versions of the classical comm ops
             .Case([](const SendFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
@@ -349,6 +444,14 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             .Case([](const RecvFloatsOp op) -> LogicalResult {
                 // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
+            })
+            .Case([](const SendIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
+            })
+            .Case([](const RecvIntsOp op) -> LogicalResult {
+                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                return success();
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a QoalaHost operation to iQoala: '") << *op << "'\n";

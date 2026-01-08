@@ -53,6 +53,12 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
             .Case<arith::ConstantIntOp>([&](arith::ConstantIntOp op) -> LogicalResult {
                 SmallVector<iQoalaMCOperand *> processedOperands;
+                if (op.getType().isInteger(1)) {
+                    // If the defined constant is an "i1", it represents a boolean. In this sense,
+                    // it *can be used as the "comparison value" for a branching instruction.
+                    // Considering this, we need to map the result value with the operation.
+                    moduleTranslation->mapCmpValue(op.getResult(), op.getOperation());
+                }
                 iQoalaMCOperand *immediateVal =
                         iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
                 processedOperands.push_back(immediateVal);
@@ -69,6 +75,11 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                     return instruction ? success() : failure();
                 }
                 return op.emitOpError("Arith constant operation not in host or netqasm section!\n");
+            })
+            .Case<arith::ConstantFloatOp>([&](arith::ConstantFloatOp op) -> LogicalResult {
+                // TODO - Float constants are not lowered just yet, since it seems qoala-sim does not support them
+                op.emitError("Float values are not supported in qoala-sim.");
+                return failure();
             })
             .Case<arith::CmpIOp>([&](arith::CmpIOp op) -> LogicalResult {
                 // In this case, we simply map the operation to the MLIR value yielded.

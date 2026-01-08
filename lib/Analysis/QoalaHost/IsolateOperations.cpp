@@ -1,4 +1,5 @@
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/Helpers/GenericInterfaces.h"
+#include "Analysis/QoalaHost/Isolate.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
 #include "llvm/Support/Debug.h"
@@ -62,5 +63,64 @@ namespace qoala::analysis::isolate {
         // We do not need to add a terminator op on the bottomBlock, since all the
         // lower operations that were in the original block (including the original
         // terminator) will end up in bottomBlock
+    }
+
+    void createNewEmptyFirstBlock(ConversionPatternRewriter &rewriter, qoalahost::MainFuncOp &mainFunc) {
+        // Check if any of the declared remotes is used; If it is, we know we have to create an empty
+        // block for the socket IDs placeholders
+        auto module = mainFunc->getParentOfType<ModuleOp>();
+        // At this point, the IR is in a "hybrid" state; qmem.remote was lowered (so we *can* as for the
+        // qremote::RemoteOp), however, other qmem operations have not been lowered just yet.
+        // Being this said, we have to analyze the "usages" of the remote declared symbol by manually
+        // walking over all the qmem operations that might use a remote
+        const auto remoteDeclarations = module.getOps<qremote::RemoteOp>();
+        const bool anyRemoteIsUsed =
+                std::any_of(remoteDeclarations.begin(), remoteDeclarations.end(), [&](qremote::RemoteOp remoteDecl) {
+                    bool anyIsUsed = false;
+                    bool *anyIsUsedPtr = &anyIsUsed;
+                    module.walk([&](helpers::UsesRemoteInterface op) -> WalkResult {
+                        if (remoteDecl.getName() == op.getUsedRemoteName()) {
+                            *anyIsUsedPtr = true;
+                            return WalkResult::interrupt();
+                        }
+                        return WalkResult::advance();
+                    });
+                    return anyIsUsed;
+                });
+        if (!anyRemoteIsUsed) {
+            return;
+        }
+        // At this point we know we have to create an empty block
+        Block &firstBlock = mainFunc.front();
+        Operation &firstOperation = firstBlock.front();
+        // We split the first block at the first operation. This method returns a new Block pointer,
+        // which contains all (and including) the operation at which we splat.
+        // The original block ("firstBlock") will contain everything that was *before* the split point.
+        // Hence, after this split, teh first block should be empty.
+        firstBlock.splitBlock(&firstOperation);
+        // We also have to insert a terminator operation in the empty block, so the IR stays valid
+        rewriter.setInsertionPoint(&firstBlock, firstBlock.begin());
+        rewriter.create<qoalahost::NopTOp>(firstOperation.getLoc());
+    }
+
+    void removeFirstBlockFromMainFuncIfEmpty(ModuleOp &module) {
+        const auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
+        assert(!mainFuncs.empty() && "No main function? This is embarrassing");
+        auto mainFunc = *mainFuncs.begin();
+        Block &firstBlock = mainFunc.front();
+        if (firstBlock.getOperations().size() == 1 && isa<qoalahost::NopTOp>(firstBlock.front())) {
+            // This is a safety check. When translating the qmem:FuncOp into qoalahost::MainFuncOp we
+            // create the empty block for the socket IDs *only* if the remote (symbol) is used somewhere
+            // inside the MainFuncOp. If this is not the case, the block is not created.
+            // This additional avoids ending up with a case where we need to delete an unnecessary block
+            // that defines arguments of the main function. Deleting such a block would result on a failure,
+            // due to the block still having "uses" (use of the arguments).
+            for (auto blockArgument : firstBlock.getArguments()) {
+                assert(!blockArgument.getUses().empty() && "Trying to delete a frist block whose arguments"
+                                                           "has uses. This is a bug on the implementation.");
+            }
+            // We only delete the first block, if it has one operation, and it is a NopTOp
+            firstBlock.erase();
+        }
     }
 } // namespace qoala::analysis::isolate

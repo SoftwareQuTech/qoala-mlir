@@ -1,19 +1,19 @@
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META_START
 // CHECK-NEXT: name: test_host_ret_one_val
-// CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
-// CHECK-NEXT: epr_sockets: 0 -> Bob
+// CHECK-NEXT: parameters:
+// CHECK-NEXT: csockets:
+// CHECK-NEXT: epr_sockets:
 // CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG0:.*]] = assign_cval() : 3
 // CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
-// CHECK-NEXT: %[[HOST_REG1:.*]] = run_subroutine() : __qoala_wrapper0
+// CHECK-NEXT: tuple<%[[HOST_REG1:.*]]> = run_subroutine() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK2:.*]] { type = CL; predecessors = []; dependencies = [b0, b1]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG2:.*]] = add_cval_c(%[[HOST_REG1]], %[[HOST_REG0]])
-// CHECK-NEXT: return_value(%[[HOST_REG2]])
-// CHECK-NEXT: return_value(%[[HOST_REG0]])
-// CHECK-NEXT: return_value(%[[HOST_REG1]])
+// CHECK-NEXT: return_result(%[[HOST_REG2]])
+// CHECK-NEXT: return_result(%[[HOST_REG0]])
+// CHECK-NEXT: return_result(%[[HOST_REG1]])
 
 //CHECK: SUBROUTINE __qoala_wrapper0
 // CHECK-NEXT: params: {{[[:space:]]}}
@@ -27,7 +27,6 @@
 // CHECK-NEXT: NETQASM_END
 
 module {
-  qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> i32 {
     %cst = arith.constant 1 : i32

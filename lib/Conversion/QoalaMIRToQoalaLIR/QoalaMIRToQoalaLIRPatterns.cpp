@@ -4,6 +4,8 @@
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 
+#include "Analysis/QoalaHost/Isolate.h"
+
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "mir-to-lir-patterns"
@@ -30,9 +32,9 @@ namespace qoala::conversion::mir {
         rewriter.inlineRegionBefore(op.getFunctionBody(), newFunc.getBody(), newFunc.end());
         // After we create the new MainFuncOp, we will isolate the functions that need to be in a single block
 
-        // RecvInts and RecvFloats will stay isolated in a block
-        analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, qmem::RecvIntsOp, qmem::RecvFloatsOp>(newFunc,
-                                                                                                              rewriter);
+        // RecvInt, RecvFloat, RecvInts and RecvFloats will stay isolated in a block
+        analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, qmem::RecvIntsOp, qmem::RecvFloatsOp,
+                                                 qmem::RecvIntOp, qmem::RecvFloatOp>(newFunc, rewriter);
 
         // Call ops are a bit different.
         // * If calling a request routine -> They stay in an isolated block
@@ -55,6 +57,8 @@ namespace qoala::conversion::mir {
             return false;
         };
         analysis::isolate::isolateOpsInNewBlocks<qoalahost::MainFuncOp, func::CallOp>(newFunc, rewriter, opCheck);
+        // Insert a new block at the beginning to insert the socket IDs placeholders
+        analysis::isolate::createNewEmptyFirstBlock(rewriter, newFunc);
         LLVM_DEBUG(llvm::dbgs() << "***** AFTER *****\n" << newFunc << "\n***************\n");
         return std::make_unique<OpAndValues>(newFunc.getOperation(), newFunc->getResults());
     }
@@ -82,6 +86,8 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
     }
 
+    // Lowering patterns that map QMem multi-value classical
+    // communication ops to multi-value classical ops in QoalaHost
     std::unique_ptr<OpAndValues> RecvIntsOpLowering::createNewOpAndValues(qmem::RecvIntsOp op,
                                                                           qmem::RecvIntsOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
@@ -124,8 +130,54 @@ namespace qoala::conversion::mir {
     std::unique_ptr<OpAndValues> SendFloatsOpLowering::createNewOpAndValues(qmem::SendFloatsOp op,
                                                                             qmem::SendFloatsOp::Adaptor adaptor,
                                                                             ConversionPatternRewriter &rewriter) const {
-        auto newRecv = rewriter.create<qoalahost::SendFloatsOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        auto newSend = rewriter.create<qoalahost::SendFloatsOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+    }
+
+    // Lowering patterns that map QMem single-value classical
+    // communication ops to single-value classical ops in QoalaHost
+    std::unique_ptr<OpAndValues> RecvIntOpLowering::createNewOpAndValues(qmem::RecvIntOp op,
+                                                                         qmem::RecvIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        auto newRecv = rewriter.create<qoalahost::RecvIntOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
+        // We inserted a new one when isolating the original qmem.recv_ints op.
+        // We need to remove the extra qoalahost.nop_term terminator operation
+        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
+            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
+            rewriter.eraseOp(opNextToRecv);
+        }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> RecvFloatOpLowering::createNewOpAndValues(qmem::RecvFloatOp op,
+                                                                           qmem::RecvFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
+        Type convertedType = this->typeConverter->convertType(op.getCout().getType());
+        auto newRecv = rewriter.create<qoalahost::RecvFloatOp>(op.getLoc(), convertedType, adaptor.getRemoteAttr());
+        // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
+        // We inserted a new one when isolating the original qmem.recv_floats op.
+        // We need to remove the extra qoalahost.nop_term terminator operation
+        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
+            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
+            rewriter.eraseOp(opNextToRecv);
+        }
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> SendIntOpLowering::createNewOpAndValues(qmem::SendIntOp op,
+                                                                         qmem::SendIntOp::Adaptor adaptor,
+                                                                         ConversionPatternRewriter &rewriter) const {
+        auto newRecv = rewriter.create<qoalahost::SendIntOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> SendFloatOpLowering::createNewOpAndValues(qmem::SendFloatOp op,
+                                                                           qmem::SendFloatOp::Adaptor adaptor,
+                                                                           ConversionPatternRewriter &rewriter) const {
+        auto newSend = rewriter.create<qoalahost::SendFloatOp>(op.getLoc(), op.getCin(), adaptor.getRemoteAttr());
+        return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }
 
     /* Lowering for operations that define or are inside local_routine or request_routine - Will map to NetQASM dialect
@@ -197,6 +249,24 @@ namespace qoala::conversion::mir {
         return std::make_unique<OpAndValues>(newHadamard.getOperation(), newHadamard->getResults());
     }
 
+    std::unique_ptr<OpAndValues> XLowering::createNewOpAndValues(qmem::XOp op, qmem::XOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newX = rewriter.create<netqasm::XOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newX.getOperation(), newX->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> YLowering::createNewOpAndValues(qmem::YOp op, qmem::YOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newY = rewriter.create<netqasm::YOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newY.getOperation(), newY->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> ZLowering::createNewOpAndValues(qmem::ZOp op, qmem::ZOp::Adaptor adaptor,
+                                                                 ConversionPatternRewriter &rewriter) const {
+        auto newZ = rewriter.create<netqasm::ZOp>(op.getLoc(), adaptor.getQ());
+        return std::make_unique<OpAndValues>(newZ.getOperation(), newZ->getResults());
+    }
+
     std::unique_ptr<OpAndValues> CNotLowering::createNewOpAndValues(qmem::CnotOp op, qmem::CnotOp::Adaptor adaptor,
                                                                     ConversionPatternRewriter &rewriter) const {
         auto newCnot = rewriter.create<netqasm::CnotOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1());
@@ -255,7 +325,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(),
                                                              rewriter.getUI32IntegerAttr(intsAngle[0]),
@@ -272,7 +342,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(),
                                                              rewriter.getUI32IntegerAttr(intsAngle[0]),
@@ -289,7 +359,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         rewriter.getUI32IntegerAttr(intsAngle[0]);
         auto newRotate = rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(),
@@ -306,7 +376,7 @@ namespace qoala::conversion::mir {
 
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
-        std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::CrotXIntOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
                                                            rewriter.getUI32IntegerAttr(intsAngle[0]),

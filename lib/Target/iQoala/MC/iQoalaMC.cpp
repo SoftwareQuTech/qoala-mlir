@@ -8,12 +8,6 @@ namespace qoala::assembly {
 
     uint32_t iQoalaRegReference::getNum() const { return this->num; }
 
-    uint32_t iQoalaRegReference::getQubitID() const { return this->qubitID; }
-
-    void iQoalaRegReference::setQubitID(const uint32_t qubitID) { this->qubitID = qubitID; }
-
-    bool iQoalaRegReference::representsAQubit() const { return this->qubitID != 0xFF; }
-
     bool iQoalaRegReference::isLocal() const { return this->type == LOCAL; }
 
     bool iQoalaRegReference::isQuantum() const { /*Local=0, R,C,M,Q >= 1*/ return this->type >= 1; }
@@ -116,6 +110,11 @@ namespace qoala::assembly {
 
     bool iQoalaMCExpr::isInstructionRef() const { return this->kind == INSTRUCTION_REFERENCE; }
 
+    std::string iQoalaMCExpr::getSymbolName() const {
+        assert(this->isSymbolRef() && "iQoalaMCExpr: Trying to get the SymbolRef from a non-SymbolRef iQ");
+        return this->symbolName;
+    }
+
     mlir::Operation *iQoalaMCExpr::getTargetOp() const {
         assert(this->isInstructionRef() && "iQoalaMCExpr: Attempting to get the target of a non-InstrRef expression.");
         return this->instructionRef.targetOp;
@@ -155,12 +154,8 @@ namespace qoala::assembly {
     uint32_t iQoalaMCInstruction::getNumOperands() const { return this->operands.size(); }
 
     bool iQoalaMCInstruction::hasPlaceholderOperand() const {
-        for (const iQoalaMCOperand *operand : this->operands) {
-            if (operand->isPlaceHolder()) {
-                return true;
-            }
-        }
-        return false;
+        return std::any_of(this->operands.begin(), this->operands.end(),
+                           [](const iQoalaMCOperand *operand) { return operand->isPlaceHolder(); });
     }
 
     void iQoalaMCInstruction::replaceOperand(const uint32_t i, iQoalaMCOperand *newOperand) {
@@ -252,7 +247,7 @@ namespace qoala::assembly {
                 os << "Q";
                 break;
         }
-        os << "', number: '" << this->num << ", qubitID: '" << this->qubitID << "'\n";
+        os << "', number: '" << this->num << "'\n";
     }
 
     // Implementations of the "<<" operator

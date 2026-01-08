@@ -7,8 +7,9 @@ namespace qoala::analysis::functionize {
     static bool qMemOpCanBeSimplyFunctionized(const Operation &op) {
         // A list fo the QMem operation types we would like to "functionize"
         return llvm::isa<dialects::qmem::CnotOp, dialects::qmem::CzOp, dialects::qmem::EprsMeasureOp,
-                         dialects::qmem::EprsOp, dialects::qmem::HadamardOp, dialects::qmem::InitOp,
-                         dialects::qmem::MeasureOp, dialects::qmem::QAllocOp,
+                         dialects::qmem::EprsOp, dialects::qmem::HadamardOp, dialects::qmem::XOp, dialects::qmem::YOp,
+                         dialects::qmem::ZOp, dialects::qmem::InitOp, dialects::qmem::MeasureOp,
+                         dialects::qmem::QAllocOp,
                          /* We do not want to functionize any (leftover) float rotation (if any)
                           * Since rotations use a f32 angle arg, they are lowered to intermediate rotations
                           * (so the f32 can be transformed into 2xi32), THEN to netqasm rotations

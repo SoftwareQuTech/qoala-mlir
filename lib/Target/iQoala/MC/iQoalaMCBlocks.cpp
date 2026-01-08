@@ -7,6 +7,41 @@ namespace qoala::iqoala {
         this->instructions.push_back(instruction);
     }
 
+    void Block::removePredecessorIfExists(const Block *pred) {
+        auto position = std::find(this->predecessors.begin(), this->predecessors.end(), pred);
+        if (position != this->predecessors.end()) {
+            this->predecessors.erase(position);
+        }
+    }
+
+    void Block::removeDependencyIfExists(const Block *dep) {
+        auto position = std::find(this->dependencies.begin(), this->dependencies.end(), dep);
+        if (position != this->dependencies.end()) {
+            this->dependencies.erase(position);
+        }
+    }
+
+    void Block::removePrevCommIfExists(const Block *oldPrevComm) {
+        if (this->prevComm == oldPrevComm) {
+            this->prevComm = nullptr;
+        }
+    }
+
+    void Block::removePrevEntIfExists(const Block *oldPrevEnt) {
+        if (this->prevEnt == oldPrevEnt) {
+            this->prevEnt = nullptr;
+        }
+    }
+
+    void Block::removeAllBlockReferences(const std::set<Block *> &blockPtrs) {
+        for (const Block *blockPtr : blockPtrs) {
+            this->removeDependencyIfExists(blockPtr);
+            this->removePredecessorIfExists(blockPtr);
+            this->removePrevCommIfExists(blockPtr);
+            this->removePrevEntIfExists(blockPtr);
+        }
+    }
+
     bool Block::blockContainsRunRequest() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
                            [](const assembly::QoalaHostMCInstr *instruction) {
@@ -30,8 +65,23 @@ namespace qoala::iqoala {
     bool Block::blockContainsRecvMsg() const {
         return std::any_of(this->instructions.begin(), this->instructions.end(),
                            [](const assembly::QoalaHostMCInstr *instruction) {
-                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_MSG) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_RECV_CMSG) {
                                    return true;
+                               }
+                               return false;
+                           });
+    }
+
+    bool Block::containsJumpTo(const Block *destination) {
+        return std::any_of(this->instructions.begin(), this->instructions.end(),
+                           [&](const assembly::QoalaHostMCInstr *instruction) {
+                               if (instruction->getOpcode() == assembly::QoalaHostMCInstr::OpCode::OP_JUMP) {
+                                   const assembly::iQoalaMCOperand *blockDst = instruction->getOperand(0);
+                                   assert(blockDst->isExpression());
+                                   const assembly::iQoalaMCExpr *blockDstExpression = blockDst->getExpression();
+                                   assert(blockDstExpression->isSymbolRef());
+                                   const std::string referencedBlock = blockDstExpression->getSymbolName();
+                                   return destination->getName() == referencedBlock;
                                }
                                return false;
                            });

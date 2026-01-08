@@ -1,7 +1,7 @@
 [project]
 name = "qoala-mlir"
 readme = "README.md"
-version = "0.0.1"
+version = "0.0.2"
 # Python 3.13 is not supported, since numpy (dependency from MLIR, required <=1.26)
 # supports python <3.13. Numpy 2.2+ is the first version that supports python 3.13,
 # which might break the build (untested though).
@@ -48,8 +48,8 @@ build_path = "py-build/"
 source_path = "."
 # The arguments for the cmake command
 # In general we need to use ths same list fo arguments we use to configure the build of the C++ project
-# IMPORTANT: Before building update the MLIR_DIR, Python3_EXECUTABLE, CMAKE_C_COMPILER, CMAKE_CXX_COMPILER
-# and CMAKE_LINKER commands to match your platform.
+# IMPORTANT: Before building update the SCIP_DIR, MLIR_DIR, Python3_EXECUTABLE, CMAKE_C_COMPILER,
+# CMAKE_CXX_COMPILER and CMAKE_LINKER commands to match your platform.
 # SUPER IMPORTANT! Make sure that the Python3_EXECUTABLE *matches* the python version of the
 # virtual environment used to create the wheel, otherwise you might end up in a situaiton tha the package
 # is marked for 1 verison of python (e.g. 3.12), but the packed python bindings are compiled for
@@ -58,11 +58,12 @@ source_path = "."
 # A good way to make sure that the versions match is to use the *exact same* virtual environment as
 # declared in Python3_EXECUTABLE to create the wheel.
 args = [
+    "-DSCIP_DIR=/usr/lib/cmake/scip",
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
-    "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv/bin/python",
-    "-DCMAKE_C_COMPILER=clang-20",
-    "-DCMAKE_CXX_COMPILER=clang++-20",
-    "-DCMAKE_LINKER=clang-20"
+    "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv-12/bin/python",
+    "-DCMAKE_C_COMPILER=clang-21",
+    "-DCMAKE_CXX_COMPILER=clang++-21",
+    "-DCMAKE_LINKER=clang-21"
 ]
 build_args = ["-j"]
 generator = "Ninja"

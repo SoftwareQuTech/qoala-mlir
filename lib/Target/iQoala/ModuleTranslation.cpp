@@ -44,7 +44,7 @@ namespace qoala::translate {
 
     std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const StringRef &key) const {
         if (this->precedencesIdsToIQoalaBlocks.contains(key)) {
-            return std::optional(precedencesIdsToIQoalaBlocks.at(key));
+            return {precedencesIdsToIQoalaBlocks.at(key)};
         }
         return std::nullopt;
     }
@@ -80,6 +80,31 @@ namespace qoala::translate {
             return this->valuesInScope.at(value);
         }
         return nullptr;
+    }
+
+    void ModuleTranslation::ModuleStackFrame::mapQubitIDInScope(const Value &value, const uint8_t qubitID) {
+        this->valuesToQubitIDs.try_emplace(value, qubitID);
+    }
+
+    void ModuleTranslation::ModuleStackFrame::unmapQubitInScope(const uint8_t qubitID) {
+        for (auto [value, mappedQubitID] : this->valuesToQubitIDs) {
+            if (mappedQubitID == qubitID) {
+                this->valuesToQubitIDs.erase(value);
+                LLVM_DEBUG(llvm::dbgs() << "Unmapping value '" << value << "'\n");
+                this->freedQubitValues.insert(value);
+            }
+        }
+    }
+
+    uint8_t ModuleTranslation::ModuleStackFrame::getMappedQubitInScope(const Value &value) const {
+        if (this->valuesToQubitIDs.contains(value)) {
+            return this->valuesToQubitIDs.at(value);
+        }
+        return 0xFF;
+    }
+
+    bool ModuleTranslation::ModuleStackFrame::qubitValueWasReleased(const Value &value) const {
+        return this->freedQubitValues.contains(value);
     }
 
     bool ModuleTranslation::ModuleStackFrame::isModule() const { return isa<ModuleOp>(this->operation); }
@@ -124,6 +149,31 @@ namespace qoala::translate {
         return this->getRegRefForValue(value) != nullptr;
     }
 
+    void ModuleTranslation::ModuleStack::mapValueToQubitID(const Value &value, const uint8_t qubitID) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->mapQubitIDInScope(value, qubitID);
+    }
+
+    void ModuleTranslation::ModuleStack::unmapQubitID(const uint8_t qubitID) {
+        ModuleStackFrame *currentFrame = this->frames.top();
+        currentFrame->unmapQubitInScope(qubitID);
+    }
+
+    bool ModuleTranslation::ModuleStack::valueIsMappedToQubitIDInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getMappedQubitInScope(value) != 0xFF;
+    }
+
+    uint8_t ModuleTranslation::ModuleStack::getMappedQubitIDInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->getMappedQubitInScope(value);
+    }
+
+    bool ModuleTranslation::ModuleStack::qubitValueWasFreedInCurrentStackFrame(const Value &value) const {
+        const ModuleStackFrame *currentFrame = this->frames.top();
+        return currentFrame->qubitValueWasReleased(value);
+    }
+
     iQoalaRegReference *ModuleTranslation::ModuleStack::getRegRefForValue(const Value &value) {
         const ModuleStackFrame *currentFrame = this->frames.top();
         return currentFrame->getRegReferenceForValue(value);
@@ -144,8 +194,25 @@ namespace qoala::translate {
         return topFrameOp;
     }
 
-    void ModuleTranslation::addRemoteDeclaration(const StringRef remoteName) const {
-        this->iQoalaModule->addRemoteDeclaration(remoteName);
+    bool ModuleTranslation::addRemoteDeclaration(const StringRef remoteName, const bool classicalSocket,
+                                                 const bool eprsSocket) const {
+        return this->iQoalaModule->addRemoteDeclaration(remoteName, classicalSocket, eprsSocket);
+    }
+
+    std::optional<uint8_t> ModuleTranslation::getEPRSocketIDForRemote(const StringRef remoteName) const {
+        return this->iQoalaModule->getEPRSSocketIDForRemote(remoteName);
+    }
+
+    std::optional<uint8_t> ModuleTranslation::getClassicalSocketIDForRemote(const StringRef remoteName) const {
+        return this->iQoalaModule->getClassicalSocketIDForRemote(remoteName);
+    }
+
+    iQoalaRegReference *ModuleTranslation::getRegRefForCSocketName(const StringRef remoteName) const {
+        return this->csocketsMap.at(remoteName);
+    }
+
+    void ModuleTranslation::setRegRefForCSocketName(const StringRef &remoteName, iQoalaRegReference *regRef) {
+        this->csocketsMap[remoteName] = regRef;
     }
 
     void ModuleTranslation::setModuleName(const StringRef moduleName) const {
@@ -177,11 +244,22 @@ namespace qoala::translate {
         return this->translationStack.getRegRefForValue(value);
     }
 
-    bool ModuleTranslation::valueIsMappedToQubitInCurrentFrame(const Value &value) {
-        if (const iQoalaRegReference *regRef = this->translationStack.getRegRefForValue(value)) {
-            return regRef->representsAQubit();
-        }
-        return false;
+    void ModuleTranslation::mapValueToQubitID(const Value &value, const uint8_t qubitID) {
+        this->translationStack.mapValueToQubitID(value, qubitID);
+    }
+
+    void ModuleTranslation::unmapQubitID(const uint8_t qubitID) { this->translationStack.unmapQubitID(qubitID); }
+
+    uint8_t ModuleTranslation::getMappedQubitID(const Value &value) const {
+        return this->translationStack.getMappedQubitIDInCurrentStackFrame(value);
+    }
+
+    bool ModuleTranslation::valueIsMappedToQubit(const Value &value) const {
+        return this->translationStack.valueIsMappedToQubitIDInCurrentStackFrame(value);
+    }
+
+    bool ModuleTranslation::qubitValueWasReleased(const Value &value) const {
+        return this->translationStack.qubitValueWasFreedInCurrentStackFrame(value);
     }
 
     iQoalaRegReference *ModuleTranslation::getMappedRegRefForValue(const Value &mlirVal, const bool copy) {
@@ -394,7 +472,7 @@ namespace qoala::translate {
         moduleTranslation.iQoalaModule->deleteEmptyHostBlocks();
         if (failed(moduleTranslation.iQoalaModule->setQoalaHostBlockTypes())) {
             originalModule->emitError() << "Translation yielded a QoalaHost block of type QC, QL or CC "
-                                           "with more than 1 instruction";
+                                           "that does not match the required number of instructions";
             return nullptr;
         }
 

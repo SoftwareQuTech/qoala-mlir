@@ -13,11 +13,15 @@ module {
 
     qoalahost.main_func @test_qkd_1bit_qmem() {
       qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-      %bit = qoalahost.call @req1() : () -> i1
-    
+      qoalahost.remote_id_ref  {classical = false, quantum = true, remote = @Bob}
+      qoalahost.nop_term
+
     ^bb1:
       qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+      %bit = qoalahost.call @req1() : () -> i1
+    
+    ^bb2:
+      qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       qoalahost.return
     }
-
 }

@@ -21,6 +21,7 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 include "Dialect/QMem/QMemDialect.td"
+include "Analysis/Helpers/GenericInterfaces.td"
 include "Analysis/Helpers/QMemInterfaces.td"
 
 
@@ -119,7 +120,8 @@ def RemoteOp: QMem_Op<"remote", [Symbol]> {
 
 /* The "eprs" operation will carry the "Entangle" trait */
 def EprsOp: UsingRemote_Op<"eprs", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>,
-                                        DeclareOpInterfaceMethods<EntangleInterface>]> {
+                                    DeclareOpInterfaceMethods<EntangleInterface>,
+                                    DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict
@@ -127,7 +129,8 @@ def EprsOp: UsingRemote_Op<"eprs", [Entangle, DeclareOpInterfaceMethods<DefineQu
 }
 
 def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle, DeclareOpInterfaceMethods<DefineQubitsInterface>,
-                                                    DeclareOpInterfaceMethods<EntangleInterface>]> {
+                                                   DeclareOpInterfaceMethods<EntangleInterface>,
+                                                   DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q, FlatSymbolRefAttr:$remote);
     let results = (outs I1:$outcome);
     let assemblyFormat = [{
@@ -135,14 +138,15 @@ def EprsMeasureOp: UsingRemote_Op<"eprs_measure", [Entangle, DeclareOpInterfaceM
     }];
 }
 
-def SendIntsOp : UsingRemote_Op<"send_ints"> {
+// Multiple-value versions of the classical communication oeprations
+def SendIntsOp : UsingRemote_Op<"send_ints", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
 }
 
-def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
+def RecvIntsOp : UsingRemote_Op<"recv_ints", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -150,16 +154,47 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints"> {
     }];
 }
 
-def SendFloatsOp : UsingRemote_Op<"send_floats"> {
+def SendFloatsOp : UsingRemote_Op<"send_floats", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
     }];
 }
 
-def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
+def RecvFloatsOp : UsingRemote_Op<"recv_floats", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+// Single-value versions of the classical communication oeprations
+def SendIntOp : UsingRemote_Op<"send_int", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
+    let arguments = (ins I32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvIntOp : UsingRemote_Op<"recv_int", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let results = (outs I32:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+def SendFloatOp : UsingRemote_Op<"send_float", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
+    let arguments = (ins F32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvFloatOp : UsingRemote_Op<"recv_float", [DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let results = (outs F32:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
     }];
@@ -201,6 +236,27 @@ def RotateZOp : QMem_Op<"rot_z"> {
 }
 
 def HadamardOp : QMem_Op<"hadamard"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def XOp : QMem_Op<"x"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def YOp : QMem_Op<"y"> {
+    let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
+    let assemblyFormat = [{
+        operands attr-dict
+    }];
+}
+
+def ZOp : QMem_Op<"z"> {
     let arguments = (ins Arg<I32, "qubit", [MemWrite]>:$q);
     let assemblyFormat = [{
         operands attr-dict

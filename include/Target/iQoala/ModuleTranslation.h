@@ -1,7 +1,6 @@
 #ifndef MODULETRANSLATION_H
 #define MODULETRANSLATION_H
 
-#include <map>
 #include <stack>
 
 #include "Target/iQoala/Export.h"
@@ -17,7 +16,7 @@ namespace qoala::translate {
          * This class represents a frame on the emulated execution stack. It simply serves
          * as a "unique identifier" wrapper for the call operation. This is necessary since
          * despite we can push multiple times the same value (Operation *) into the stack, we
-         * cannot place the same value (Operation *) into a map, which is needed to map
+         * cannot place the same value (Operation *) into a map. The latter is needed to map
          * the MLIR values to the respective register references when emulating the execution
          * order and allocate the registers.
          */
@@ -33,6 +32,12 @@ namespace qoala::translate {
             bool isValueInScope(const mlir::Value &value) const;
             [[nodiscard]]
             assembly::iQoalaRegReference *getRegReferenceForValue(const mlir::Value &value) const;
+            void mapQubitIDInScope(const mlir::Value &value, uint8_t qubitID);
+            void unmapQubitInScope(uint8_t qubitID);
+            [[nodiscard]]
+            uint8_t getMappedQubitInScope(const mlir::Value &value) const;
+            [[nodiscard]]
+            bool qubitValueWasReleased(const mlir::Value &value) const;
 
             [[nodiscard]]
             mlir::Operation *getOperation() const {
@@ -51,13 +56,16 @@ namespace qoala::translate {
         private:
             mlir::Operation *operation;
             mlir::DenseMap<mlir::Value, assembly::iQoalaRegReference *> valuesInScope;
+            mlir::DenseMap<mlir::Value, uint8_t> valuesToQubitIDs;
+            mlir::DenseSet<mlir::Value> freedQubitValues;
         };
 
         /**
          * This class represents the "stack" when translating the module
          * It contains reference of the translated frames (starting from the MainFuncOp)
          * but also it keeps a map of the mapped MLIR values *in their respective scopes*.
-         * This allows mapping the same value multiple times, since it will be
+         * This allows mapping the same value multiple times, since mapping a value will
+         * be bound to the current scope on the stack.
          */
         class ModuleStack {
         public:
@@ -72,6 +80,18 @@ namespace qoala::translate {
             /* Methods for mapping values */
             void mapValueInCurrentStackFrame(const mlir::Value &value, assembly::iQoalaRegReference *regRef);
             bool valueIsMapped(const mlir::Value &value);
+
+            /* Specific methods for mapping MLIR values to qubit IDs. We need these MLIR values *will not*
+             * be mapped to a iQoalaRegReference */
+            void mapValueToQubitID(const mlir::Value &value, uint8_t qubitID);
+            void unmapQubitID(uint8_t qubitID);
+            [[nodiscard]]
+            bool valueIsMappedToQubitIDInCurrentStackFrame(const mlir::Value &value) const;
+            [[nodiscard]]
+            uint8_t getMappedQubitIDInCurrentStackFrame(const mlir::Value &value) const;
+            [[nodiscard]]
+            bool qubitValueWasFreedInCurrentStackFrame(const mlir::Value &value) const;
+
             assembly::iQoalaRegReference *getRegRefForValue(const mlir::Value &value);
 
         private:
@@ -86,7 +106,12 @@ namespace qoala::translate {
 
         mlir::LogicalResult convertOperation(mlir::Operation &op);
         mlir::LogicalResult convertFunctionSignatures();
-        void addRemoteDeclaration(llvm::StringRef remoteName) const;
+        [[nodiscard]]
+        bool addRemoteDeclaration(llvm::StringRef remoteName, bool classicalSocket, bool eprsSocket) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getEPRSocketIDForRemote(llvm::StringRef remoteName) const;
+        [[nodiscard]]
+        std::optional<uint8_t> getClassicalSocketIDForRemote(llvm::StringRef remoteName) const;
         void setModuleName(llvm::StringRef moduleName) const;
 
         /* Block-related functions */
@@ -105,7 +130,14 @@ namespace qoala::translate {
         [[nodiscard]]
         assembly::iQoalaRegReference *getMappedRegRefForValue(const mlir::Value &mlirVal, bool copy = true);
         bool valueIsMappedInCurrentFrame(const mlir::Value &value);
-        bool valueIsMappedToQubitInCurrentFrame(const mlir::Value &value);
+        void mapValueToQubitID(const mlir::Value &value, uint8_t qubitID);
+        void unmapQubitID(uint8_t qubitID);
+        [[nodiscard]]
+        uint8_t getMappedQubitID(const mlir::Value &value) const;
+        [[nodiscard]]
+        bool valueIsMappedToQubit(const mlir::Value &value) const;
+        [[nodiscard]]
+        bool qubitValueWasReleased(const mlir::Value &value) const;
         void mapCmpValue(const mlir::Value &mlirVal, mlir::Operation *mlirOp);
         [[nodiscard]]
         mlir::Operation *getMappedCmpOperation(const mlir::Value &mlirVal) const;
@@ -116,11 +148,16 @@ namespace qoala::translate {
         [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
+        [[nodiscard]]
         std::optional<iqoala::Block *> findIdPrecedence(const llvm::StringRef &key) const;
 
         void addIdPrecedence(const llvm::StringRef &key, iqoala::Block *block) {
             this->precedencesIdsToIQoalaBlocks[key] = block;
         }
+
+        [[nodiscard]]
+        assembly::iQoalaRegReference *getRegRefForCSocketName(mlir::StringRef remoteName) const;
+        void setRegRefForCSocketName(const llvm::StringRef &remoteName, assembly::iQoalaRegReference *regRef);
 
     protected:
         /* Functions for following "call convention" for arguments in the local quantum routines */
@@ -152,6 +189,8 @@ namespace qoala::translate {
 
         // Map for tracking the precedence ID (added by the AddBlockPrecedences pass) and its Block
         llvm::StringMap<iqoala::Block *> precedencesIdsToIQoalaBlocks;
+        // Map for tracking the classical remote id (csocket) references to the iQoalaRegRefs that hold those values.
+        mlir::DenseMap<llvm::StringRef, assembly::iQoalaRegReference *> csocketsMap;
     };
 } // namespace qoala::translate
 

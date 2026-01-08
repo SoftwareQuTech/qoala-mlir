@@ -100,6 +100,44 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class SendIntOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::SendIntOp, dialects::qmem::SendIntOp> {
+    public:
+        // Constructor simply refers to the parent
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::SendIntOp op, dialects::qnet::SendIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RecvIntOpLowering : public helpers::OpLoweringTemplate<dialects::qnet::RecvIntOp, dialects::qmem::RecvIntOp> {
+    public:
+        // Constructor simply refers to the parent
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RecvIntOp op, dialects::qnet::RecvIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class SendFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::SendFloatOp, dialects::qmem::SendFloatOp> {
+    public:
+        // Constructor simply refers to the parent
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::SendFloatOp op, dialects::qnet::SendFloatOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RecvFloatOpLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RecvFloatOp, dialects::qmem::RecvFloatOp> {
+    public:
+        // Constructor simply refers to the parent
+        using OpLoweringTemplate::OpLoweringTemplate;
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RecvFloatOp op, dialects::qnet::RecvFloatOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
     class NewQubitLowering : public helpers::OpLoweringTemplate<dialects::qnet::NewQubitOp, dialects::qmem::QAllocOp> {
     public:
         // Constructor simply refers to the parent
@@ -157,6 +195,36 @@ namespace qoala::conversion::hir {
 
         std::unique_ptr<helpers::OpAndValues>
         createNewOpAndValues(dialects::qnet::HadamardOp op, dialects::qnet::HadamardOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class XLowering : public helpers::OpLoweringTemplate<dialects::qnet::XOp, dialects::qmem::XOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::XOp op, dialects::qnet::XOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class YLowering : public helpers::OpLoweringTemplate<dialects::qnet::YOp, dialects::qmem::YOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::YOp op, dialects::qnet::YOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class ZLowering : public helpers::OpLoweringTemplate<dialects::qnet::ZOp, dialects::qmem::ZOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::ZOp op, dialects::qnet::ZOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 

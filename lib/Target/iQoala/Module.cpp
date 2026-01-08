@@ -18,8 +18,12 @@ namespace qoala::iqoala {
            << this->iQoalaProgram.requestSection << "\n";
     }
 
-    void iQoalaModule::addRemoteDeclaration(const StringRef &remoteName, const bool classicalSocket,
+    bool iQoalaModule::addRemoteDeclaration(const StringRef &remoteName, const bool classicalSocket,
                                             const bool eprsSocket) {
+        if (!classicalSocket && !eprsSocket) {
+            // If the socket is not used, we do not need to add the remote name as a parameter
+            return false;
+        }
         const std::string temp = remoteName.str();
         this->iQoalaProgram.metaSection.addRemote(temp);
         // We will create the classical and EPRS socket for the remote if needed
@@ -31,6 +35,7 @@ namespace qoala::iqoala {
             const uint8_t eprsSocketID = this->iQoalaCtx->allocateEPRSSocketForRemote(temp);
             this->iQoalaProgram.metaSection.addEPRSSocketForRemote(temp, eprsSocketID);
         }
+        return true;
     }
 
     void iQoalaModule::setModuleName(const StringRef newModuleName) {
@@ -79,11 +84,11 @@ namespace qoala::iqoala {
         return this->iQoalaProgram.netQASMSection.getRoutines();
     }
 
-    uint8_t iQoalaModule::getClassicalSocketIDForRemote(const StringRef &remoteName) const {
+    std::optional<uint8_t> iQoalaModule::getClassicalSocketIDForRemote(const StringRef &remoteName) const {
         return this->iQoalaProgram.metaSection.getClassicalSocketForRemote(remoteName.str());
     }
 
-    uint8_t iQoalaModule::getEPRSSocketIDForRemote(const StringRef &remoteName) const {
+    std::optional<uint8_t> iQoalaModule::getEPRSSocketIDForRemote(const StringRef &remoteName) const {
         return this->iQoalaProgram.metaSection.getEPRSSocketForRemote(remoteName.str());
     }
 

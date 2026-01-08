@@ -6,10 +6,12 @@ module {
   qnet.func @test_recursive_rewrite_pattern_application() {
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.init %[[QBIT0]]
+    // CHECK-NOT: builtin.unrealized_conversion_cast
     %0 = qnet.new_qubit : !qnet.qubit
 
     // CHECK: %[[QBIT1:.*]] = qmem.qalloc : i32
     // CHECK-NEXT: qmem.init %[[QBIT1]]
+    // CHECK-NOT: builtin.unrealized_conversion_cast
     %1 = qnet.new_qubit : !qnet.qubit
 
     %cst = arith.constant 3.14159274 : f32

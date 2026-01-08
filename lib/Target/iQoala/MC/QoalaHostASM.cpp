@@ -25,8 +25,8 @@ namespace qoala::assembly {
             mcOperands.push_back(resultRegOperand);
         }
 
-        // If the operation yielded a result, it is assumed that the first operand contains the register reference for
-        // it
+        // If the operation yielded a result, it is assumed that the first operand contains the
+        // register reference for it
         if (mapResults) {
             for (uint32_t i = 0; i < resVals.size(); ++i) {
                 assert(mcOperands[i]->getRegRef()->isLocal() &&
@@ -51,9 +51,7 @@ namespace qoala::assembly {
         }
 
         InstrType type = UNKNOWN;
-        uint32_t i = 0;
         uint32_t numResults = 1;
-        iQoalaMCOperand *callee = nullptr;
 
         switch (opCode) {
             case OP_ASSIGN_CVAL:
@@ -109,7 +107,9 @@ namespace qoala::assembly {
                 type = CL;
                 break;
             case OP_RUN_SUBROUTINE:
-            case OP_RUN_REQUEST:
+            case OP_RUN_REQUEST: {
+                uint32_t i = 0;
+                iQoalaMCOperand *callee = nullptr;
                 // The total number of operands should be equals to the number of register references +
                 // the number of extra operands.
                 // We don't consider the number of the MLIR operation operands, since for call operations, we expect
@@ -140,6 +140,7 @@ namespace qoala::assembly {
                 numResults = resRegRefs.size();
                 type = CL;
                 break;
+            }
             case OP_RETURN_RESULT:
                 assert(mcOperands.size() == 1 &&
                        "QoalaHost instruction builder: return_result operation returns more than 1 value");
@@ -147,12 +148,29 @@ namespace qoala::assembly {
                        "QoalaHost instruction builder: return_result operation returns a value that is not a register");
                 type = CL;
                 break;
-            case OP_SEND_MSG:
-                // TODO - assert the operands
+            case OP_SEND_CMSG: {
+                // Since the value to send was passed as an "extraOperand", we need to fix the order of the
+                // operands. At this point mcOperands[0] is the value to send, and mcOperands[1] is the csocket
+                // reference. If we don't swap their positions, the send_cmsg instruction will be printed with
+                // the operands swapped.
+                iQoalaMCOperand *valueToSend = mcOperands[0];
+                iQoalaMCOperand *csocketReference = mcOperands[1];
+                mcOperands[1] = valueToSend;
+                mcOperands[0] = csocketReference;
+                assert(mcOperands.size() == 2 &&
+                       "QoalaHost instruction builder: send_cmsg operation expected 2 operands.");
+                assert(mcOperands[0]->isLocalRegister() &&
+                       "QoalaHost instruction builder: send_cmsg sent value reference is not a local register");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: send_cmsg csocket reference is not a local register");
                 type = CC;
                 break;
-            case OP_RECV_MSG:
-                // TODO - assert the operands
+            }
+            case OP_RECV_CMSG:
+                assert(mcOperands.size() == 2 &&
+                       "QoalaHost instruction builder: recv_cmsg operation expected 2 operands.");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: recv_cmsg csocket reference is not a local register");
                 type = CC;
                 break;
             case OP_BI_COND_MULTIPLY:
@@ -206,17 +224,12 @@ namespace qoala::assembly {
         uint32_t i = 1;
         uint32_t last = 0;
         if (this->numResults > 0) {
-            if (this->numResults == 1) {
-                os << *this->operands[1] << " = ";
-                i++;
-            } else {
-                // The call returns multiple results, print a tuple of results.
-                os << "tuple<";
-                for (; i <= this->numResults; i++) {
-                    os << *this->operands[i] << (i < this->numResults ? "; " : "");
-                }
-                os << "> = ";
+            // Print a tuple of results.
+            os << "tuple<";
+            for (; i <= this->numResults; i++) {
+                os << *this->operands[i] << (i < this->numResults ? "; " : "");
             }
+            os << "> = ";
         }
 
         os << mnemonic << "(";
@@ -321,13 +334,13 @@ namespace qoala::assembly {
                 assert(this->operands[2]->isExpression());
                 printInstrGeneric("blt", os, false, true);
                 break;
-            case OP_SEND_MSG:
+            case OP_SEND_CMSG:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
                 printInstrGeneric("send_cmsg", os);
                 break;
-            case OP_RECV_MSG:
+            case OP_RECV_CMSG:
                 assert(this->operands.size() == 2);
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
@@ -356,7 +369,7 @@ namespace qoala::assembly {
                 printCallInstr("run_request", os);
                 break;
             case OP_RETURN_RESULT:
-                printInstrGeneric("return_value", os);
+                printInstrGeneric("return_result", os);
                 break;
             case OP_SUBMIT_ROUTINES:
                 assert(false && "Submit routines is not supported yet!");

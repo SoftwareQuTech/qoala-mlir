@@ -1,9 +1,9 @@
-// RUN: qoala-opt %s --lower-qoala-mir-to-lir| FileCheck %s
+// RUN: qoala-opt %s --lower-qoala-mir-to-lir | FileCheck %s
 
-// CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = ["block_0"], predecessors = ["block_0"], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0"], predecessors = ["block_0"], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = [], predecessors = ["block_1", "block_2"], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]"], predecessors = ["[[BLOCK_0]]"], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]"], predecessors = ["[[BLOCK_0]]"], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_3:.*]]", deadlines = {}, dependencies = [], predecessors = ["[[BLOCK_1]]", "[[BLOCK_2]]"], prev_comm = "", prev_ent = ""}
 module {
   qmem.func @main(%arg0: i32) -> i32 {
     %c10 = arith.constant 10 : i32

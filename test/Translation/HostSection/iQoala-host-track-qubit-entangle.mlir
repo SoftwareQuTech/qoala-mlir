@@ -2,7 +2,7 @@
 // CHECK: META_START
 // CHECK-NEXT: name: test_qubit_tracking
 // CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: csockets:
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
 // CHECK-NEXT: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
@@ -12,7 +12,7 @@
 // CHECK-NEXT: run_request() : __qoala_wrapper0
 // CHECK: ^b[[BLOCK2:.*]] { type = QL; predecessors = []; dependencies = [b1]; prev_comm = ; prev_ent = ; deadlines = [] }
 // This call does not required an argument, since __qoala_wrapper "uses 0"
-// CHECK-NEXT: %[[HOST_REG2:.*]] = run_subroutine() : __qoala_wrapper1
+// CHECK-NEXT: tuple<%[[HOST_REG2:.*]]> = run_subroutine() : __qoala_wrapper1
 // CHECK: ^b[[BLOCK3:.*]] { type = CL; predecessors = []; dependencies = [b0, b2]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG0]], %[[HOST_REG2]])
 

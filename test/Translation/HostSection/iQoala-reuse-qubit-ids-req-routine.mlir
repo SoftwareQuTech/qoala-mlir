@@ -3,17 +3,20 @@
 // CHECK: META_START
 // CHECK-NEXT: name: test_call_request_routines
 // CHECK-NEXT: parameters: Bob_id
-// CHECK-NEXT: csockets: 0 -> Bob
+// CHECK-NEXT: csockets:
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
 // CHECK: b0 { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
-// CHECK-NEXT: %0 = run_request() : __qoala_wrapper0
+// CHECK-NOT:%{{[0-9]+}} =
+// CHECK: run_request() : __qoala_wrapper0
 // CHECK: b1 { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }:
-// CHECK-NEXT: %1 = run_subroutine() : __qoala_wrapper1
+// CHECK-NOT:%{{[0-9]+}} =
+// CHECK-NEXT: run_subroutine() : __qoala_wrapper1
 // CHECK: b2 { type = QL; predecessors = []; dependencies = [b0, b1]; prev_comm = ; prev_ent = ; deadlines = [] }:
-// CHECK-NEXT: tuple<%2; %3> = run_subroutine() : __qoala_wrapper2
+// CHECK-NEXT: tuple<%[[LOCAL_REG0:.*]]; %[[LOCAL_REG1:.*]]> = run_subroutine() : __qoala_wrapper2
 // CHECK: b3 { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = b0; deadlines = [] }:
-// CHECK-NEXT: %4 = run_request() : __qoala_wrapper3
+// CHECK-NOT:%{{[0-9]+}} =
+// CHECK: run_request() : __qoala_wrapper3
 
 // CHECK: SUBROUTINE __qoala_wrapper1
 // CHECK-NEXT: params: {{[[:space:]]}}

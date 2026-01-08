@@ -33,8 +33,12 @@ module {
     netqasm.return %m1 : i1
   }
   qoalahost.main_func @test_reordering_teleport() {
-    qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    %1 = qoalahost.call @entanglement() : () -> i32
+    qoalahost.blk_meta  {block_id = "block_10", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @Bob}
+    qoalahost.nop_term
+    ^bb1:
+        qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+        %1 = qoalahost.call @entanglement() : () -> i32
     ^bb0:
         qoalahost.blk_meta  {block_id = "block_0", deadlines = {block_1 = 396 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         %0 = qoalahost.call @local_qubit() : () -> i32

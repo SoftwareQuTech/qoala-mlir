@@ -11,6 +11,10 @@ def QNetCheckLinear : Pass<"qnet-check-linear"> {
 def QNetDeadCodeElimination : Pass<"qnet-dead-code-elimination", "qoala::dialects::qnet::FuncOp"> {
   let summary = "Run Dead Code Elimination (DCE) on quantum code.";
   let dependentDialects = ["qoala::dialects::qnet::QNetDialect"];
+  let options = [
+        Option<"withClassicalAwareness", "with-classical-awareness", "bool", /*default=*/"false",
+               "Only treat measurements whose classical results are observably used as liveness roots.">,
+    ];
 }
 
 def QNetGateCountShowAnalysis: Pass<"qnet-show-analysis-gate-count", "mlir::ModuleOp"> {
@@ -20,11 +24,14 @@ def QNetGateCountShowAnalysis: Pass<"qnet-show-analysis-gate-count", "mlir::Modu
 
 def QNetPeepholeOptimizations : Pass<"qnet-peephole-optimizations", "qoala::dialects::qnet::FuncOp"> {
   let summary = "Run peephole optimizations (e.g. hermitian cancellation, rotation merging) on quantum code.";
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
         Option<"hermitianCancel", "hermitian-cancel", "bool", /*default=*/"true",
                "Run hermitian cancellations as part of the peephole optimizations.">,
         Option<"rotationFolding", "rotation-folding", "bool", /*default=*/"true",
                "Apply rotation merges as part of the peephole optimizations.">,
+        Option<"pauliGatesToRotations", "pauli-to-rotations", "bool", /*default=*/"false",
+               "Convert Pauli gates to their rotation equivalence.">,
     ];
 }
 

@@ -17,7 +17,7 @@ FULL_VER="$(echo "$RAW_VER" | sed -E 's/.*version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/
 MAJOR_VER="$(echo "$FULL_VER" | cut -d. -f1)"
 
 echo "Using clang-format version: $RAW_VER"
-if [[ "$MAJOR_VER" != "$REQUIRED_MAJOR" ]]; then
+if [[ "$MAJOR_VER" -lt "$REQUIRED_MAJOR" ]]; then
   echo "❌ Version mismatch: required major $REQUIRED_MAJOR, but found '$FULL_VER'"
   echo "   Tip (Ubuntu): sudo apt-get install clang-format-${REQUIRED_MAJOR}"
   echo "   Optionally set a symlink: sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${REQUIRED_MAJOR} 100"
@@ -37,7 +37,7 @@ fi
 echo "Checking ${#FILES[@]} files with clang-format $FULL_VER ..."
 
 # Create patch of what formatting would change
-clang-format -i "${FILES[@]}"
+clang-format-"$MAJOR_VER" -i "${FILES[@]}"
 git diff > clang-format.patch
 
 if [ -s clang-format.patch ]; then

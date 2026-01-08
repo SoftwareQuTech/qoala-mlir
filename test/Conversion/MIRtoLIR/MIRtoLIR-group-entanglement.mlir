@@ -43,6 +43,9 @@ module {
 
     // CHECK: qoalahost.main_func @test_group_ent()
     qmem.func @test_group_ent() {
+        // We don't expect a first block iwith remote ID placeholder opertions, since the
+        // remotes are used for EPRS operations
+
         // CHECK: qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
         // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
         %0 = qmem.qalloc : i32

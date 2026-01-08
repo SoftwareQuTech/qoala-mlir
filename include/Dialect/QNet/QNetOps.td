@@ -151,6 +151,7 @@ def EprsMeasureOp: UsingRemote_Op<"eprs_measure"> {
     }];
 }
 
+// Multiple-value versions of the classical communication oeprations
 def SendIntsOp : UsingRemote_Op<"send_ints"> {
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
@@ -176,6 +177,37 @@ def SendFloatsOp : UsingRemote_Op<"send_floats"> {
 def RecvFloatsOp : UsingRemote_Op<"recv_floats"> {
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+// Single-value versions of the classical communication oeprations
+def SendIntOp : UsingRemote_Op<"send_int"> {
+    let arguments = (ins I32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvIntOp : UsingRemote_Op<"recv_int"> {
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let results = (outs I32:$cout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cout)
+    }];
+}
+
+def SendFloatOp : UsingRemote_Op<"send_float"> {
+    let arguments = (ins F32:$cin, FlatSymbolRefAttr:$remote);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($cin)
+    }];
+}
+
+def RecvFloatOp : UsingRemote_Op<"recv_float"> {
+    let arguments = (ins FlatSymbolRefAttr:$remote);
+    let results = (outs F32:$cout);
     let assemblyFormat = [{
         operands attr-dict `:` type($cout)
     }];
@@ -215,6 +247,30 @@ def RotZOp : QNet_Op<"rot_z", [QubitOpIface, DeclareOpInterfaceMethods<RotationO
 }
 
 def HadamardOp : QNet_Op<"hadamard", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def XOp : QNet_Op<"x", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def YOp : QNet_Op<"y", [QubitOpIface, HermitianOpIface]> {
+    let arguments = (ins QubitType:$qin);
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def ZOp : QNet_Op<"z", [QubitOpIface, HermitianOpIface]> {
     let arguments = (ins QubitType:$qin);
     let results = (outs QubitType:$qout);
     let assemblyFormat = [{

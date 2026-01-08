@@ -66,12 +66,18 @@ namespace qoala::iqoala {
         this->eprsSocketsMap.emplace(remoteName, socketID);
     }
 
-    uint8_t MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getClassicalSocketForRemote(const std::string &remoteName) const {
+        if (this->classicalSocketsMap.find(remoteName) != this->classicalSocketsMap.end()) {
+            return static_cast<uint8_t>(this->classicalSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
-    uint8_t MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
-        return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+    std::optional<uint8_t> MetaSection::getEPRSSocketForRemote(const std::string &remoteName) const {
+        if (this->eprsSocketsMap.find(remoteName) != this->eprsSocketsMap.end()) {
+            return static_cast<uint8_t>(this->eprsSocketsMap.at(remoteName));
+        }
+        return std::nullopt;
     }
 
     std::string MetaSection::getParamNameForRemote(const std::string &remoteName) const {
@@ -87,16 +93,38 @@ namespace qoala::iqoala {
         return block;
     }
 
+    bool HostSection::blockIsUsedAsJumpDestination(const Block *destination) const {
+        return std::any_of(this->hostBlocks.begin(), this->hostBlocks.end(),
+                           [&](Block *block) -> bool { return block->containsJumpTo(destination); });
+    }
+
+    void HostSection::removeReferencesToRemovedBlock(const std::set<Block *> &removedBlocks) const {
+        for (Block *block : this->hostBlocks) {
+            block->removeAllBlockReferences(removedBlocks);
+        }
+    }
+
     void HostSection::deleteEmptyBlocks() {
         std::vector<Block *> blocksCpy;
+        std::set<Block *> removedBlocksPtrs;
         for (Block *block : this->hostBlocks) {
-            if (!block->isEmpty()) {
+            // We want to preserve the blocks that are used as a jump destination, even if
+            // they are empty. Removing these blocks might have the potential to heavily modify
+            // the CFG of the program.
+            // A particular case for this is when the last block contains a "void return" (a return
+            // instruction that return no values). In this case, the return operation is not translated
+            // to any instruction in iQoala, leaving the last block empty.
+            // An elegant solution would be to allow a "void return" as an iQoala MC Instruction: a return
+            // instruction that does not return any vaulue.
+            if (this->blockIsUsedAsJumpDestination(block) || !block->isEmpty()) {
                 blocksCpy.push_back(block);
             } else {
+                removedBlocksPtrs.emplace(block);
                 delete block;
             }
         }
         this->hostBlocks = blocksCpy;
+        this->removeReferencesToRemovedBlock(removedBlocksPtrs);
     }
 
     LogicalResult HostSection::setBlockTypes() const {
@@ -117,9 +145,15 @@ namespace qoala::iqoala {
                 continue;
             }
             if (block->blockContainsRecvMsg()) {
+                // In this type of blocks we expect exactly 2 instructions
                 if (block->getNumInstructions() != 1) {
                     return failure();
                 }
+                // ...which should be the recv_msg itself
+                if (block->getInstruction(0)->getOpcode() != assembly::QoalaHostMCInstr::OP_RECV_CMSG) {
+                    return failure();
+                }
+
                 block->setType(Block::CC);
             }
             // By default, block are CL type, so if none of the cases

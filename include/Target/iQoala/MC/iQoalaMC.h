@@ -44,6 +44,8 @@ namespace qoala::assembly {
         [[nodiscard]]
         bool isInstructionRef() const;
         [[nodiscard]]
+        std::string getSymbolName() const;
+        [[nodiscard]]
         mlir::Operation *getTargetOp() const;
         void resolveDisplacement(int32_t displacement);
         void print(mlir::raw_ostream &os) const override;
@@ -86,11 +88,6 @@ namespace qoala::assembly {
         [[nodiscard]]
         uint32_t getNum() const;
         [[nodiscard]]
-        uint32_t getQubitID() const;
-        void setQubitID(uint32_t qubitID);
-        [[nodiscard]]
-        bool representsAQubit() const;
-        [[nodiscard]]
         bool isLocal() const;
         [[nodiscard]]
         bool isQuantum() const;
@@ -98,8 +95,6 @@ namespace qoala::assembly {
     private:
         iQoalaRegType type;
         uint32_t num;
-        /* QubitID for the regRef object. Will hold the value 0xFF if the regReg does not represent a qubit */
-        uint32_t qubitID = 0xFF;
     };
 
     class iQoalaMCOperand : public iQoalaMC {
@@ -307,7 +302,10 @@ namespace qoala::assembly {
     class QoalaHostMCInstr : public iQoalaMCInstruction {
     public:
         enum OpCode {
-            OP_UNKNOWN = 0,
+            // 0x100 = 256: The lower opCodes (0-255) are reserved for NetQASM instructions
+            // By setting this value to a higher value we avoid scenarios where the OpCode gets
+            // misinterpreted as an instruction from another set.
+            OP_UNKNOWN = 0x100,
             OP_ASSIGN_CVAL,
             OP_ADD,
             OP_SUBTRACT,
@@ -318,8 +316,8 @@ namespace qoala::assembly {
             OP_BNE,
             OP_BGT,
             OP_BLT,
-            OP_SEND_MSG,
-            OP_RECV_MSG,
+            OP_SEND_CMSG,
+            OP_RECV_CMSG,
             OP_RUN_SUBROUTINE,
             OP_RUN_REQUEST,
             OP_SUBMIT_ROUTINES,
