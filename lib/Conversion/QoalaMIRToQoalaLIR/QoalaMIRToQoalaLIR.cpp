@@ -1,8 +1,8 @@
 #include "llvm/Support/Debug.h"
+#include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
 #include "Analysis/Helpers/Helpers.h"
@@ -37,7 +37,10 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "*************************\n");
 
         OpPassManager passManager("builtin.module");
-        // TODO - Add lowering for Affine/SCF -> CF, Tensor -> Memref, Async
+        // TODO - Add lowering for Tensor -> Memref, Async
+
+        // Use well-proven algorithms to lower known dialects into other known ones
+        passManager.addPass(createConvertSCFToCFPass());
 
         // Stage 1: Insert the declaration of the builtin angle conversion function
         // Note: This is the way how we will handle "dynamic" f32 values in the future.
