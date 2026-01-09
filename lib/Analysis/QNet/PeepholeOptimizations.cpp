@@ -106,49 +106,49 @@ namespace qoala::analysis {
         }
     };
 
-    static mlir::Value materializePiF32(mlir::PatternRewriter &rewriter, mlir::Location loc) {
-        const float pi = static_cast<float>(M_PI);
-        auto piAttr = mlir::FloatAttr::get(rewriter.getF32Type(), pi);
-        return rewriter.create<mlir::arith::ConstantOp>(loc, rewriter.getF32Type(), piAttr).getResult();
+    static Value materializePiF32(PatternRewriter &rewriter, Location loc) {
+        constexpr auto pi = static_cast<float>(M_PI);
+        auto piAttr = FloatAttr::get(rewriter.getF32Type(), pi);
+        return rewriter.create<arith::ConstantOp>(loc, rewriter.getF32Type(), piAttr).getResult();
     }
 
     // PauliOpT must implement QubitOpIface.
     // RotOpT is assumed to take operands: (qubit, angle)
     template<typename PauliOpT, typename RotOpT>
-    struct PauliToRotationPattern final : mlir::OpRewritePattern<PauliOpT> {
-        using mlir::OpRewritePattern<PauliOpT>::OpRewritePattern;
+    struct PauliToRotationPattern final : OpRewritePattern<PauliOpT> {
+        using OpRewritePattern<PauliOpT>::OpRewritePattern;
 
-        mlir::LogicalResult matchAndRewrite(PauliOpT pauli, mlir::PatternRewriter &rewriter) const override {
-            mlir::Operation *op = pauli.getOperation();
+        LogicalResult matchAndRewrite(PauliOpT pauli, PatternRewriter &rewriter) const override {
+            Operation *op = pauli.getOperation();
 
-            auto qubitIface = mlir::dyn_cast<qoala::helpers::QubitOpIface>(op);
+            auto qubitIface = dyn_cast<QubitOpIface>(op);
             if (!qubitIface) {
-                return mlir::failure();
+                return failure();
             }
 
             // Only handle single-qubit Paulis
             // NOTE: this should be doable on CZ but we do not implement CRotZ
             if (qubitIface.isTwoQubitOp()) {
-                return mlir::failure();
+                return failure();
             }
 
-            mlir::OperandRange qops = qubitIface.getQubitOperands();
+            const OperandRange qops = qubitIface.getQubitOperands();
             if (qops.size() != 1) {
                 LLVM_DEBUG(llvm::dbgs() << "[PauliToRot] Skip: expected 1 qubit operand, got " << qops.size() << " for "
                                         << op->getName() << "\n");
-                return mlir::failure();
+                return failure();
             }
 
-            mlir::Value qubit = qops.front();
-            mlir::Value piVal = materializePiF32(rewriter, pauli.getLoc());
+            const Value qubit = qops.front();
+            const Value piVal = materializePiF32(rewriter, pauli.getLoc());
 
             // Rot*Op expects (qubit, angle) as operands => 2 operands total.
-            llvm::SmallVector<mlir::Value, 2> rotOperands{qubit, piVal};
+            SmallVector<Value, 2> rotOperands{qubit, piVal};
 
             auto rot = rewriter.create<RotOpT>(pauli.getLoc(), op->getResultTypes(), rotOperands);
 
             rewriter.replaceOp(op, rot->getResults());
-            return mlir::success();
+            return success();
         }
     };
 
@@ -260,7 +260,7 @@ namespace qoala::analysis {
 
     static double normalizeToMinusPiPi(double x) {
         // Canonical range: (-pi, pi]
-        const double twoPi = 2.0 * M_PI;
+        constexpr double twoPi = 2.0 * M_PI;
 
         // remainder in (-2pi, 2pi) similar to fmod
         x = std::remainder(x, twoPi); // gives result in [-pi, pi]
@@ -273,21 +273,20 @@ namespace qoala::analysis {
         return x;
     }
 
-    struct NormalizeRotationAnglePattern final : mlir::OpInterfaceRewritePattern<RotationOpIface> {
+    struct NormalizeRotationAnglePattern final : OpInterfaceRewritePattern<RotationOpIface> {
         using OpInterfaceRewritePattern::OpInterfaceRewritePattern;
 
-        mlir::LogicalResult matchAndRewrite(RotationOpIface rot, mlir::PatternRewriter &rewriter) const override {
-            mlir::Operation *op = rot.getOperation();
+        LogicalResult matchAndRewrite(RotationOpIface rot, PatternRewriter &rewriter) const override {
 
-            const auto aAttr = mlir::dyn_cast_or_null<mlir::FloatAttr>(rot.getAngleAttr());
+            const auto aAttr = dyn_cast_or_null<FloatAttr>(rot.getAngleAttr());
             if (!aAttr) {
-                return mlir::failure();
+                return failure();
             }
 
             // Convert to double, normalize
             const double a = aAttr.getValue().convertToDouble();
             if (!std::isfinite(a)) {
-                return mlir::failure();
+                return failure();
             }
 
             const double norm = normalizeToMinusPiPi(a);
@@ -296,19 +295,19 @@ namespace qoala::analysis {
             // Note: for floats, equality is OK here because we are rewriting constants
             // and want to avoid churn. If you prefer, compare within a tiny tolerance.
             if (norm == a) {
-                return mlir::failure();
+                return failure();
             }
 
             // Rebuild constant with same float type as original attribute
-            mlir::Type ty = aAttr.getType();
-            mlir::FloatAttr newAttr = mlir::FloatAttr::get(ty, norm);
+            const Type ty = aAttr.getType();
+            const FloatAttr newAttr = FloatAttr::get(ty, norm);
 
             rot.setAngleAttr(newAttr);
-            return mlir::success();
+            return success();
         }
     };
 
-    static bool isMultipleOfTwoPi(const mlir::FloatAttr angleAttr, double epsilon) {
+    static bool isMultipleOfTwoPi(const FloatAttr angleAttr, const double epsilon) {
         if (!angleAttr) {
             return false;
         }
@@ -316,7 +315,7 @@ namespace qoala::analysis {
             return false; // NaN-safe, and negative eps disabled
         }
 
-        const double twoPi = 2.0 * M_PI;
+        constexpr double twoPi = 2.0 * M_PI;
 
         // Convert APFloat -> double
         const double a = angleAttr.getValue().convertToDouble();
@@ -333,38 +332,38 @@ namespace qoala::analysis {
         return diff <= epsilon;
     }
 
-    struct EliminateFullTurnRotationPattern final : mlir::OpInterfaceRewritePattern<RotationOpIface> {
-        explicit EliminateFullTurnRotationPattern(mlir::MLIRContext *ctx, double epsilon,
-                                                  mlir::PatternBenefit benefit = 1):
-            OpInterfaceRewritePattern<RotationOpIface>(ctx, benefit), epsilon(epsilon) { }
+    struct EliminateFullTurnRotationPattern final : OpInterfaceRewritePattern<RotationOpIface> {
+        explicit EliminateFullTurnRotationPattern(MLIRContext *ctx, const double epsilon,
+                                                  const PatternBenefit benefit = 1):
+            OpInterfaceRewritePattern(ctx, benefit), epsilon(epsilon) { }
 
-        mlir::LogicalResult matchAndRewrite(RotationOpIface rot, mlir::PatternRewriter &rewriter) const override {
-            mlir::Operation *op = rot.getOperation();
+        LogicalResult matchAndRewrite(RotationOpIface rot, PatternRewriter &rewriter) const override {
+            Operation *op = rot.getOperation();
 
-            const mlir::ValueRange ctrls = rot.getControls();
+            const ValueRange ctrls = rot.getControls();
             if (!ctrls.empty()) {
                 LLVM_DEBUG(llvm::dbgs() << "[Rot2Pi]   -> Skip: controlled rotation (" << ctrls.size()
                                         << " controls)\n");
-                return mlir::failure();
+                return failure();
             }
 
-            const auto aAttr = mlir::dyn_cast_or_null<mlir::FloatAttr>(rot.getAngleAttr());
+            const auto aAttr = dyn_cast_or_null<FloatAttr>(rot.getAngleAttr());
             if (!aAttr) {
-                return mlir::failure();
+                return failure();
             }
 
             if (!isMultipleOfTwoPi(aAttr, epsilon)) {
-                return mlir::failure();
+                return failure();
             }
 
             // Uncontrolled => passthrough target only
-            mlir::Value tgt = rot.getTarget();
+            const Value tgt = rot.getTarget();
             if (op->getNumResults() != 1) {
-                return mlir::failure();
+                return failure();
             }
 
             rewriter.replaceOp(op, tgt);
-            return mlir::success();
+            return success();
         }
 
     private:
@@ -401,7 +400,7 @@ namespace qoala::analysis {
             patterns.add<EliminateFullTurnRotationPattern>(&getContext(), this->twoPiEpsilon);
         }
 
-        GreedyRewriteConfig cfg;
+        constexpr GreedyRewriteConfig cfg;
         (void) applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), cfg);
 
         LLVM_DEBUG(llvm::dbgs() << "[QNet][Peephole] finished\n");
