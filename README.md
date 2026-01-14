@@ -21,11 +21,20 @@ By default, you can use `gcc` as the compiler for LLVM and this repo, but `clang
 and it's better for optimization.
 
 To install clang, you can follow the [official LLVM documentation (for Debian-based distros)](https://apt.llvm.org/).
-To install clang/LLVM 17 run:
+To install clang/LLVM 21 run:
 ```shell
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-sudo ./llvm.sh 17 all
+sudo ./llvm.sh 21 all
+```
+
+In addition, this package also relies on `clang-format-18` for automatically format code, using the
+`scripts/check-clang-format.sh` scripts. Please note that *other clang-format versions are known to
+format the code in an incompatible way*, so please install the right version to create well-formatted
+code:
+
+```sh
+sudo apt-get install clang-format-18
 ```
 
 ## Prepare the python environment
@@ -50,7 +59,7 @@ Create `build` directory:
 mkdir build && cd build
 ```
 
-Configure (Optionally, set the clang compiler here. Please change the suffix `-17` to match the LLVM version you have).
+Configure (Optionally, set the clang compiler here. Please change the suffix `-21` to match the LLVM version you have).
 **IMPORTANT**: It is highly recommended to use the `-DCMAKE_INSTALL_PREFIX` option to configure a different
 installation prefix of the LLVM/MLIR files. In the example below, we use the prefix `/opt/mlir`, so LLVM/MLIR will be
 installed in the `/opt/mlir/` folder. This is needed to _avoid leaving another clang/LLVM installation in an
@@ -59,9 +68,9 @@ Please also note that the installation prefix needs to be configured **before co
 be specified when running the `install` target later.
 ```shell
 cmake -G Ninja ../llvm \
-      -DCMAKE_C_COMPILER=clang-17 \
-      -DCMAKE_CXX_COMPILER=clang++-17 \
-      -DCMAKE_LINKER=ld.lld-17 \
+      -DCMAKE_C_COMPILER=clang-21 \
+      -DCMAKE_CXX_COMPILER=clang++-21 \
+      -DCMAKE_LINKER=ld.lld-21 \
       -DCMAKE_INSTALL_PREFIX=/opt/mlir \
       -DLLVM_ENABLE_PROJECTS=mlir \
       -DLLVM_BUILD_EXAMPLES=ON \
@@ -123,8 +132,8 @@ To compile with `clang`, execute these commands (Please change the suffix `-17` 
 (llvm-venv)$ mkdir build && cd build
 (llvm-venv)$ 
 (llvm-venv)$ LD=ld.ldd-17 cmake -G Ninja .. \
-                                -DCMAKE_C_COMPILER=clang-17 \
-                                -DCMAKE_CXX_COMPILER=clang++-17 \
+                                -DCMAKE_C_COMPILER=clang-21 \
+                                -DCMAKE_CXX_COMPILER=clang++-21 \
                                 -DCMAKE_LINKER=ld.ldd-17 \
                                 -DMLIR_DIR=/opt/mlir/lib/cmake/mlir \
                                 -DSCIP_DIR=/path/to/your/scip/lib/cmake/scip \
@@ -258,9 +267,9 @@ args = [
     "-DSCIP_DIR=/usr/lib/cmake/scip",
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
     "-DPython3_EXECUTABLE=/abs/path/to/venv-311/bin/python",
-    "-DCMAKE_C_COMPILER=clang-20",
-    "-DCMAKE_CXX_COMPILER=clang++-20",
-    "-DCMAKE_LINKER=clang-20"
+    "-DCMAKE_C_COMPILER=clang-21",
+    "-DCMAKE_CXX_COMPILER=clang++-21",
+    "-DCMAKE_LINKER=clang-21"
 ]
 ```
 Also note that this arguments make use of the fact that the MLIR headers were installed with the prefix
