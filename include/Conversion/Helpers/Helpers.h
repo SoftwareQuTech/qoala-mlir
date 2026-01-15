@@ -6,10 +6,31 @@
 
 namespace qoala::helpers {
     struct OpAndValues {
-        OpAndValues(mlir::Operation *op, const mlir::ValueRange &values): operation(op), values(values) { }
+        // OpAndValues MUST own the returned mlir::Value objects.
+        //
+        // mlir::ValueRange / mlir::OperandRange are non-owning views. Some lowerings
+        // were returning ranges backed by temporaries (e.g. OperandRange slices or
+        // other short-lived range objects). During dialect conversion this can create
+        // dangling references and corrupt replacement values, leading to invalid
+        // defining-op pointers, bogus operand/result counts, verifier failures, and
+        // crashes during isa<>, printing, or type handling.
+        //
+        // To avoid these lifetime issues, OpAndValues eagerly copies all replacement
+        // values into an owning container.
+        OpAndValues(mlir::Operation *op, mlir::ValueRange vr): operation(op), values(vr.begin(), vr.end()) { }
+
+        OpAndValues(mlir::Operation *op, mlir::Value v): operation(op), values{v} { }
+
+        // Convenience overload: accept operand ranges too.
+        OpAndValues(mlir::Operation *op, mlir::OperandRange orng): operation(op) {
+            values.reserve(orng.size());
+            for (mlir::Value v : orng) {
+                values.push_back(v);
+            }
+        }
 
         mlir::Operation *operation{};
-        mlir::ValueRange values;
+        llvm::SmallVector<mlir::Value, 4> values;
     };
 
     /* Helper template class used to create simple operation rewriter classes */
@@ -69,9 +90,10 @@ namespace qoala::helpers {
             const std::unique_ptr<OpAndValues> newOpAndVals = createNewOpAndValues(op, adaptor, rewriter);
             // Expect an operation of a type of the declared destination types
             assert(llvm::isa<DestOps...>(newOpAndVals->operation));
-            // We use the "replace op for values" method; This method check that the old op
-            // yield the same number of SSA results as the given values
-            rewriter.replaceOp(op, newOpAndVals->values);
+            // Replace the old op with the values produced by the lowering.
+            // Note: MLIR APIs take ValueRange (a non-owning view). OpAndValues now owns the
+            // underlying Values, so it is safe to wrap them here.
+            rewriter.replaceOp(op, mlir::ValueRange(newOpAndVals->values));
             return mlir::success();
         }
     };
