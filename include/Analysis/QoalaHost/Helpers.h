@@ -576,7 +576,7 @@ namespace qoala::analysis {
         };
     } // namespace gatecount
 
-    namespace esp {
+    namespace fidelity {
         class QoalaHostEstimateSuccProb {
         public:
             explicit QoalaHostEstimateSuccProb(mlir::Operation *op, mlir::AnalysisManager &am);
@@ -589,7 +589,7 @@ namespace qoala::analysis {
         private:
             float totalEsp = 1.0;
         };
-    } // namespace esp
+    } // namespace fidelity
 
 } // namespace qoala::analysis
 

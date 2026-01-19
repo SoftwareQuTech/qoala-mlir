@@ -14,7 +14,7 @@ using namespace qoala::analysis;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::options;
 
-namespace qoala::analysis::esp {
+namespace qoala::analysis::fidelity {
 
     static float calculateQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
         // qubitEsp = prod(gate_fidelities) *  1/2*(exp(-lifetime/T2) + 1)
@@ -77,4 +77,4 @@ namespace qoala::analysis::esp {
         return !pa.isPreserved<gatecount::QoalaHostGateCount>() || !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
     }
 
-} // namespace qoala::analysis::esp
+} // namespace qoala::analysis::fidelity
