@@ -1,5 +1,5 @@
+#include "Analysis/QoalaHost/Fidelity.h"
 #include "Analysis/QoalaHost/GateCount.h"
-#include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/QoalaHost/QubitLife.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"

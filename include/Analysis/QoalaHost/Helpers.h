@@ -469,21 +469,6 @@ namespace qoala::analysis {
         void moveRemoteReferencesBlockToBegin(mlir::ModuleOp &moduleOp);
     } // namespace reordering
 
-    namespace fidelity {
-        class QoalaHostEstimateSuccProb {
-        public:
-            explicit QoalaHostEstimateSuccProb(mlir::Operation *op, mlir::AnalysisManager &am);
-
-            [[nodiscard]]
-            float getESP() const {
-                return totalEsp;
-            };
-
-        private:
-            float totalEsp = 1.0;
-        };
-    } // namespace fidelity
-
 } // namespace qoala::analysis
 
 #endif // QOALAHOST_HELPERS_H

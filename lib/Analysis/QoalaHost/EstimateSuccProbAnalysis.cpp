@@ -1,3 +1,4 @@
+#include "Analysis/QoalaHost/Fidelity.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 

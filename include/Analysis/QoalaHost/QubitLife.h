@@ -4,7 +4,7 @@
 #include "mlir/IR/BuiltinOps.h"
 
 #include "Analysis/QoalaHost/Helpers.h"
-    
+
 namespace qoala::analysis::qubitlife {
     // Conceptually different from reordering::MILPTask
     // Represent smaller tasks that alwasy end with either
