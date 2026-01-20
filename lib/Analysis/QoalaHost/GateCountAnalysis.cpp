@@ -1,3 +1,4 @@
+#include "Analysis/QoalaHost/GateCount.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
