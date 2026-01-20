@@ -1,4 +1,5 @@
 #include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/QubitLife.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/ADT/SmallPtrSet.h"
