@@ -38,12 +38,22 @@ namespace qoala::analysis::fidelity {
 
     QoalaHostEstimateSuccProb::QoalaHostEstimateSuccProb(Operation *op, AnalysisManager &am) {
 
-        // Compute the Estimated Succes Probability (ESP) of a programm.
-        // Use qubit lifetime and gate count for the computation.
-        // Qubits IDs found with lifetime analysis are assumed to map, one to one,
-        // to the ones fuound with gate count analysis. This shoudl hold true as the IDs are
-        // derived from block and operations index, and any pass that would change such properties should invalidate
-        // lifetime, requiring this pass to recompute lifetime right before gatecount.
+        /**
+         * Compute the Estimated Succes Probability (ESP) of a programm.
+         * Use qubit lifetime and gate count for the computation.
+         * Qubits IDs found with lifetime analysis are assumed to map, one to one,
+         * to the ones fuound with gate count analysis. This shoudl hold true as the IDs are
+         * derived from block and operations index, and any pass that would change such properties should invalidate
+         * lifetime, requiring this pass to recompute lifetime right before gatecount.
+         */
+
+        // Current implementation works under the assumption that
+        // gate counts and lifetime already tracks qubit up to measurement or
+        // last two-qubit op (see comments in GateCount and QubitLifeime).
+        // In future, coudl change by ading further processing here.
+        // Tracking only qubits thta are either measured-and-retruned or
+        // that intercats (through two-qubit gates) with other already tarcked qubits.
+
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostESPPass\n");
 
         // Get the qubit lifetime

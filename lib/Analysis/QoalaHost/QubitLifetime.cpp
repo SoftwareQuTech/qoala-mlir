@@ -94,12 +94,14 @@ namespace qoala::analysis::qubitlife {
                 assert(false);
             }
             const std::string &allocId = qubit->getAllocation()->getId();
+            LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId << "' initialized in '" << allocId << "'.\n");
             auto measPtr = qubit->getMeasurement();
             if (measPtr == nullptr) {
                 measPtr = qubit->getTwoQubitOp();
             }
 
             if (measPtr != nullptr) {
+                // If not measured or no two-qubit op, qubit is not tracked at all
                 qubitInits.emplace(allocId, qubitId);
                 const std::string &measId = measPtr->getId();
                 qubitMeas.emplace(measId, qubitId);
@@ -349,6 +351,10 @@ namespace qoala::analysis::qubitlife {
          * measurement task is scheduled.
          */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
+
+        // Current implementation is tightly coupled with fidelity estimation, i.e.,
+        // lifetime is tracked up to measurement or last wto-qubit op.
+        // In future could change to track every qubit up to last quantum op.
 
         /**
          * TODO Branching will create forks in the control flow and
