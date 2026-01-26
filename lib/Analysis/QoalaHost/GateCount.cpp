@@ -35,22 +35,26 @@ namespace qoala::analysis::gatecount {
     }
 
     /// Flush accumulated 1-qubit gates for a qubit into global counters.
-    static void flushTempOneQubitCount(const std::string &qId,
-                                       std::unordered_map<std::string, uint32_t> &tempOneQubitGateCount,
+    static void flushTempOneQubitCount(const llvm::StringRef &qId, llvm::StringMap<uint32_t> &tempOneQubitGateCount,
                                        uint32_t &gateCount, uint32_t &oneQubitGateCount,
-                                       std::unordered_map<std::string, uint32_t> &detailedGateCount,
-                                       std::unordered_map<std::string, uint32_t> &detailedOneQubitGateCount) {
-        auto it = tempOneQubitGateCount.find(qId);
-        if (it == tempOneQubitGateCount.end() || it->second == 0) {
-            return;
+                                       llvm::StringMap<uint32_t> &detailedGateCount,
+                                       llvm::StringMap<uint32_t> &detailedOneQubitGateCount) {
+
+        LLVM_DEBUG(llvm::dbgs() << "Looking for qubit " << qId << " in temp one-qubit gate counts.\n");
+        if (tempOneQubitGateCount.contains(qId)) {
+            LLVM_DEBUG(llvm::dbgs() << "Found qubit " << qId << " in temp one-qubit gate counts.\n");
+            uint32_t tempCount = tempOneQubitGateCount.at(qId);
+            if (tempCount != 0) {
+                LLVM_DEBUG(llvm::dbgs() << "Flushing one-qubit gates count on qubit " << qId << ".\n");
+                gateCount += tempCount;
+                oneQubitGateCount += tempCount;
+                detailedGateCount[qId] += tempCount;
+                detailedOneQubitGateCount[qId] += tempCount;
+                tempOneQubitGateCount[qId] = 0;
+            }
         }
 
-        uint32_t tempCount = it->second;
-        gateCount += tempCount;
-        oneQubitGateCount += tempCount;
-        detailedGateCount[qId] += tempCount;
-        detailedOneQubitGateCount[qId] += tempCount;
-        it->second = 0;
+        return;
     }
 
     static std::optional<mlir::Value>
@@ -66,9 +70,9 @@ namespace qoala::analysis::gatecount {
         return std::nullopt;
     }
 
-    static std::string getQubitID(const mlir::Value &operand, const llvm::DenseMap<Value, std::string> &qubitIDs,
-                                  const analysis::netqasm::ArgValueMap &valuesArgMap,
-                                  const mlir::DenseMap<mlir::Value, mlir::Value> &returnedValuesMap) {
+    static llvm::StringRef getQubitID(const mlir::Value &operand, const llvm::DenseMap<Value, std::string> &qubitIDs,
+                                      const analysis::netqasm::ArgValueMap &valuesArgMap,
+                                      const mlir::DenseMap<mlir::Value, mlir::Value> &returnedValuesMap) {
         auto callVal = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap);
         assert(callVal.has_value() && "Untracked qubit!");
         return qubitIDs.at(callVal.value());
@@ -92,7 +96,7 @@ namespace qoala::analysis::gatecount {
         // Gate counts at this level are used for the ESP pass,
         // consequently gates should be counted only when they can affect the final ESP.
         // Temp counts accumulate 1-qubit gates until measurement/two-qubit interaction to model active qubit lifetime.
-        std::unordered_map<std::string, uint32_t> tempOneQubitGateCount;
+        llvm::StringMap<uint32_t> tempOneQubitGateCount;
 
         auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<dialects::qoalahost::MainFuncOp>();
 
@@ -128,6 +132,8 @@ namespace qoala::analysis::gatecount {
                             auto operand = meas.getOperation()->getOperands().front();
                             auto qId = getQubitID(operand, qubitIds, valuesArgMap, returnedValuesMap);
 
+                            LLVM_DEBUG(llvm::dbgs() << "Found Meas op on qubit " << qId << ".\n");
+
                             flushTempOneQubitCount(qId, tempOneQubitGateCount, gateCount, oneQubitGateCount,
                                                    detailedGateCount, detailedOneQubitGateCount);
                         })
@@ -137,10 +143,12 @@ namespace qoala::analysis::gatecount {
                             auto operand = init.getOperation()->getOperands().front();
                             std::string qId = blckId + "::" + std::to_string(opIdx);
                             if (auto newQubit = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap)) {
-                                qubitIds[*newQubit] = qId;
+                                LLVM_DEBUG(llvm::dbgs() << "Found Qinit op on qubit " << qId << ".\n");
+                                qubitIds[newQubit.value()] = qId;
                             } else {
-                                returnedValuesMap[*newQubit] = *newQubit;
-                                qubitIds[*newQubit] = qId;
+                                LLVM_DEBUG(llvm::dbgs() << "Found Eprs op on qubit " << qId << ".\n");
+                                returnedValuesMap[newQubit.value()] = newQubit.value();
+                                qubitIds[newQubit.value()] = qId;
                             }
                             tempOneQubitGateCount[qId] = 0;
                             detailedOneQubitGateCount[qId] = 0;
@@ -152,13 +160,18 @@ namespace qoala::analysis::gatecount {
                             auto operand = oneQubitOp.getOperation()->getOperands().front();
                             auto qId = getQubitID(operand, qubitIds, valuesArgMap, returnedValuesMap);
 
+                            LLVM_DEBUG(llvm::dbgs() << "Found one-qubit gate " << oneQubitOp.getOperation() << ".\n");
+                            LLVM_DEBUG(llvm::dbgs() << "Updating one-qubit gate count on qubit " << qId << ".\n");
+
                             tempOneQubitGateCount[qId] += 1;
                         })
                         .Case<dialects::netqasm::ifaces::DualQubitOp>([&](auto twoQubitOp) {
                             gateCount++;
                             twoQubitGateCount++;
+                            LLVM_DEBUG(llvm::dbgs() << "Found two-qubit gate " << twoQubitOp.getOperation() << ".\n");
                             for (auto operand : twoQubitOp.getOperation()->getOperands()) {
-                                auto qId = getQubitID(operand, qubitIds, valuesArgMap, returnedValuesMap);
+                                auto qId = getQubitID(operand, qubitIds, valuesArgMap, returnedValuesMap).str();
+                                LLVM_DEBUG(llvm::dbgs() << "Updating two-qubit gate count on qubit " << qId << ".\n");
                                 detailedGateCount[qId] += 1;
                                 detailedTwoQubitGateCount[qId] += 1;
 
