@@ -142,11 +142,11 @@ namespace qoala::analysis::gatecount {
                             // used as a reference point to start traking a qubit and its gates
                             auto operand = init.getOperation()->getOperands().front();
                             std::string qId = blckId + "::" + std::to_string(opIdx);
+                            LLVM_DEBUG(llvm::dbgs() << "Found initialization of qubit " << qId << ".\n");
                             if (auto newQubit = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap)) {
-                                LLVM_DEBUG(llvm::dbgs() << "Found Qinit op on qubit " << qId << ".\n");
                                 qubitIds[newQubit.value()] = qId;
                             } else {
-                                LLVM_DEBUG(llvm::dbgs() << "Found Eprs op on qubit " << qId << ".\n");
+                                LLVM_DEBUG(llvm::dbgs() << "Qubit " << qId << " is initialized but not returned.\n");
                                 returnedValuesMap[newQubit.value()] = newQubit.value();
                                 qubitIds[newQubit.value()] = qId;
                             }
