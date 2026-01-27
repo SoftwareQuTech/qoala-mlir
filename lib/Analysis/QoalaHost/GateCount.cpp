@@ -25,7 +25,7 @@ namespace qoala::analysis::gatecount {
 
         // Map return values
         auto returnOps = callee.front().getOps<dialects::netqasm::ReturnOp>();
-        assert(!returnOps.empty() && "callee must have a ReturnOp");
+        assert(!returnOps.empty() && "GateCount: Callee must have a ReturnOp");
         dialects::netqasm::ReturnOp returnOp = *returnOps.begin();
         for (auto retVal : llvm::enumerate(returnOp->getOperands())) {
             returnedValuesMap.try_emplace(retVal.value(), callOp.getResult(retVal.index()));
@@ -74,7 +74,7 @@ namespace qoala::analysis::gatecount {
                                       const analysis::netqasm::ArgValueMap &valuesArgMap,
                                       const mlir::DenseMap<mlir::Value, mlir::Value> &returnedValuesMap) {
         auto callVal = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap);
-        assert(callVal.has_value() && "Untracked qubit!");
+        assert(callVal.has_value() && "GateCount: Untracked qubit!");
         return qubitIDs.at(callVal.value());
     }
 
@@ -100,7 +100,7 @@ namespace qoala::analysis::gatecount {
 
         auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<dialects::qoalahost::MainFuncOp>();
 
-        assert(!mainFuncs.empty() && "No main function found in module.");
+        assert(!mainFuncs.empty() && "GateCount: No main function found in module.");
 
         dialects::qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
@@ -111,6 +111,8 @@ namespace qoala::analysis::gatecount {
 
             Block *block = callOp->getBlock();
             auto blkMeta = dyn_cast<dialects::qoalahost::BlkMeta>(block->front());
+            assert(blkMeta &&
+                   "GateCount: could not find BlkMeta operation on the block. This usually suggests a malformed IR.");
             std::string blckId = blkMeta.getBlockId().str();
 
             // Get the callee
