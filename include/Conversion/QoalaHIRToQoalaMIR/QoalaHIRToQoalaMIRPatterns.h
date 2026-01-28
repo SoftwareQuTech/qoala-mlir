@@ -259,14 +259,13 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ScfIfLowering : public helpers::OpLoweringTemplate<mlir::scf::IfOp, mlir::scf::IfOp> {
+    class ScfIfLowering : public mlir::OpRewritePattern<mlir::scf::IfOp> {
     public:
-        // Constructor simply matches the super class
-        using OpLoweringTemplate::OpLoweringTemplate;
+        explicit ScfIfLowering(mlir::MLIRContext *context): OpRewritePattern(context) {
+            this->setHasBoundedRewriteRecursion();
+        }
 
-        std::unique_ptr<helpers::OpAndValues>
-        createNewOpAndValues(mlir::scf::IfOp op, mlir::scf::IfOp::Adaptor adaptor,
-                             mlir::ConversionPatternRewriter &rewriter) const override;
+        mlir::LogicalResult matchAndRewrite(mlir::scf::IfOp op, mlir::PatternRewriter &rewriter) const override;
     };
 
 } // namespace qoala::conversion::hir

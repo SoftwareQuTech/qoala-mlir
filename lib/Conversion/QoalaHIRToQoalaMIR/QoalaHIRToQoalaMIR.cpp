@@ -10,6 +10,9 @@
 #define DEBUG_TYPE "QoalaHIRToQoalaMIR"
 
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
+
+#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
+
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
 using namespace mlir;
@@ -94,10 +97,21 @@ namespace qoala::conversion {
         // however, since we need to trigger the "lowering" of the scf.if operations, we mark *only*
         // that operation as illegal
         scfTarget.addIllegalOp<scf::IfOp>();
-        scfPatterns.add<hir::ScfIfLowering>(typeConverter, &context);
+        scfPatterns.add<hir::ScfIfLowering>(&context);
+
+        GreedyRewriteConfig cfg;
+        // If we don't disable region simplification, the folding of the code will be more aggressive
+        // simplifying entire blocks if possible:
+        // E.g, in test/Conversion/MIRtoLIR/BlkMeta/MIRtoLIR-precedences-predecessors.mlir
+        // the aggressive folding will merge both "then" and "else" blocks into a single one,
+        // inserting a block argument. That makes the test fail, since it expects 4 blocks, not 3.
+        cfg.enableRegionSimplification = false;
+        cfg.strictMode = GreedyRewriteStrictness::ExistingOps;
 
         // Apply the conversion for the scf target
-        if (failed(applyFullConversion(module.getOperation(), scfTarget, std::move(scfPatterns)))) {
+        // We *need* to invoke it as a partial convertion, since the single lowering pass
+        // st
+        if (failed(applyPatternsAndFoldGreedily(module.getOperation(), std::move(scfPatterns), cfg))) {
             LLVM_DEBUG(llvm::dbgs() << module << "\n");
             signalPassFailure();
         }

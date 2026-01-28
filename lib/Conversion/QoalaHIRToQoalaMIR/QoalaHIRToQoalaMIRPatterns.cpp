@@ -1,5 +1,8 @@
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Dialect/QNet/QNetDialect.h"
+
+#include "llvm/ADT/TypeSwitch.h"
 
 #define DEBUG_TYPE "qoala-hir-to-qoala-patterns"
 
@@ -317,17 +320,172 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }
 
-    std::unique_ptr<OpAndValues> ScfIfLowering::createNewOpAndValues(scf::IfOp op, scf::IfOp::Adaptor adaptor,
-                                                                     ConversionPatternRewriter &rewriter) const {
+    static bool i32ValueRepresentsAQubit(const Value &val) {
+        if (isa<qmem::QAllocOp>(val.getDefiningOp())) {
+            LLVM_DEBUG(llvm::dbgs() << "Value is a qubit: " << val << "\n");
+            return true;
+        }
+        return false;
+    }
+
+    static LogicalResult analyzeYieldOps(scf::YieldOp &thenYield, scf::YieldOp &elseYield,
+                                         DenseMap<uint32_t, Value> &matchedIdx) {
+        // Known limitation. Let's consider this program;
+        // %0 = qmem.qalloc() : i32
+        // qmem.qinit(%0)
+        // %1 = qmem.qalloc() : i32
+        // qmem.qinit(%1)
+        // %2 = arith.cmpi....
+        // %3 = scf.if %2 {
+        //   scf.yield %1 : i32
+        // } else {
+        //   scf.yield %0 : i32
+        // }
+        // %4 = qmem.measure %3 : i1
+        // In this program, %3 becomes an alias of either %0 or %1.
+        // This type of program is not supported by this algorithm, so we assert that
+        // both terminators of teh branch yield the *same value*.
+
+        for (uint32_t operandIdx = 0; operandIdx < thenYield.getNumOperands(); operandIdx++) {
+            Value thenValue = thenYield.getOperand(operandIdx);
+            Value elseValue = elseYield.getOperand(operandIdx);
+
+            if (thenValue.getType() != elseValue.getType()) {
+                // Yielded value types must match 1-by-1
+                return failure();
+            }
+
+            if (thenValue.getType().isInteger(32)) {
+                bool thenValIsQubit = i32ValueRepresentsAQubit(thenValue);
+                bool elseValIsQubit = i32ValueRepresentsAQubit(elseValue);
+                if (!thenValIsQubit && !elseValIsQubit) {
+                    // These values do not represent a qubit; ignore
+                    continue;
+                }
+                if (thenValIsQubit != elseValIsQubit) {
+                    // One value represents a qubit; the other doesn't - this breaks the assumption
+                    return failure();
+                }
+                // Both values represent a qubit; mark the index of the yield.
+                assert(thenValue == elseValue &&
+                       R"("SCF Rewrite: "then" and "else" branches do not yield the same quantum values.)");
+                LLVM_DEBUG(llvm::dbgs() << "Discovered qubit value: idx = '" << operandIdx << "', value = '"
+                                        << elseValue << "'\n");
+                matchedIdx.try_emplace(operandIdx, thenValue);
+            }
+        }
+        return success();
+    }
+
+    static LogicalResult replaceYieldOps(scf::YieldOp &thenYield, scf::YieldOp &elseYield,
+                                         const DenseMap<uint32_t, Value> &qubitYieldIndexes,
+                                         PatternRewriter &rewriter) {
+        SmallVector<Value> thenValuesToYield;
+        for (uint32_t i = 0; i < thenYield.getNumOperands(); i++) {
+            if (!qubitYieldIndexes.contains(i)) {
+                thenValuesToYield.push_back(thenYield.getOperand(i));
+            }
+        }
+        rewriter.setInsertionPoint(thenYield);
+        rewriter.replaceOpWithNewOp<scf::YieldOp>(thenYield, thenValuesToYield);
+
+        SmallVector<Value> elseValuesToYield;
+        for (uint32_t i = 0; i < thenYield.getNumOperands(); i++) {
+            if (!qubitYieldIndexes.contains(i)) {
+                elseValuesToYield.push_back(elseYield.getOperand(i));
+            }
+        }
+        rewriter.setInsertionPoint(elseYield);
+        rewriter.replaceOpWithNewOp<scf::YieldOp>(elseYield, elseValuesToYield);
+        return success();
+    }
+
+    static LogicalResult replaceUnrealizedCastOps(Operation *user, const Value &replaceWith,
+                                                  PatternRewriter &rewriter) {
+        if (auto castOp = dyn_cast<UnrealizedConversionCastOp>(user)) {
+            rewriter.replaceAllUsesWith(castOp.getResults(), replaceWith);
+            rewriter.eraseOp(user);
+            return success();
+        }
+        user->emitError("Trying to replace the users of an op which is not an Unrealized Cast");
+        return failure();
+    }
+
+    LogicalResult ScfIfLowering::matchAndRewrite(scf::IfOp op, PatternRewriter &rewriter) const {
         // This is the "lowering" of scf.if.
         // The idea here is that we need to get rid of the !qnet.qubit returned type (if any)
         // and adjust the scf.yield operations that return !qnet.qubit values
-        // TODO - Implement this "lowering"
-        auto newIfOp = rewriter.create<scf::IfOp>(op.getLoc(), op.getResultTypes(), op.getCondition(),
+
+        LLVM_DEBUG(llvm::dbgs() << "Start:\n" << op->getParentOfType<ModuleOp>() << "\n*************\n");
+
+        // Analyze the original yielded values type, and build a structure containing the
+        // index of the yielded value, and the qubit value that it represents
+        auto origThenYieldOp = dyn_cast<scf::YieldOp>(op.thenBlock()->getTerminator());
+        auto origElseYieldOp = dyn_cast<scf::YieldOp>(op.elseBlock()->getTerminator());
+        DenseMap<uint32_t, Value> qubitYieldIndexes;
+
+        if (failed(analyzeYieldOps(origThenYieldOp, origElseYieldOp, qubitYieldIndexes))) {
+            op->emitError(R"(SCF If lowering: "then" ands "else" branches could not be analyzed)");
+            return failure();
+        }
+
+        SmallVector<Type> newYieldedTypes;
+        DenseMap<uint32_t, uint32_t> valuesIndexesMap;
+        for (uint32_t resIdx = 0, newResIdx = 0; resIdx < op.getResults().size(); resIdx++) {
+            // qubitYieldIndexes contains the indexes of values that represent a qubit so,
+            // if the index is there, that type should *not* be a result type of the new scf.if
+            if (qubitYieldIndexes.contains(resIdx)) {
+                continue;
+            }
+            newYieldedTypes.push_back(op.getResult(resIdx).getType());
+            // We still map the old index value with the new one
+            valuesIndexesMap.try_emplace(resIdx, newResIdx++);
+        }
+
+        // Create a new yield operation that does not yield qubit types
+        auto newIfOp = rewriter.create<scf::IfOp>(op.getLoc(), newYieldedTypes, op.getCondition(),
                                                   /*withElseRegion=*/op.elseBlock() != nullptr);
+
+        LLVM_DEBUG(llvm::dbgs() << "New If:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+
         // Clone the then/else regions, adjusting types as needed.
         rewriter.inlineRegionBefore(op.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
         rewriter.inlineRegionBefore(op.getElseRegion(), newIfOp.getElseRegion(), newIfOp.getElseRegion().end());
-        return std::make_unique<OpAndValues>(newIfOp, newIfOp.getResults());
+        // Since the newly-created scf.if op already comes with "then" and "else" blocks
+        // (each of them with a scf.yield operation), we want to delete the whole blocks
+        // that already came with the new op, leaving the copied blocks.
+        Block &thenBlock = newIfOp.getThenRegion().front();
+        rewriter.eraseBlock(&thenBlock);
+        Block &elseBlock = newIfOp.getElseRegion().front();
+        rewriter.eraseBlock(&elseBlock);
+
+        auto newThenYieldOp = dyn_cast<scf::YieldOp>(newIfOp.thenBlock()->getTerminator());
+        auto newElseYieldOp = dyn_cast<scf::YieldOp>(newIfOp.elseBlock()->getTerminator());
+
+        if (failed(replaceYieldOps(newThenYieldOp, newElseYieldOp, qubitYieldIndexes, rewriter))) {
+            op->emitError(R"(SCF If lowering: "then" ands "else" branches could not be analyzed)");
+            return failure();
+        }
+
+        LLVM_DEBUG(llvm::dbgs() << "Blocks corrected:\n"
+                                << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+
+        // Delete any users of the deleted result value - We might want to
+        for (auto &[yieldIdx, yieldVal] : qubitYieldIndexes) {
+            Value originalResultToTrack = op.getResult(yieldIdx);
+            for (Operation *valUse : originalResultToTrack.getUsers()) {
+                if (failed(replaceUnrealizedCastOps(valUse, yieldVal, rewriter))) {
+                    return failure();
+                }
+            }
+        }
+
+        for (auto [oldIdx, newIdx] : valuesIndexesMap) {
+            rewriter.replaceAllUsesWith(op.getResult(oldIdx), newIfOp.getResult(newIdx));
+        }
+        LLVM_DEBUG(llvm::dbgs() << "After:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+        rewriter.eraseOp(op.getOperation());
+
+        return LogicalResult::success();
     }
 } // namespace qoala::conversion::hir
