@@ -1,7 +1,7 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-qubit-life | FileCheck %s
 // CHECK: [Qubits Lifetimes]:
-// CHECK: - 1::2: 1192
-// CHECK: - 3::2: 147
+// CHECK: - block_1::2: 1192
+// CHECK: - block_3::2: 147
 
 module {
   qremote.remote @Bob
@@ -51,7 +51,7 @@ module {
     %m = netqasm.measure %0 : i1
     netqasm.return %m : i1
   }
-  qoalahost.main_func @test_reordering_teleport() {
+  qoalahost.main_func @test_unused_qubit() {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.remote_id_ref  {classical = false, quantum = true, remote = @Bob}
     qoalahost.nop_term

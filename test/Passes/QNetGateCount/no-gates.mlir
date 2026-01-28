@@ -16,7 +16,7 @@
 
 module {
     qnet.remote @Bob
-    qnet.func @simple_gate_count() {
+    qnet.func @test_no_gates_count() {
         %q0 = qnet.new_qubit : !qnet.qubit
         %q1 = qnet.eprs  {remote = @Bob} : !qnet.qubit
         %m0 = qnet.measure %q0 : i1

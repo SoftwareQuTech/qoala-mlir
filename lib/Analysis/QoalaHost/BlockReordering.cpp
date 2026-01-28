@@ -1,3 +1,4 @@
+#include "Analysis/QoalaHost/GateCount.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -151,5 +152,8 @@ namespace qoala::analysis {
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
         mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
+
+        // Preserve gate count analysis
+        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
     }
 } // namespace qoala::analysis

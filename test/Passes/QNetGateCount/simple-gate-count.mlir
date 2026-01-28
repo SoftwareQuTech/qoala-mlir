@@ -19,7 +19,7 @@
 
 module {
     qnet.remote @Bob
-    qnet.func @simple_gate_count() {
+    qnet.func @test_simple_gate_count() {
         %q1 = qnet.new_qubit : !qnet.qubit
         %q2 = qnet.new_qubit : !qnet.qubit
 

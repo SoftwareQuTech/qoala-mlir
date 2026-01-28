@@ -26,4 +26,14 @@ def QoalaHostQubitLifeShowAnalysis: Pass<"qoalahost-show-analysis-qubit-life", "
     let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 
+def QoalaHostGateCountShowAnalysis: Pass<"qoalahost-show-analysis-gate-count", "mlir::ModuleOp"> {
+    let summary = "Show the gate count analysis computed in LIR.";
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect"];
+}
+
+def QoalaHostESPShowAnalysis: Pass<"qoalahost-show-analysis-esp", "mlir::ModuleOp"> {
+    let summary = "Show the estimated success probability analysis computed in LIR.";
+    let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
+}
+
 #endif // QOALAHOST_PASSES

@@ -1,7 +1,7 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-qubit-life | FileCheck %s
 // CHECK: [Qubits Lifetimes]:
-// CHECK: - 1::2: 1077
-// CHECK: - 2::2: 86
+// CHECK: - block_1::2: 1077
+// CHECK: - block_2::2: 86
 
 module {
   qremote.remote @Bob
