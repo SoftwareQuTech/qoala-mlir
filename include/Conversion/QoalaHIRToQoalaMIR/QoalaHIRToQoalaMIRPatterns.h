@@ -3,6 +3,7 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/QMem/QMem.h"
 #include "Dialect/QNet/QNet.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::conversion::hir {
@@ -255,6 +256,16 @@ namespace qoala::conversion::hir {
 
         std::unique_ptr<helpers::OpAndValues>
         createNewOpAndValues(dialects::qnet::CrotXOp op, dialects::qnet::CrotXOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class ScfIfLowering : public helpers::OpLoweringTemplate<mlir::scf::IfOp, mlir::scf::IfOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(mlir::scf::IfOp op, mlir::scf::IfOp::Adaptor adaptor,
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 

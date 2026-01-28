@@ -76,6 +76,32 @@ namespace qoala::conversion {
             LLVM_DEBUG(llvm::dbgs() << module << "\n");
             signalPassFailure();
         }
+
+        // Specific conversion target and pattern set for "lowering" scf.if
+        ConversionTarget scfTarget(getContext());
+        RewritePatternSet scfPatterns(&context);
+        // We need to do this since the scf "lowering" needs to happen *after* the main lowering.
+        // This is due to the fact that we need to use a few tricks to process the scf.if:
+        // * We mark the whole SCF dialect is legal
+        // * We mark *only* the scf.if op as illegal (this allows triggering the lowering pattern)
+        // * The lowering pattern creates a *new* scf.if op, with the needed modifications
+        // * The old scf.if is replaced with the modified one.
+        // If we don't separate this lowering target (and put them in the lowering target above)
+        // then we introduce an infinite loop in the lowering process.
+
+        // Declare the SCF target as legal
+        scfTarget.addLegalDialect<scf::SCFDialect>();
+        // however, since we need to trigger the "lowering" of the scf.if operations, we mark *only*
+        // that operation as illegal
+        scfTarget.addIllegalOp<scf::IfOp>();
+        scfPatterns.add<hir::ScfIfLowering>(typeConverter, &context);
+
+        // Apply the conversion for the scf target
+        if (failed(applyFullConversion(module.getOperation(), scfTarget, std::move(scfPatterns)))) {
+            LLVM_DEBUG(llvm::dbgs() << module << "\n");
+            signalPassFailure();
+        }
+
         // Finally, we have to get rid of any leftover UnrealizedConversionCastOp... provided that
         // they don't have any uses. If we find one that has one or more uses, then the dialect
         // conversion process is bugged.

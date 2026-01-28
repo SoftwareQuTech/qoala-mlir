@@ -316,4 +316,18 @@ namespace qoala::conversion::hir {
         auto newSend = rewriter.create<qmem::RecvFloatOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }
+
+    std::unique_ptr<OpAndValues> ScfIfLowering::createNewOpAndValues(scf::IfOp op, scf::IfOp::Adaptor adaptor,
+                                                                     ConversionPatternRewriter &rewriter) const {
+        // This is the "lowering" of scf.if.
+        // The idea here is that we need to get rid of the !qnet.qubit returned type (if any)
+        // and adjust the scf.yield operations that return !qnet.qubit values
+        // TODO - Implement this "lowering"
+        auto newIfOp = rewriter.create<scf::IfOp>(op.getLoc(), op.getResultTypes(), op.getCondition(),
+                                                  /*withElseRegion=*/op.elseBlock() != nullptr);
+        // Clone the then/else regions, adjusting types as needed.
+        rewriter.inlineRegionBefore(op.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
+        rewriter.inlineRegionBefore(op.getElseRegion(), newIfOp.getElseRegion(), newIfOp.getElseRegion().end());
+        return std::make_unique<OpAndValues>(newIfOp, newIfOp.getResults());
+    }
 } // namespace qoala::conversion::hir
