@@ -444,20 +444,13 @@ namespace qoala::conversion::hir {
 
         // Create a new yield operation that does not yield qubit types
         auto newIfOp = rewriter.create<scf::IfOp>(op.getLoc(), newYieldedTypes, op.getCondition(),
-                                                  /*withElseRegion=*/op.elseBlock() != nullptr);
+                                                  /*addThenBlock=*/false, /*addElseBlock=*/false);
 
         LLVM_DEBUG(llvm::dbgs() << "New If:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
 
-        // Clone the then/else regions, adjusting types as needed.
+        // Move the then/else regions, adjusting types as needed.
         rewriter.inlineRegionBefore(op.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
         rewriter.inlineRegionBefore(op.getElseRegion(), newIfOp.getElseRegion(), newIfOp.getElseRegion().end());
-        // Since the newly-created scf.if op already comes with "then" and "else" blocks
-        // (each of them with a scf.yield operation), we want to delete the whole blocks
-        // that already came with the new op, leaving the copied blocks.
-        Block &thenBlock = newIfOp.getThenRegion().front();
-        rewriter.eraseBlock(&thenBlock);
-        Block &elseBlock = newIfOp.getElseRegion().front();
-        rewriter.eraseBlock(&elseBlock);
 
         auto newThenYieldOp = dyn_cast<scf::YieldOp>(newIfOp.thenBlock()->getTerminator());
         auto newElseYieldOp = dyn_cast<scf::YieldOp>(newIfOp.elseBlock()->getTerminator());
