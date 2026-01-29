@@ -9,10 +9,8 @@
 
 #define DEBUG_TYPE "QoalaHIRToQoalaMIR"
 
+#include "Analysis/Helpers/PatternRewriteDriver.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
-
-#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
-
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 
 using namespace mlir;
@@ -99,19 +97,21 @@ namespace qoala::conversion {
         scfTarget.addIllegalOp<scf::IfOp>();
         scfPatterns.add<hir::ScfIfLowering>(&context);
 
-        GreedyRewriteConfig cfg;
+        port::GreedyRewriteConfig cfg;
         // If we don't disable region simplification, the folding of the code will be more aggressive
         // simplifying entire blocks if possible:
         // E.g, in test/Conversion/MIRtoLIR/BlkMeta/MIRtoLIR-precedences-predecessors.mlir
         // the aggressive folding will merge both "then" and "else" blocks into a single one,
         // inserting a block argument. That makes the test fail, since it expects 4 blocks, not 3.
-        cfg.enableRegionSimplification = false;
-        cfg.strictMode = GreedyRewriteStrictness::ExistingOps;
+        cfg.setRegionSimplificationLevel(port::GreedySimplifyRegionLevel::Disabled);
+        // Since we use the ported pattern rewriter driver, we can disable code folding and constant CSE
+        cfg.enableFolding(false);
+        cfg.enableConstantCSE(false);
+        cfg.setStrictness(port::GreedyRewriteStrictness::ExistingOps);
 
-        // Apply the conversion for the scf target
-        // We *need* to invoke it as a partial convertion, since the single lowering pass
-        // st
-        if (failed(applyPatternsAndFoldGreedily(module.getOperation(), std::move(scfPatterns), cfg))) {
+        // Apply the rewrite pattern, using the ported driver, which can turn off
+        // CSE folding and region simplification.
+        if (failed(port::applyPatternsGreedily(module.getOperation(), std::move(scfPatterns), cfg))) {
             LLVM_DEBUG(llvm::dbgs() << module << "\n");
             signalPassFailure();
         }

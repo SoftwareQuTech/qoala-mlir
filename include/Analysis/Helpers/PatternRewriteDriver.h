@@ -1,10 +1,13 @@
 #ifndef QOALA_MLIR_PATTERNREWRITEDRIVER_H
 #define QOALA_MLIR_PATTERNREWRITEDRIVER_H
 
+// NOTE FROM DIEGO: This code was ported back from LLVM 22, since I needed a
+// Pattern rewrite driver that can be configured to *not* fold constants and
+// simplify code regions automatically.
+
 #include "mlir/IR/Operation.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace mlir::port {
     /// This enum controls which ops are put on the worklist during a greedy
@@ -24,7 +27,7 @@ namespace mlir::port {
         /// Run the normal simplification (e.g. dead args elimination).
         Normal,
         /// Run extra simplificiations (e.g. block merging), these can be
-              /// more costly or have some tradeoffs associated.
+        /// more costly or have some tradeoffs associated.
         Aggressive
       };
 
@@ -38,6 +41,7 @@ namespace mlir::port {
         /// larger patterns when given an ambiguous pattern set.
         ///
         /// Note: Only applicable when simplifying entire regions.
+        [[nodiscard]]
         bool getUseTopDownTraversal() const { return useTopDownTraversal; }
         GreedyRewriteConfig &setUseTopDownTraversal(bool use = true) {
             useTopDownTraversal = use;
@@ -48,6 +52,7 @@ namespace mlir::port {
         /// patterns.
         ///
         /// Note: Only applicable when simplifying entire regions.
+        [[nodiscard]]
         GreedySimplifyRegionLevel getRegionSimplificationLevel() const {
             return regionSimplificationLevel;
         }
@@ -62,6 +67,7 @@ namespace mlir::port {
         /// disable this iteration limit.
         ///
         /// Note: Only applicable when simplifying entire regions.
+        [[nodiscard]]
         int64_t getMaxIterations() const { return maxIterations; }
         GreedyRewriteConfig &setMaxIterations(int64_t iterations) {
             maxIterations = iterations;
@@ -70,6 +76,7 @@ namespace mlir::port {
 
         /// This specifies the maximum number of rewrites within an iteration. Use
         /// `kNoLimit` to disable this limit.
+        [[nodiscard]]
         int64_t getMaxNumRewrites() const { return maxNumRewrites; }
         GreedyRewriteConfig &setMaxNumRewrites(int64_t limit) {
             maxNumRewrites = limit;
@@ -82,6 +89,7 @@ namespace mlir::port {
         /// specified, the closest enclosing region around the initial list of ops
         /// (or the specified region, depending on which greedy rewrite entry point
         /// is used) is used as a scope.
+        [[nodiscard]]
         Region *getScope() const { return scope; }
         GreedyRewriteConfig &setScope(Region *scope) {
             this->scope = scope;
@@ -98,6 +106,7 @@ namespace mlir::port {
         /// * GreedyRewriteStrictness::ExistingOps: Only pre-existing ops (that were
         ///   were on the worklist at the very beginning) enqueued. All other ops are
         ///   excluded.
+        [[nodiscard]]
         GreedyRewriteStrictness getStrictness() const { return strictness; }
         GreedyRewriteConfig &setStrictness(GreedyRewriteStrictness mode) {
             strictness = mode;
@@ -105,6 +114,7 @@ namespace mlir::port {
         }
 
         /// An optional listener that should be notified about IR modifications.
+        [[nodiscard]]
         RewriterBase::Listener *getListener() const { return listener; }
         GreedyRewriteConfig &setListener(RewriterBase::Listener *listener) {
             this->listener = listener;
@@ -112,6 +122,7 @@ namespace mlir::port {
         }
 
         /// Whether this should fold while greedily rewriting.
+        [[nodiscard]]
         bool isFoldingEnabled() const { return fold; }
         GreedyRewriteConfig &enableFolding(bool enable = true) {
             fold = enable;
@@ -120,6 +131,7 @@ namespace mlir::port {
 
         /// If set to "true", constants are CSE'd (even across multiple regions that
         /// are in a parent-ancestor relationship).
+        [[nodiscard]]
         bool isConstantCSEEnabled() const { return cseConstants; }
         GreedyRewriteConfig &enableConstantCSE(bool enable = true) {
             cseConstants = enable;
