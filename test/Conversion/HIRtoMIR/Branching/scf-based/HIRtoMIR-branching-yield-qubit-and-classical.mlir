@@ -4,10 +4,10 @@
 module {
   //CHECK: qmem.remote @[[REMOTE:.*]]
   qnet.remote @client
-  // CHECK: qmem.func @simple_if()
+  // CHECK: qmem.func @branching_yielding_single_qubit_val()
   qnet.func @branching_yielding_single_qubit_val() {
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
-    // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTEBOB]]}
+    // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTE]]}
     %0 = qnet.eprs  {remote = @client} : !qnet.qubit
     // CHECK: %[[CST_4:.+]] = arith.constant 4 : i32
     %c4_i32 = arith.constant 4 : i32
@@ -23,23 +23,28 @@ module {
     // scf.if structures that yield !qnet.qubit values.
     // In MIR, these scf.if should not yield any !qnet.qubit, but rather rely
     // on the memory side-effects of the lowered quantum operations.
-    // CHECK: scf.if %[[CMP_RESULT]] {
+    // CHECK: %[[I32_VAL:.+]] = scf.if %[[CMP_RESULT]] -> (i32) {
     %2, %3 = scf.if %1 -> (!qnet.qubit, i32){
       // CHECK-NEXT: qmem.z %0
       %26 = qnet.z %0 : !qnet.qubit
+      // CHECK-NEXT: %[[CST_10:.+]] = arith.constant 10 : i32
       %c10_i32 = arith.constant 10 : i32
+      // CHECK-NEXT: scf.yield %[[CST_10]] : i32
       scf.yield %26, %c10_i32 : !qnet.qubit, i32
     // Since qubit type will dissapear after HIR->MIR lowering, this branch becomes
     // empty, hence we expect *not* having an "else" branch.
     // CHECK-NEXT: } else {
     } else {
+      // CHECK-NEXT: %[[CST_0:.+]] = arith.constant 0 : i32
       %c0_i32 = arith.constant 0 : i32
+      // CHECK-NEXT: scf.yield %[[CST_0]] : i32
       scf.yield %0, %c0_i32 : !qnet.qubit, i32
     }
     // This next instruction should *not* leave an unrealized_convertion_cast operation
     // CHECK: %[[MEAS:.+]] = qmem.measure %[[QBIT0]] : i1
     %4 = qnet.measure %2 : i1
+    // CHECK-NEXT: %[[ADD_RES:.+]] = arith.addi %[[I32_VAL]], %[[CST_7]] : i32
     %5 = arith.addi %3, %c7_i32 : i32
-    qnet.return
+    qnet.return %5 : i32
   }
 }

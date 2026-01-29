@@ -4,10 +4,10 @@
 module {
   //CHECK: qmem.remote @[[REMOTE:.*]]
   qnet.remote @client
-  // CHECK: qmem.func @simple_if()
+  // CHECK: qmem.func @branching_yielding_single_qubit_val()
   qnet.func @branching_yielding_single_qubit_val() {
     // CHECK: %[[QBIT0:.*]] = qmem.qalloc : i32
-    // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTEBOB]]}
+    // CHECK-NEXT: qmem.eprs %[[QBIT0]] {remote = @[[REMOTE]]}
     %0 = qnet.eprs  {remote = @client} : !qnet.qubit
     // CHECK: %[[CST_4:.+]] = arith.constant 4 : i32
     %c4_i32 = arith.constant 4 : i32
