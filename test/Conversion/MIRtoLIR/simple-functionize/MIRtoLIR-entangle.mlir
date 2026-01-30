@@ -23,12 +23,12 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[REG0_4]] {remote = @[[REMOTEBOB]]}
   // CHECK-NEXT: netqasm.return %[[REG0_4]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG0_6:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_x %[[ARG0_6]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG0_6:.*]]: i32, %[[C0_ARG:.+]]: i32)
+  // CHECK-NEXT: netqasm.rot_x %[[ARG0_6]], %[[C0_ARG]], %[[C0_ARG]]
   // CHECK-NEXT: netqasm.return
 
-  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_7:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_y %[[ARG0_7]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG0_7:.*]]: i32, %[[C0_ARG:.+]]: i32)
+  // CHECK-NEXT: netqasm.rot_y %[[ARG0_7]], %[[C0_ARG]], %[[C0_ARG]]
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER5:.*]](%[[ARG0_7:.*]]: i32, %[[ARG1_8:.*]]: i32)
@@ -50,7 +50,10 @@ module {
     // We don't expect a first block iwith remote ID placeholder opertions, since the
     // remotes are used for EPRS operations
 
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: %[[C0:.+]] = arith.constant 0 : i32
+
+    // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     // CHECK-NEXT: %[[REG_MAIN0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     %0 = qmem.qalloc : i32
     qmem.eprs %0 {remote = @Bob}
@@ -72,16 +75,16 @@ module {
     %c0 = arith.constant 0.0 : f32
 
     // CHECK: ^[[BLK_4:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[REG_MAIN0]], %[[C0]]) : (i32, i32) -> ()
     qmem.rot_x %0, %c0
 
     %c1 = arith.constant 0.0 : f32
 
     // CHECK: ^[[BLK_5:.*]]:
     // Why does this block depend on "block_3"?
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_5:.*]]", deadlines = {}, dependencies = ["[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN2]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_5:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER4]](%[[REG_MAIN2]], %[[C0]]) : (i32, i32) -> ()
     qmem.rot_y %2, %c1
 
     // CHECK: ^[[BLK_6:.*]]:
