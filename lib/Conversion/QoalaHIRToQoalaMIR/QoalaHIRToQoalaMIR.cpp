@@ -1,17 +1,18 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#define DEBUG_TYPE "QoalaHIRToQoalaMIR"
-
 #include "Analysis/Helpers/PatternRewriteDriver.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIR.h"
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
+
+#define DEBUG_TYPE "QoalaHIRToQoalaMIR"
 
 using namespace mlir;
 using namespace llvm;
@@ -36,6 +37,7 @@ namespace qoala::conversion {
         target.addLegalDialect<qmem::QMemDialect>();
         target.addLegalDialect<BuiltinDialect>();
         target.addLegalDialect<arith::ArithDialect>();
+        target.addLegalDialect<math::MathDialect>();
         target.addLegalDialect<tensor::TensorDialect>();
         // Control Flow dialect can exist in MIR, so we declare it legal in the target
         target.addLegalDialect<cf::ControlFlowDialect>();
