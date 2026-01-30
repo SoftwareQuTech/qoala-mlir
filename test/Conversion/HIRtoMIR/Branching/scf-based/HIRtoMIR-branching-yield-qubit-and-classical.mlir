@@ -23,7 +23,7 @@ module {
     // scf.if structures that yield !qnet.qubit values.
     // In MIR, these scf.if should not yield any !qnet.qubit, but rather rely
     // on the memory side-effects of the lowered quantum operations.
-    // CHECK: %[[I32_VAL:.+]] = scf.if %[[CMP_RESULT]] -> (i32) {
+    // CHECK-NEXT: %[[I32_VAL:.+]] = scf.if %[[CMP_RESULT]] -> (i32) {
     %2, %3 = scf.if %1 -> (!qnet.qubit, i32){
       // CHECK-NEXT: qmem.z %0
       %26 = qnet.z %0 : !qnet.qubit
@@ -39,9 +39,10 @@ module {
       %c0_i32 = arith.constant 0 : i32
       // CHECK-NEXT: scf.yield %[[CST_0]] : i32
       scf.yield %0, %c0_i32 : !qnet.qubit, i32
+    // CHECK-NEXT: }
     }
     // This next instruction should *not* leave an unrealized_convertion_cast operation
-    // CHECK: %[[MEAS:.+]] = qmem.measure %[[QBIT0]] : i1
+    // CHECK-NEXT: %[[MEAS:.+]] = qmem.measure %[[QBIT0]] : i1
     %4 = qnet.measure %2 : i1
     // CHECK-NEXT: %[[ADD_RES:.+]] = arith.addi %[[I32_VAL]], %[[CST_7]] : i32
     %5 = arith.addi %3, %c7_i32 : i32

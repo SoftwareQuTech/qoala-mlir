@@ -30,9 +30,9 @@ module {
       scf.yield %26 : !qnet.qubit
     // Since qubit type will dissapear after HIR->MIR lowering, this branch becomes
     // empty, hence we expect *not* having an "else" branch.
-    // CHECK-NEXT: } else {
     } else {
       scf.yield %0 : !qnet.qubit
+    // CHECK-NEXT: }
     }
     // This next instruction should *not* leave an unrealized_convertion_cast operation
     // CHECK: %[[MEAS:.+]] = qmem.measure %[[QBIT0]] : i1
