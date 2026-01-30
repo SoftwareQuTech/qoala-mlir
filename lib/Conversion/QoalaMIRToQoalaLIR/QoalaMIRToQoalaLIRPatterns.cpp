@@ -332,7 +332,6 @@ namespace qoala::conversion::mir {
         auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(),
                                                              nValImmediate,
                                                              expValImmediate);
-        LLVM_DEBUG(llvm::dbgs() << "Module:\n" << op->getParentOfType<ModuleOp>() << "\n");
         return std::make_unique<OpAndValues>(newRotate, newRotate->getResults());
     }
 
