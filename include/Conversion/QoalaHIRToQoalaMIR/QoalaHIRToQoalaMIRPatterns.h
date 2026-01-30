@@ -259,6 +259,46 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class RotateXIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotXIntOp, dialects::qmem::RotateXIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotXIntOp op, dialects::qnet::RotXIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RotateYIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotYIntOp, dialects::qmem::RotateYIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotYIntOp op, dialects::qnet::RotYIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RotateZIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotZIntOp, dialects::qmem::RotateZIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotZIntOp op, dialects::qnet::RotZIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class CRotXIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::CrotXIntOp, dialects::qmem::CrotXIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::CrotXIntOp op, dialects::qnet::CrotXIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
     class ScfIfLowering : public mlir::OpRewritePattern<mlir::scf::IfOp> {
     public:
         explicit ScfIfLowering(mlir::MLIRContext *context): OpRewritePattern(context) {
