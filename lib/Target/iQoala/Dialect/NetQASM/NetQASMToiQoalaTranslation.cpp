@@ -93,12 +93,16 @@ static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslatio
                                                 const NetQASMMCInstr::OpCode opCode) {
     iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegRefForValue(op.getQ());
     assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
-    const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
-    const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
+    // const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
+    // const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
+    iQoalaRegReference *nValReg = moduleTranslation->getMappedRegRefForValue(op.getNVal());
+    iQoalaRegReference *expValReg = moduleTranslation->getMappedRegRefForValue(op.getExpVal());
 
     iQoalaMCOperand *qubitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
-    iQoalaMCOperand *nOperand = iQoalaMCOperand::createImmediateOperand(nVal);
-    iQoalaMCOperand *expOperand = iQoalaMCOperand::createImmediateOperand(expVal);
+    // iQoalaMCOperand *nOperand = iQoalaMCOperand::createImmediateOperand(nVal);
+    // iQoalaMCOperand *expOperand = iQoalaMCOperand::createImmediateOperand(expVal);
+    iQoalaMCOperand *nOperand = iQoalaMCOperand::createRegisterOperand(nValReg);
+    iQoalaMCOperand *expOperand = iQoalaMCOperand::createRegisterOperand(expValReg);
 
     return qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(moduleTranslation, op.getOperation(), opCode, {},
                                                                     {}, {qubitOperand, nOperand, expOperand},
