@@ -390,6 +390,8 @@ namespace qoala::conversion::hir {
         LLVM_DEBUG(llvm::dbgs() << "After:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
         rewriter.eraseOp(op.getOperation());
 
+        helpers::fixEmptySCFBranchIfNeeded(newIfOp, rewriter);
+
         return LogicalResult::success();
     }
 } // namespace qoala::conversion::hir

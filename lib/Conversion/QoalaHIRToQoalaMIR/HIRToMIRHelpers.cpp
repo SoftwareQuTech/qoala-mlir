@@ -117,4 +117,17 @@ namespace qoala::conversion::hir::helpers {
         }
         return success();
     }
+
+    void fixEmptySCFBranchIfNeeded(scf::IfOp ifOp, PatternRewriter &rewriter) {
+        // Since the true branch cannot be empty (by scf::IfOp design) we will assume that
+        // only the false branch might need correction.
+        auto &elseOps = ifOp.elseBlock()->getOperations();
+        if (elseOps.size() == 1 && isa<scf::YieldOp>(*elseOps.begin())) {
+            rewriter.setInsertionPoint(ifOp);
+            auto newIfOp = rewriter.create<scf::IfOp>(ifOp.getLoc(), ifOp.getResultTypes(), ifOp.getCondition(),
+                                                      /*addThenBlock=*/false, /*addElseBlock*/ false);
+            rewriter.inlineRegionBefore(ifOp.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
+            rewriter.replaceOp(ifOp, newIfOp);
+        }
+    }
 } // namespace qoala::conversion::hir::helpers
