@@ -10,19 +10,22 @@ using namespace mlir;
 namespace qoala::conversion::hir::helpers {
     LogicalResult replaceUnrealizedCastOps(Operation *user, const Value &replaceWith, PatternRewriter &rewriter) {
         LLVM_DEBUG(llvm::dbgs() << "replacing: " << *user << "\n  with: " << replaceWith << "\n");
-        if (auto castOp = dyn_cast<UnrealizedConversionCastOp>(user)) {
-            rewriter.replaceAllUsesWith(castOp.getResults(), replaceWith);
-            rewriter.eraseOp(user);
-            return success();
-        }
-        if (auto yieldOp = dyn_cast<scf::YieldOp>(user)) {
-            rewriter.setInsertionPoint(yieldOp);
-            rewriter.create<scf::YieldOp>(yieldOp.getLoc(), replaceWith);
-            rewriter.eraseOp(user);
-            return success();
-        }
-        user->emitError("Trying to replace the users of an op which is not an Unrealized Cast");
-        return failure();
+        return llvm::TypeSwitch<Operation *, LogicalResult>(user)
+                .Case([&](UnrealizedConversionCastOp castOp) -> LogicalResult {
+                    rewriter.replaceAllUsesWith(castOp.getResults(), replaceWith);
+                    rewriter.eraseOp(user);
+                    return success();
+                })
+                .Case([&](scf::YieldOp yieldOp) -> LogicalResult {
+                    rewriter.setInsertionPoint(yieldOp);
+                    rewriter.create<scf::YieldOp>(yieldOp.getLoc(), replaceWith);
+                    rewriter.eraseOp(user);
+                    return success();
+                })
+                .Default([](Operation *other) -> LogicalResult {
+                    other->emitError("Trying to replace the users of an op which is not an Unrealized Cast");
+                    return failure();
+                });
     }
 
     LogicalResult replaceYieldOps(scf::YieldOp &thenYield, scf::YieldOp &elseYield,
@@ -122,12 +125,15 @@ namespace qoala::conversion::hir::helpers {
         // Since the true branch cannot be empty (by scf::IfOp design) we will assume that
         // only the false branch might need correction.
         auto &elseOps = ifOp.elseBlock()->getOperations();
-        if (elseOps.size() == 1 && isa<scf::YieldOp>(*elseOps.begin())) {
-            rewriter.setInsertionPoint(ifOp);
-            auto newIfOp = rewriter.create<scf::IfOp>(ifOp.getLoc(), ifOp.getResultTypes(), ifOp.getCondition(),
-                                                      /*addThenBlock=*/false, /*addElseBlock*/ false);
-            rewriter.inlineRegionBefore(ifOp.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
-            rewriter.replaceOp(ifOp, newIfOp);
+        if (elseOps.size() == 1) {
+            auto yieldOp = dyn_cast<scf::YieldOp>(*elseOps.begin());
+            if (yieldOp && yieldOp.getNumOperands() == 0) {
+                rewriter.setInsertionPoint(ifOp);
+                auto newIfOp = rewriter.create<scf::IfOp>(ifOp.getLoc(), ifOp.getResultTypes(), ifOp.getCondition(),
+                                                          /*addThenBlock=*/false, /*addElseBlock*/ false);
+                rewriter.inlineRegionBefore(ifOp.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
+                rewriter.replaceOp(ifOp, newIfOp);
+            }
         }
     }
 } // namespace qoala::conversion::hir::helpers

@@ -339,7 +339,7 @@ namespace qoala::conversion::hir {
             return failure();
         }
 
-        std::vector<Type> newYieldedTypes;
+        SmallVector<Type> newYieldedTypes;
         DenseMap<uint32_t, uint32_t> valuesIndexesMap;
         for (uint32_t resIdx = 0, newResIdx = 0; resIdx < op.getResults().size(); resIdx++) {
             // qubitYieldIndexes contains the indexes of values that represent a qubit so,
