@@ -279,7 +279,7 @@ namespace qoala::conversion::hir {
         mlir::LogicalResult analyzeYieldOps(mlir::scf::YieldOp &thenYield, mlir::scf::YieldOp &elseYield,
                                             mlir::DenseMap<uint32_t, mlir::Value> &matchedIdx);
         void fixEmptySCFBranchIfNeeded(mlir::scf::IfOp ifOp, mlir::PatternRewriter &rewriter);
-    } // namespace qoala::conversion::hir::helpers
+    } // namespace helpers
 } // namespace qoala::conversion::hir
 
 #endif // QNET_TO_QMEM_PATTERNS

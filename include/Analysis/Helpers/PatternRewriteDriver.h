@@ -19,7 +19,7 @@ namespace mlir::port {
         ExistingAndNewOps,
         /// Only pre-existing ops are processed.
         ExistingOps
-      };
+    };
 
     enum class GreedySimplifyRegionLevel {
         /// Disable region control-flow simplification.
@@ -29,7 +29,7 @@ namespace mlir::port {
         /// Run extra simplificiations (e.g. block merging), these can be
         /// more costly or have some tradeoffs associated.
         Aggressive
-      };
+    };
 
     /// This class allows control over how the GreedyPatternRewriteDriver works.
     class GreedyRewriteConfig {
@@ -42,7 +42,10 @@ namespace mlir::port {
         ///
         /// Note: Only applicable when simplifying entire regions.
         [[nodiscard]]
-        bool getUseTopDownTraversal() const { return useTopDownTraversal; }
+        bool getUseTopDownTraversal() const {
+            return useTopDownTraversal;
+        }
+
         GreedyRewriteConfig &setUseTopDownTraversal(bool use = true) {
             useTopDownTraversal = use;
             return *this;
@@ -56,8 +59,8 @@ namespace mlir::port {
         GreedySimplifyRegionLevel getRegionSimplificationLevel() const {
             return regionSimplificationLevel;
         }
-        GreedyRewriteConfig &
-        setRegionSimplificationLevel(GreedySimplifyRegionLevel level) {
+
+        GreedyRewriteConfig &setRegionSimplificationLevel(GreedySimplifyRegionLevel level) {
             regionSimplificationLevel = level;
             return *this;
         }
@@ -68,7 +71,10 @@ namespace mlir::port {
         ///
         /// Note: Only applicable when simplifying entire regions.
         [[nodiscard]]
-        int64_t getMaxIterations() const { return maxIterations; }
+        int64_t getMaxIterations() const {
+            return maxIterations;
+        }
+
         GreedyRewriteConfig &setMaxIterations(int64_t iterations) {
             maxIterations = iterations;
             return *this;
@@ -77,7 +83,10 @@ namespace mlir::port {
         /// This specifies the maximum number of rewrites within an iteration. Use
         /// `kNoLimit` to disable this limit.
         [[nodiscard]]
-        int64_t getMaxNumRewrites() const { return maxNumRewrites; }
+        int64_t getMaxNumRewrites() const {
+            return maxNumRewrites;
+        }
+
         GreedyRewriteConfig &setMaxNumRewrites(int64_t limit) {
             maxNumRewrites = limit;
             return *this;
@@ -90,7 +99,10 @@ namespace mlir::port {
         /// (or the specified region, depending on which greedy rewrite entry point
         /// is used) is used as a scope.
         [[nodiscard]]
-        Region *getScope() const { return scope; }
+        Region *getScope() const {
+            return scope;
+        }
+
         GreedyRewriteConfig &setScope(Region *scope) {
             this->scope = scope;
             return *this;
@@ -107,7 +119,10 @@ namespace mlir::port {
         ///   were on the worklist at the very beginning) enqueued. All other ops are
         ///   excluded.
         [[nodiscard]]
-        GreedyRewriteStrictness getStrictness() const { return strictness; }
+        GreedyRewriteStrictness getStrictness() const {
+            return strictness;
+        }
+
         GreedyRewriteConfig &setStrictness(GreedyRewriteStrictness mode) {
             strictness = mode;
             return *this;
@@ -115,7 +130,10 @@ namespace mlir::port {
 
         /// An optional listener that should be notified about IR modifications.
         [[nodiscard]]
-        RewriterBase::Listener *getListener() const { return listener; }
+        RewriterBase::Listener *getListener() const {
+            return listener;
+        }
+
         GreedyRewriteConfig &setListener(RewriterBase::Listener *listener) {
             this->listener = listener;
             return *this;
@@ -123,7 +141,10 @@ namespace mlir::port {
 
         /// Whether this should fold while greedily rewriting.
         [[nodiscard]]
-        bool isFoldingEnabled() const { return fold; }
+        bool isFoldingEnabled() const {
+            return fold;
+        }
+
         GreedyRewriteConfig &enableFolding(bool enable = true) {
             fold = enable;
             return *this;
@@ -132,7 +153,10 @@ namespace mlir::port {
         /// If set to "true", constants are CSE'd (even across multiple regions that
         /// are in a parent-ancestor relationship).
         [[nodiscard]]
-        bool isConstantCSEEnabled() const { return cseConstants; }
+        bool isConstantCSEEnabled() const {
+            return cseConstants;
+        }
+
         GreedyRewriteConfig &enableConstantCSE(bool enable = true) {
             cseConstants = enable;
             return *this;
@@ -141,8 +165,7 @@ namespace mlir::port {
     private:
         Region *scope = nullptr;
         bool useTopDownTraversal = false;
-        GreedySimplifyRegionLevel regionSimplificationLevel =
-            GreedySimplifyRegionLevel::Aggressive;
+        GreedySimplifyRegionLevel regionSimplificationLevel = GreedySimplifyRegionLevel::Aggressive;
         int64_t maxIterations = 10;
         int64_t maxNumRewrites = kNoLimit;
         GreedyRewriteStrictness strictness = GreedyRewriteStrictness::AnyOp;
@@ -150,7 +173,6 @@ namespace mlir::port {
         bool fold = true;
         bool cseConstants = true;
     };
-
 
     /// Rewrite ops nested under the given operation, which must be isolated from
     /// above, by repeatedly applying the highest benefit patterns in a greedy
@@ -177,26 +199,23 @@ namespace mlir::port {
     ///
     /// Note: This method does not apply patterns to the given operation itself.
 
-    LogicalResult
-    applyPatternsGreedily(Region &region,
-                          const FrozenRewritePatternSet &patterns,
-                          GreedyRewriteConfig config, bool *changed);
+    LogicalResult applyPatternsGreedily(Region &region, const FrozenRewritePatternSet &patterns,
+                                        GreedyRewriteConfig config, bool *changed);
 
-    inline LogicalResult
-    applyPatternsGreedily(Operation *op, const FrozenRewritePatternSet &patterns,
-                          GreedyRewriteConfig config = GreedyRewriteConfig(),
-                          bool *changed = nullptr) {
+    inline LogicalResult applyPatternsGreedily(Operation *op, const FrozenRewritePatternSet &patterns,
+                                               GreedyRewriteConfig config = GreedyRewriteConfig(),
+                                               bool *changed = nullptr) {
         bool anyRegionChanged = false;
         bool failed = false;
         for (Region &region : op->getRegions()) {
             bool regionChanged;
-            failed |= applyPatternsGreedily(region, patterns, config, &regionChanged)
-                          .failed();
+            failed |= applyPatternsGreedily(region, patterns, config, &regionChanged).failed();
             anyRegionChanged |= regionChanged;
         }
-        if (changed)
+        if (changed) {
             *changed = anyRegionChanged;
+        }
         return failure(failed);
     }
-}
-#endif //QOALA_MLIR_PATTERNREWRITEDRIVER_H
+} // namespace mlir::port
+#endif // QOALA_MLIR_PATTERNREWRITEDRIVER_H

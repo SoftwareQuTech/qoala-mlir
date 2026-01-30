@@ -131,7 +131,8 @@ namespace qoala::conversion::hir::helpers {
                 rewriter.setInsertionPoint(ifOp);
                 auto newIfOp = rewriter.create<scf::IfOp>(ifOp.getLoc(), ifOp.getResultTypes(), ifOp.getCondition(),
                                                           /*addThenBlock=*/false, /*addElseBlock*/ false);
-                rewriter.inlineRegionBefore(ifOp.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
+                rewriter.inlineRegionBefore(ifOp.getThenRegion(), newIfOp.getThenRegion(),
+                                            newIfOp.getThenRegion().end());
                 rewriter.replaceOp(ifOp, newIfOp);
             }
         }
