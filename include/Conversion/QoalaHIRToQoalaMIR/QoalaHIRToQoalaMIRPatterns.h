@@ -268,6 +268,17 @@ namespace qoala::conversion::hir {
         mlir::LogicalResult matchAndRewrite(mlir::scf::IfOp op, mlir::PatternRewriter &rewriter) const override;
     };
 
+    namespace helpers {
+        mlir::LogicalResult replaceUnrealizedCastOps(mlir::Operation *user, const mlir::Value &replaceWith,
+                                                     mlir::PatternRewriter &rewriter);
+
+        mlir::LogicalResult replaceYieldOps(mlir::scf::YieldOp &thenYield, mlir::scf::YieldOp &elseYield,
+                                            const mlir::DenseMap<uint32_t, mlir::Value> &qubitYieldIndexes,
+                                            mlir::PatternRewriter &rewriter);
+
+        mlir::LogicalResult analyzeYieldOps(mlir::scf::YieldOp &thenYield, mlir::scf::YieldOp &elseYield,
+                                            mlir::DenseMap<uint32_t, mlir::Value> &matchedIdx);
+    } // namespace qoala::conversion::hir::helpers
 } // namespace qoala::conversion::hir
 
 #endif // QNET_TO_QMEM_PATTERNS
