@@ -179,7 +179,7 @@ Operation *SendIntsOp::simpleClone(OpBuilder &builder, const Location loc) {
 std::vector<Operation *> SendIntsOp::getOpsAllocatingUsedQubits() { return {}; }
 
 Operation *CrotXIntOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<CrotXIntOp>(loc, getQin0(), getQin1(), getNValAttr(), getExpValAttr());
+    return builder.create<CrotXIntOp>(loc, getQin0(), getQin1(), getNVal(), getExpVal());
 }
 
 std::vector<Operation *> CrotXIntOp::getOpsAllocatingUsedQubits() {
@@ -187,19 +187,19 @@ std::vector<Operation *> CrotXIntOp::getOpsAllocatingUsedQubits() {
 }
 
 Operation *RotateXIntOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<RotateXIntOp>(loc, getQ(), getNValAttr(), getExpValAttr());
+    return builder.create<RotateXIntOp>(loc, getQ(), getNVal(), getExpVal());
 }
 
 std::vector<Operation *> RotateXIntOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
 Operation *RotateYIntOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<RotateYIntOp>(loc, getQ(), getNValAttr(), getExpValAttr());
+    return builder.create<RotateYIntOp>(loc, getQ(), getNVal(), getExpVal());
 }
 
 std::vector<Operation *> RotateYIntOp::getOpsAllocatingUsedQubits() { return {this->getQ().getDefiningOp()}; }
 
 Operation *RotateZIntOp::simpleClone(OpBuilder &builder, const Location loc) {
-    return builder.create<RotateZIntOp>(loc, getQ(), getNValAttr(), getExpValAttr());
+    return builder.create<RotateZIntOp>(loc, getQ(), getNVal(), getExpVal());
 }
 
 Operation *SendFloatOp::simpleClone(OpBuilder &builder, const Location loc) {
