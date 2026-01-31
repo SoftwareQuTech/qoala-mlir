@@ -71,8 +71,8 @@ namespace qoala::conversion {
                      hir::RecvFloatOpLowering, hir::SendIntOpLowering, hir::SendFloatOpLowering, hir::RotateXLowering,
                      hir::RotateYLowering, hir::RotateZLowering, hir::HadamardLowering, hir::XLowering, hir::YLowering,
                      hir::ZLowering, hir::CNotLowering, hir::CzLowering, hir::CRotXLowering, hir::MeasureLowering,
-                     hir::RotateXIntLowering, hir::RotateYIntLowering, hir::RotateZIntLowering>(
-                typeConverter, &context);
+                     hir::RotateXIntLowering, hir::RotateYIntLowering, hir::RotateZIntLowering>(typeConverter,
+                                                                                                &context);
 
         // We apply a **full** conversion, since we correctly defined all the
         // dialects that are "legal" in the target IR
