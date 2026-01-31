@@ -3,10 +3,8 @@
 #include "Analysis/QoalaHost/QubitLife.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/Operation.h"
 
 #define DEBUG_TYPE "qoalahost-esp"
 
@@ -22,16 +20,16 @@ namespace qoala::analysis::fidelity {
         // where fidelity = (1 - error_rate)^gate_counts
         float qubitEsp = 1.0f;
         // decoherence factor
-        float t2Exp = lifetime / static_cast<float>(qoalaOptQubitLifetime);
+        const float t2Exp = lifetime / static_cast<float>(qoalaOptQubitLifetime);
 
-        float qubitDecoherence = (std::exp(-t2Exp) + 1) / 2;
+        const float qubitDecoherence = (std::exp(-t2Exp) + 1) / 2;
 
         LLVM_DEBUG(llvm::dbgs() << "0.5*e^-" << t2Exp << " + 0.5" << " = " << qubitDecoherence << " \n");
 
         qubitEsp *= qubitDecoherence;
 
-        qubitEsp *= std::pow(1.0f - qoalaOptSingleGateError, oneQubitGates);
-        qubitEsp *= std::pow(1.0f - qoalaOptDualGateError, twoQubitGates);
+        qubitEsp *= static_cast<float>(std::pow(1.0f - qoalaOptSingleGateError, oneQubitGates));
+        qubitEsp *= static_cast<float>(std::pow(1.0f - qoalaOptDualGateError, twoQubitGates));
 
         return qubitEsp;
     }
@@ -62,20 +60,19 @@ namespace qoala::analysis::fidelity {
 
         // Get the gate count
         const auto &gatecountAnalysis = am.getAnalysis<gatecount::QoalaHostGateCount>();
-        const auto oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
-        const auto twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
+        const auto &oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
+        const auto &twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
         // For each qubit compute the ESP as:
         // qubitEsp = prod(gate_fidelities) * 1/2*(exp(-lifetime/T2) + 1) where fidelity = (1 - error_rate)^gate_counts
         // Total ESP is given by the product of each qubit ESP
 
-        for (auto qubitId : lifeTimes) {
-            auto lifetime = lifeTimes.at(qubitId.first);
-            auto oneQubitGates = oneQubitGateCount.at(qubitId.first);
-            auto twoQubitGates = twoQubitGateCount.at(qubitId.first);
+        for (auto &[qubitId, lifetime] : lifeTimes) {
+            const auto oneQubitGates = oneQubitGateCount.at(qubitId);
+            const auto twoQubitGates = twoQubitGateCount.at(qubitId);
 
-            auto qubitEsp = calculateQubitEsp(lifetime, oneQubitGates, twoQubitGates);
-            LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId.first << "] ESP:" << qubitEsp << "\n");
+            const auto qubitEsp = calculateQubitEsp(static_cast<float>(lifetime), oneQubitGates, twoQubitGates);
+            LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId << "] ESP:" << qubitEsp << "\n");
 
             totalEsp *= qubitEsp;
         }

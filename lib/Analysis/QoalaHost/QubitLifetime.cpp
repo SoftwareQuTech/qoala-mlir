@@ -27,7 +27,7 @@ namespace qoala::analysis::qubitlife {
      */
     static std::vector<std::shared_ptr<LiveQubit>>
     getQubitCriticalOps(const llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,
-                        const std::unordered_map<mlir::Operation *, reordering::MILPOperation *> &opToMilpOp) {
+                        const std::unordered_map<Operation *, reordering::MILPOperation *> &opToMilpOp) {
         std::vector<std::shared_ptr<LiveQubit>> qubits;
 
         for (const auto &entry : qubitToOps) {
@@ -63,7 +63,7 @@ namespace qoala::analysis::qubitlife {
             }
 
             std::string id = allocOp->getId();
-            std::shared_ptr<LiveQubit> qubitPtr = std::make_shared<LiveQubit>(id);
+            auto qubitPtr = std::make_shared<LiveQubit>(id);
 
             // Attach known alloc/meas to the qubit model object
             qubitPtr->setAllocation(allocOp);
@@ -378,7 +378,7 @@ namespace qoala::analysis::qubitlife {
 
         auto [blocks, opToMilpOp, precedences, unresolvedEdges, _, blocksStatus] =
                 reordering::buildMilpBlocks(mainFunc, routineMap);
-        assert(!failed(blocksStatus) && "Falied to build predences.");
+        assert(!failed(blocksStatus) && "Failed to build predences.");
         assert(unresolvedEdges.empty() && "Unresolved precedence edges detected.");
 
         LLVM_DEBUG(llvm::dbgs() << "Blocks and tasks:\n");
