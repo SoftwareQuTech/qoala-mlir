@@ -320,7 +320,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
     }
 
-    std::unique_ptr<OpAndValues> RotateXIntLowering::createNewOpAndValues(qnet::RotXIntOp op, qnet::RotXIntOp::Adaptor adaptor,
+    std::unique_ptr<OpAndValues> RotateXIntLowering::createNewOpAndValues(qnet::RotXIntOp op,
+                                                                          qnet::RotXIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
@@ -333,7 +334,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
-    std::unique_ptr<OpAndValues> RotateYIntLowering::createNewOpAndValues(qnet::RotYIntOp op, qnet::RotYIntOp::Adaptor adaptor,
+    std::unique_ptr<OpAndValues> RotateYIntLowering::createNewOpAndValues(qnet::RotYIntOp op,
+                                                                          qnet::RotYIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
@@ -346,7 +348,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
-    std::unique_ptr<OpAndValues> RotateZIntLowering::createNewOpAndValues(qnet::RotZIntOp op, qnet::RotZIntOp::Adaptor adaptor,
+    std::unique_ptr<OpAndValues> RotateZIntLowering::createNewOpAndValues(qnet::RotZIntOp op,
+                                                                          qnet::RotZIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the output of the operation with
         // the mapped value of the "qin" operand of this operation
@@ -359,7 +362,8 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
     }
 
-    std::unique_ptr<OpAndValues> CRotXIntLowering::createNewOpAndValues(qnet::CrotXIntOp op, qnet::CrotXIntOp::Adaptor adaptor,
+    std::unique_ptr<OpAndValues> CRotXIntLowering::createNewOpAndValues(qnet::CrotXIntOp op,
+                                                                        qnet::CrotXIntOp::Adaptor adaptor,
                                                                         ConversionPatternRewriter &rewriter) const {
         // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
         // the mapped value of the respective "qin" operand of this operation

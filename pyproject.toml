@@ -1,7 +1,7 @@
 [project]
 name = "qoala-mlir"
 readme = "README.md"
-version = "0.0.2"
+version = "0.0.3"
 # Python 3.13 is not supported, since numpy (dependency from MLIR, required <=1.26)
 # supports python <3.13. Numpy 2.2+ is the first version that supports python 3.13,
 # which might break the build (untested though).

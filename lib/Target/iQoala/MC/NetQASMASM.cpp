@@ -128,7 +128,8 @@ namespace qoala::assembly {
             case OP_ROT_Y:
             case OP_ROT_Z:
                 assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 2-imm/reg instruction: operand 0 must be a register");
+                assert(mcOperands[0]->isRegister() &&
+                       "NetQASM 1-reg, 2-imm/reg instruction: operand 0 must be a register");
                 assert((mcOperands[1]->isImmediate() || mcOperands[1]->isRegister()) &&
                        "NetQASM 1-reg, 2-imm/reg instruction: operand 1 must be an immediate or a register");
                 assert((mcOperands[2]->isImmediate() || mcOperands[2]->isRegister()) &&

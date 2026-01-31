@@ -259,7 +259,8 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class RotateXIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotXIntOp, dialects::qmem::RotateXIntOp> {
+    class RotateXIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotXIntOp, dialects::qmem::RotateXIntOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -269,7 +270,8 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class RotateYIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotYIntOp, dialects::qmem::RotateYIntOp> {
+    class RotateYIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotYIntOp, dialects::qmem::RotateYIntOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -279,7 +281,8 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class RotateZIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::RotZIntOp, dialects::qmem::RotateZIntOp> {
+    class RotateZIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotZIntOp, dialects::qmem::RotateZIntOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;
@@ -289,7 +292,8 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class CRotXIntLowering : public helpers::OpLoweringTemplate<dialects::qnet::CrotXIntOp, dialects::qmem::CrotXIntOp> {
+    class CRotXIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::CrotXIntOp, dialects::qmem::CrotXIntOp> {
     public:
         // Constructor simply matches the super class
         using OpLoweringTemplate::OpLoweringTemplate;

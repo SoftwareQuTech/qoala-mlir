@@ -329,9 +329,8 @@ namespace qoala::conversion::mir {
         auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
         auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             nValImmediate,
-                                                             expValImmediate);
+        auto newRotate =
+                rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate, newRotate->getResults());
     }
 
@@ -348,9 +347,8 @@ namespace qoala::conversion::mir {
         auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
         auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             nValImmediate,
-                                                             expValImmediate);
+        auto newRotate =
+                rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -367,9 +365,8 @@ namespace qoala::conversion::mir {
         // And use the results of the conversion as the arguments of the new rotate operation
         auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
         auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
-        auto newRotate = rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             nValImmediate,
-                                                             expValImmediate);
+        auto newRotate =
+                rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -386,8 +383,7 @@ namespace qoala::conversion::mir {
         auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::CrotXIntOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                                                             nValImmediate,
-                                                             expValImmediate);
+                                                           nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 } // namespace qoala::conversion::mir
