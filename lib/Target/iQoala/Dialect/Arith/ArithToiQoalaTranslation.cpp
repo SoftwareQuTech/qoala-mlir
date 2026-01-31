@@ -156,8 +156,8 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 // extui is a no-op for iQoala MC, but we must forward the value mapping:
                 // result(%2) should refer to the same mapped register as input(%1).
                 if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                    Value in = op.getIn(); // or op.getOperand(0)
-                    Value out = op.getResult();
+                    const Value in = op.getIn(); // or op.getOperand(0)
+                    const Value out = op.getResult();
 
                     auto *inRef = moduleTranslation->getMappedRegRefForValue(in);
                     if (!inRef) {
@@ -169,6 +169,14 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                     return success();
                 }
                 return op.emitOpError("Arith extui operation not in host section!");
+            })
+            .Case<arith::RemSIOp>([&](arith::RemSIOp op) -> LogicalResult {
+                // TODO - Implement this when supported by qoala-sim!
+                return failure();
+            })
+            .Case<arith::XOrIOp>([&](arith::XOrIOp op) -> LogicalResult {
+                // TODO - Implement this when supported by qoala-sim!
+                return failure();
             })
             .Default([](Operation *op) -> LogicalResult {
                 return op->emitOpError("Unknown way to translate a Arith operation to iQoala: '") << *op << "'\n";
