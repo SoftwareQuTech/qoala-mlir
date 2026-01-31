@@ -382,7 +382,7 @@ namespace qoala::conversion::hir {
         return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
     }
 
-    LogicalResult ScfIfLowering::matchAndRewrite(scf::IfOp op, PatternRewriter &rewriter) const {
+    LogicalResult ScfIfRewriting::matchAndRewrite(scf::IfOp op, PatternRewriter &rewriter) const {
         // This is the "lowering" of scf.if.
         // The idea here is that we need to get rid of the !qnet.qubit returned type (if any)
         // and adjust the scf.yield operations that return !qnet.qubit values

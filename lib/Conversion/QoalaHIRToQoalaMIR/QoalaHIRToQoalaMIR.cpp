@@ -70,7 +70,8 @@ namespace qoala::conversion {
                      hir::SendIntsOpLowering, hir::SendFloatsOpLowering, hir::RecvIntOpLowering,
                      hir::RecvFloatOpLowering, hir::SendIntOpLowering, hir::SendFloatOpLowering, hir::RotateXLowering,
                      hir::RotateYLowering, hir::RotateZLowering, hir::HadamardLowering, hir::XLowering, hir::YLowering,
-                     hir::ZLowering, hir::CNotLowering, hir::CzLowering, hir::CRotXLowering, hir::MeasureLowering>(
+                     hir::ZLowering, hir::CNotLowering, hir::CzLowering, hir::CRotXLowering, hir::MeasureLowering,
+                     hir::RotateXIntLowering, hir::RotateYIntLowering, hir::RotateZIntLowering>(
                 typeConverter, &context);
 
         // We apply a **full** conversion, since we correctly defined all the
@@ -97,7 +98,7 @@ namespace qoala::conversion {
         // however, since we need to trigger the "lowering" of the scf.if operations, we mark *only*
         // that operation as illegal
         scfTarget.addIllegalOp<scf::IfOp>();
-        scfPatterns.add<hir::ScfIfLowering>(&context);
+        scfPatterns.add<hir::ScfIfRewriting>(&context);
 
         port::GreedyRewriteConfig cfg;
         // If we don't disable region simplification, the folding of the code will be more aggressive

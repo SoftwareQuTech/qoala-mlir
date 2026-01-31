@@ -303,9 +303,9 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
-    class ScfIfLowering : public mlir::OpRewritePattern<mlir::scf::IfOp> {
+    class ScfIfRewriting : public mlir::OpRewritePattern<mlir::scf::IfOp> {
     public:
-        explicit ScfIfLowering(mlir::MLIRContext *context): OpRewritePattern(context) {
+        explicit ScfIfRewriting(mlir::MLIRContext *context): OpRewritePattern(context) {
             this->setHasBoundedRewriteRecursion();
         }
 
