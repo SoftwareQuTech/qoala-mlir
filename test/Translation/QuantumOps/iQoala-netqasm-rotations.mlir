@@ -15,11 +15,13 @@
 // CHECK-NEXT: keeps:
 // CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
+// CHECK-NEXT: set C[[VAL0:.*]] 0
+// CHECK-NEXT: set C[[VAL1:.*]] 1
 // CHECK-NEXT: set Q[[QBIT0:.*]] 0
 // CHECK-NEXT: init Q[[QBIT0]]
-// CHECK-NEXT: rot_x Q[[QBIT0]] 0 0
-// CHECK-NEXT: rot_y Q[[QBIT0]] 1 0
-// CHECK-NEXT: rot_z Q[[QBIT0]] 1 1
+// CHECK-NEXT: rot_x Q[[QBIT0]] C[[VAL0]] C[[VAL0]]
+// CHECK-NEXT: rot_y Q[[QBIT0]] C[[VAL1]] C[[VAL0]]
+// CHECK-NEXT: rot_z Q[[QBIT0]] C[[VAL1]] C[[VAL1]]
 // CHECK-NEXT: meas Q[[QBIT0]] M[[M_REG0:.*]]
 // CHECK-NEXT: store M[[M_REG0]] @output[0]
 // CHECK-NEXT: NETQASM_END
@@ -27,11 +29,13 @@
 module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> i1 {
+    %zero_i32 = arith.constant 0 : i32
+    %one_i32 = arith.constant 1 : i32
     %0 = netqasm.qalloc  : i32
     netqasm.init %0
-    netqasm.rot_x %0 (0 : ui32, 0 : ui32)
-    netqasm.rot_y %0 (1 : ui32, 0 : ui32)
-    netqasm.rot_z %0 (1 : ui32, 1 : ui32)
+    netqasm.rot_x %0, %zero_i32, %zero_i32
+    netqasm.rot_y %0, %one_i32, %zero_i32
+    netqasm.rot_z %0, %one_i32, %one_i32
     %1 = netqasm.measure %0 : i1
     netqasm.return %1 : i1
   }

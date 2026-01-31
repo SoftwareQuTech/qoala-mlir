@@ -5,15 +5,18 @@
 // CHECK-NEXT: csockets:
 // CHECK-NEXT: epr_sockets: 0 -> Bob
 // CHECK-NEXT: META_END
-// CHECK: ^b[[BLOCK0:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK: ^b[[BLOCK0:.*]] { type = CL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK-NEXT: %[[VAL_0:.+]] = assign_cval() : 0
+// CHECK-NEXT: %[[VAL_1:.+]] = assign_cval() : 1
+// CHECK: ^b[[BLOCK1:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_request() : __qoala_wrapper0
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK: ^b[[BLOCK2:.*]] { type = QL; predecessors = []; dependencies = []; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: run_subroutine() : __qoala_wrapper1
-// CHECK: ^b[[BLOCK1:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = b0; deadlines = [] }
+// CHECK: ^b[[BLOCK3:.*]] { type = QC; predecessors = []; dependencies = []; prev_comm = ; prev_ent = b0; deadlines = [] }
 // CHECK-NEXT: run_request() : __qoala_wrapper2
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0, b1, b2]; prev_comm = ; prev_ent = ; deadlines = [] }
-// CHECK-NEXT: run_subroutine() : __qoala_wrapper3
-// CHECK: ^b[[BLOCK1:.*]] { type = QL; predecessors = []; dependencies = [b0, b1, b2]; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK: ^b[[BLOCK4:.*]] { type = QL; predecessors = []; dependencies = [b0, b1, b2, b3]; prev_comm = ; prev_ent = ; deadlines = [] }
+// CHECK-NEXT: run_subroutine(tuple<%[[VAL_0]]; %[[VAL_1]]>) : __qoala_wrapper3
+// CHECK: ^b[[BLOCK5:.*]] { type = QL; predecessors = []; dependencies = [b1, b2, b3]; prev_comm = ; prev_ent = ; deadlines = [] }
 // CHECK-NEXT: tuple<[[MEAS_0:.*]]; [[MEAS_1:.*]]; [[MEAS_2:.*]]; [[MEAS_3:.*]]; [[MEAS_4:.*]]> = run_subroutine() : __qoala_wrapper4
 
 //CHECK: SUBROUTINE __qoala_wrapper1
@@ -29,8 +32,8 @@
 
 // This routine simply uses all the qubits
 //CHECK: SUBROUTINE __qoala_wrapper3
-// CHECK-NEXT: params: {{[[:space:]]}}
-// CHECK-SAME: returns: {{[[:space:]]}}
+// CHECK-NEXT: params: p5, p6
+// CHECK-NEXT: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
 // CHECK-NEXT: keeps: [[QUBIT0]], [[QUBIT1]], [[QUBIT2]], [[QUBIT3]], [[QUBIT4]]
 // CHECK-NEXT: request:
@@ -40,9 +43,11 @@
 // CHECK-NEXT: set [[Q_REGB2:.*]] [[QUBIT2]]
 // CHECK-NEXT: set [[Q_REGB3:.*]] [[QUBIT3]]
 // CHECK-NEXT: set [[Q_REGB4:.*]] [[QUBIT4]]
-// CHECK-NEXT: rot_x [[Q_REGB0]] 0 0
-// CHECK-NEXT: rot_y [[Q_REGB1]] 1 0
-// CHECK-NEXT: rot_z [[Q_REGB2]] 1 1
+// CHECK-NEXT: load [[VAL0:.*]] @input[5]
+// CHECK-NEXT: load [[VAL1:.*]] @input[6]
+// CHECK-NEXT: rot_x [[Q_REGB0]] [[VAL0]] [[VAL0]]
+// CHECK-NEXT: rot_y [[Q_REGB1]] [[VAL1]] [[VAL0]]
+// CHECK-NEXT: rot_z [[Q_REGB2]] [[VAL1]] [[VAL1]]
 // CHECK-NEXT: cnot [[Q_REGB3]] [[Q_REGB4]]
 // CHECK-NEXT: NETQASM_END
 
@@ -118,10 +123,10 @@ module {
     netqasm.eprs %0  {remote = @Bob}
     netqasm.return %0 : i32
   }
-  netqasm.local_routine @__qoala_wrapper3(%qubit0: i32, %qubit1: i32, %qubit2: i32, %qubit3: i32, %qubit4: i32) -> () {
-    netqasm.rot_x %qubit0 (0 : ui32, 0 : ui32)
-    netqasm.rot_y %qubit1 (1 : ui32, 0 : ui32)
-    netqasm.rot_z %qubit2 (1 : ui32, 1 : ui32)
+  netqasm.local_routine @__qoala_wrapper3(%qubit0: i32, %qubit1: i32, %qubit2: i32, %qubit3: i32, %qubit4: i32, %c0_arg: i32, %c1_arg: i32) -> () {
+    netqasm.rot_x %qubit0, %c0_arg, %c0_arg
+    netqasm.rot_y %qubit1, %c1_arg, %c0_arg
+    netqasm.rot_z %qubit2, %c1_arg, %c1_arg
     netqasm.cnot %qubit3, %qubit4
     netqasm.return
   }
@@ -134,25 +139,27 @@ module {
     netqasm.return %0, %1, %2, %3, %4 : i1, i1, i1, i1, i1
   }
   qoalahost.main_func @test_call_request_routines() {
-    // Note: there is an implicit "^bb0" not-rendered block declaration here
-    // so this "call" operation is the one and only operation of the
-    // first block of the main function
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    %0, %1, %2 = qoalahost.call @__qoala_wrapper0() : () -> (i32, i32, i32)
-    ^bb1:
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    qoalahost.nop_term
+    ^bb0:
       qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+      %0, %1, %2 = qoalahost.call @__qoala_wrapper0() : () -> (i32, i32, i32)
+    ^bb1:
+      qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       %3 = qoalahost.call @__qoala_wrapper1() : () -> i32
     ^bb2:
-      qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_0"}
+      qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "block_0"}
       %4 = qoalahost.call @__qoala_wrapper2() : () -> i32
     ^bb3:
-      qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_0", "block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-      qoalahost.call @__qoala_wrapper3(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> ()
+      qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_0", "block_1", "block_2", "block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.call @__qoala_wrapper3(%0, %1, %2, %3, %4, %c0_i32, %c1_i32) : (i32, i32, i32, i32, i32, i32, i32) -> ()
     ^bb4:
-      qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_0", "block_1", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_1", "block_2", "block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
       %m0, %m1, %m2, %m3, %m4 = qoalahost.call @__qoala_wrapper4(%0, %1, %2, %3, %4) : (i32, i32, i32, i32, i32) -> (i1, i1, i1, i1, i1)
     ^bb5:
-      qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+      qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
       qoalahost.return
   }
 }
