@@ -51,6 +51,19 @@ static QoalaHostMCInstr::OpCode getQoalaHostOpCodeFor(const arith::CmpIPredicate
     }
 }
 
+static LogicalResult insertQoalaHostJumpInstr(ModuleTranslation *moduleTranslation, Operation *op,
+                                              const std::string &targetBlockName) {
+    // Use the target name as an operand
+    iQoalaMCExpr *blockSymExpr = iQoalaMCExpr::createSymbolRef(targetBlockName);
+    iQoalaMCOperand *targetBlockOperand = iQoalaMCOperand::createExprOperand(blockSymExpr);
+
+    // Create the jump instruction
+    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+            moduleTranslation, op, QoalaHostMCInstr::OP_JUMP, {}, {}, {targetBlockOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
+    return instruction ? success() : failure();
+}
+
 static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslation, cf::BranchOp &op) {
     // Get the name of the target block
     const Block *destBlock = op.getDest();
@@ -58,15 +71,7 @@ static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslatio
     assert(destQoalaHostBlock && "Destination block not mapped!");
     const std::string targetBlockName = destQoalaHostBlock->getName();
 
-    // Use the target name as an operand
-    iQoalaMCExpr *blockSymExpr = iQoalaMCExpr::createSymbolRef(targetBlockName);
-    iQoalaMCOperand *targetBlockOperand = iQoalaMCOperand::createExprOperand(blockSymExpr);
-
-    // Create the jump instruction
-    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_JUMP, {}, {}, {targetBlockOperand},
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
-    return instruction ? success() : failure();
+    return insertQoalaHostJumpInstr(moduleTranslation, op.getOperation(), targetBlockName);
 }
 
 static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslation, cf::CondBranchOp &op) {
@@ -141,11 +146,30 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
     }
     if (auto constantCondition = dyn_cast_or_null<arith::ConstantIntOp>(conditionOp)) {
         assert(constantCondition.getType().isInteger(1) && "Constant condition is not a boolean (i1)");
-        op.emitError("Branching based on a boolean constant is not supported yet");
-        return failure();
+        // 2 cases: Condition can be a "native" boolean or an integer
+        const bool conditionIsTrue =
+                llvm::TypeSwitch<TypedAttr, bool>(constantCondition.getValueAttr())
+                        .Case([](const BoolAttr boolAttr) { return boolAttr.getValue(); })
+                        .Case([](const IntegerAttr intAttr) { return intAttr.getInt() ? true : false; })
+                        .Default([&](TypedAttr attr) {
+                            op.emitError("Branching based on a boolean constant is not supported yet");
+                            return false;
+                        });
+        const Block *trueDestBlock = op.getTrueDest();
+        const Block *falseDestBlock = op.getFalseDest();
+
+        // We insert an uncondition branch, depending on the branch test
+        const Block *destBlock = conditionIsTrue ? trueDestBlock : falseDestBlock;
+
+        const auto *destQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(destBlock);
+        assert(destQoalaHostBlock && "Destination block not mapped!");
+        const std::string targetBlockName = destQoalaHostBlock->getName();
+
+        return insertQoalaHostJumpInstr(moduleTranslation, op.getOperation(), targetBlockName);
     }
-    // The mapped operation is not an integer comparison -> error
-    op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction");
+    // The mapped operation is not an integer or boolean comparison -> error
+    op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction or a "
+                   "static constant.");
     return failure();
 }
 
