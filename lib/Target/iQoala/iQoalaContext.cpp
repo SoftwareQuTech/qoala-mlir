@@ -65,7 +65,7 @@ namespace qoala::iqoala {
             case assembly::LOCAL:
                 lastAvailable = this->hostRegisters.size();
                 assert(!localQuantumRoutine.has_value() &&
-                       "Trying to allocate a local registry for a Local quanutm routine.");
+                       "Trying to allocate a local registry for a Local quantum routine.");
                 assert(lastAvailable < 64 && "No Host register available");
                 LLVM_DEBUG(llvm::dbgs() << "Allocate Host Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
                 this->hostRegisters.push_back(lastAvailable);

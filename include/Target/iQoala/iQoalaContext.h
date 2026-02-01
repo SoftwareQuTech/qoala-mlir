@@ -45,6 +45,7 @@ namespace qoala::iqoala {
     private:
         // Structures to keep track of the host registers.
         llvm::SmallVector<uint8_t, 64> hostRegisters;
+        llvm::SmallVector<uint8_t, 64> blockArgsRegisters;
         llvm::DenseMap<LocalQuantumRoutine *, LocalRoutineRegisters> routinesRegisters;
         // Structure to keep track of the mlir values in the QoalaHost section that are qubit refs
         llvm::DenseMap<mlir::Value, uint8_t> valuesToQubitIDs;
