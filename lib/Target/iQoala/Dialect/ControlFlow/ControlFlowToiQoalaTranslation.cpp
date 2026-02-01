@@ -167,24 +167,29 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
 
         return insertQoalaHostJumpInstr(moduleTranslation, op.getOperation(), targetBlockName);
     }
-    // The mapped operation is not an integer or boolean comparison -> error
+    // The mapped operation is not an integer comparison or boolean-like constant -> error
     op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction or a "
                    "static constant.");
     return failure();
+}
+
+static LogicalResult insertNetQASMJumpInstr(ModuleTranslation *moduleTranslation, Operation *op, Operation *destOp) {
+    iQoalaMCExpr *destOpExpr = iQoalaMCExpr::createInstructionRef(destOp);
+    iQoalaMCOperand *destOperand = iQoalaMCOperand::createExprOperand(destOpExpr);
+
+    // Create the jump instruction
+    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
+            moduleTranslation, op, NetQASMMCInstr::OP_JMP, {}, {}, {destOperand},
+            /*useOpOperands=*/false, /*appendInstruction=*/true);
+    return instruction ? success() : failure();
 }
 
 static LogicalResult placeNetQASMJumpInstr(ModuleTranslation *moduleTranslation, cf::BranchOp &op) {
     // For this, we assume that the first operation of the target block is the destination of the jump
     Block *destBlock = op.getDest();
     Operation *destOp = &destBlock->front();
-    iQoalaMCExpr *destOpExpr = iQoalaMCExpr::createInstructionRef(destOp);
-    iQoalaMCOperand *destOperand = iQoalaMCOperand::createExprOperand(destOpExpr);
 
-    // Create the jump instruction
-    const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
-            moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_JMP, {}, {}, {destOperand},
-            /*useOpOperands=*/false, /*appendInstruction=*/true);
-    return instruction ? success() : failure();
+    return insertNetQASMJumpInstr(moduleTranslation, op.getOperation(), destOp);
 }
 
 static bool valueCanBeTracedToZeroConstant(const Value &value) {
@@ -267,8 +272,28 @@ static LogicalResult placeNetQASMCondBrInstr(ModuleTranslation *moduleTranslatio
         }
         return success();
     }
-    // The mapped operation is not an integer comparison -> error
-    op.emitOpError("Conditional Branching instruction does not make use of a comparison instruction");
+    if (auto constantCondition = dyn_cast_or_null<arith::ConstantIntOp>(cmpOp)) {
+        assert(constantCondition.getType().isInteger(1) && "Constant condition is not a boolean (i1)");
+        // 2 cases: Condition can be a "native" boolean or an integer
+        const bool conditionIsTrue =
+                llvm::TypeSwitch<TypedAttr, bool>(constantCondition.getValueAttr())
+                        .Case([](const BoolAttr boolAttr) { return boolAttr.getValue(); })
+                        .Case([](const IntegerAttr intAttr) { return intAttr.getInt() ? true : false; })
+                        .Default([&](TypedAttr attr) {
+                            op.emitError("Branching based on a boolean constant is not supported yet");
+                            return false;
+                        });
+        Block *trueDestBlock = op.getTrueDest();
+        Block *falseDestBlock = op.getFalseDest();
+
+        // We insert an uncondition branch, depending on the branch test
+        Block *destBlock = conditionIsTrue ? trueDestBlock : falseDestBlock;
+        Operation *destOp = &destBlock->front();
+        return insertNetQASMJumpInstr(moduleTranslation, op.getOperation(), destOp);
+    }
+    // The mapped operation is not an integer comparison or boolean-like constant -> error
+    op.emitOpError("Conditional Branching instruction does not make use of a comparison of integers instruction or a "
+                   "static constant.");
     return failure();
 }
 
