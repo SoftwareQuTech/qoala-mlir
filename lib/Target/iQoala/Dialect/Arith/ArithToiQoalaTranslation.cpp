@@ -118,15 +118,19 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
             .Case<arith::MulIOp>([&](arith::MulIOp op) -> LogicalResult {
                 SmallVector<iQoalaMCOperand *> processedOperands;
                 if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
-                    // In QoalaHost, multiplication uses an immediate; we need "trace" the immediate back, and create
-                    // the immediate value.
-                    if (failed(processOperandsForMul(moduleTranslation, op, processedOperands))) {
-                        op.emitOpError("Arith mul operation: cannot process operands correctly!");
+                    if (succeeded(processOperandsForMul(moduleTranslation, op, processedOperands))) {
+                        // If either operand is a constant -> use OP_MULTIPLY_CONSTANT with manual operands
+                        // We need "trace" the immediate back, and create the immediate value.
+                        const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                                moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_MULTIPLY_CONSTANT,
+                                {op.getResult()}, {LOCAL}, processedOperands, /*useOpOperands=*/false);
+                        return instruction ? success() : failure();
                     }
-                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_MULTIPLY_CONSTANT,
-                            {op.getResult()}, {LOCAL}, processedOperands, /*useOpOperands=*/false);
-                    return instruction ? success() : failure();
+                    // Otherwise (reg * reg) -> do the generic mapping
+                    const auto *instr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_MULTIPLY, {op.getResult()},
+                            {LOCAL} /* no processed operands */);
+                    return instr ? success() : failure();
                 }
                 if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
