@@ -284,8 +284,8 @@ namespace qoala::conversion::mir {
                                                                           qmem::RotateXIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
-        auto newRotate = rewriter.create<netqasm::RotateXOp>(op.getLoc(), adaptor.getQ(), adaptor.getNValAttr(),
-                                                             adaptor.getExpValAttr());
+        auto newRotate = rewriter.create<netqasm::RotateXOp>(op.getLoc(), adaptor.getQ(), adaptor.getNVal(),
+                                                             adaptor.getExpVal());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -293,8 +293,8 @@ namespace qoala::conversion::mir {
                                                                           qmem::RotateYIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
-        auto newRotate = rewriter.create<netqasm::RotateYOp>(op.getLoc(), adaptor.getQ(), adaptor.getNValAttr(),
-                                                             adaptor.getExpValAttr());
+        auto newRotate = rewriter.create<netqasm::RotateYOp>(op.getLoc(), adaptor.getQ(), adaptor.getNVal(),
+                                                             adaptor.getExpVal());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -302,8 +302,8 @@ namespace qoala::conversion::mir {
                                                                           qmem::RotateZIntOp::Adaptor adaptor,
                                                                           ConversionPatternRewriter &rewriter) const {
         // Use the integers coming from the "intermediate" operation
-        auto newRotate = rewriter.create<netqasm::RotateZOp>(op.getLoc(), adaptor.getQ(), adaptor.getNValAttr(),
-                                                             adaptor.getExpValAttr());
+        auto newRotate = rewriter.create<netqasm::RotateZOp>(op.getLoc(), adaptor.getQ(), adaptor.getNVal(),
+                                                             adaptor.getExpVal());
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -311,7 +311,7 @@ namespace qoala::conversion::mir {
                                                                         qmem::CrotXIntOp::Adaptor adaptor,
                                                                         ConversionPatternRewriter &rewriter) const {
         auto newCrotX = rewriter.create<netqasm::CrotXOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                                                          adaptor.getNValAttr(), adaptor.getExpValAttr());
+                                                          adaptor.getNVal(), adaptor.getExpVal());
         return std::make_unique<OpAndValues>(newCrotX.getOperation(), newCrotX->getResults());
     }
 
@@ -326,11 +326,12 @@ namespace qoala::conversion::mir {
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
         const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
+        auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[0]),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[1]));
-        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
+        auto newRotate =
+                rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
+        return std::make_unique<OpAndValues>(newRotate, newRotate->getResults());
     }
 
     std::unique_ptr<OpAndValues> RotateYLowering::createNewOpAndValues(qmem::RotateYOp op,
@@ -343,10 +344,11 @@ namespace qoala::conversion::mir {
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
         const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
+        auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
-        auto newRotate = rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[0]),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[1]));
+        auto newRotate =
+                rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -361,10 +363,10 @@ namespace qoala::conversion::mir {
         const double floatAngleVal = f32Const.value().convertToDouble();
         const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
         // And use the results of the conversion as the arguments of the new rotate operation
-        rewriter.getUI32IntegerAttr(intsAngle[0]);
-        auto newRotate = rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[0]),
-                                                             rewriter.getUI32IntegerAttr(intsAngle[1]));
+        auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
+        auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
+        auto newRotate =
+                rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptor.getQ(), nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 
@@ -377,10 +379,11 @@ namespace qoala::conversion::mir {
         // Convert the float angle to its 2-integers counterpart.
         const double floatAngleVal = f32Const.value().convertToDouble();
         const std::vector<uint32_t> intsAngle = angle::transformDouble(floatAngleVal);
+        auto nValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[0], 32);
+        auto expValImmediate = rewriter.create<arith::ConstantIntOp>(op.getLoc(), intsAngle[1], 32);
         // And use the results of the conversion as the arguments of the new rotate operation
         auto newRotate = rewriter.create<qmem::CrotXIntOp>(op.getLoc(), adaptor.getQin0(), adaptor.getQin1(),
-                                                           rewriter.getUI32IntegerAttr(intsAngle[0]),
-                                                           rewriter.getUI32IntegerAttr(intsAngle[1]));
+                                                           nValImmediate, expValImmediate);
         return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate->getResults());
     }
 } // namespace qoala::conversion::mir

@@ -18,13 +18,13 @@ module {
       netqasm.return %init_vqubits : tensor<5xi32>
     }
 
-    netqasm.local_routine @subrt2(%vqubits: tensor<5xi32>, %m: memref<5xi1>) -> memref<5xi1> {
+    netqasm.local_routine @subrt2(%vqubits: tensor<5xi32>, %m: memref<5xi1>, %zero_i32: i32, %four_i32: i32) -> memref<5xi1> {
       %5 = arith.constant 5 : index
       affine.for %i = 0 to %5 {
         %vq = tensor.extract %vqubits[%i] : tensor<5xi32>
         // For rotations, we need to specify the type of the arguments, otherwise they are
         // parsed as i64 in x86_64 which violates the constraints of the NetQASM operations
-        netqasm.rot_x %vq (0 : ui32, 4 : ui32)
+        netqasm.rot_x %vq, %zero_i32, %four_i32
         %m_i = netqasm.measure %vq : i1
         memref.store %m_i, %m[%i] : memref<5xi1>
       }
@@ -33,6 +33,8 @@ module {
 
     qoalahost.main_func @main() {
       %zero = arith.constant 0 : index
+      %zero_i32 = arith.constant 0 : i32
+      %four_i32 = arith.constant 4 : i32
       // Allocate an empty tensor for the qubits:
       %vqubits = tensor.empty() : tensor<5xi32>
       qoalahost.call @subrt1(%vqubits) : (tensor<5xi32>) -> ()
@@ -43,7 +45,7 @@ module {
       // %num, %denom = qoalahost.call @convert_float_to_num_and_denom(%t1) : tensor<1xf32> -> (i32, i32)
 
       %m_init = memref.alloc() : memref<5xi1>
-      %m = qoalahost.call @subrt2(%vqubits, %m_init) : (tensor<5xi32>, memref<5xi1>) -> memref<5xi1>
+      %m = qoalahost.call @subrt2(%vqubits, %m_init, %zero_i32, %four_i32) : (tensor<5xi32>, memref<5xi1>, i32, i32) -> memref<5xi1>
       qoalahost.return
     }
 }

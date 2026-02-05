@@ -4,27 +4,27 @@
 module {
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
-  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]() -> i1
+  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]](%[[C0_ARG:.+]]: i32, %[[C1_ARG:.+]]: i32, %[[C2_ARG:.+]]: i32, %[[C3_ARG:.+]]: i32, %[[C22_ARG:.+]]: i32, %[[C25_ARG:.+]]: i32, %[[C29_ARG:.+]]: i32, %[[C1000000_ARG:.+]]: i32, %[[C1750000_ARG:.+]]: i32, %[[C7_ARG:.+]]: i32, %[[C4_ARG:.+]]: i32, %[[C67_ARG:.+]]: i32, %[[C5_ARG:.+]]: i32, %[[C169_ARG:.+]]: i32, %[[C12_ARG:.+]]: i32) -> i1
   // CHECK-NEXT: %[[REG0:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.init %[[REG0]]
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (0 : ui32, 0 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 0 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 1 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (2 : ui32, 0 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 2 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 3 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C0_ARG]], %[[C0_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C0_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C1_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C2_ARG]], %[[C0_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C2_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C3_ARG]]
   // Small numbers
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 22 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 25 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1 : ui32, 29 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C22_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C25_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1_ARG]], %[[C29_ARG]]
   // Big numbers
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1000000 : ui32, 0 : ui32
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (1750000 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1000000_ARG]], %[[C0_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C1750000_ARG]], %[[C0_ARG]]
   // Primes
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (3 : ui32, 2 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (7 : ui32, 4 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (67 : ui32, 5 : ui32)
-  // CHECK-NEXT: netqasm.rot_x %[[REG0]] (169 : ui32, 12 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C3_ARG]], %[[C2_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C7_ARG]], %[[C4_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C67_ARG]], %[[C5_ARG]]
+  // CHECK-NEXT: netqasm.rot_x %[[REG0]], %[[C169_ARG]], %[[C12_ARG]]
 
   // CHECK-NEXT: %[[REG1:.*]] = netqasm.measure %[[REG0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG1]] : i1
@@ -73,7 +73,24 @@ module {
     // Hard to find:  169\pi/2^12 = 0.12962135 -> (169, 12)
     %cst_d = arith.constant 1.3e-01 : f32
 
-    // CHECK-NEXT: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
+    // Constants introduced by the compilation (folded if the same constant inserted more than once)
+    // CHECK: %[[C12:.+]] = arith.constant 12 : i32
+    // CHECK-NEXT: %[[C169:.+]] = arith.constant 169 : i32
+    // CHECK-NEXT: %[[C5:.+]] = arith.constant 5 : i32
+    // CHECK-NEXT: %[[C67:.+]] = arith.constant 67 : i32
+    // CHECK-NEXT: %[[C4:.+]] = arith.constant 4 : i32
+    // CHECK-NEXT: %[[C7:.+]] = arith.constant 7 : i32
+    // CHECK-NEXT: %[[C1750000:.+]] = arith.constant 1750000 : i32
+    // CHECK-NEXT: %[[C1000000:.+]] = arith.constant 1000000 : i32
+    // CHECK-NEXT: %[[C29:.+]] = arith.constant 29 : i32
+    // CHECK-NEXT: %[[C25:.+]] = arith.constant 25 : i32
+    // CHECK-NEXT: %[[C22:.+]] = arith.constant 22 : i32
+    // CHECK-NEXT: %[[C3:.+]] = arith.constant 3 : i32
+    // CHECK-NEXT: %[[C2:.+]] = arith.constant 2 : i32
+    // CHECK-NEXT: %[[C1:.+]] = arith.constant 1 : i32
+    // CHECK-NEXT: %[[C0:.+]] = arith.constant 0 : i32
+
+    // CHECK: %[[REG_CALL:.*]] = qoalahost.call @[[WRAPPER0]](%[[C0]], %[[C1]], %[[C2]], %[[C3]], %[[C22]], %[[C25]], %[[C29]], %[[C1000000]], %[[C1750000]], %[[C7]], %[[C4]], %[[C67]], %[[C5]], %[[C169]], %[[C12]]) : (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32) -> i1
     qmem.rot_x %0, %cst
     qmem.rot_x %0, %cst_0
     qmem.rot_x %0, %cst_1

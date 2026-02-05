@@ -7,10 +7,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
-
 #define DEBUG_TYPE "qoalahost-gate-count"
 
 using namespace mlir;
@@ -19,23 +16,22 @@ using namespace qoala;
 namespace qoala::analysis::gatecount {
 
     /// Map call operands/results to callee block args/returns.
-    static mlir::DenseMap<mlir::Value, mlir::Value> mapReturnValToCaller(dialects::qoalahost::CallOp callOp,
-                                                                         FunctionOpInterface callee) {
-        mlir::DenseMap<mlir::Value, mlir::Value> returnedValuesMap;
+    static DenseMap<Value, Value> mapReturnValToCaller(dialects::qoalahost::CallOp callOp, FunctionOpInterface callee) {
+        DenseMap<Value, Value> returnedValuesMap;
 
         // Map return values
-        auto returnOps = callee.front().getOps<dialects::netqasm::ReturnOp>();
+        const auto returnOps = callee.front().getOps<dialects::netqasm::ReturnOp>();
         assert(!returnOps.empty() && "GateCount: Callee must have a ReturnOp");
-        dialects::netqasm::ReturnOp returnOp = *returnOps.begin();
-        for (auto retVal : llvm::enumerate(returnOp->getOperands())) {
-            returnedValuesMap.try_emplace(retVal.value(), callOp.getResult(retVal.index()));
+        const dialects::netqasm::ReturnOp returnOp = *returnOps.begin();
+        for (auto [index, retVal] : llvm::enumerate(returnOp->getOperands())) {
+            returnedValuesMap.try_emplace(retVal, callOp.getResult(index));
         }
 
         return returnedValuesMap;
     }
 
     /// Flush accumulated 1-qubit gates for a qubit into global counters.
-    static void flushTempOneQubitCount(const llvm::StringRef &qId, llvm::StringMap<uint32_t> &tempOneQubitGateCount,
+    static void flushTempOneQubitCount(const StringRef &qId, llvm::StringMap<uint32_t> &tempOneQubitGateCount,
                                        uint32_t &gateCount, uint32_t &oneQubitGateCount,
                                        llvm::StringMap<uint32_t> &detailedGateCount,
                                        llvm::StringMap<uint32_t> &detailedOneQubitGateCount) {
@@ -43,7 +39,7 @@ namespace qoala::analysis::gatecount {
         LLVM_DEBUG(llvm::dbgs() << "Looking for qubit " << qId << " in temp one-qubit gate counts.\n");
         if (tempOneQubitGateCount.contains(qId)) {
             LLVM_DEBUG(llvm::dbgs() << "Found qubit " << qId << " in temp one-qubit gate counts.\n");
-            uint32_t tempCount = tempOneQubitGateCount.at(qId);
+            const uint32_t tempCount = tempOneQubitGateCount.at(qId);
             if (tempCount != 0) {
                 LLVM_DEBUG(llvm::dbgs() << "Flushing one-qubit gates count on qubit " << qId << ".\n");
                 gateCount += tempCount;
@@ -53,14 +49,11 @@ namespace qoala::analysis::gatecount {
                 tempOneQubitGateCount[qId] = 0;
             }
         }
-
-        return;
     }
 
-    static std::optional<mlir::Value>
-    getCallValFromCallee(const mlir::Value qubit, const analysis::netqasm::ArgValueMap &valuesArgMap,
-                         const mlir::DenseMap<mlir::Value, mlir::Value> &returnedValuesMap) {
-        if (auto blockArg = dyn_cast<BlockArgument>(qubit)) {
+    static std::optional<Value> getCallValFromCallee(const Value qubit, const netqasm::ArgValueMap &valuesArgMap,
+                                                     const DenseMap<Value, Value> &returnedValuesMap) {
+        if (const auto blockArg = dyn_cast<BlockArgument>(qubit)) {
             return valuesArgMap.getCallerValueForArg(blockArg);
         }
         if (returnedValuesMap.contains(qubit)) {
@@ -70,10 +63,10 @@ namespace qoala::analysis::gatecount {
         return std::nullopt;
     }
 
-    static llvm::StringRef getQubitID(const mlir::Value &operand, const llvm::DenseMap<Value, std::string> &qubitIDs,
-                                      const analysis::netqasm::ArgValueMap &valuesArgMap,
-                                      const mlir::DenseMap<mlir::Value, mlir::Value> &returnedValuesMap) {
-        auto callVal = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap);
+    static StringRef getQubitID(const Value &operand, const llvm::DenseMap<Value, std::string> &qubitIDs,
+                                const netqasm::ArgValueMap &valuesArgMap,
+                                const DenseMap<Value, Value> &returnedValuesMap) {
+        const auto callVal = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap);
         assert(callVal.has_value() && "GateCount: Untracked qubit!");
         return qubitIDs.at(callVal.value());
     }
@@ -98,7 +91,7 @@ namespace qoala::analysis::gatecount {
         // Temp counts accumulate 1-qubit gates until measurement/two-qubit interaction to model active qubit lifetime.
         llvm::StringMap<uint32_t> tempOneQubitGateCount;
 
-        auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<dialects::qoalahost::MainFuncOp>();
+        const auto mainFuncs = dyn_cast<ModuleOp>(op).getOps<dialects::qoalahost::MainFuncOp>();
 
         assert(!mainFuncs.empty() && "GateCount: No main function found in module.");
 
@@ -118,14 +111,13 @@ namespace qoala::analysis::gatecount {
             // Get the callee
             auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
 
-            analysis::netqasm::ArgValueMap valuesArgMap =
-                    analysis::netqasm::getRoutineArgValues(callee, callOp.getOperands());
+            netqasm::ArgValueMap valuesArgMap = netqasm::getRoutineArgValues(callee, callOp.getOperands());
 
             auto returnedValuesMap = mapReturnValToCaller(callOp, callee);
 
             // Count gates
-            callee.walk([&](mlir::Operation *op) {
-                llvm::TypeSwitch<mlir::Operation *>(op)
+            callee.walk([&](Operation *innerOp) {
+                llvm::TypeSwitch<Operation *>(innerOp)
                         .Case<dialects::netqasm::MeasureOp>([&](auto meas) {
                             // Do not count measure ops
                             // In the future, could look into readout error and count them separetly
@@ -141,7 +133,7 @@ namespace qoala::analysis::gatecount {
                         })
                         .Case<dialects::netqasm::QInitOp, dialects::netqasm::EprsOp>([&](auto init) {
                             // Do not count initialization as a gate,
-                            // used as a reference point to start traking a qubit and its gates
+                            // used as a reference point to start tracking a qubit and its gates
                             auto operand = init.getOperation()->getOperands().front();
                             std::string qId = blckId + "::" + std::to_string(opIdx);
                             LLVM_DEBUG(llvm::dbgs() << "Found initialization of qubit " << qId << ".\n");

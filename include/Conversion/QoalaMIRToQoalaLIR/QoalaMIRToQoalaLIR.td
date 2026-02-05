@@ -37,6 +37,7 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
     let dependentDialects = ["mlir::func::FuncDialect",
+                             "mlir::cf::ControlFlowDialect",
                              "qoala::dialects::qmem::QMemDialect",
                              "qoala::dialects::qoalahost::QoalaHostDialect",
                              "qoala::dialects::netqasm::NetQASMDialect",

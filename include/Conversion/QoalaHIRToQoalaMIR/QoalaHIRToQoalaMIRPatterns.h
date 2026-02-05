@@ -3,6 +3,7 @@
 #include "Conversion/Helpers/Helpers.h"
 #include "Dialect/QMem/QMem.h"
 #include "Dialect/QNet/QNet.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::conversion::hir {
@@ -258,6 +259,71 @@ namespace qoala::conversion::hir {
                              mlir::ConversionPatternRewriter &rewriter) const override;
     };
 
+    class RotateXIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotXIntOp, dialects::qmem::RotateXIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotXIntOp op, dialects::qnet::RotXIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RotateYIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotYIntOp, dialects::qmem::RotateYIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotYIntOp op, dialects::qnet::RotYIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class RotateZIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::RotZIntOp, dialects::qmem::RotateZIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::RotZIntOp op, dialects::qnet::RotZIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class CRotXIntLowering
+        : public helpers::OpLoweringTemplate<dialects::qnet::CrotXIntOp, dialects::qmem::CrotXIntOp> {
+    public:
+        // Constructor simply matches the super class
+        using OpLoweringTemplate::OpLoweringTemplate;
+
+        std::unique_ptr<helpers::OpAndValues>
+        createNewOpAndValues(dialects::qnet::CrotXIntOp op, dialects::qnet::CrotXIntOp::Adaptor adaptor,
+                             mlir::ConversionPatternRewriter &rewriter) const override;
+    };
+
+    class ScfIfRewriting : public mlir::OpRewritePattern<mlir::scf::IfOp> {
+    public:
+        explicit ScfIfRewriting(mlir::MLIRContext *context): OpRewritePattern(context) {
+            this->setHasBoundedRewriteRecursion();
+        }
+
+        mlir::LogicalResult matchAndRewrite(mlir::scf::IfOp op, mlir::PatternRewriter &rewriter) const override;
+    };
+
+    namespace helpers {
+        mlir::LogicalResult replaceUnrealizedCastOps(mlir::Operation *user, const mlir::Value &replaceWith,
+                                                     mlir::PatternRewriter &rewriter);
+
+        mlir::LogicalResult replaceYieldOps(mlir::scf::YieldOp &thenYield, mlir::scf::YieldOp &elseYield,
+                                            const mlir::DenseMap<uint32_t, mlir::Value> &qubitYieldIndexes,
+                                            mlir::PatternRewriter &rewriter);
+
+        mlir::LogicalResult analyzeYieldOps(mlir::scf::YieldOp &thenYield, mlir::scf::YieldOp &elseYield,
+                                            mlir::DenseMap<uint32_t, mlir::Value> &matchedIdx);
+        void fixEmptySCFBranchIfNeeded(mlir::scf::IfOp ifOp, mlir::PatternRewriter &rewriter);
+    } // namespace helpers
 } // namespace qoala::conversion::hir
 
 #endif // QNET_TO_QMEM_PATTERNS

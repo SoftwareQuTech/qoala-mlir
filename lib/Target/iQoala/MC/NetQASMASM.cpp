@@ -128,11 +128,12 @@ namespace qoala::assembly {
             case OP_ROT_Y:
             case OP_ROT_Z:
                 assert(mcOperands.size() == 3 && "NetQASM instruction builder: expected 3 operands");
-                assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 2-imm instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isImmediate() &&
-                       "NetQASM 1-reg, 2-imm instruction: operand 1 must be an immediate");
-                assert(mcOperands[2]->isImmediate() &&
-                       "NetQASM 1-reg, 2-imm instruction: operand 2 must be an immediate");
+                assert(mcOperands[0]->isRegister() &&
+                       "NetQASM 1-reg, 2-imm/reg instruction: operand 0 must be a register");
+                assert((mcOperands[1]->isImmediate() || mcOperands[1]->isRegister()) &&
+                       "NetQASM 1-reg, 2-imm/reg instruction: operand 1 must be an immediate or a register");
+                assert((mcOperands[2]->isImmediate() || mcOperands[2]->isRegister()) &&
+                       "NetQASM 1-reg, 2-imm/reg instruction: operand 2 must be an immediate or a register");
                 break;
             default:
                 op->emitOpError("NetQASM instruction builder: Don't know how to build operation of type: ") << opCode;
@@ -287,13 +288,13 @@ namespace qoala::assembly {
                 break;
             // Single Qubit Rotations
             case OP_ROT_X:
-                this->printOneRegTwoImmInstr("rot_x", os);
+                this->printOneRegTwoImmOrRegInstr("rot_x", os);
                 break;
             case OP_ROT_Y:
-                this->printOneRegTwoImmInstr("rot_y", os);
+                this->printOneRegTwoImmOrRegInstr("rot_y", os);
                 break;
             case OP_ROT_Z:
-                this->printOneRegTwoImmInstr("rot_z", os);
+                this->printOneRegTwoImmOrRegInstr("rot_z", os);
                 break;
             // Two Qubit Gates
             case OP_CNOT:
@@ -327,11 +328,11 @@ namespace qoala::assembly {
         this->printInstrInGenericForm(mnemonic, os);
     }
 
-    void NetQASMMCInstr::printOneRegTwoImmInstr(const std::string &mnemonic, raw_ostream &os) const {
+    void NetQASMMCInstr::printOneRegTwoImmOrRegInstr(const std::string &mnemonic, raw_ostream &os) const {
         assert(this->operands.size() == 3);
         assert(this->operands[0]->isRegister());
-        assert(this->operands[1]->isImmediate());
-        assert(this->operands[2]->isImmediate());
+        assert(this->operands[1]->isImmediate() || this->operands[1]->isRegister());
+        assert(this->operands[2]->isImmediate() || this->operands[2]->isRegister());
         this->printInstrInGenericForm(mnemonic, os);
     }
 

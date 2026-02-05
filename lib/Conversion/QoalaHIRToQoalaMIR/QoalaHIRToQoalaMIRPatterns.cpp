@@ -1,5 +1,8 @@
 #include "Conversion/QoalaHIRToQoalaMIR/QoalaHIRToQoalaMIRPatterns.h"
 #include "Conversion/Helpers/Helpers.h"
+#include "Dialect/QNet/QNetDialect.h"
+
+#include "llvm/ADT/TypeSwitch.h"
 
 #define DEBUG_TYPE "qoala-hir-to-qoala-patterns"
 
@@ -315,5 +318,142 @@ namespace qoala::conversion::hir {
         Type outType = typeConverter->convertType(op.getCout().getType());
         auto newSend = rewriter.create<qmem::RecvFloatOp>(op.getLoc(), outType, adaptor.getRemoteAttr());
         return std::make_unique<OpAndValues>(newSend.getOperation(), newSend->getResults());
+    }
+
+    std::unique_ptr<OpAndValues> RotateXIntLowering::createNewOpAndValues(qnet::RotXIntOp op,
+                                                                          qnet::RotXIntOp::Adaptor adaptor,
+                                                                          ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedN = adaptor.getNVal();
+        Value adaptedExp = adaptor.getExpVal();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateXIntOp>(op.getLoc(), adaptedQin, adaptedN, adaptedExp);
+        // This op mutates the qubit; in MIR we forward the input qubit value as the new SSA value.
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+    }
+
+    std::unique_ptr<OpAndValues> RotateYIntLowering::createNewOpAndValues(qnet::RotYIntOp op,
+                                                                          qnet::RotYIntOp::Adaptor adaptor,
+                                                                          ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedN = adaptor.getNVal();
+        Value adaptedExp = adaptor.getExpVal();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateYIntOp>(op.getLoc(), adaptedQin, adaptedN, adaptedExp);
+        // This op mutates the qubit; in MIR we forward the input qubit value as the new SSA value.
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+    }
+
+    std::unique_ptr<OpAndValues> RotateZIntLowering::createNewOpAndValues(qnet::RotZIntOp op,
+                                                                          qnet::RotZIntOp::Adaptor adaptor,
+                                                                          ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the output of the operation with
+        // the mapped value of the "qin" operand of this operation
+        Value adaptedQin = adaptor.getQin();
+        Value adaptedN = adaptor.getNVal();
+        Value adaptedExp = adaptor.getExpVal();
+        rewriter.replaceAllUsesWith(op.getQout(), adaptedQin);
+        auto newRotate = rewriter.create<qmem::RotateZIntOp>(op.getLoc(), adaptedQin, adaptedN, adaptedExp);
+        // This op mutates the qubit; in MIR we forward the input qubit value as the new SSA value.
+        return std::make_unique<OpAndValues>(newRotate.getOperation(), newRotate.getQ());
+    }
+
+    std::unique_ptr<OpAndValues> CRotXIntLowering::createNewOpAndValues(qnet::CrotXIntOp op,
+                                                                        qnet::CrotXIntOp::Adaptor adaptor,
+                                                                        ConversionPatternRewriter &rewriter) const {
+        // Since we move away from SSA, we need to replace all the uses of the outputs of the operation with
+        // the mapped value of the respective "qin" operand of this operation
+        // NOTE - For some reason, if we use the rewriter object for this purpose, it ends up on a SIGSEGV
+        // in the internals of the replacement of the operation
+        Value adaptedQin0 = adaptor.getQin0();
+        Value adaptedQin1 = adaptor.getQin1();
+        Value adaptedN = adaptor.getNVal();
+        Value adaptedExp = adaptor.getExpVal();
+        op.getQout0().replaceAllUsesWith(adaptedQin0);
+        op.getQout1().replaceAllUsesWith(adaptedQin1);
+        auto newCRotX = rewriter.create<qmem::CrotXIntOp>(op.getLoc(), adaptedQin0, adaptedQin1, adaptedN, adaptedExp);
+        // This op mutates the qubit; in MIR we forward the input qubit value as the new SSA value.
+        const auto opOperands = newCRotX->getOpOperands();
+        OperandRange firstTwoOperands(opOperands.data(), 2);
+        return std::make_unique<OpAndValues>(newCRotX.getOperation(), firstTwoOperands);
+    }
+
+    LogicalResult ScfIfRewriting::matchAndRewrite(scf::IfOp op, PatternRewriter &rewriter) const {
+        // This is the "lowering" of scf.if.
+        // The idea here is that we need to get rid of the !qnet.qubit returned type (if any)
+        // and adjust the scf.yield operations that return !qnet.qubit values
+
+        LLVM_DEBUG(llvm::dbgs() << "Analyzing:\n" << op << "\n*************\n");
+        LLVM_DEBUG(llvm::dbgs() << "Start:\n" << op->getParentOfType<ModuleOp>() << "\n*************\n");
+
+        // Analyze the original yielded values type, and build a structure containing the
+        // index of the yielded value, and the qubit value that it represents
+        auto origThenYieldOp = op.thenYield();
+        auto origElseYieldOp = op.elseYield();
+        DenseMap<uint32_t, Value> qubitYieldIndexes;
+
+        if (failed(helpers::analyzeYieldOps(origThenYieldOp, origElseYieldOp, qubitYieldIndexes))) {
+            op->emitError(R"(SCF If lowering: "then" ands "else" branches could not be analyzed)");
+            return failure();
+        }
+
+        SmallVector<Type> newYieldedTypes;
+        DenseMap<uint32_t, uint32_t> valuesIndexesMap;
+        for (uint32_t resIdx = 0, newResIdx = 0; resIdx < op.getResults().size(); resIdx++) {
+            // qubitYieldIndexes contains the indexes of values that represent a qubit so,
+            // if the index is there, that type should *not* be a result type of the new scf.if
+            if (qubitYieldIndexes.contains(resIdx)) {
+                continue;
+            }
+            newYieldedTypes.push_back(op.getResult(resIdx).getType());
+            // We still map the old index value with the new one
+            valuesIndexesMap.try_emplace(resIdx, newResIdx++);
+        }
+
+        // Create a new yield operation that does not yield qubit types
+        auto newIfOp = rewriter.create<scf::IfOp>(op.getLoc(), newYieldedTypes, op.getCondition(),
+                                                  /*addThenBlock=*/false, /*addElseBlock=*/false);
+
+        LLVM_DEBUG(llvm::dbgs() << "New If:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+
+        // Move the then/else regions, adjusting types as needed.
+        rewriter.inlineRegionBefore(op.getThenRegion(), newIfOp.getThenRegion(), newIfOp.getThenRegion().end());
+        rewriter.inlineRegionBefore(op.getElseRegion(), newIfOp.getElseRegion(), newIfOp.getElseRegion().end());
+
+        auto newThenYieldOp = newIfOp.thenYield();
+        auto newElseYieldOp = newIfOp.elseYield();
+
+        if (failed(helpers::replaceYieldOps(newThenYieldOp, newElseYieldOp, qubitYieldIndexes, rewriter))) {
+            op->emitError(R"(SCF If lowering: "then" ands "else" branches could not be analyzed)");
+            return failure();
+        }
+
+        LLVM_DEBUG(llvm::dbgs() << "Blocks corrected:\n"
+                                << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+
+        // Delete any users of the deleted result value - We might want to
+        for (auto &[yieldIdx, yieldVal] : qubitYieldIndexes) {
+            Value originalValueToReplace = op.getResult(yieldIdx);
+            LLVM_DEBUG(llvm::dbgs() << "Replacing users of: " << originalValueToReplace << "\n");
+            for (Operation *valUse : originalValueToReplace.getUsers()) {
+                if (failed(helpers::replaceUnrealizedCastOps(valUse, yieldVal, rewriter))) {
+                    return failure();
+                }
+            }
+        }
+
+        for (auto [oldIdx, newIdx] : valuesIndexesMap) {
+            rewriter.replaceAllUsesWith(op.getResult(oldIdx), newIfOp.getResult(newIdx));
+        }
+        LLVM_DEBUG(llvm::dbgs() << "After:\n" << newIfOp->getParentOfType<ModuleOp>() << "\n*************\n");
+        rewriter.eraseOp(op.getOperation());
+
+        helpers::fixEmptySCFBranchIfNeeded(newIfOp, rewriter);
+
+        return LogicalResult::success();
     }
 } // namespace qoala::conversion::hir

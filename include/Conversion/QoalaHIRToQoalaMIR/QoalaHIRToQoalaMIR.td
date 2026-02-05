@@ -14,7 +14,11 @@ def QoalaHIRToQoalaMIR : Pass<"lower-qoala-hir-to-mir", "mlir::ModuleOp"> {
   }];
   // Since we lower QNet to QMem, we need to depend on both dialects to create
   // valid MLIR
-  let dependentDialects = ["::qoala::dialects::qnet::QNetDialect", "::qoala::dialects::qmem::QMemDialect"];
+  let dependentDialects = [
+    "qoala::dialects::qnet::QNetDialect",
+    "qoala::dialects::qmem::QMemDialect",
+    "mlir::scf::SCFDialect"
+  ];
 }
 
 #endif /* QNET_TO_QMEM_PASS */

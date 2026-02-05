@@ -6,16 +6,16 @@ module {
   qmem.remote @Bob
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
-  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]() -> i32
+  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]](%[[C0_ARG_A:.+]]: i32) -> i32
   // CHECK-NEXT: %[[LOC_QUBIT0:.*]] = netqasm.qalloc  : i32
   // CHECK-NEXT: netqasm.init %[[LOC_QUBIT0]]
-  // CHECK-NEXT: netqasm.rot_x %[[LOC_QUBIT0]] (0 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[LOC_QUBIT0]], %[[C0_ARG_A]], %[[C0_ARG_A]]
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT0]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]]() -> i32
+  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]](%[[C0_ARG_B:.+]]: i32) -> i32
   // CHECK-NEXT: %[[LOC_QUBIT1:.*]] = netqasm.qalloc  : i32
   // CHECK-NEXT: netqasm.init %[[LOC_QUBIT1]]
-  // CHECK-NEXT: netqasm.rot_y %[[LOC_QUBIT1]] (0 : ui32, 0 : ui32)
+  // CHECK-NEXT: netqasm.rot_y %[[LOC_QUBIT1]], %[[C0_ARG_B]], %[[C0_ARG_B]]
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT1]] : i32
 
   // CHECK: netqasm.local_routine @[[WRAPPER2:.*]](%[[LOC_QUBITA:.*]]: i32, %[[LOC_QUBITB:.*]]: i32) {
@@ -35,28 +35,31 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[LOC_QUBIT2]]  {remote = @Bob}
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT2]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER6:.*]](%[[LOC_QUBITE:.*]]: i32) -> i1
-  // CHECK-NEXT: netqasm.rot_z %[[LOC_QUBITE]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER6:.*]](%[[LOC_QUBITE:.*]]: i32, %[[C0_ARG_C:.+]]: i32) -> i1
+  // CHECK-NEXT: netqasm.rot_z %[[LOC_QUBITE]], %[[C0_ARG_C]], %[[C0_ARG_C]]
   // CHECK-NEXT: %[[LOC_MEASC:.*]] = netqasm.measure %[[LOC_QUBITE]] : i1
   // CHECK-NEXT: netqasm.return %[[LOC_MEASC]] : i1
 
   // CHECK: qoalahost.main_func @test_entangle_quantum_program()
   qmem.func @test_entangle_quantum_program() {
+    // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: %[[C0_i32:.+]] = arith.constant 0 : i32
+
     // Some programmers like to "declare" all variables at the beginning...
-    // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     %q0 = qmem.qalloc : i32
     %q1 = qmem.qalloc : i32
     %q2 = qmem.qalloc : i32
     %c0 = arith.constant 0.0 : f32
 
     // Then start working with them.
-    // CHECK-NEXT: %[[QUBIT0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
+    // CHECK-NEXT: %[[QUBIT0:.*]] = qoalahost.call @[[WRAPPER0]](%[[C0_i32]]) : (i32) -> i32
     qmem.init %q0
     qmem.rot_x %q0, %c0
 
     // CHECK: ^[[BLK_1:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    // CHECK-NEXT: %[[QUBIT1:.*]] = qoalahost.call @[[WRAPPER1]]() : () -> i32
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: %[[QUBIT1:.*]] = qoalahost.call @[[WRAPPER1]](%[[C0_i32]]) : (i32) -> i32
     qmem.init %q1
     qmem.rot_y %q1, %c0
 
@@ -82,9 +85,9 @@ module {
     qmem.eprs %q2 {remote = @Bob}
 
     // CHECK: ^[[BLK_6:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_7:.*]]", deadlines = {}, dependencies = ["[[BLOCK_6]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_7:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_6]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // Eprs operation is a barrier, so rot_z cannot be grouped together with eprs
-    // CHECK-NEXT: %[[UNUSED_2:.*]] = qoalahost.call @[[WRAPPER6]](%[[QUBIT2]]) : (i32) -> i1
+    // CHECK-NEXT: %[[UNUSED_2:.*]] = qoalahost.call @[[WRAPPER6]](%[[QUBIT2]], %[[C0_i32]]) : (i32, i32) -> i1
     qmem.rot_z %q2, %c0
     %unused2 = qmem.measure %q2 : i1
 

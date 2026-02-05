@@ -1,7 +1,6 @@
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "Dialect/QMem/QMem.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 #include "Analysis/Helpers/Helpers.h"
@@ -21,6 +20,8 @@ namespace qoala::helpers {
     void configureF32LoweringTarget(ConversionTarget &target) {
         // When converting F32 to I32 rotations, configure that after conversion all QMem operations are valid
         target.addLegalDialect<qmem::QMemDialect>();
+        // Lowering f32 to i32 rotations might insert constants, if f32 values ar
+        target.addLegalDialect<arith::ArithDialect>();
         // ... EXCEPT for the ones we want to convert
         target.addIllegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
         // Call ops ARE ALSO allowed in this conversion

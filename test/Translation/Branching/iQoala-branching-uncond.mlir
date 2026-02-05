@@ -21,7 +21,7 @@
 // CHECK-NEXT: jump() : b3
 // CHECK: ^b3 { type = QL; predecessors = [b2]; dependencies = [b0]; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: tuple<%[[HOST_REG2:.*]]> = run_subroutine(tuple<%[[HOST_REG0]]>) : __qoala_wrapper0
-// CHECK: b4 { type = CL; predecessors = []; dependencies = [b0, b3]; prev_comm = ; prev_ent = ; deadlines = [] }:
+// CHECK: ^b4 { type = CL; predecessors = []; dependencies = [b0, b3]; prev_comm = ; prev_ent = ; deadlines = [] }:
 // CHECK-NEXT: %[[HOST_REG3:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG1]])
 
 // CHECK: SUBROUTINE __qoala_wrapper0

@@ -4,10 +4,10 @@
 module {
   // CHECK-LABEL: netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
 
-  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]]() -> i1
+  // CHECK: netqasm.local_routine @[[WRAPPER0:.*]](%[[C3_ARG:.+]]: i32, %[[C2_ARG:.+]]: i32) -> i1
   // CHECK-NEXT: %[[REG0_0:.*]] = netqasm.qalloc : i32
   // CHECK-NEXT: netqasm.init %[[REG0_0]]
-  // CHECK-NEXT: netqasm.rot_x %[[REG0_0]] (3 : ui32, 2 : ui32)
+  // CHECK-NEXT: netqasm.rot_x %[[REG0_0]], %[[C3_ARG]], %[[C2_ARG]]
   // CHECK-NEXT: %[[REG0_1:.*]] = netqasm.measure %[[REG0_0]] : i1
   // CHECK-NEXT: netqasm.return %[[REG0_1]] : i1
 
@@ -25,7 +25,11 @@ module {
     // 1.214122 + 1.142072 = 2.356194 -> (n, e) = (3, 2)
     %cst = arith.addf %cst_0, %cst_1 : f32
 
-    // CHECK-NEXT: %[[REG_MAIN2:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i1
+    // Compiled rotation values
+    // CHECK: %[[C2:.+]] = arith.constant 2 : i32
+    // CHECK: %[[C3:.+]] = arith.constant 3 : i32
+
+    // CHECK: %[[REG_MAIN2:.*]] = qoalahost.call @[[WRAPPER0]](%[[C3]], %[[C2]]) : (i32, i32) -> i1
     qmem.rot_x %0, %cst
     %1 = qmem.measure %0 : i1
 

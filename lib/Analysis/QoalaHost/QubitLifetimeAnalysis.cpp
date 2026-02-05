@@ -22,8 +22,9 @@ namespace qoala::analysis {
         llvm::outs() << "  [Qubits Lifetimes]: \n";
         const auto lifeTimes = analysis.getLifetimes();
         std::vector<std::string> sortedKeys;
-        for (const auto &pair : lifeTimes) {
-            sortedKeys.push_back(pair.first);
+        sortedKeys.reserve(lifeTimes.size());
+        for (const auto &[qubitID, lifetime] : lifeTimes) {
+            sortedKeys.push_back(qubitID);
         }
         std::sort(sortedKeys.begin(), sortedKeys.end());
 

@@ -71,11 +71,46 @@ void CrotXOp::setAngleAttr(Attribute angle) {
     replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/2, fa);
 }
 
+RotationAxis RotXIntOp::getAxis() { return RotationAxis::X; }
+
+void RotXIntOp::setAngleAttr(Attribute angle) {
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    assert(fa && "setAngleAttr expects FloatAttr");
+    // operands: (qin, angle)
+    replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
+}
+
+RotationAxis RotYIntOp::getAxis() { return RotationAxis::Y; }
+
+void RotYIntOp::setAngleAttr(Attribute angle) {
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    assert(fa && "setAngleAttr expects FloatAttr");
+    replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
+}
+
+RotationAxis RotZIntOp::getAxis() { return RotationAxis::Z; }
+
+void RotZIntOp::setAngleAttr(Attribute angle) {
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    assert(fa && "setAngleAttr expects FloatAttr");
+    replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/1, fa);
+}
+
+RotationAxis CrotXIntOp::getAxis() { return RotationAxis::X; }
+
+void CrotXIntOp::setAngleAttr(Attribute angle) {
+    const auto fa = dyn_cast_or_null<FloatAttr>(angle);
+    assert(fa && "setAngleAttr expects FloatAttr");
+    replaceAngleOperandWithConst(getOperation(), /*angleIdx=*/2, fa);
+}
+
 bool CrotXOp::isTwoQubitOp() { return true; }
 
 bool CnotOp::isTwoQubitOp() { return true; }
 
 bool CzOp::isTwoQubitOp() { return true; }
+
+bool CrotXIntOp::isTwoQubitOp() { return true; }
 
 mlir::OperandRange NewQubitOp::getQubitOperands() {
     // No qubit operands

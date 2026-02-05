@@ -14,11 +14,11 @@ module {
     netqasm.eprs %0 {remote = @Bob}
     netqasm.return %0 : i32
   }
-  netqasm.local_routine @cnot_rot(%arg0: i32, %arg1: i32) {
+  netqasm.local_routine @cnot_rot(%arg0: i32, %arg1: i32, %zero_i32: i32, %one_i32: i32) {
     netqasm.cnot %arg0, %arg1
-    netqasm.rot_x %arg0 (0 : ui32, 1 : ui32)
-    netqasm.rot_y %arg0 (0 : ui32, 1 : ui32)
-    netqasm.rot_z %arg0 (0 : ui32, 1 : ui32)
+    netqasm.rot_x %arg0, %zero_i32, %one_i32
+    netqasm.rot_y %arg0, %zero_i32, %one_i32
+    netqasm.rot_z %arg0, %zero_i32, %one_i32
     netqasm.hadamard %arg0
     netqasm.return
   }
@@ -29,6 +29,8 @@ module {
   qoalahost.main_func @no_measure_esp() {
     qoalahost.blk_meta  {block_id = "block_10", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.remote_id_ref  {classical = true, quantum = false, remote = @Bob}
+    %zero_i32 = arith.constant 0 : i32
+    %one_i32 = arith.constant 1 : i32
     qoalahost.nop_term
   ^bb0:
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
@@ -37,8 +39,8 @@ module {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %1 = qoalahost.call @local_qubit() : () -> i32
   ^bb2:
-    qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
-    qoalahost.call @cnot_rot(%0, %1) : (i32, i32) -> ()
+    qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1", "block_10"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.call @cnot_rot(%0, %1, %zero_i32, %one_i32) : (i32, i32, i32, i32) -> ()
   ^bb3:
     qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     %2 = qoalahost.call @meas_local(%1) : (i32) -> i1

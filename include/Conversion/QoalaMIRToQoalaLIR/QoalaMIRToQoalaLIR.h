@@ -11,6 +11,8 @@
 #include "Dialect/QRemote/QRemoteDialect.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Dialect/QoalaHost/QoalaHostDialect.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 namespace qoala::conversion {
 #define GEN_PASS_DECL

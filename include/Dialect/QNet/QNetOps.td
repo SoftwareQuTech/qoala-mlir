@@ -310,4 +310,53 @@ def MeasureOp : QNet_Op<"measure"> {
     }];
 }
 
+def RotXIntOp : QNet_Op<"rot_x_int", [QubitOpIface, DeclareOpInterfaceMethods<RotationOpIface>]> {
+    let arguments = (
+        ins QubitType:$qin,
+        Arg<I32, "n">:$nVal,
+        Arg<I32, "e">:$expVal
+    );
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def RotYIntOp : QNet_Op<"rot_y_int", [QubitOpIface, DeclareOpInterfaceMethods<RotationOpIface>]> {
+    let arguments = (
+        ins QubitType:$qin,
+        Arg<I32, "n">:$nVal,
+        Arg<I32, "e">:$expVal
+    );
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def RotZIntOp : QNet_Op<"rot_z_int", [QubitOpIface, DeclareOpInterfaceMethods<RotationOpIface>]> {
+    let arguments = (
+        ins QubitType:$qin,
+        Arg<I32, "n">:$nVal,
+        Arg<I32, "e">:$expVal
+    );
+    let results = (outs QubitType:$qout);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout)
+    }];
+}
+
+def CrotXIntOp : QNet_Op<"crot_x_int", [DeclareOpInterfaceMethods<QubitOpIface, ["isTwoQubitOp"]>, DeclareOpInterfaceMethods<RotationOpIface>]> {
+    let arguments = (
+        ins QubitType:$qin0,
+        QubitType:$qin1,
+        Arg<I32, "n">:$nVal,
+        Arg<I32, "e">:$expVal
+    );
+    let results = (outs QubitType:$qout0, QubitType:$qout1);
+    let assemblyFormat = [{
+        operands attr-dict `:` type($qout0) `,` type($qout1)
+    }];
+}
+
 #endif // QNET_OPS_TD

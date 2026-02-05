@@ -34,8 +34,8 @@ module {
     netqasm.cnot %arg0, %arg1
     netqasm.return
   }
-  netqasm.local_routine @rot(%arg0: i32) {
-    netqasm.rot_x %arg0 (1 : ui32, 0 : ui32)
+  netqasm.local_routine @rot(%arg0: i32, %one_i32: i32, %zero_i32: i32) {
+    netqasm.rot_x %arg0, %one_i32, %zero_i32
     netqasm.return
   }
   netqasm.request_routine @entangle_qubit() -> i32 {
@@ -52,6 +52,11 @@ module {
     netqasm.return %0 : i1
   }
   qoalahost.main_func @test_simple_gate_count() {
+    qoalahost.blk_meta  {block_id = "block_10", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    %zero_i32 = arith.constant 0 : i32
+    %one_i32 = arith.constant 1 : i32
+    qoalahost.nop_term
+  ^bb0:
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %0 = qoalahost.call @local_qubit0() : () -> i32
   ^bb1:  // no predecessors
@@ -61,8 +66,8 @@ module {
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
     qoalahost.call @cnot0(%0, %1) : (i32, i32) -> ()
   ^bb3:  // no predecessors
-    qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
-    qoalahost.call @rot(%1) : (i32) -> ()
+    qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_10", "block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.call @rot(%1, %one_i32, %zero_i32) : (i32, i32, i32) -> ()
   ^bb4:  // no predecessors
     qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %2 = qoalahost.call @entangle_qubit() : () -> i32

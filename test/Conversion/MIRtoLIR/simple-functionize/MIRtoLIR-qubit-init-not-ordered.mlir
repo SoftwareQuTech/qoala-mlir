@@ -11,8 +11,8 @@ module {
   // CHECK-NEXT: netqasm.init %[[LOC_QUBIT0]]
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT0]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]](%[[ARG_QUBITA:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_x %[[ARG_QUBITA]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER1:.*]](%[[ARG_QUBITA:.*]]: i32, %[[C0_ARG:.+]]: i32)
+  // CHECK-NEXT: netqasm.rot_x %[[ARG_QUBITA]], %[[C0_ARG]], %[[C0_ARG]]
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER2:.*]]() -> i32
@@ -20,8 +20,8 @@ module {
   // CHECK-NEXT: netqasm.init %[[LOC_QUBIT1]]
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT1]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG_QUBITB:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_y %[[ARG_QUBITB]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER3:.*]](%[[ARG_QUBITB:.*]]: i32, %[[C0_ARG:.+]]: i32)
+  // CHECK-NEXT: netqasm.rot_y %[[ARG_QUBITB]], %[[C0_ARG]], %[[C0_ARG]]
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER4:.*]](%[[ARG_QUBITC:.*]]: i32, %[[ARG_QUBITD:.*]]: i32)
@@ -41,8 +41,8 @@ module {
   // CHECK-NEXT: netqasm.eprs %[[LOC_QUBIT2]]  {remote = @Bob}
   // CHECK-NEXT: netqasm.return %[[LOC_QUBIT2]] : i32
 
-  // CHECK: netqasm.local_routine @[[WRAPPER8:.*]](%[[ARG_QUBITG:.*]]: i32)
-  // CHECK-NEXT: netqasm.rot_z %[[ARG_QUBITG]] (0 : ui32, 0 : ui32)
+  // CHECK: netqasm.local_routine @[[WRAPPER8:.*]](%[[ARG_QUBITG:.*]]: i32, %[[C0_ARG:.+]]: i32)
+  // CHECK-NEXT: netqasm.rot_z %[[ARG_QUBITG]], %[[C0_ARG]], %[[C0_ARG]]
   // CHECK-NEXT: netqasm.return
 
   // CHECK: netqasm.local_routine @[[WRAPPER9:.*]](%[[ARG_QUBITH:.*]]: i32) -> i1
@@ -59,6 +59,9 @@ module {
     // We don't expect a first block iwith remote ID placeholder opertions, since the
     // remotes are used for EPRS operations
 
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: %[[C0:.+]] = arith.constant 0 : i32
+
     // Some programmers like to "declare" all variables at the beginning...
     // CHECK: qoalahost.blk_meta {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %q0 = qmem.qalloc : i32
@@ -71,8 +74,8 @@ module {
     // CHECK-NEXT: %[[QUBIT0:.*]] = qoalahost.call @[[WRAPPER0]]() : () -> i32
     qmem.init %q0
     // CHECK: ^[[BLK_2:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = ["[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER1]](%[[QUBIT0]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_1]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER1]](%[[QUBIT0]], %[[C0]]) : (i32, i32) -> ()
     qmem.rot_x %q0, %c0
 
     // CHECK: ^[[BLK_3:.*]]:
@@ -80,8 +83,8 @@ module {
     // CHECK-NEXT: %[[QUBIT1:.*]] = qoalahost.call @[[WRAPPER2]]() : () -> i32
     qmem.init %q1
     // CHECK: ^[[BLK_4:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[QUBIT1]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER3]](%[[QUBIT1]], %[[C0]]) : (i32, i32) -> ()
     qmem.rot_y %q1, %c0
 
     // CHECK: ^[[BLK_5:.*]]:
@@ -106,9 +109,9 @@ module {
     qmem.eprs %q2 {remote = @Bob}
 
     // CHECK: ^[[BLK_9:.*]]:
-    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_9:.*]]", deadlines = {}, dependencies = ["[[BLOCK_8]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+    // CHECK-NEXT: qoalahost.blk_meta {block_id = "[[BLOCK_9:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_8]]"], predecessors = [], prev_comm = "", prev_ent = ""}
     // Eprs operation is a barrier, so rot_z cannot be grouped together with eprs
-    // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[QUBIT2]]) : (i32) -> ()
+    // CHECK-NEXT: qoalahost.call @[[WRAPPER8]](%[[QUBIT2]], %[[C0]]) : (i32, i32) -> ()
     qmem.rot_z %q2, %c0
 
     // CHECK: ^[[BLK_10:.*]]:
