@@ -65,8 +65,28 @@ static LogicalResult insertQoalaHostJumpInstr(ModuleTranslation *moduleTranslati
 }
 
 static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslation, cf::BranchOp &op) {
+    Block *destBlock = op.getDest();
+    // Process the arguments of the branching op, which are block arguments in the destination block
+    for (auto [index, jumpArg] : llvm::enumerate(op.getDestOperands())) {
+        // Get the register reference of the block arg to use
+        BlockArgument blockArg = destBlock->getArgument(index);
+        iQoalaMCOperand *registerToUse =
+                iQoalaMCOperand::createRegisterOperand(moduleTranslation->getMappedRegRefForValue(blockArg));
+        // Get the register reference of the value to assign to that block argument
+        iQoalaMCOperand *blockArgOperand =
+                iQoalaMCOperand::createRegisterOperand(moduleTranslation->getMappedRegRefForValue(jumpArg));
+
+        // Insert a "copy_cval" instruction
+        const auto *copyValInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                moduleTranslation, op, QoalaHostMCInstr::OP_COPY_CVAL, {}, {}, {registerToUse, blockArgOperand},
+                /*useOpOperands=*/false, /*appendInstruction=*/true);
+        if (!copyValInstr) {
+            op.emitError() << "Cannot place copy_cval instruction for branching op";
+            return failure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << jumpArg << "\n");
+    }
     // Get the name of the target block
-    const Block *destBlock = op.getDest();
     const auto *destQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(destBlock);
     assert(destQoalaHostBlock && "Destination block not mapped!");
     const std::string targetBlockName = destQoalaHostBlock->getName();

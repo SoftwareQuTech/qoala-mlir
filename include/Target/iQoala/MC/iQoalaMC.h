@@ -307,6 +307,7 @@ namespace qoala::assembly {
             // misinterpreted as an instruction from another set.
             OP_UNKNOWN = 0x100,
             OP_ASSIGN_CVAL,
+            OP_COPY_CVAL,
             OP_ADD,
             OP_SUBTRACT,
             OP_MULTIPLY_CONSTANT,
