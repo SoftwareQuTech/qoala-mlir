@@ -294,7 +294,7 @@ namespace qoala::assembly {
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isLocalRegister());
-                printInstrGeneric("mul_cval", os, true, true);
+                printInstrGeneric("mult_cval", os, true);
                 break;
             case OP_MULTIPLY_CONSTANT:
                 assert(this->operands.size() == 3);

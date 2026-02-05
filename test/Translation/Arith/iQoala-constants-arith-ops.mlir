@@ -14,6 +14,7 @@
 // whose value can be "forwarded". Being that said, HOST_REG0 is the first operand
 // which is a constant and can be forwarded:
 // CHECK-NEXT: %[[HOST_REG4:.*]] = mult_const(%[[HOST_REG1]]) : 3
+// CHECK-NEXT: %[[HOST_REG5:.*]] = mul_cval(%[[HOST_REG3]], %[[HOST_REG4]])
 // Instructions quot and rem not supported in the QoalaHost section in qoala-sim yet
 // %[[HOST_REG4:.*]] = quot(%[[HOST_REG0]], %[[HOST_REG1]])
 // %[[HOST_REG4:.*]] = rem(%[[HOST_REG0]], %[[HOST_REG1]])
@@ -55,6 +56,7 @@ module {
     %resA = arith.addi %cstA, %cstB : i32
     %resB = arith.subi %cstA, %cstB : i32
     %resC = arith.muli %cstA, %cstB : i32
+    %resD = arith.muli %resB, %resC : i32
     qoalahost.nop_term
   ^bb1:
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
