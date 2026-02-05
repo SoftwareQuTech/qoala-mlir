@@ -308,6 +308,7 @@ namespace qoala::assembly {
             OP_UNKNOWN = 0x100,
             OP_ASSIGN_CVAL,
             OP_ADD,
+            OP_MULTIPLY,
             OP_SUBTRACT,
             OP_MULTIPLY_CONSTANT,
             OP_BI_COND_MULTIPLY,

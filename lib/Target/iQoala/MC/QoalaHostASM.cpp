@@ -73,6 +73,16 @@ namespace qoala::assembly {
                        "QoalaHost 3-reg instruction: operand 2 must be a local register");
                 type = CL;
                 break;
+            case OP_MULTIPLY:
+                assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
+                assert(mcOperands[0]->isLocalRegister() &&
+                       "QoalaHost 3-reg instruction: operand 0 must be a local register");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost 3-reg instruction: operand 1 must be a local register");
+                assert(mcOperands[2]->isLocalRegister() &&
+                       "QoalaHost 3-reg instruction: operand 2 must be a local register");
+                type = CL;
+                break;
             case OP_MULTIPLY_CONSTANT:
                 assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
                 assert(mcOperands[0]->isLocalRegister() &&
@@ -277,6 +287,14 @@ namespace qoala::assembly {
                 assert(this->operands[1]->isLocalRegister());
                 assert(this->operands[2]->isLocalRegister());
                 printInstrGeneric("sub_cval_c", os, true);
+                break;
+            case OP_MULTIPLY:
+                assert(this->operands.size() == 3);
+                // We assume the first operand is the "name" of the local registry to assign to
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                assert(this->operands[2]->isLocalRegister());
+                printInstrGeneric("mult_cval", os, true);
                 break;
             case OP_MULTIPLY_CONSTANT:
                 assert(this->operands.size() == 3);
