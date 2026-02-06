@@ -64,10 +64,10 @@ static LogicalResult insertQoalaHostJumpInstr(ModuleTranslation *moduleTranslati
     return instruction ? success() : failure();
 }
 
-static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslation, cf::BranchOp &op) {
-    Block *destBlock = op.getDest();
+static LogicalResult insertBlockArgumentAlias(ModuleTranslation *moduleTranslation, Operation *op, Block *destBlock,
+                                              const OperandRange &destOperands) {
     // Process the arguments of the branching op, which are block arguments in the destination block
-    for (auto [index, jumpArg] : llvm::enumerate(op.getDestOperands())) {
+    for (auto [index, jumpArg] : llvm::enumerate(destOperands)) {
         // Get the register reference of the block arg to use
         BlockArgument blockArg = destBlock->getArgument(index);
         iQoalaMCOperand *registerToUse =
@@ -81,10 +81,17 @@ static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslatio
                 moduleTranslation, op, QoalaHostMCInstr::OP_COPY_CVAL, {}, {}, {registerToUse, blockArgOperand},
                 /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!copyValInstr) {
-            op.emitError() << "Cannot place copy_cval instruction for branching op";
+            op->emitError() << "Cannot place copy_cval instruction for branching op";
             return failure();
         }
-        LLVM_DEBUG(llvm::dbgs() << jumpArg << "\n");
+    }
+    return success();
+}
+
+static LogicalResult placeQoalaHostJumpInstr(ModuleTranslation *moduleTranslation, cf::BranchOp &op) {
+    Block *destBlock = op.getDest();
+    if (failed(insertBlockArgumentAlias(moduleTranslation, op.getOperation(), destBlock, op.getDestOperands()))) {
+        return failure();
     }
     // Get the name of the target block
     const auto *destQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(destBlock);
@@ -116,13 +123,14 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
     const Value &condition = op.getCondition();
     Operation *conditionOp = moduleTranslation->getMappedCmpOperation(condition);
     if (auto cmpIOp = dyn_cast_or_null<arith::CmpIOp>(conditionOp)) {
+        Block *trueDestBlock = op.getTrueDest();
+        Block *falseDestBlock = op.getFalseDest();
+
         // Process the destinations of the MLIR conditional jump
-        const Block *trueDestBlock = op.getTrueDest();
-        const Block *falseDestBlock = op.getFalseDest();
         const auto *trueDestQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(trueDestBlock);
         const auto *falseDestQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(falseDestBlock);
-        assert(trueDestQoalaHostBlock && "Destination block not mapped!");
-        assert(falseDestQoalaHostBlock && "Destination block not mapped!");
+        assert(trueDestQoalaHostBlock && "True destination block not mapped!");
+        assert(falseDestQoalaHostBlock && "False destination block not mapped!");
 
         const std::string trueTargetBlockName = trueDestQoalaHostBlock->getName();
         const std::string falseTargetBlockName = falseDestQoalaHostBlock->getName();
@@ -146,6 +154,12 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
             op.emitOpError("Conditional branch: unsupported predicate");
             return failure();
         }
+        // Process the block arguments of the destination blocks
+        // Trick. We insert the block argument "true" value *before* the conditional jump
+        if (failed(insertBlockArgumentAlias(moduleTranslation, op.getOperation(), trueDestBlock,
+                                            op.getTrueDestOperands()))) {
+            return failure();
+        }
 
         // Insert the conditional branch instruction (true branch)
         const auto *condBrInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
@@ -153,6 +167,12 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
                 {cmpLeftOperand, cmpRight1Operand, trueTargetBlockOperand},
                 /*useOpOperands=*/false, /*appendInstruction=*/true);
         if (!condBrInstr) {
+            return failure();
+        }
+        // If the conditional branch fails, then we need to use the "false" value of the blcok argument
+
+        if (failed(insertBlockArgumentAlias(moduleTranslation, op.getOperation(), falseDestBlock,
+                                            op.getFalseDestOperands()))) {
             return failure();
         }
         // Insert the unconditional jump (false branch)
@@ -175,11 +195,16 @@ static LogicalResult placeQoalaHostCondBrInstr(ModuleTranslation *moduleTranslat
                             op.emitError("Branching based on a boolean constant is not supported yet");
                             return false;
                         });
-        const Block *trueDestBlock = op.getTrueDest();
-        const Block *falseDestBlock = op.getFalseDest();
+        Block *trueDestBlock = op.getTrueDest();
+        Block *falseDestBlock = op.getFalseDest();
 
-        // We insert an uncondition branch, depending on the branch test
-        const Block *destBlock = conditionIsTrue ? trueDestBlock : falseDestBlock;
+        // We insert an unconditional branch, depending on the branch test
+        Block *destBlock = conditionIsTrue ? trueDestBlock : falseDestBlock;
+        OperandRange destBlockOperands = conditionIsTrue ? op.getTrueDestOperands() : op.getFalseDestOperands();
+
+        if (failed(insertBlockArgumentAlias(moduleTranslation, op.getOperation(), destBlock, destBlockOperands))) {
+            return failure();
+        }
 
         const auto *destQoalaHostBlock = moduleTranslation->getMappediQoalaBlock(destBlock);
         assert(destQoalaHostBlock && "Destination block not mapped!");
