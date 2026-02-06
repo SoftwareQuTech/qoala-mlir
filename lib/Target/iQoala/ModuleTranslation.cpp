@@ -221,6 +221,14 @@ namespace qoala::translate {
 
     void ModuleTranslation::emplaceNewBlockInHostSection(mlir::Block *mlirBlock) {
         auto *newBlock = this->iQoalaModule->addHostBlock();
+        for (BlockArgument mlirBlockArg : mlirBlock->getArguments()) {
+            // Eagerly reserve local registers for the block args.
+            // When processing cf.conf_br and cf.br, the values passed as arguments will be
+            // populated into these reserved registers.
+            const uint8_t blockArgReg = this->iQoalaModule->getiQoalaContext()->allocateRegister(LOCAL);
+            iQoalaRegReference *blockArgRegRef = iQoalaRegReference::createRegReference(LOCAL, blockArgReg);
+            this->mapValueToRegRef(mlirBlockArg, blockArgRegRef);
+        }
         const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
         (void) result;
         assert(result.second && "Attempting to map a block that is already mapped");

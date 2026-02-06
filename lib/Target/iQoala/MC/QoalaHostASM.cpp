@@ -62,6 +62,14 @@ namespace qoala::assembly {
                        "QoalaHost instruction builder: second operand must be an immediate");
                 type = CL;
                 break;
+            case OP_COPY_CVAL:
+                assert(mcOperands.size() == 2 && "QoalaHost instruction builder: expected 2 operands ");
+                assert(mcOperands[0]->isLocalRegister() &&
+                       "QoalaHost instruction builder: first operand must be a local register");
+                assert(mcOperands[1]->isLocalRegister() &&
+                       "QoalaHost instruction builder: second operand must be a local register");
+                type = CL;
+                break;
             case OP_ADD:
             case OP_SUBTRACT:
                 assert(mcOperands.size() == 3 && "QoalaHost instruction builder: expected 3 operands");
@@ -271,6 +279,14 @@ namespace qoala::assembly {
                 assert(this->operands[0]->isLocalRegister());
                 assert(this->operands[1]->isImmediate());
                 printInstrGeneric("assign_cval", os, true, true);
+                break;
+            case OP_COPY_CVAL:
+                assert(this->operands.size() == 2);
+                // We assume the first operand is the "name" of the local registry to assign to
+                // And the second operand is the immediate
+                assert(this->operands[0]->isLocalRegister());
+                assert(this->operands[1]->isLocalRegister());
+                printInstrGeneric("copy_cval", os, true);
                 break;
             case OP_ADD:
                 assert(this->operands.size() == 3);
