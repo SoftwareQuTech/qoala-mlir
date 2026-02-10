@@ -134,6 +134,7 @@ namespace qoala::analysis::qubitlife {
 
         std::string intraBlockPred;
         std::string last;
+        uint32_t numTasksAddedForBlock = 0;
 
         const auto depIt = blockDependences.find(block->getId());
         const bool interBlockPred = (depIt != blockDependences.end());
@@ -156,6 +157,7 @@ namespace qoala::analysis::qubitlife {
                 if (initIt != qubitInits.end() || measIt != qubitMeas.end()) {
                     qpuTasks.emplace_back(opId, taskTime);
                     taskDependences.try_emplace({opId, {}});
+                    numTasksAddedForBlock++;
 
                     LLVM_DEBUG(llvm::dbgs()
                                << "Added Task '" << opId << "' with execution time: " << taskTime << ".\n");
@@ -178,6 +180,7 @@ namespace qoala::analysis::qubitlife {
                     cpuTasks.emplace_back(last, taskTime);
                 }
                 taskDependences.insert({last, {}});
+                numTasksAddedForBlock++;
                 LLVM_DEBUG(llvm::dbgs() << "Added Task '" << last << "' with execution time: " << taskTime << ".\n");
                 taskTime = 0;
                 if (!intraBlockPred.empty()) {
@@ -190,7 +193,12 @@ namespace qoala::analysis::qubitlife {
         if (interBlockPred == true) {
             for (const auto &temp : depIt->second) {
                 auto lastBlockTask = temp->getTasks().back()->getOperations().back()->getId();
-                auto currentBlockTask = block->getTasks().front()->getOperations().front()->getId();
+                // With purely classicla blocks, all ops will be grouped with the last task, use it for inter block pred
+                auto currentBlockTask = last;
+                // With quantum blocks, ops are divied into multiple groups of tasks, use the first for inter block dep
+                if (numTasksAddedForBlock > 1) {
+                    currentBlockTask = block->getTasks().front()->getOperations().front()->getId();
+                }
                 LLVM_DEBUG(llvm::dbgs() << "Task " << currentBlockTask << " has inter block dependency with '"
                                         << lastBlockTask << "'.\n");
                 taskDependences.at(currentBlockTask).push_back(lastBlockTask);

@@ -56,7 +56,7 @@ module {
         qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m1 = qoalahost.call @bsm_meas_ent(%1) : (i32) -> i1
     ^bb7:
-        qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_0", "block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_7", deadlines = {}, dependencies = ["block_5"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m0_ext = arith.extsi %m0 : i1 to i32
         %m0_tensor = tensor.from_elements %m0_ext : tensor<1xi32>
         qoalahost.send_ints %m0_tensor {remote = @Bob} : tensor<1xi32>
