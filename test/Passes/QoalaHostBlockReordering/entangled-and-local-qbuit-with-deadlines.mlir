@@ -8,7 +8,7 @@
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_5:.*]]", deadlines = {[[BLOCK_2]] = 601 : i64}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {[[BLOCK_2]] = 716 : i64}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_8:.*]]", deadlines = {[[BLOCK_2]] = 819 : i64}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_6]]"], predecessors = [], prev_comm = "[[BLOCK_5]]", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_7:.*]]", deadlines = {[[BLOCK_2]] = 922 : i64}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_5]]"], predecessors = [], prev_comm = "", prev_ent = ""}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_7:.*]]", deadlines = {[[BLOCK_2]] = 924 : i64}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_5]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 
 module {
   qremote.remote @Bob

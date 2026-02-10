@@ -267,8 +267,24 @@ namespace qoala::analysis::reordering {
 
                 // Create MILPOperation
                 std::string opId = blkId + "::" + std::to_string(opIdx++);
+
+                // Decide duration:
+                // - QuantumOpInterface ops use their interface duration
+                // - Non-interface ops in CL blocks use host-instruction time
+                // - Non-interface ops in non-CL blocks are ignored
+                int64_t dur = 0;
+                bool shouldAdd = false;
+
                 if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(&op)) {
-                    auto milpOp = std::make_unique<MILPOperation>(opId, durationOp.getDuration());
+                    dur = durationOp.getDuration();
+                    shouldAdd = true;
+                } else if (blkType == BlockType::CL) {
+                    dur = qoalaOptHostInstrTime;
+                    shouldAdd = true;
+                }
+
+                if (shouldAdd) {
+                    auto milpOp = std::make_unique<MILPOperation>(opId, dur);
                     milpOp->setOperation(&op);
                     MILPOperation *raw = blk->addOperation(std::move(milpOp));
                     opToMilpOp[&op] = raw;
