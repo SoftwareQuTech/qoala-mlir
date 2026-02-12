@@ -128,31 +128,43 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
     moduleTranslation->pushNewFrame(calledFunction);
     replacePlaceholderMCOperands(moduleTranslation, routine, valuesArgMap, valueToQubitMap);
 
-    // First, we map the MLIR the values to their regRefs following the call convention
+    // Cache LOAD/SET instructions once (avoid repeated filtering)
+    const auto setInstrs = filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET);
+    const auto loadInstrs = filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD);
+
+    // Dense index among *classical* operands only. Must match convertLocalRoutines() convention:
+    // qubit args do NOT consume @input slots.
+    uint32_t classicalIdx = 0;
+
+    // First, we map the MLIR values to their regRefs following the call convention
     for (uint32_t argNum = 0; argNum < op.getNumOperands(); ++argNum) {
         const Value valueAtCaller = op.getOperand(argNum);
         const BlockArgument &valueAtCallee = valuesArgMap.getBlockArgForCallerValue(valueAtCaller);
 
         if (valueToQubitMap[valueAtCaller] != 0xFF) {
-            // In this case, the argument is mapped to a qubit reference; search the corresponding set instruction
-            // that "loads" the qubit reference
-            for (const iQoalaMCInstruction *setInstr : filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_SET)) {
+            // Argument is mapped to a qubit reference; search the corresponding SET instruction
+            // that "loads" the qubit reference.
+            for (const iQoalaMCInstruction *setInstr : setInstrs) {
                 if (setInstr->getOperand(1)->getIntegerVal() == valueToQubitMap[valueAtCaller]) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, setInstr->getOperand(0)->getRegRef());
                     // Register the qubit for the "uses" and "keeps"
                     routine->registerQubit(valueAtCallee, setInstr->getOperand(1)->getIntegerVal());
+                    break;
                 }
             }
+            // NOTE: do NOT increment classicalIdx for qubit args
         } else {
-            // In this case, we can safely assume that the value is mapped to a classical value.
-            for (const iQoalaMCInstruction *loadInstr :
-                 filterInstructionsFromRoutine(routine, NetQASMMCInstr::OP_LOAD)) {
-                if (loadInstr->getOperand(1)->getIntegerVal() == argNum) {
+            // Classical arg: match LOAD slot against dense classical index
+            for (const iQoalaMCInstruction *loadInstr : loadInstrs) {
+                if (loadInstr->getOperand(1)->getIntegerVal() == classicalIdx) {
                     moduleTranslation->mapValueToRegRef(valueAtCallee, loadInstr->getOperand(0)->getRegRef());
+                    break;
                 }
             }
+            classicalIdx++;
         }
     }
+
     // Then we translate the called function and recursively all the nested operations
     if (failed(moduleTranslation->convertOperation(*calledFunction))) {
         return failure();

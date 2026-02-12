@@ -44,15 +44,15 @@
 // CHECK-NEXT: NETQASM_END
 
 // CHECK: SUBROUTINE __qoala_wrapper2
-// CHECK-NEXT: params: p1, p2
+// CHECK-NEXT: params: p0, p1
 // CHECK-NEXT: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT_0]]
 // CHECK-NEXT: keeps: [[QUBIT_0]]
 // CHECK-NEXT: request:
 // CHECK-NEXT: NETQASM_START
 // CHECK-NEXT: set [[QREG0_2:.*]] [[QUBIT_0]]
-// CHECK-NEXT: load [[VAL2:.*]] @input[1]
-// CHECK-NEXT: load [[VAL1:.*]] @input[2]
+// CHECK-NEXT: load [[VAL2:.*]] @input[0]
+// CHECK-NEXT: load [[VAL1:.*]] @input[1]
 // CHECK-NEXT: rot_x [[QREG0_2]] [[VAL2]] [[VAL1]]
 // CHECK-NEXT: rot_y [[QREG0_2]] [[VAL2]] [[VAL1]]
 // CHECK-NEXT: rot_z [[QREG0_2]] [[VAL2]] [[VAL1]]

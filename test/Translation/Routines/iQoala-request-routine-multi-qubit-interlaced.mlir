@@ -32,7 +32,7 @@
 
 // This routine simply uses all the qubits
 //CHECK: SUBROUTINE __qoala_wrapper3
-// CHECK-NEXT: params: p5, p6
+// CHECK-NEXT: params: p0, p1
 // CHECK-NEXT: returns: {{[[:space:]]}}
 // CHECK-SAME: uses: [[QUBIT0:.*]], [[QUBIT1:.*]], [[QUBIT2:.*]], [[QUBIT3]], [[QUBIT4:.*]]
 // CHECK-NEXT: keeps: [[QUBIT0]], [[QUBIT1]], [[QUBIT2]], [[QUBIT3]], [[QUBIT4]]
@@ -43,8 +43,8 @@
 // CHECK-NEXT: set [[Q_REGB2:.*]] [[QUBIT2]]
 // CHECK-NEXT: set [[Q_REGB3:.*]] [[QUBIT3]]
 // CHECK-NEXT: set [[Q_REGB4:.*]] [[QUBIT4]]
-// CHECK-NEXT: load [[VAL0:.*]] @input[5]
-// CHECK-NEXT: load [[VAL1:.*]] @input[6]
+// CHECK-NEXT: load [[VAL0:.*]] @input[0]
+// CHECK-NEXT: load [[VAL1:.*]] @input[1]
 // CHECK-NEXT: rot_x [[Q_REGB0]] [[VAL0]] [[VAL0]]
 // CHECK-NEXT: rot_y [[Q_REGB1]] [[VAL1]] [[VAL0]]
 // CHECK-NEXT: rot_z [[Q_REGB2]] [[VAL1]] [[VAL1]]
