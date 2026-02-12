@@ -1278,12 +1278,18 @@ namespace qoala::analysis::reordering {
         auto it = startVars_.find(opId);
         if (it == startVars_.end()) {
             LLVM_DEBUG(llvm::dbgs() << "Warning: start time requested for unknown operation " << opId << "\n");
-            return std::numeric_limits<double>::infinity(); // parks at end
+            return std::numeric_limits<double>::infinity();
         }
-        const SCIP_Real x = SCIPgetSolVal(scip_, nullptr, it->second);
 
-        // Treat invalids explicitly
-        if (std::isnan(x) || SCIPisInfinity(scip_, fabs(x))) {
+        SCIP_SOL *best = SCIPgetBestSol(scip_);
+        if (!best) {
+            LLVM_DEBUG(llvm::dbgs() << "Warning: no best solution when querying " << opId << "\n");
+            return std::numeric_limits<double>::infinity();
+        }
+
+        const SCIP_Real x = SCIPgetSolVal(scip_, best, it->second);
+
+        if (std::isnan(x) || SCIPisInfinity(scip_, x) || SCIPisInfinity(scip_, -x)) {
             LLVM_DEBUG(llvm::dbgs() << "Warning: invalid start time for " << opId << ": " << x << "\n");
             return std::numeric_limits<double>::infinity();
         }
