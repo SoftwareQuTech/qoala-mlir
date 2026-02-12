@@ -40,16 +40,16 @@ module {
         qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
         qoalahost.call @h(%0) : (i32) -> ()
     ^bb4:
-        qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_4", deadlines = {}, dependencies = ["block_3"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m0 = qoalahost.call @meas_local(%0) : (i32) -> i1
     ^bb5:
-        qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_5", deadlines = {}, dependencies = ["block_0", "block_4"], predecessors = [], prev_comm = "", prev_ent = ""}
         %m0_ext = arith.extsi %m0 : i1 to i32
         %m0_tensor = tensor.from_elements %m0_ext : tensor<1xi32>
         qoalahost.send_ints %m0_tensor {remote = @Bob} : tensor<1xi32>
         qoalahost.nop_term
     ^bb6:
-        qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "block_5", prev_ent = ""}
+        qoalahost.blk_meta  {block_id = "block_6", deadlines = {}, dependencies = ["block_0", "block_2"], predecessors = [], prev_comm = "block_5", prev_ent = ""}
         %m1_ext = arith.extsi %m1 : i1 to i32
         %m1_tensor = tensor.from_elements %m1_ext : tensor<1xi32>
         qoalahost.send_ints %m1_tensor {remote = @Bob} : tensor<1xi32>

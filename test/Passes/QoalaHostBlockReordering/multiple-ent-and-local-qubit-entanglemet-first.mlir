@@ -3,12 +3,12 @@
 // "block_99" is the block with the remote reference id placeholder
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_0:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_1:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = "[[BLOCK_0]]"}
+// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_99:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_2:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_3:.*]]", deadlines = {}, dependencies = ["[[BLOCK_2]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_4:.*]]", deadlines = {}, dependencies = ["[[BLOCK_0]]", "[[BLOCK_3]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_5:.*]]", deadlines = {}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_6:.*]]", deadlines = {}, dependencies = ["[[BLOCK_4]]"], predecessors = [], prev_comm = "", prev_ent = ""}
-// CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_99:.*]]", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_7:.*]]", deadlines = {}, dependencies = ["[[BLOCK_99]]", "[[BLOCK_5]]"], predecessors = [], prev_comm = "", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_8:.*]]", deadlines = {}, dependencies = ["[[BLOCK_99]]", "[[BLOCK_6]]"], predecessors = [], prev_comm = "[[BLOCK_7]]", prev_ent = ""}
 // CHECK: qoalahost.blk_meta  {block_id = "[[BLOCK_9:.*]]", deadlines = {}, dependencies = ["[[BLOCK_1]]", "[[BLOCK_8]]"], predecessors = [], prev_comm = "", prev_ent = ""}
