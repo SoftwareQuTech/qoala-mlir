@@ -1,6 +1,7 @@
 #ifndef IQOLACONTEXT_H
 #define IQOLACONTEXT_H
 
+#include <vector>
 #include "Target/iQoala/MC/iQoalaMC.h"
 #include "Target/iQoala/iQoala.h"
 #include "llvm/ADT/DenseMap.h"
@@ -20,7 +21,7 @@ namespace qoala::iqoala {
         llvm::SmallVector<uint8_t, 16> rRegisters;
         llvm::SmallVector<uint8_t, 16> cRegisters;
         llvm::SmallVector<uint8_t, 16> mRegisters;
-        llvm::SmallVector<uint8_t, 16> qRegisters;
+        std::vector<uint8_t> qRegisters;
     };
 
     /**
