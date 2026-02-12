@@ -807,9 +807,13 @@ namespace qoala::analysis::reordering {
         bigM_ = 2 * total;
         LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
 
-        // Use bigM_ as a global horizon to avoid "maximize lifetime" drifting to huge start times.
-        for (auto &kv : startVars_) {
-            SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
+        // IMPORTANT: do NOT affect optimize-mode behavior/tests.
+        // Only bound the schedule horizon when maximizing lifetimes (unoptimize),
+        // otherwise the feasible region changes and ordering can change.
+        if (qoalaOptUnoptimize) {
+            for (auto &kv : startVars_) {
+                SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
+            }
         }
     }
 
