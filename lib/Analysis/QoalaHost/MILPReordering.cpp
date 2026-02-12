@@ -808,10 +808,8 @@ namespace qoala::analysis::reordering {
         LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
 
         // Use bigM_ as a global horizon to avoid "maximize lifetime" drifting to huge start times.
-        if (qoalaOptUnoptimize) {
-            for (auto &kv : startVars_) {
-                SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
-            }
+        for (auto &kv : startVars_) {
+            SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
         }
     }
 
