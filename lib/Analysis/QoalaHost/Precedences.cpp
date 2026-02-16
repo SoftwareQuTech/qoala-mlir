@@ -7,6 +7,8 @@
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/BuiltinOps.h"
 
 #define DEBUG_TYPE "qoalahost-add-precedences-pass-internal"
@@ -181,6 +183,32 @@ namespace qoala::analysis::precedences {
         }
     }
 
+    static bool isPureCfBridgeBlock(Block &b) {
+        // Ignore blk_meta ops.
+        Operation *term = b.getTerminator();
+        if (!term) {
+            return false;
+        }
+
+        // Require terminator to be a cf branch.
+        if (!isa<cf::BranchOp, cf::CondBranchOp>(term)) {
+            return false;
+        }
+
+        // Check that everything else is only blk_meta (and maybe constants if you want).
+        for (Operation &op : b.getOperations()) {
+            if (&op == term) {
+                continue;
+            }
+            if (isa<qoalahost::BlkMeta>(&op)) {
+                continue;
+            }
+            // Anything else means it's not "glue".
+            return false;
+        }
+        return true;
+    }
+
     LogicalResult addPrecedences(ModuleOp &moduleOp) {
         // This pass builds a block-level precedence graph within the `qoalahost.main_func` by
         // tracking dependencies that determine the required execution ordering between blocks.
@@ -301,6 +329,46 @@ namespace qoala::analysis::precedences {
 
         resolveMemorySideEffects(callSiteEffects, blockIdMap, blockDeps);
 
+        // === Propagate dependencies to predecessors at merge points ===
+        //
+        // For any merge block M that has both data dependencies and control-flow
+        // predecessors, we must ensure that all dependency blocks are placed
+        // *before* all predecessor blocks in the final block order.
+        //
+        // The online scheduler walks blocks sequentially by list index, following
+        // jumps for branches. If a predecessor P can jump past a dependency D
+        // (because D is placed after P in the list), then D becomes unreachable
+        // and any values it defines will be missing at M.
+        //
+        // Fix: for each dependency Di of M and each predecessor Pj of M,
+        // add Di as a dependency of Pj — but only if Di appears before Pj in
+        // the current block list (to avoid forward-reference cycles where a
+        // predecessor that comes *before* a dependency would gain an impossible
+        // constraint).
+        // Build a block -> position index for the current block list order.
+        llvm::DenseMap<Block *, unsigned> blockPos;
+        unsigned pos = 0;
+        for (Block &b : mainFunc) {
+            blockPos[&b] = pos++;
+        }
+
+        for (Block &block : mainFunc) {
+            const auto &deps = blockDeps[&block];
+            if (deps.empty()) {
+                continue;
+            }
+
+            for (Block *pred : block.getPredecessors()) {
+                for (Block *dep : deps) {
+                    if (dep != pred && blockPos[dep] < blockPos[pred] && blockDeps[pred].insert(dep).second) {
+                        LLVM_DEBUG(llvm::dbgs()
+                                   << "[MergePointProp] " << blockIdMap[pred] << " now depends on " << blockIdMap[dep]
+                                   << " (propagated from merge block " << blockIdMap[&block] << ")\n");
+                    }
+                }
+            }
+        }
+
         transitiveReduction(blockIdMap, blockDeps);
 
         // Compute the precedences data and add it to the block
@@ -321,6 +389,12 @@ namespace qoala::analysis::precedences {
             std::vector<StringRef> predsIds;
             for (Block *pred : block.getPredecessors()) {
                 predsIds.emplace_back(blockIdMap[pred]);
+            }
+            // Synthesize a predecessor for orphan "bridge" blocks.
+            if (predsIds.empty() && isPureCfBridgeBlock(block)) {
+                if (Block *prev = block.getPrevNode()) {
+                    predsIds.emplace_back(blockIdMap[prev]);
+                }
             }
             std::sort(predsIds.begin(), predsIds.end());
             auto predsAttr = builder.getStrArrayAttr(predsIds);
