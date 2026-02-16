@@ -807,13 +807,12 @@ namespace qoala::analysis::reordering {
         bigM_ = 2 * total;
         LLVM_DEBUG(llvm::dbgs() << "M=" << bigM_ << "\n");
 
-        // IMPORTANT: do NOT affect optimize-mode behavior/tests.
-        // Only bound the schedule horizon when maximizing lifetimes (unoptimize),
-        // otherwise the feasible region changes and ordering can change.
-        if (qoalaOptUnoptimize) {
-            for (auto &kv : startVars_) {
-                SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
-            }
+        // Bound the schedule horizon so SCIP's LP relaxation is tight.
+        // bigM = 2 * total is generous enough to never cut off an optimal solution,
+        // but prevents the solver from exploring unbounded start-time ranges
+        // (especially important for the secondary objective).
+        for (auto &kv : startVars_) {
+            SCIPchgVarUb(scip_, kv.second, static_cast<SCIP_Real>(bigM_));
         }
     }
 
