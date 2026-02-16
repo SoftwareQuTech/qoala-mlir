@@ -11,7 +11,6 @@ module {
     %c4_i32 = arith.constant 4 : i32
     // CHECK: %[[RECV_INT_0:.*]] = qoalahost.recv_int {remote = @[[REMOTEBOB]]} : i32
     %rec_int_0 = qmem.recv_int {remote = @Bob} : i32
-    // CHECK: %[[CMP_RESULT:.+]] = arith.cmpi ne, %[[RECV_INT_0]], %[[CST]]
     %cmp = arith.cmpi ne, %rec_int_0, %c4_i32 : i32
     // From here down, we use cf.assert operations so they are not deleted by constant folding pass
     scf.if %cmp {
@@ -32,13 +31,15 @@ module {
     // IMPORTANT: MIR to LIR *does* modify the list of blocks:
     // * Adds a first block (^bb0) that contains the qoalahost.remote_id_ref operation
     // * Splits this block (^bb0 in this MIR), into 3, since it isolates recv_int
-    // All this implies that the arith.cmpi + cond_br instructions end up in the block ^bb3
-    // So the jumps should be to ^bb4 and ^bb5
-    // CHECK: cf.cond_br %[[CMP_RESULT]], ^bb4, ^bb10
-    // CHECK-NEXT: ^bb4:
+    // * The floater-to-branch propagation moves the 2nd recv_int (block_5)
+    //   before the outer cond_br (block_3), so it ends up at ^bb3.
+    // All this implies that the arith.cmpi + cond_br instructions end up in ^bb4
+    // So the jumps should be to ^bb5 and ^bb10
+    // CHECK: %[[RECV_INT_1:.*]] = qoalahost.recv_int  {remote = @[[REMOTEBOB]]} : i32
+    // CHECK: %[[CMP_RESULT:.+]] = arith.cmpi ne, %[[RECV_INT_0]], %[[CST]]
+    // CHECK-NEXT: cf.cond_br %[[CMP_RESULT]], ^bb5, ^bb10
+    // CHECK-NEXT: ^bb5:
     // CHECK: cf.assert %true, "Branch true"
-    // CHECK: ^bb5:
-    // CHECK: %[[RECV_INT_1:.*]] = qoalahost.recv_int  {remote = @Bob} : i32
     // CHECK: ^bb6:
     // CHECK: %[[CMP_RESULT_B:.+]] = arith.cmpi ne, %[[RECV_INT_1]], %[[CST_10]] : i32
     // CHECK-NEXT: cf.cond_br %[[CMP_RESULT_B]], ^bb7, ^bb8

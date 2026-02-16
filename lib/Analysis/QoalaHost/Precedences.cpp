@@ -369,6 +369,150 @@ namespace qoala::analysis::precedences {
             }
         }
 
+        // === Floater-to-branch propagation ===
+        //
+        // The online scheduler walks blocks sequentially, following jumps at
+        // branches.  A "floater" block (no CFG predecessors, not a bridge block)
+        // is only reachable via sequential fall-through.  If a branch block C
+        // jumps past a floater F that is transitively needed by blocks after C,
+        // then F becomes unreachable and values it defines will be missing.
+        //
+        // Part 1: If F is already before C, add F as a dependency of C so the
+        //         MILP cannot reorder F after C.
+        // Part 2: If F is after C but all of F's own constraints (data deps,
+        //         prev_comm, prev_ent) are satisfiable before C, move F's
+        //         declaration before C and add F as a dependency of C.
+        //
+        // Rules:
+        //  - NEVER move blocks with CFG predecessors (pred_begin != pred_end).
+        //  - NEVER move bridge blocks (isPureCfBridgeBlock) — they get
+        //    synthesised predecessors from getPrevNode().
+        //  - ONLY add to dependencies; never modify predecessors.
+
+        // Build prev_comm and prev_ent maps for constraint checking in Part 2.
+        llvm::DenseMap<Block *, Block *> prevCommMap;
+        for (size_t i = 1; i < commOps.size(); i++) {
+            Block *cur = commOps[i]->getBlock();
+            Block *prev = commOps[i - 1]->getBlock();
+            if (prev != cur) {
+                prevCommMap.try_emplace(cur, prev);
+            }
+        }
+        llvm::DenseMap<Block *, Block *> prevEntMap;
+        for (size_t i = 1; i < requestCallOps.size(); i++) {
+            Block *cur = requestCallOps[i]->getBlock();
+            Block *prev = requestCallOps[i - 1]->getBlock();
+            if (prev != cur) {
+                prevEntMap.try_emplace(cur, prev);
+            }
+        }
+
+        // Collect all conditional branch blocks (to avoid iterator invalidation
+        // when we move blocks in Part 2).
+        std::vector<Block *> condBrBlocks;
+        for (Block &block : mainFunc) {
+            Operation *term = block.getTerminator();
+            if (term && isa<cf::CondBranchOp>(term)) {
+                condBrBlocks.push_back(&block);
+            }
+        }
+
+        for (Block *C : condBrBlocks) {
+            // Iterate until no more moves are possible (moving one floater may
+            // unblock another whose constraint pointed at the first).
+            bool moved = true;
+            while (moved) {
+                moved = false;
+
+                // Recompute block positions (may have changed from a prior move).
+                blockPos.clear();
+                pos = 0;
+                for (Block &b : mainFunc) {
+                    blockPos[&b] = pos++;
+                }
+                const unsigned posC = blockPos[C];
+
+                // Compute transitive data dependencies of ALL blocks after C.
+                std::unordered_set<Block *> transitiveNeeds;
+                std::vector<Block *> worklist;
+                for (auto &[blk, blkP] : blockPos) {
+                    if (blkP > posC) {
+                        for (Block *dep : blockDeps[blk]) {
+                            if (transitiveNeeds.insert(dep).second) {
+                                worklist.push_back(dep);
+                            }
+                        }
+                    }
+                }
+                while (!worklist.empty()) {
+                    Block *cur = worklist.back();
+                    worklist.pop_back();
+                    for (Block *dep : blockDeps[cur]) {
+                        if (transitiveNeeds.insert(dep).second) {
+                            worklist.push_back(dep);
+                        }
+                    }
+                }
+
+                // Process each floater in the transitive needs set.
+                for (Block *F : transitiveNeeds) {
+                    if (F == C) {
+                        continue;
+                    }
+                    // Skip blocks with CFG predecessors — they are part of a
+                    // conditional structure and must not be moved.
+                    if (F->pred_begin() != F->pred_end()) {
+                        continue;
+                    }
+                    // Skip bridge blocks — they acquire synthesised predecessors
+                    // from getPrevNode() and must not be moved.
+                    if (isPureCfBridgeBlock(*F)) {
+                        continue;
+                    }
+
+                    const unsigned posF = blockPos[F];
+                    if (posF < posC) {
+                        // Part 1: F is already before C — add as dependency.
+                        if (blockDeps[C].insert(F).second) {
+                            LLVM_DEBUG(llvm::dbgs() << "[FloaterProp] " << blockIdMap[C] << " now depends on "
+                                                    << blockIdMap[F] << " (floater before branch)\n");
+                        }
+                    } else {
+                        // Part 2: F is after C — check if all constraints of F
+                        // are satisfiable before C, then move + add dep.
+                        bool canMove = true;
+                        for (Block *dep : blockDeps[F]) {
+                            if (blockPos[dep] >= posC) {
+                                canMove = false;
+                                break;
+                            }
+                        }
+                        if (canMove) {
+                            auto it = prevCommMap.find(F);
+                            if (it != prevCommMap.end() && blockPos[it->second] >= posC) {
+                                canMove = false;
+                            }
+                        }
+                        if (canMove) {
+                            auto it = prevEntMap.find(F);
+                            if (it != prevEntMap.end() && blockPos[it->second] >= posC) {
+                                canMove = false;
+                            }
+                        }
+
+                        if (canMove) {
+                            LLVM_DEBUG(llvm::dbgs() << "[FloaterProp] Moving " << blockIdMap[F] << " before "
+                                                    << blockIdMap[C] << " and adding as dependency\n");
+                            F->moveBefore(C);
+                            blockDeps[C].insert(F);
+                            moved = true;
+                            break; // restart — positions changed
+                        }
+                    }
+                }
+            }
+        }
+
         transitiveReduction(blockIdMap, blockDeps);
 
         // Compute the precedences data and add it to the block
