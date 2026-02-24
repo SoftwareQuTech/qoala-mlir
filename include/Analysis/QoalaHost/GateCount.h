@@ -3,7 +3,7 @@
 
 #include "mlir/IR/BuiltinOps.h"
 
-namespace qoala::analysis::gatecount {
+namespace qoala::analysis::qoalahost::gatecount {
     class QoalaHostGateCount {
     public:
         explicit QoalaHostGateCount(mlir::Operation *op);
@@ -46,6 +46,6 @@ namespace qoala::analysis::gatecount {
         llvm::StringMap<uint32_t> detailedOneQubitGateCount;
         llvm::StringMap<uint32_t> detailedTwoQubitGateCount;
     };
-} // namespace qoala::analysis::gatecount
+} // namespace qoala::analysis::qoalahost::gatecount
 
 #endif // QOALA_MLIR_GATECOUNT_H

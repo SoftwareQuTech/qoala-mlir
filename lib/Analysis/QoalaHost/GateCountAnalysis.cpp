@@ -19,7 +19,7 @@ namespace qoala::analysis {
     };
 
     void QoalaHostGateCountShowAnalysis::runOnOperation() {
-        const auto &analysis = getAnalysis<gatecount::QoalaHostGateCount>();
+        const auto &analysis = getAnalysis<qoalahost::gatecount::QoalaHostGateCount>();
         const auto &detailedOneQubitGateCount = analysis.getDetailedOneQubitGateCount();
         const auto &detailedTwoQubitGateCount = analysis.getDetailedTwoQubitGateCount();
         const auto &detailedGateCount = analysis.getDetailedGateCount();

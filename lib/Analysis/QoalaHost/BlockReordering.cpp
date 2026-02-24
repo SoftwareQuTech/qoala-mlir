@@ -149,15 +149,15 @@ namespace qoala::analysis {
 
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
         // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
-        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        auto mainFuncs = moduleOp.getOps<dialects::qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
             signalPassFailure();
         }
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
+        dialects::qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        mainFunc.walk([](dialects::qoalahost::NopOp nop) { nop.erase(); });
 
         // Preserve gate count analysis
-        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
+        markAnalysesPreserved<qoalahost::gatecount::QoalaHostGateCount>();
     }
 } // namespace qoala::analysis
