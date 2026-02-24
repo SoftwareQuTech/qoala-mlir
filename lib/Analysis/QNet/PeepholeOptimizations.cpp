@@ -370,6 +370,379 @@ namespace qoala::analysis {
         double epsilon;
     };
 
+    // ============================================================
+    // Int-rotation helpers
+    // ============================================================
+
+    static std::optional<int32_t> getConstI32(Value v) {
+        auto cst = v.getDefiningOp<arith::ConstantOp>();
+        if (!cst) {
+            return std::nullopt;
+        }
+        const auto ia = dyn_cast<IntegerAttr>(cst.getValue());
+        if (!ia) {
+            return std::nullopt;
+        }
+        return static_cast<int32_t>(ia.getInt());
+    }
+
+    static Value makeI32Const(PatternRewriter &rewriter, Location loc, int32_t val) {
+        return rewriter.create<arith::ConstantOp>(loc, rewriter.getI32IntegerAttr(val)).getResult();
+    }
+
+    // Combine two int rotation angles (n1/2^d1 + n2/2^d2) into a single (n_new, d_new).
+    // Uses a constant fast-path when all four values are compile-time constants (with
+    // overflow detection), and falls back to emitting arith ops for dynamic values.
+    // Returns std::nullopt only for the constant path when overflow is detected.
+    // The caller must have set the rewriter insertion point before calling this.
+    static std::optional<std::pair<Value, Value>>
+    combineIntRotAngles(PatternRewriter &rewriter, Location loc, Value n1Val, Value d1Val, Value n2Val, Value d2Val) {
+        const auto c_n1 = getConstI32(n1Val);
+        const auto c_d1 = getConstI32(d1Val);
+        const auto c_n2 = getConstI32(n2Val);
+        const auto c_d2 = getConstI32(d2Val);
+
+        if (c_n1 && c_d1 && c_n2 && c_d2) {
+            // Constant fast-path
+            if (*c_d1 < 0 || *c_d2 < 0) {
+                return std::nullopt;
+            }
+            const int32_t d_new = std::max(*c_d1, *c_d2);
+            const int32_t diff1 = d_new - *c_d1;
+            const int32_t diff2 = d_new - *c_d2;
+            if (diff1 >= 31 || diff2 >= 31) {
+                return std::nullopt;
+            }
+            const int64_t n_sum = (static_cast<int64_t>(*c_n1) << diff1) + (static_cast<int64_t>(*c_n2) << diff2);
+            const auto n_new = static_cast<int32_t>(n_sum);
+            if (static_cast<int64_t>(n_new) != n_sum) {
+                return std::nullopt; // overflows i32
+            }
+            return std::make_pair(makeI32Const(rewriter, loc, n_new), makeI32Const(rewriter, loc, d_new));
+        }
+
+        // Dynamic path: emit arith ops.
+        // d_new = max(d1, d2)
+        Value dNew = rewriter.create<arith::MaxSIOp>(loc, d1Val, d2Val);
+        // delta_i = d_new - d_i  (0 for the larger denominator)
+        Value delta1 = rewriter.create<arith::SubIOp>(loc, dNew, d1Val);
+        Value delta2 = rewriter.create<arith::SubIOp>(loc, dNew, d2Val);
+        // Scale each numerator to the common denominator
+        Value n1Shifted = rewriter.create<arith::ShLIOp>(loc, n1Val, delta1);
+        Value n2Shifted = rewriter.create<arith::ShLIOp>(loc, n2Val, delta2);
+        // n_new = n1_scaled + n2_scaled
+        Value nNew = rewriter.create<arith::AddIOp>(loc, n1Shifted, n2Shifted);
+        return std::make_pair(nNew, dNew);
+    }
+
+    // ============================================================
+    // Fold adjacent mixed float/int rotations on the same axis.
+    // Both cases produce a FloatRotOpT with combined angle = float_angle + n·π/2^d.
+    // Only fires when the float angle and both int params are compile-time constants.
+    //
+    //  FloatRot(qin, a)  → IntRot(_, n, d)   (float first, int second)
+    //  IntRot(qin, n, d) → FloatRot(_, a)    (int first, float second)
+    // ============================================================
+    template<typename FloatRotOpT, typename IntRotOpT>
+    struct FoldFloatThenIntRotationPattern final : OpRewritePattern<IntRotOpT> {
+        using OpRewritePattern<IntRotOpT>::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(IntRotOpT rot, PatternRewriter &rewriter) const override {
+            Operation *prevOp = rot.getQin().getDefiningOp();
+            if (!prevOp) {
+                return failure();
+            }
+
+            auto prevFloat = dyn_cast<FloatRotOpT>(prevOp);
+            if (!prevFloat) {
+                return failure();
+            }
+
+            if (!prevOp->getResult(0).hasOneUse()) {
+                return failure();
+            }
+
+            // Float angle must be a compile-time constant
+            auto angleCst = prevFloat.getAngle().template getDefiningOp<arith::ConstantOp>();
+            if (!angleCst) {
+                return failure();
+            }
+            const auto aAttr = dyn_cast<FloatAttr>(angleCst.getValue());
+            if (!aAttr) {
+                return failure();
+            }
+
+            // Int params must be compile-time constants
+            const auto nOpt = getConstI32(rot.getNVal());
+            const auto dOpt = getConstI32(rot.getExpVal());
+            if (!nOpt || !dOpt || *dOpt < 0) {
+                return failure();
+            }
+
+            // combined = float_angle + n·π / 2^d
+            const double intAngle = static_cast<double>(*nOpt) * M_PI / std::pow(2.0, static_cast<double>(*dOpt));
+            const double combined = aAttr.getValue().convertToDouble() + intAngle;
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            Value newAngle =
+                    rewriter.create<arith::ConstantOp>(rot.getLoc(), FloatAttr::get(rewriter.getF32Type(), combined))
+                            .getResult();
+
+            SmallVector<Value, 2> operands{prevFloat.getQin(), newAngle};
+            auto newRot = rewriter.create<FloatRotOpT>(rot.getLoc(), rot.getOperation()->getResultTypes(), operands);
+
+            rewriter.replaceOp(rot, newRot->getResults());
+            rewriter.eraseOp(prevOp);
+            return success();
+        }
+    };
+
+    template<typename FloatRotOpT, typename IntRotOpT>
+    struct FoldIntThenFloatRotationPattern final : OpRewritePattern<FloatRotOpT> {
+        using OpRewritePattern<FloatRotOpT>::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(FloatRotOpT rot, PatternRewriter &rewriter) const override {
+            Operation *prevOp = rot.getQin().getDefiningOp();
+            if (!prevOp) {
+                return failure();
+            }
+
+            auto prevInt = dyn_cast<IntRotOpT>(prevOp);
+            if (!prevInt) {
+                return failure();
+            }
+
+            if (!prevOp->getResult(0).hasOneUse()) {
+                return failure();
+            }
+
+            // Float angle must be a compile-time constant
+            auto angleCst = rot.getAngle().template getDefiningOp<arith::ConstantOp>();
+            if (!angleCst) {
+                return failure();
+            }
+            const auto aAttr = dyn_cast<FloatAttr>(angleCst.getValue());
+            if (!aAttr) {
+                return failure();
+            }
+
+            // Int params must be compile-time constants
+            const auto nOpt = getConstI32(prevInt.getNVal());
+            const auto dOpt = getConstI32(prevInt.getExpVal());
+            if (!nOpt || !dOpt || *dOpt < 0) {
+                return failure();
+            }
+
+            // combined = n·π / 2^d + float_angle
+            const double intAngle = static_cast<double>(*nOpt) * M_PI / std::pow(2.0, static_cast<double>(*dOpt));
+            const double combined = intAngle + aAttr.getValue().convertToDouble();
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            Value newAngle =
+                    rewriter.create<arith::ConstantOp>(rot.getLoc(), FloatAttr::get(rewriter.getF32Type(), combined))
+                            .getResult();
+
+            SmallVector<Value, 2> operands{prevInt.getQin(), newAngle};
+            auto newRot = rewriter.create<FloatRotOpT>(rot.getLoc(), rot.getOperation()->getResultTypes(), operands);
+
+            rewriter.replaceOp(rot, newRot->getResults());
+            rewriter.eraseOp(prevOp);
+            return success();
+        }
+    };
+
+    // ============================================================
+    // Fold adjacent same-axis int rotations:
+    //   rot(qin, n1, d1) → rot(_, n2, d2)  ⟹  rot(qin, n_new, d_new)
+    // where d_new = max(d1, d2), n_new = n1·2^(d_new−d1) + n2·2^(d_new−d2).
+    // Only fires when all four operands are compile-time constants.
+    // ============================================================
+    template<typename IntRotOpT>
+    struct FoldIntRotationPairPattern final : OpRewritePattern<IntRotOpT> {
+        using OpRewritePattern<IntRotOpT>::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(IntRotOpT rot, PatternRewriter &rewriter) const override {
+            Operation *prevOp = rot.getQin().getDefiningOp();
+            if (!prevOp) {
+                return failure();
+            }
+
+            auto prevRot = dyn_cast<IntRotOpT>(prevOp);
+            if (!prevRot) {
+                return failure();
+            }
+
+            // prevOp's single qubit result must feed only this op
+            if (!prevOp->getResult(0).hasOneUse()) {
+                return failure();
+            }
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            const auto combined = combineIntRotAngles(rewriter, rot.getLoc(), prevRot.getNVal(), prevRot.getExpVal(),
+                                                      rot.getNVal(), rot.getExpVal());
+            if (!combined) {
+                return failure(); // constant-path overflow
+            }
+
+            // Mutate rot in-place: operands are 0=qin, 1=nVal, 2=expVal
+            rot.getOperation()->setOperand(0, prevRot.getQin());
+            rot.getOperation()->setOperand(1, combined->first);
+            rot.getOperation()->setOperand(2, combined->second);
+
+            rewriter.eraseOp(prevOp);
+            return success();
+        }
+    };
+
+    struct FoldCrotXIntRotationPairPattern final : OpRewritePattern<CrotXIntOp> {
+        using OpRewritePattern::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(CrotXIntOp rot, PatternRewriter &rewriter) const override {
+            // Target qubit is qin1 (operand 1)
+            Operation *prevOp = rot.getQin1().getDefiningOp();
+            if (!prevOp) {
+                return failure();
+            }
+
+            auto prevRot = dyn_cast<CrotXIntOp>(prevOp);
+            if (!prevRot) {
+                return failure();
+            }
+
+            // Both results of prevOp must be consumed only by this op
+            if (!llvm::all_of(prevOp->getResults(), [](OpResult r) { return r.hasOneUse(); })) {
+                return failure();
+            }
+
+            // Control wiring: rot.qin0 must come from prevOp.qout0
+            if (rot.getQin0() != prevOp->getResult(0)) {
+                return failure();
+            }
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            const auto combined = combineIntRotAngles(rewriter, rot.getLoc(), prevRot.getNVal(), prevRot.getExpVal(),
+                                                      rot.getNVal(), rot.getExpVal());
+            if (!combined) {
+                return failure(); // constant-path overflow
+            }
+
+            // Mutate in-place: operands are 0=qin0, 1=qin1, 2=nVal, 3=expVal
+            rot.getOperation()->setOperand(0, prevRot.getQin0());
+            rot.getOperation()->setOperand(1, prevRot.getQin1());
+            rot.getOperation()->setOperand(2, combined->first);
+            rot.getOperation()->setOperand(3, combined->second);
+
+            rewriter.eraseOp(prevOp);
+            return success();
+        }
+    };
+
+    // ============================================================
+    // Normalize int rotation: reduce n modulo 2^(d+1) into (−2^d, 2^d].
+    // Only fires when both n and d are compile-time constants and d ∈ [0, 30].
+    // For d ≥ 31, any i32 value of n already satisfies |n| < 2^d (canonical).
+    // ============================================================
+    template<typename IntRotOpT>
+    struct NormalizeIntRotationPattern final : OpRewritePattern<IntRotOpT> {
+        using OpRewritePattern<IntRotOpT>::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(IntRotOpT rot, PatternRewriter &rewriter) const override {
+            const auto nOpt = getConstI32(rot.getNVal());
+            const auto dOpt = getConstI32(rot.getExpVal());
+            if (!nOpt || !dOpt) {
+                return failure();
+            }
+
+            const int32_t n = *nOpt;
+            const int32_t d = *dOpt;
+            if (d < 0 || d >= 31) {
+                return failure();
+            }
+
+            const int32_t period = 1 << (d + 1); // 2^(d+1)
+            const int32_t half = 1 << d; // 2^d
+
+            // Reduce n into [0, period), then shift to (−half, half]
+            const int32_t n_mod = ((n % period) + period) % period;
+            const int32_t n_norm = (n_mod > half) ? (n_mod - period) : n_mod;
+
+            if (n_norm == n) {
+                return failure(); // already canonical
+            }
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            // Operands: 0=qin, 1=nVal, 2=expVal
+            rot.getOperation()->setOperand(1, makeI32Const(rewriter, rot.getLoc(), n_norm));
+            return success();
+        }
+    };
+
+    struct NormalizeCrotXIntRotationPattern final : OpRewritePattern<CrotXIntOp> {
+        using OpRewritePattern::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(CrotXIntOp rot, PatternRewriter &rewriter) const override {
+            const auto nOpt = getConstI32(rot.getNVal());
+            const auto dOpt = getConstI32(rot.getExpVal());
+            if (!nOpt || !dOpt) {
+                return failure();
+            }
+
+            const int32_t n = *nOpt;
+            const int32_t d = *dOpt;
+            if (d < 0 || d >= 31) {
+                return failure();
+            }
+
+            const int32_t period = 1 << (d + 1);
+            const int32_t half = 1 << d;
+
+            const int32_t n_mod = ((n % period) + period) % period;
+            const int32_t n_norm = (n_mod > half) ? (n_mod - period) : n_mod;
+
+            if (n_norm == n) {
+                return failure();
+            }
+
+            rewriter.setInsertionPoint(rot.getOperation());
+            // Operands: 0=qin0, 1=qin1, 2=nVal, 3=expVal
+            rot.getOperation()->setOperand(2, makeI32Const(rewriter, rot.getLoc(), n_norm));
+            return success();
+        }
+    };
+
+    // ============================================================
+    // Eliminate zero int rotation: n == 0  →  angle == 0  →  identity.
+    // Gated on twoPiEpsilon (consistent with float full-turn elimination).
+    // ============================================================
+    template<typename IntRotOpT>
+    struct EliminateZeroIntRotationPattern final : OpRewritePattern<IntRotOpT> {
+        using OpRewritePattern<IntRotOpT>::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(IntRotOpT rot, PatternRewriter &rewriter) const override {
+            const auto nOpt = getConstI32(rot.getNVal());
+            if (!nOpt || *nOpt != 0) {
+                return failure();
+            }
+
+            rewriter.replaceOp(rot, rot.getQin());
+            return success();
+        }
+    };
+
+    struct EliminateZeroCrotXIntRotationPattern final : OpRewritePattern<CrotXIntOp> {
+        using OpRewritePattern::OpRewritePattern;
+
+        LogicalResult matchAndRewrite(CrotXIntOp rot, PatternRewriter &rewriter) const override {
+            const auto nOpt = getConstI32(rot.getNVal());
+            if (!nOpt || *nOpt != 0) {
+                return failure();
+            }
+
+            rewriter.replaceOp(rot, {rot.getQin0(), rot.getQin1()});
+            return success();
+        }
+    };
+
     class QNetPeepholeOptimizationsPass : public impl::QNetPeepholeOptimizationsBase<QNetPeepholeOptimizationsPass> {
         using QNetPeepholeOptimizationsBase::QNetPeepholeOptimizationsBase;
 
@@ -392,12 +765,25 @@ namespace qoala::analysis {
         }
         if (this->rotationFolding) {
             patterns.add<FoldRotationPairPattern>(&getContext());
+            patterns.add<FoldIntRotationPairPattern<RotXIntOp>, FoldIntRotationPairPattern<RotYIntOp>,
+                         FoldIntRotationPairPattern<RotZIntOp>, FoldCrotXIntRotationPairPattern>(&getContext());
+            patterns.add<FoldFloatThenIntRotationPattern<RotXOp, RotXIntOp>,
+                         FoldFloatThenIntRotationPattern<RotYOp, RotYIntOp>,
+                         FoldFloatThenIntRotationPattern<RotZOp, RotZIntOp>,
+                         FoldIntThenFloatRotationPattern<RotXOp, RotXIntOp>,
+                         FoldIntThenFloatRotationPattern<RotYOp, RotYIntOp>,
+                         FoldIntThenFloatRotationPattern<RotZOp, RotZIntOp>>(&getContext());
         }
         if (this->normalizeAngles) {
             patterns.add<NormalizeRotationAnglePattern>(&getContext());
+            patterns.add<NormalizeIntRotationPattern<RotXIntOp>, NormalizeIntRotationPattern<RotYIntOp>,
+                         NormalizeIntRotationPattern<RotZIntOp>, NormalizeCrotXIntRotationPattern>(&getContext());
         }
         if (this->twoPiEpsilon >= 0.0) {
             patterns.add<EliminateFullTurnRotationPattern>(&getContext(), this->twoPiEpsilon);
+            patterns.add<EliminateZeroIntRotationPattern<RotXIntOp>, EliminateZeroIntRotationPattern<RotYIntOp>,
+                         EliminateZeroIntRotationPattern<RotZIntOp>, EliminateZeroCrotXIntRotationPattern>(
+                    &getContext());
         }
 
         constexpr GreedyRewriteConfig cfg;
