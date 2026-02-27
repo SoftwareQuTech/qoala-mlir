@@ -15,7 +15,7 @@ using namespace qoala::options;
 
 namespace qoala::analysis::fidelity {
 
-    static float calculateQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
+    static float computeQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
         // qubitEsp = prod(gate_fidelities) *  1/2*(exp(-lifetime/T2) + 1)
         // where fidelity = (1 - error_rate)^gate_counts
         float qubitEsp = 1.0f;
@@ -71,7 +71,7 @@ namespace qoala::analysis::fidelity {
             const auto oneQubitGates = oneQubitGateCount.at(qubitId);
             const auto twoQubitGates = twoQubitGateCount.at(qubitId);
 
-            const auto qubitEsp = calculateQubitEsp(static_cast<float>(lifetime), oneQubitGates, twoQubitGates);
+            const auto qubitEsp = computeQubitEsp(static_cast<float>(lifetime), oneQubitGates, twoQubitGates);
             LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId << "] ESP:" << qubitEsp << "\n");
 
             totalEsp *= qubitEsp;
