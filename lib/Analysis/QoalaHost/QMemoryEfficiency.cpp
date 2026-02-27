@@ -15,8 +15,8 @@ using namespace qoala::dialects;
 
 namespace qoala::analysis::qmemeff {
 
-    /// Process qalloc and measure operations inside a callee function,
-    /// updating virtualQubits, physicalQubits and measured buffer accordingly.
+    // Process qalloc and measure operations inside a callee function,
+    // updating virtualQubits, physicalQubits and measured buffer accordingly.
     static void processCalleeQMemOps(FunctionOpInterface callee, uint32_t &virtualQubits, uint32_t &physicalQubits,
                                      uint32_t &measured) {
         callee.walk([&](Operation *opInCallee) {
@@ -37,7 +37,7 @@ namespace qoala::analysis::qmemeff {
         });
     }
 
-    // State to track during branch analysis.
+    // Struct to track counts during branch evaluation.
     struct BranchCounts {
         uint32_t virtualQubits;
         uint32_t physicalQubits;
@@ -50,23 +50,21 @@ namespace qoala::analysis::qmemeff {
         }
     };
 
-    /**
-     * Traverse CFG and count qalloc/measure ops.
-     * For conditional branches, evaluates both paths and selects the one with
-     * the worst memory efficiency (highest physicalQubits).
-     */
+    // Traverse CFG and count qalloc/measure ops.
     static void traverseCFGAndCountQMem(mlir::Block *block, llvm::DenseSet<mlir::Block *> &visited,
                                         uint32_t &virtualQubits, uint32_t &physicalQubits, uint32_t &measured) {
-        if (visited.contains(block))
+        if (visited.contains(block)) {
             return;
+        }
         visited.insert(block);
 
         LLVM_DEBUG(llvm::dbgs() << "Visiting block.\n");
 
         // Process all operations in current block except CF terminators.
         for (auto &op : block->getOperations()) {
-            if (isa<cf::CondBranchOp, cf::BranchOp>(op))
+            if (isa<cf::CondBranchOp, cf::BranchOp>(op)) {
                 break;
+            }
 
             if (auto callOp = dyn_cast<qoalahost::CallOp>(&op)) {
                 auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
@@ -78,8 +76,8 @@ namespace qoala::analysis::qmemeff {
         auto terminator = block->getTerminator();
         if (auto condBr = dyn_cast<cf::CondBranchOp>(terminator)) {
             LLVM_DEBUG(llvm::dbgs() << "Evaluating conditional branch.\n");
-            // Capture initial state
-            BranchCounts initialState{virtualQubits, physicalQubits, measured};
+            // Capture initial counts
+            BranchCounts initialCounts{virtualQubits, physicalQubits, measured};
 
             // Analyze true branch
             llvm::DenseSet<Block *> visitedTrue = visited;
@@ -87,19 +85,20 @@ namespace qoala::analysis::qmemeff {
             BranchCounts trueCounts{virtualQubits, physicalQubits, measured};
             LLVM_DEBUG(llvm::dbgs() << "TRUE branch evaluated: physicalQubits=" << trueCounts.physicalQubits << ".\n");
 
-            // Restore initial state and analyze false branch
-            initialState.dumpInto(virtualQubits, physicalQubits, measured);
+            // Restore initial counts and analyze false branch
+            initialCounts.dumpInto(virtualQubits, physicalQubits, measured);
             llvm::DenseSet<Block *> visitedFalse = visited;
             traverseCFGAndCountQMem(condBr.getFalseDest(), visitedFalse, virtualQubits, physicalQubits, measured);
             BranchCounts falseCounts{virtualQubits, physicalQubits, measured};
-            LLVM_DEBUG(llvm::dbgs() << "FALSE branch evaluated: physicalQubits=" << falseCounts.physicalQubits << ".\n");
+            LLVM_DEBUG(llvm::dbgs() << "FALSE branch evaluated: physicalQubits=" << falseCounts.physicalQubits
+                                    << ".\n");
 
-            // Pick worst case: highest physicalQubits means worst efficiency.
+            // Pick worst case: highest physicalQubits -> worst efficiency.
             if (trueCounts.physicalQubits >= falseCounts.physicalQubits) {
                 trueCounts.dumpInto(virtualQubits, physicalQubits, measured);
                 visited = visitedTrue;
             } else {
-                // Variables already contain false branch state
+                // Variables already contain false branch counts
                 visited = visitedFalse;
             }
         } else if (auto br = dyn_cast<cf::BranchOp>(terminator)) {
