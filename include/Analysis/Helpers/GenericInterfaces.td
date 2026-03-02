@@ -11,7 +11,7 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
     let methods = [
         InterfaceMethod<[{
             Returns the duration of this operation.
-        }], "uint32_t", "getDuration", (ins), /*methodBody=*/[{}],
+        }], "uint64_t", "getDuration", (ins), /*methodBody=*/[{}],
         /*defaultImplementation=*/[{
             return qoala::options::qoalaOptHostInstrTime;
         }]

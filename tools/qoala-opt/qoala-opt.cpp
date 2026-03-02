@@ -55,8 +55,8 @@ uint32_t qoala::options::qoalaOptLatency = 100;
 static opt<uint32_t, /*ExternalStorage=*/true> qoalaOptLatencyOption("qoala-opt-latency", NotHidden,
                                                                      location(qoala::options::qoalaOptLatency));
 
-uint32_t qoala::options::qoalaOptLinkDuration = 1000;
-static opt<uint32_t, /*ExternalStorage=*/true>
+uint64_t qoala::options::qoalaOptLinkDuration = 1000;
+static opt<uint64_t, /*ExternalStorage=*/true>
         qoalaOptLinkDurationOption("qoala-opt-link-duration", desc("Time taken to generate entanglement."), NotHidden,
                                    location(qoala::options::qoalaOptLinkDuration));
 uint32_t qoala::options::qoalaOptHostInstrTime = 1;
@@ -73,8 +73,8 @@ static opt<uint32_t, /*ExternalStorage=*/true>
         qoalaOptQNosInstrTimeOption("qoala-opt-qnos-instr-time",
                                     desc("Time taken by a classical instruction executed on the QNPU."), NotHidden,
                                     location(qoala::options::qoalaOptQNosInstrTime));
-uint32_t qoala::options::qoalaOptQubitLifetime = 500;
-static opt<uint32_t, /*ExternalStorage=*/true>
+uint64_t qoala::options::qoalaOptQubitLifetime = 500;
+static opt<uint64_t, /*ExternalStorage=*/true>
         qoalaOptQubitLifetimeOption("qoala-opt-qubit-lifetime", desc("Lifetime of a qubit."), NotHidden,
                                     location(qoala::options::qoalaOptQubitLifetime));
 

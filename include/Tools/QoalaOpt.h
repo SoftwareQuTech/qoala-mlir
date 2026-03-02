@@ -13,11 +13,11 @@ namespace qoala::options {
     extern uint32_t qoalaOptTwoGateDuration;
     extern float qoalaOptDualGateError;
     extern uint32_t qoalaOptLatency;
-    extern uint32_t qoalaOptLinkDuration;
+    extern uint64_t qoalaOptLinkDuration;
     extern uint32_t qoalaOptHostInstrTime;
     extern uint32_t qoalaOptHostPeerLatency;
     extern uint32_t qoalaOptQNosInstrTime;
-    extern uint32_t qoalaOptQubitLifetime;
+    extern uint64_t qoalaOptQubitLifetime;
     extern bool qoalaOptGroupEntReqs;
     extern uint32_t qoalaOptProgramHorizon;
 } // namespace qoala::options

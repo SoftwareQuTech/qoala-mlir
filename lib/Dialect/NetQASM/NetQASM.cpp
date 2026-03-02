@@ -87,39 +87,39 @@ bool netqasm::NetQASMDialect::opIsNotFromAllowedDialects(Operation &operation) {
             >(operation);
 }
 
-uint32_t netqasm::QAllocOp::getDuration() { return options::qoalaOptQNosInstrTime; }
+uint64_t netqasm::QAllocOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-uint32_t netqasm::QFreeOp::getDuration() { return options::qoalaOptQNosInstrTime; }
+uint64_t netqasm::QFreeOp::getDuration() { return options::qoalaOptQNosInstrTime; }
 
-uint32_t netqasm::ReturnOp::getDuration() { return this->getNumOperands() * options::qoalaOptQNosInstrTime; }
+uint64_t netqasm::ReturnOp::getDuration() { return this->getNumOperands() * options::qoalaOptQNosInstrTime; }
 
-uint32_t netqasm::QInitOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::QInitOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::RotateXOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::RotateXOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::RotateYOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::RotateYOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::RotateZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::HadamardOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::XOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::XOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::YOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::YOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::ZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::ZOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
+uint64_t netqasm::MeasureOp::getDuration() { return options::qoalaOptSingleGateDuration; }
 
-uint32_t netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint64_t netqasm::CnotOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-uint32_t netqasm::CzOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint64_t netqasm::CzOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-uint32_t netqasm::CrotXOp::getDuration() { return options::qoalaOptTwoGateDuration; }
+uint64_t netqasm::CrotXOp::getDuration() { return options::qoalaOptTwoGateDuration; }
 
-uint32_t netqasm::EprsOp::getDuration() { return options::qoalaOptLinkDuration; }
+uint64_t netqasm::EprsOp::getDuration() { return options::qoalaOptLinkDuration; }
 
-uint32_t netqasm::EprsMeasureOp::getDuration() {
+uint64_t netqasm::EprsMeasureOp::getDuration() {
     return options::qoalaOptLinkDuration + options::qoalaOptSingleGateDuration;
 }
 

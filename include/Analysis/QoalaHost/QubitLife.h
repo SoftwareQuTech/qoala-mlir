@@ -11,7 +11,7 @@ namespace qoala::analysis::qubitlife {
     // an init, measure or two-quit op.
     class Task {
     public:
-        explicit Task(std::string n, const uint32_t t): name(std::move(n)), time(t) { }
+        explicit Task(std::string n, const uint64_t t): name(std::move(n)), time(t) { }
 
         [[nodiscard]]
         std::string getName() const {
@@ -19,13 +19,13 @@ namespace qoala::analysis::qubitlife {
         }
 
         [[nodiscard]]
-        uint32_t getTime() const {
+        uint64_t getTime() const {
             return this->time;
         }
 
     private:
         std::string name;
-        uint32_t time;
+        uint64_t time;
     };
 
     class LiveQubit : public reordering::MILPQubit {
@@ -56,13 +56,13 @@ namespace qoala::analysis::qubitlife {
          * @return A map with the computed qubit life times
          */
         [[nodiscard]]
-        std::unordered_map<std::string, uint32_t> getLifetimes() const {
+        std::unordered_map<std::string, uint64_t> getLifetimes() const {
             return this->qubitLifetimes;
         }
 
     private:
         // A map from qubit IDs to their lifetimes.
-        std::unordered_map<std::string, uint32_t> qubitLifetimes;
+        std::unordered_map<std::string, uint64_t> qubitLifetimes;
     };
 
 } // namespace qoala::analysis::qubitlife

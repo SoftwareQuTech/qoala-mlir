@@ -833,7 +833,7 @@ namespace qoala::analysis::reordering {
                     const MILPOperation *o2 = ops[j + 1];
                     SCIP_CONS *c;
                     std::string name = "ord_" + o1->getId() + "_" + o2->getId();
-                    const int32_t rhs = o1->getDuration();
+                    const int64_t rhs = o1->getDuration();
                     LLVM_DEBUG(llvm::dbgs() << "A...rhs = " << rhs << "\n");
                     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
                     SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
@@ -860,7 +860,7 @@ namespace qoala::analysis::reordering {
 
             SCIP_CONS *c;
             std::string name = "prec_" + pred->getId() + "_" + succ->getId();
-            const int32_t lhs = predLast->getDuration();
+            const int64_t lhs = predLast->getDuration();
             LLVM_DEBUG(llvm::dbgs() << "B...lhs = " << lhs << "\n");
             SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
             SCIPaddCoefLinear(scip_, c, startVars_[succFirst->getId()], 1.0);
@@ -1511,7 +1511,7 @@ namespace qoala::analysis::reordering {
 
                     SCIP_CONS *c;
                     std::string name = "intra_task_" + o1->getId() + "_" + o2->getId();
-                    const int32_t rhs = o1->getDuration();
+                    const int64_t rhs = o1->getDuration();
                     LLVM_DEBUG(llvm::dbgs() << "G...rhs = " << rhs << "\n");
                     SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, rhs, rhs);
                     SCIPaddCoefLinear(scip_, c, startVars_[o2->getId()], 1.0);
@@ -1537,7 +1537,7 @@ namespace qoala::analysis::reordering {
                 const auto *t2 = tasks[i + 1].get();
                 const MILPOperation *last1 = t1->getOperations().back();
                 const MILPOperation *first2 = t2->getOperations().front();
-                const int32_t dur1 = last1->getDuration();
+                const int64_t dur1 = last1->getDuration();
 
                 std::string name = "intra_block_" + blk->getId() + "_" + std::to_string(i);
                 SCIP_CONS *c;
@@ -1564,7 +1564,7 @@ namespace qoala::analysis::reordering {
             const MILPOperation *lastPred = pred->lastOp();
             const MILPOperation *firstSucc = succ->firstOp();
 
-            const uint32_t dur = lastPred->getDuration();
+            const uint64_t dur = lastPred->getDuration();
 
             SCIP_CONS *c;
             std::string name = "block_prec_" + pred->getId() + "_" + succ->getId();
@@ -1637,7 +1637,7 @@ namespace qoala::analysis::reordering {
 
             // WARNING - we need to make thi variable signed, since we are using it as a negative
             // when passing it to the connstraint creator
-            const int32_t durLastPred = lastPred->getDuration();
+            const int64_t durLastPred = lastPred->getDuration();
             const std::string gname = "G_" + pred->getId() + "_to_" + succ->getId();
             SCIP_VAR *G = gapVars_.at(gname);
 
@@ -1720,11 +1720,11 @@ namespace qoala::analysis::reordering {
                 continue;
             }
 
-            const uint32_t allocDur = alloc->getDuration();
-            const uint32_t measDur = meas->getDuration();
-            const uint32_t Lmax = qoalaOptQubitLifetime;
+            const uint64_t allocDur = alloc->getDuration();
+            const uint64_t measDur = meas->getDuration();
+            const uint64_t Lmax = qoalaOptQubitLifetime;
 
-            const int32_t rhs = Lmax - measDur + allocDur;
+            const int64_t rhs = Lmax - measDur + allocDur;
 
             SCIP_CONS *c;
             std::string name = "lifetime_" + id;

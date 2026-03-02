@@ -62,7 +62,7 @@ namespace qoala::analysis {
         // Class to represent an operation for the MILP model
         class MILPOperation {
         public:
-            MILPOperation(std::string id, const uint32_t duration):
+            MILPOperation(std::string id, const uint64_t duration):
                 id_(std::move(id)), duration_(duration), op_(nullptr) { }
 
             [[nodiscard]]
@@ -71,7 +71,7 @@ namespace qoala::analysis {
             }
 
             [[nodiscard]]
-            uint32_t getDuration() const {
+            uint64_t getDuration() const {
                 return duration_;
             }
 
@@ -84,7 +84,7 @@ namespace qoala::analysis {
 
         private:
             std::string id_;
-            uint32_t duration_;
+            uint64_t duration_;
             mlir::Operation *op_;
         };
 
@@ -114,8 +114,8 @@ namespace qoala::analysis {
             }
 
             [[nodiscard]]
-            uint32_t getDuration() const {
-                uint32_t dur = 0;
+            uint64_t getDuration() const {
+                uint64_t dur = 0;
                 for (const auto *op : operations_) {
                     dur += op->getDuration();
                 }

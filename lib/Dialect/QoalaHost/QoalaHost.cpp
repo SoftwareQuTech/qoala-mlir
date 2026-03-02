@@ -224,9 +224,9 @@ LogicalResult qoalahost::CallOp::verify() {
     return success();
 }
 
-uint32_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint64_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-uint32_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
+uint64_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
 BlockType qoalahost::SendIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
@@ -236,13 +236,13 @@ BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *
 
 BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
 
-uint32_t qoalahost::RecvIntsOp::getDuration() {
+uint64_t qoalahost::RecvIntsOp::getDuration() {
     // TODO - This need to be improved because this is just a rough estimation about how long does a recv op takes
     const uint32_t numberOfValues = static_cast<uint32_t>(this->getLengthAttr().getInt());
     return (options::qoalaOptLatency + options::qoalaOptHostPeerLatency) * numberOfValues;
 }
 
-uint32_t qoalahost::RecvFloatsOp::getDuration() {
+uint64_t qoalahost::RecvFloatsOp::getDuration() {
     // TODO - This need to be improved because this is just a rough estimation about how long does a recv op takes
     const uint32_t numberOfValues = static_cast<uint32_t>(this->getLengthAttr().getInt());
     return (options::qoalaOptLatency + options::qoalaOptHostPeerLatency) * numberOfValues;
