@@ -21,7 +21,7 @@ namespace qoala::analysis {
     void QoalaHostAddBlockPrecedencesPass::runOnOperation() {
         ModuleOp module = this->getOperation();
         LLVM_DEBUG(llvm::dbgs() << "QoalaHostAddBlockPrecedencesPass\n");
-        if (failed(precedences::addPrecedences(module))) {
+        if (failed(precedences::addPrecedences(module, this->useOnlineScheduler))) {
             signalPassFailure();
         }
     }

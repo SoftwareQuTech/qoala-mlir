@@ -5,6 +5,12 @@ include "mlir/Pass/PassBase.td"
 
 def QoalaHostAddBlockPrecedences : Pass<"qoalahost-add-block-precedences", "mlir::ModuleOp"> {
     let summary = "Add precedences in QoalaHost blocks definitions. This is meant to be used in the conversion from MIR to LIR and not as stand alone.";
+    let options = [
+        Option<"useOnlineScheduler", "use-online-scheduler", "bool", /*default=*/"false",
+               "Add conservative floater-to-branch dependencies for EPR (QC) blocks required by the online scheduler. "
+               "When false (default), EPR blocks are not forced before branch blocks, allowing the static scheduler "
+               "to pipeline EPR generation with Pauli corrections.">
+    ];
     let dependentDialects = ["qoala::dialects::qoalahost::QoalaHostDialect", "mlir::func::FuncDialect"];
 }
 def QoalaHostReorderBlocks : Pass<"qoalahost-reorder-blocks", "mlir::ModuleOp"> {

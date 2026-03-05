@@ -209,7 +209,7 @@ namespace qoala::analysis::precedences {
         return true;
     }
 
-    LogicalResult addPrecedences(ModuleOp &moduleOp) {
+    LogicalResult addPrecedences(ModuleOp &moduleOp, bool useOnlineScheduler) {
         // This pass builds a block-level precedence graph within the `qoalahost.main_func` by
         // tracking dependencies that determine the required execution ordering between blocks.
         //
@@ -407,6 +407,19 @@ namespace qoala::analysis::precedences {
             }
         }
 
+        // Build the set of QC (EPR-request) blocks for the static-scheduler guard below.
+        // When useOnlineScheduler is false, these blocks are exempt from the
+        // floater-to-branch propagation: the direct memory-effect deps
+        // (correction_block -> epr_block) already provide the correct ordering
+        // for the static scheduler, and forcing them before every branch block
+        // would prevent EPR generation from being pipelined with corrections.
+        std::unordered_set<Block *> qcBlocks;
+        if (!useOnlineScheduler) {
+            for (Operation *op : requestCallOps) {
+                qcBlocks.insert(op->getBlock());
+            }
+        }
+
         // Collect all conditional branch blocks (to avoid iterator invalidation
         // when we move blocks in Part 2).
         std::vector<Block *> condBrBlocks;
@@ -473,6 +486,13 @@ namespace qoala::analysis::precedences {
                     const unsigned posF = blockPos[F];
                     if (posF < posC) {
                         // Part 1: F is already before C — add as dependency.
+                        // For the static scheduler, skip EPR-request (QC) floaters:
+                        // the direct memory-effect deps (correction_block -> epr_block)
+                        // are sufficient, and this conservative constraint would
+                        // prevent the MILP from pipelining EPR generation with corrections.
+                        if (!useOnlineScheduler && qcBlocks.count(F)) {
+                            continue;
+                        }
                         if (blockDeps[C].insert(F).second) {
                             LLVM_DEBUG(llvm::dbgs() << "[FloaterProp] " << blockIdMap[C] << " now depends on "
                                                     << blockIdMap[F] << " (floater before branch)\n");
@@ -480,6 +500,11 @@ namespace qoala::analysis::precedences {
                     } else {
                         // Part 2: F is after C — check if all constraints of F
                         // are satisfiable before C, then move + add dep.
+                        // For the static scheduler, also skip EPR-request (QC) floaters
+                        // here to prevent them from being moved before branch blocks.
+                        if (!useOnlineScheduler && qcBlocks.count(F)) {
+                            continue;
+                        }
                         bool canMove = true;
                         for (Block *dep : blockDeps[F]) {
                             if (blockPos[dep] >= posC) {
@@ -529,9 +554,71 @@ namespace qoala::analysis::precedences {
             std::sort(dataDepsId.begin(), dataDepsId.end());
             auto dataDepsAttr = builder.getStrArrayAttr(dataDepsId);
 
-            // Control flow predecessors
+            // Control flow predecessors.
+            //
+            // A CFG predecessor edge A → B is pruned when all four conditions hold:
+            //   1. B is a quantum block (QL or QC) — identified by the presence of a
+            //      quantum subroutine call, i.e. an entry in callSiteEffects.
+            //      We restrict pruning to quantum blocks to avoid creating many new
+            //      independent classical blocks, which would balloon the number of MILP
+            //      FCFS binary variables and make the solver intractable.
+            //   2. B is a merge point (2+ CFG predecessors), guaranteeing B always
+            //      executes regardless of which branch was taken.  Single-predecessor
+            //      blocks are taken-branch targets that must keep their predecessor.
+            //   3. A is not in blockDeps[B] — no SSA value defined by A is consumed
+            //      by B, and the memory-effect analysis added no conflict dep.
+            //   4. A and B have no conflicting callee memory effects on a shared
+            //      quantum resource (same Value with at least one Write).
+            //
+            // The motivating case: an inter-qubit gate block (QL, merge point) whose
+            // CFG predecessors are classical correction-branch blocks.  Those branches
+            // contain no quantum operations and produce no values consumed by the gate,
+            // so the predecessor edges are pure control-flow artefacts from the
+            // sequential compilation order.  Dropping them lets the MILP hoist the
+            // gate before the later correction phases, enabling streaming "measure-
+            // as-you-go" schedules where earlier-allocated qubits are measured before
+            // later EPR rounds are generated.
+            const int numPreds = static_cast<int>(std::distance(block.pred_begin(), block.pred_end()));
+            const bool isMergePoint = numPreds >= 2;
+            const bool isQuantumBlock = callSiteEffects.count(&block) > 0;
+
             std::vector<StringRef> predsIds;
             for (Block *pred : block.getPredecessors()) {
+                if (isMergePoint && isQuantumBlock) {
+                    // Condition 3: pred must be a genuine data dependency.
+                    if (!blockDeps[&block].count(pred)) {
+                        // Condition 4: no quantum memory conflict between pred and block.
+                        bool hasConflict = false;
+                        auto itA = callSiteEffects.find(pred);
+                        auto itB = callSiteEffects.find(&block);
+                        if (itA != callSiteEffects.end() && itB != callSiteEffects.end()) {
+                            for (const auto &effA : itA->second.effects) {
+                                for (const auto &effB : itB->second.effects) {
+                                    if (!effA.getValue() || !effB.getValue()) {
+                                        continue;
+                                    }
+                                    if (effA.getValue() != effB.getValue()) {
+                                        continue;
+                                    }
+                                    if (isa<MemoryEffects::Write>(effA.getEffect()) ||
+                                        isa<MemoryEffects::Write>(effB.getEffect())) {
+                                        hasConflict = true;
+                                        break;
+                                    }
+                                }
+                                if (hasConflict) {
+                                    break;
+                                }
+                            }
+                        }
+                        if (!hasConflict) {
+                            LLVM_DEBUG(llvm::dbgs()
+                                       << "[PredPrune] Dropping pure-CF predecessor " << blockIdMap[pred] << " → "
+                                       << blockIdMap[&block] << " (quantum merge-point, no data/memory dep)\n");
+                            continue;
+                        }
+                    }
+                }
                 predsIds.emplace_back(blockIdMap[pred]);
             }
             // Synthesize a predecessor for orphan "bridge" blocks.

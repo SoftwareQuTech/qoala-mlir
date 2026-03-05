@@ -171,7 +171,7 @@ namespace qoala::conversion {
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Adding Block Precedences *\n");
         LLVM_DEBUG(llvm::dbgs() << "****************************\n");
-        if (failed(analysis::precedences::addPrecedences(module))) {
+        if (failed(analysis::precedences::addPrecedences(module, this->useOnlineScheduler))) {
             signalPassFailure();
         }
     }

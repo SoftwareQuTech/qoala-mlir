@@ -23,7 +23,7 @@ namespace qoala::analysis {
          * @param moduleOp module to walk for tracking and adding precedences.
          */
 
-        mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp);
+        mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp, bool useOnlineScheduler = false);
     } // namespace precedences
 
     namespace qmemeff {
