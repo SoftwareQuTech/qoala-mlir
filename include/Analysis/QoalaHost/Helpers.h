@@ -2,6 +2,7 @@
 #define QOALAHOST_HELPERS_H
 
 #include <set>
+#include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/AnalysisManager.h"

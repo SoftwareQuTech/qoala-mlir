@@ -1,9 +1,11 @@
+#include "Analysis/QoalaHost/AnalysisTraversal.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/QoalaHost/QubitLife.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
@@ -18,14 +20,14 @@ using namespace qoala::analysis;
 
 namespace qoala::analysis::qubitlife {
 
-    /// Encapsulates the mutable task accumulation tasks during traversal.
+    // Encapsulates the mutable task accumulation tasks during traversal.
     struct BranchTasks {
         std::vector<Task> cpuTasks;
         std::vector<Task> qpuTasks;
         std::unordered_map<std::string, std::vector<std::string>> taskDependences;
     };
 
-    /// Result of running the scheduler on a complete path's accumulated tasks.
+    // Result of running the scheduler on a complete path's accumulated tasks.
     struct SchedulerResult {
         std::unordered_map<std::string, uint64_t> qubitLifetimes;
         uint64_t globalTime;
@@ -62,20 +64,16 @@ namespace qoala::analysis::qubitlife {
                     auto itMeas = opToMilpOp.find(op);
                     measOp = (itMeas != opToMilpOp.end()) ? itMeas->second : nullptr;
                 }
-                /**
-                 * Treat last two-qubit op as a measure op.
-                 * A measure op will overwrite the last two-qubit op.
-                 */
+
+                // Treat last two-qubit op as a measure op.
+                // A measure op will overwrite the last two-qubit op.
                 if (llvm::isa<netqasm::ifaces::DualQubitOp>(op)) {
                     auto itTwoQubitOp = opToMilpOp.find(op);
                     twoQubitOp = (itTwoQubitOp != opToMilpOp.end()) ? itTwoQubitOp->second : nullptr;
                 }
             }
 
-            if (allocOp == nullptr) {
-                llvm::outs() << "Missing Alloc Op for qubit: " << entry.first << ".\n";
-                assert(false);
-            }
+            assert(allocOp != nullptr && "Missing Alloc Op for qubit.");
 
             std::string id = allocOp->getId();
             auto qubitPtr = std::make_shared<LiveQubit>(id);
@@ -104,10 +102,7 @@ namespace qoala::analysis::qubitlife {
 
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
-            if (qubit->getAllocation() == nullptr) {
-                llvm::outs() << "Alloc Op not found for qubit " << qubitId << ".\n";
-                assert(false);
-            }
+            assert(qubit->getAllocation() != nullptr && "Alloc Op not found for qubit.");
             const std::string &allocId = qubit->getAllocation()->getId();
             LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId << "' initialized in '" << allocId << "'.\n");
             auto measPtr = qubit->getMeasurement();
@@ -127,55 +122,36 @@ namespace qoala::analysis::qubitlife {
     }
 
     /**
-     * Build filtered block dependencies from BlkMeta attributes.
-     * Includes only data dependencies (dependencies, prev_comm, prev_ent).
-     * Excludes CFG predecessors to allow branch-aware scheduling.
+     * Convert BlockPrerequisites (Block* -> Block*) to MILPBlock-level dependencies
+     * (string -> MILPBlock*), merging both predecessors and dependencies into a single map
+     * since processBlock treats all dependency types uniformly for inter-block task ordering.
      */
-    static void buildFilteredBlockDependencies(
-            const std::vector<std::shared_ptr<reordering::MILPBlock>> &blocks,
-            const llvm::StringMap<reordering::MILPBlock *> &idToBlockMap,
-            std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> &blockDependences) {
+    static std::unordered_map<std::string, std::vector<reordering::MILPBlock *>>
+    convertPrereqsToMilpDeps(const BlockPrerequisites &prereqs,
+                             const llvm::DenseMap<mlir::Block *, reordering::MILPBlock *> &blockToMilpBlock) {
 
-        for (const auto &b : blocks) {
-            reordering::MILPBlock *blk = b.get();
-            Block *mlirBlock = blk->getBlock();
-            assert(mlirBlock && "MILPBlock has no corresponding MLIR Block.");
+        std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> blockDependences;
 
-            auto blkMeta = dyn_cast<qoalahost::BlkMeta>(mlirBlock->front());
-            assert(blkMeta && "MLIR Block does not start with BlkMeta.");
-
-            const std::string &blkId = blk->getId();
-
-            // Data dependencies
-            if (const ArrayAttr deps = blkMeta.getDependenciesAttr()) {
-                for (StringRef dep : deps.getAsValueRange<StringAttr>()) {
-                    auto it = idToBlockMap.find(dep);
-                    if (it != idToBlockMap.end()) {
-                        blockDependences[blkId].push_back(it->second);
+        auto addDeps = [&](const mlir::DenseMap<mlir::Block *, llvm::SmallVector<mlir::Block *, 2>> &map) {
+            for (const auto &[block, deps] : map) {
+                auto milpIt = blockToMilpBlock.find(block);
+                if (milpIt == blockToMilpBlock.end()) {
+                    continue;
+                }
+                const std::string &blkId = milpIt->second->getId();
+                for (mlir::Block *dep : deps) {
+                    auto depMilpIt = blockToMilpBlock.find(dep);
+                    if (depMilpIt != blockToMilpBlock.end()) {
+                        blockDependences[blkId].push_back(depMilpIt->second);
                     }
                 }
             }
+        };
 
-            // Previous communication block
-            if (const StringAttr prevComm = blkMeta.getPrevCommAttr()) {
-                if (!prevComm.getValue().empty()) {
-                    auto it = idToBlockMap.find(prevComm.getValue());
-                    if (it != idToBlockMap.end()) {
-                        blockDependences[blkId].push_back(it->second);
-                    }
-                }
-            }
+        addDeps(prereqs.dependencies);
+        addDeps(prereqs.predecessors);
 
-            // Previous entanglement block
-            if (const StringAttr prevEnt = blkMeta.getPrevEntAttr()) {
-                if (!prevEnt.getValue().empty()) {
-                    auto it = idToBlockMap.find(prevEnt.getValue());
-                    if (it != idToBlockMap.end()) {
-                        blockDependences[blkId].push_back(it->second);
-                    }
-                }
-            }
-        }
+        return blockDependences;
     }
 
     /**
@@ -373,11 +349,9 @@ namespace qoala::analysis::qubitlife {
 
         const Task &task = tasks[*taskIndex];
 
-        /**
-         * A task is ready and can be scheduled only if
-         * its execution time would not increase the time
-         * of its task type beyond the global time.
-         */
+        // A task is ready and can be scheduled only if
+        // its execution time would not increase the time
+        // of its task type beyond the global time.
         if (globalTime - taskTime < task.getTime()) {
             return false;
         }
@@ -419,13 +393,11 @@ namespace qoala::analysis::qubitlife {
             return cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
         }
 
-        /**
-         * If both cpu and qpu tasks are found, select the one with the shortes execution time
-         * This enables to keep track of parallel cpu and qpu tasks execution,
-         * where first the shorter cpu tasks are scheduled, up until no other cpu tasks are avialable
-         * or the global time is enough to fit in the qpu tasks (now scheduled in parallel with all
-         * the already scheduled cpu tasks).
-         */
+        // If both cpu and qpu tasks are found, select the one with the shortes execution time
+        // This enables to keep track of parallel cpu and qpu tasks execution,
+        // where first the shorter cpu tasks are scheduled, up until no other cpu tasks are avialable
+        // or the global time is enough to fit in the qpu tasks (now scheduled in parallel with all
+        // the already scheduled cpu tasks).
         const uint64_t cpuIncrement = cpuTasks[*nextCpuTaskIdx].getTime() - (currentTime - cpuTime);
         const uint64_t qpuIncrement = qpuTasks[*nextQpuTaskIdx].getTime() - (currentTime - qpuTime);
         return std::min(cpuIncrement, qpuIncrement);
@@ -471,104 +443,103 @@ namespace qoala::analysis::qubitlife {
         return SchedulerResult{qubitLifetimes, globalTime};
     }
 
-    // Recursively traverse the CFG and accumulate tasks for scheduling.
+    /**
+     * Traverse blocks using blk_meta prerequisites and accumulate tasks for scheduling.
+     * Uses scanForReadyBlock to find the next block whose blk_meta prerequisites are met.
+     * At conditional branches, forks recursively with a forbidden set (condBrTargets)
+     * to prevent cross-branch contamination.
+     */
     static SchedulerResult traverseCFGAndSchedule(
-            mlir::Block *block, llvm::DenseSet<mlir::Block *> visited, BranchTasks tasks,
+            mlir::Block *startBlock, llvm::DenseSet<mlir::Block *> visited, BranchTasks tasks,
             const llvm::DenseMap<mlir::Block *, reordering::MILPBlock *> &blockToMilpBlock,
             const std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> &blockDependences,
             const std::unordered_map<std::string, std::string> &qubitInits,
-            const std::unordered_map<std::string, std::string> &qubitMeas, std::string cfgPredLastTask) {
+            const std::unordered_map<std::string, std::string> &qubitMeas, const BlockPrerequisites &prereqs,
+            llvm::DenseSet<mlir::Block *> condBrTargets) {
 
-        // Track whether we entered this block from a branch path.
-        // Used to maintain CFG ordering for sequential fallthrough within branches.
-        // For top-level sequential blocks cfgPredLastTask is empty: their ordering relies entirely on data
-        // dependencies.
-        const bool inBranchPath = !cfgPredLastTask.empty();
-
-        // Base case: block already visited (reached merge from another path)
-        if (visited.contains(block)) {
-            return runScheduler(std::move(tasks), qubitInits, qubitMeas);
-        }
-        visited.insert(block);
-
-        // Process this block if it has a corresponding MILPBlock
-        auto milpIt = blockToMilpBlock.find(block);
-        if (milpIt != blockToMilpBlock.end()) {
-            auto [firstTask, lastTask] = processBlock(milpIt->second, blockDependences, tasks.taskDependences,
-                                                      tasks.qpuTasks, tasks.cpuTasks, qubitInits, qubitMeas);
-
-            // Re-introduces ordering along the actual execution path (replaces filtered-out predecessors)
-            if (!cfgPredLastTask.empty()) {
-                auto it = tasks.taskDependences.find(firstTask);
-                if (it != tasks.taskDependences.end()) {
-                    it->second.push_back(cfgPredLastTask);
-                }
-            }
-            // Set to this block's last task, so the next block in the traversal will depend on it
-            cfgPredLastTask = lastTask;
-        }
-
-        // Find branch operation in the block (if any).
-        // Cannot use getTerminator() because buildMilpBlocks inserts synthetic
-        // qoalahost.nop operations after call terminators, which breaks the invariant.
-        cf::CondBranchOp condBr = nullptr;
-        cf::BranchOp br = nullptr;
-        for (auto &op : block->getOperations()) {
-            if (auto c = dyn_cast<cf::CondBranchOp>(op)) {
-                condBr = c;
-                break;
-            }
-            if (auto b = dyn_cast<cf::BranchOp>(op)) {
-                br = b;
-                break;
-            }
-        }
-
-        if (condBr) {
-            // Fork: explore both branches completely (to end of program)
-            auto trueResult = traverseCFGAndSchedule(condBr.getTrueDest(), visited, tasks, blockToMilpBlock,
-                                                     blockDependences, qubitInits, qubitMeas, cfgPredLastTask);
-
-            auto falseResult =
-                    traverseCFGAndSchedule(condBr.getFalseDest(), std::move(visited), std::move(tasks),
-                                           blockToMilpBlock, blockDependences, qubitInits, qubitMeas, cfgPredLastTask);
-
-            // Pick worse path (longer execution time = worse fidelity)
-            return (trueResult.globalTime >= falseResult.globalTime) ? trueResult : falseResult;
-
-        } else if (br) {
-            // Unconditional branch: follow destination
-            return traverseCFGAndSchedule(br.getDest(), std::move(visited), std::move(tasks), blockToMilpBlock,
-                                          blockDependences, qubitInits, qubitMeas, cfgPredLastTask);
-
-        } else {
-            // Non-branch terminator (call, recv_int, nop_term, return): follow sequential layout.
-            // If we are inside a branch path, maintain cfgPredLastTask so that sequential
-            // fallthrough blocks preserve CFG ordering. For top-level sequential blocks
-            // (entered with empty cfgPredLastTask), clear it to allow free reordering.
-            Block *nextBlock = block->getNextNode();
-            if (nextBlock) {
-                return traverseCFGAndSchedule(nextBlock, std::move(visited), std::move(tasks), blockToMilpBlock,
-                                              blockDependences, qubitInits, qubitMeas,
-                                              inBranchPath ? cfgPredLastTask : "");
-            } else {
-                // Run scheduler on accumulated tasks
+        Block *block = startBlock;
+        // track last task for cf.br ordering
+        std::string prevBlockLastTask;
+        while (block) {
+            if (visited.contains(block)) {
                 return runScheduler(std::move(tasks), qubitInits, qubitMeas);
             }
+            visited.insert(block);
+
+            // Process this block if it has a corresponding MILPBlock
+            auto milpIt = blockToMilpBlock.find(block);
+            if (milpIt != blockToMilpBlock.end()) {
+                auto [firstTask, lastTask] = processBlock(milpIt->second, blockDependences, tasks.taskDependences,
+                                                          tasks.qpuTasks, tasks.cpuTasks, qubitInits, qubitMeas);
+
+                // If this block was reached via cf.br, add ordering dependency
+                if (!prevBlockLastTask.empty() && !firstTask.empty()) {
+                    tasks.taskDependences.at(firstTask).push_back(prevBlockLastTask);
+                    LLVM_DEBUG(llvm::dbgs()
+                               << "cf.br ordering: " << firstTask << " depends on " << prevBlockLastTask << "\n");
+                }
+                prevBlockLastTask = lastTask;
+            }
+
+            // Detect branch operations (cf ops used only for branch detection;
+            // cannot use getTerminator() because buildMilpBlocks inserts synthetic
+            // qoalahost.nop operations after call terminators).
+            cf::CondBranchOp condBr = nullptr;
+            cf::BranchOp br = nullptr;
+            for (auto &op : block->getOperations()) {
+                if (auto c = dyn_cast<cf::CondBranchOp>(op)) {
+                    condBr = c;
+                    break;
+                }
+                if (auto b = dyn_cast<cf::BranchOp>(op)) {
+                    br = b;
+                    break;
+                }
+            }
+
+            if (condBr) {
+                // Fork: add both branch destinations to forbidden set
+                llvm::DenseSet<Block *> innerForbidden = condBrTargets;
+                innerForbidden.insert(condBr.getTrueDest());
+                innerForbidden.insert(condBr.getFalseDest());
+
+                auto trueResult =
+                        traverseCFGAndSchedule(condBr.getTrueDest(), visited, tasks, blockToMilpBlock, blockDependences,
+                                               qubitInits, qubitMeas, prereqs, innerForbidden);
+
+                auto falseResult = traverseCFGAndSchedule(condBr.getFalseDest(), std::move(visited), std::move(tasks),
+                                                          blockToMilpBlock, blockDependences, qubitInits, qubitMeas,
+                                                          prereqs, std::move(innerForbidden));
+
+                // Pick worse path (longer execution time = worse fidelity)
+                return (trueResult.globalTime >= falseResult.globalTime) ? trueResult : falseResult;
+            }
+
+            if (br) {
+                block = br.getDest();
+                continue;
+            }
+
+            // No explicit branch: find next ready block via blk_meta prerequisites
+            // Not a cf.br, so clear the tracking —> ordering comes from blk_meta only
+            prevBlockLastTask.clear();
+            block = scanForReadyBlock(*startBlock->getParent(), visited, prereqs, condBrTargets);
         }
+
+        return runScheduler(std::move(tasks), qubitInits, qubitMeas);
     }
 
+    /**
+     * Compute qubit lifetimes.
+     * Use precedences between blocks.
+     * Qpu tasks are split around initialization and measurement operations.
+     * Given information about execution time of each operation inside tasks,
+     * estimate the parallel scheduling of cpu and qpu tasks, keeping track of the
+     * execution time. The qubits lifetimes can then be computed from the time
+     * at which their initialization task was scheduled and the time at which their
+     * measurement task is scheduled.
+     */
     QoalaHostQubitLifetime::QoalaHostQubitLifetime(Operation *op) {
-        /**
-         * Compute qubit lifetimes.
-         * Use precedences between blocks given by reordering pass.
-         * Qpu tasks are split around initialization and measurement operations.
-         * Given information about execution time of each operation inside tasks,
-         * estimate the parallel scheduling of cpu and qpu tasks, keeping track of the
-         * execution time. The qubits lifetimes can then be computed from the time
-         * at which their initialization task was scheduled and the time at which their
-         * measurement task is scheduled.
-         */
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostQubitLifetimePass\n");
 
         // Current implementation is tightly coupled with fidelity estimation, i.e.,
@@ -633,18 +604,21 @@ namespace qoala::analysis::qubitlife {
 
         std::unordered_map<std::string, std::string> qubitInits;
         std::unordered_map<std::string, std::string> qubitMeas;
-        std::unordered_map<std::string, std::vector<reordering::MILPBlock *>> blockDependences;
 
         buildQubitMaps(qubits, qubitInits, qubitMeas);
-        // Filter block dependencies from BlkMeta attributes.
-        buildFilteredBlockDependencies(blocks, idToBlockMap, blockDependences);
 
-        // Traverse CFG with branch awareness: at conditional branches,
+        // Build prerequisite maps from blk_meta attributes.
+        BlockPrerequisites prereqs = buildBlockPrerequisites(mainFunc);
+
+        // Convert prerequisites to MILPBlock-level dependencies for task scheduling.
+        auto blockDependences = convertPrereqsToMilpDeps(prereqs, blockToMilpBlock);
+
+        // Traverse blocks with branch awareness: at conditional branches,
         // evaluate both paths and pick the worst case (longest execution time).
         Block &entryBlock = mainFunc.front();
         SchedulerResult result = traverseCFGAndSchedule(&entryBlock, llvm::DenseSet<mlir::Block *>{}, BranchTasks{},
                                                         blockToMilpBlock, blockDependences, qubitInits, qubitMeas,
-                                                        /*cfgPredLastTask=*/"");
+                                                        prereqs, llvm::DenseSet<mlir::Block *>{});
 
         qubitLifetimes = result.qubitLifetimes;
 

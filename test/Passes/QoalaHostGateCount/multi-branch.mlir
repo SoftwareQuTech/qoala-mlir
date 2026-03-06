@@ -127,7 +127,7 @@ module {
     qoalahost.blk_meta  {block_id = "block_20", deadlines = {}, dependencies = ["block_19"], predecessors = ["block_19"], prev_comm = "", prev_ent = ""}
     cf.br ^bb21
   ^bb21:  // 2 preds: ^bb18, ^bb20
-    qoalahost.blk_meta  {block_id = "block_21", deadlines = {}, dependencies = ["block_19"], predecessors = ["block_18", "block_20"], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_21", deadlines = {}, dependencies = ["block_19"], predecessors = [], prev_comm = "", prev_ent = ""}
     %5 = qoalahost.call @__qoala_wrapper10(%0) : (i32) -> i1
   ^bb22:  // no predecessors
     qoalahost.blk_meta  {block_id = "block_22", deadlines = {}, dependencies = ["block_21"], predecessors = [], prev_comm = "", prev_ent = ""}

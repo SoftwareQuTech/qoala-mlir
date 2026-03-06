@@ -92,7 +92,7 @@ module {
     qoalahost.blk_meta  {block_id = "block_12", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
     %7 = qoalahost.call @__qoala_wrapper4(%0) : (i32) -> i1
   ^bb13:  // no predecessors
-    qoalahost.blk_meta  {block_id = "block_13", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.blk_meta  {block_id = "block_13", deadlines = {}, dependencies = ["block_12"], predecessors = [], prev_comm = "", prev_ent = ""}
     %3 = qoalahost.call @__qoala_wrapper5() : () -> i32
   ^bb14:  // no predecessors
     qoalahost.blk_meta  {block_id = "block_14", deadlines = {}, dependencies = ["block_1", "block_13"], predecessors = [], prev_comm = "", prev_ent = ""}
