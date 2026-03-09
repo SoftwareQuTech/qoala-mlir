@@ -1,4 +1,3 @@
-#include "Analysis/QoalaHost/AnalysisTraversal.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -51,10 +50,24 @@ namespace qoala::analysis::qmemeff {
         }
     };
 
+    // Return the first unvisited block in physical (region) order, skipping condBrTargets.
+    // This mirrors the iQoala code generator's physical-order traversal, so the qubit
+    // alloc/free sequence here matches what allocateQubit/releaseQubit would produce.
+    static mlir::Block *scanNextPhysicalBlock(mlir::Region &region, const llvm::DenseSet<mlir::Block *> &visited,
+                                              const llvm::DenseSet<mlir::Block *> &condBrTargets) {
+        for (mlir::Block &b : region.getBlocks()) {
+            if (!visited.contains(&b) && !condBrTargets.contains(&b)) {
+                return &b;
+            }
+        }
+        return nullptr;
+    }
+
     // Traverse CFG and count qalloc/measure ops.
+    // Blocks are visited in physical (region) order so that qubit reuse detected here
+    // matches the virtual-qubit assignments made by the iQoala code generator.
     static void traverseCFGAndCountQMem(mlir::Block *startBlock, llvm::DenseSet<mlir::Block *> &visited,
                                         uint32_t &virtualQubits, uint32_t &physicalQubits, uint32_t &measured,
-                                        const BlockPrerequisites &prereqs,
                                         llvm::DenseSet<mlir::Block *> condBrTargets) {
         Block *block = startBlock;
         while (block) {
@@ -84,7 +97,8 @@ namespace qoala::analysis::qmemeff {
                 // Capture initial counts
                 BranchCounts initialCounts{virtualQubits, physicalQubits, measured};
 
-                // Forbid both branch destinations from scanForReadyBlock
+                // Forbid both branch destinations from being picked by the physical scan
+                // until they are explicitly recursed into below.
                 llvm::DenseSet<Block *> innerForbidden = condBrTargets;
                 innerForbidden.insert(condBr.getTrueDest());
                 innerForbidden.insert(condBr.getFalseDest());
@@ -92,7 +106,7 @@ namespace qoala::analysis::qmemeff {
                 // Analyze true branch
                 llvm::DenseSet<Block *> visitedTrue = visited;
                 traverseCFGAndCountQMem(condBr.getTrueDest(), visitedTrue, virtualQubits, physicalQubits, measured,
-                                        prereqs, innerForbidden);
+                                        innerForbidden);
                 BranchCounts trueCounts{virtualQubits, physicalQubits, measured};
                 LLVM_DEBUG(llvm::dbgs() << "TRUE branch evaluated: physicalQubits=" << trueCounts.physicalQubits
                                         << ".\n");
@@ -101,7 +115,7 @@ namespace qoala::analysis::qmemeff {
                 initialCounts.dumpInto(virtualQubits, physicalQubits, measured);
                 llvm::DenseSet<Block *> visitedFalse = visited;
                 traverseCFGAndCountQMem(condBr.getFalseDest(), visitedFalse, virtualQubits, physicalQubits, measured,
-                                        prereqs, innerForbidden);
+                                        innerForbidden);
                 BranchCounts falseCounts{virtualQubits, physicalQubits, measured};
                 LLVM_DEBUG(llvm::dbgs() << "FALSE branch evaluated: physicalQubits=" << falseCounts.physicalQubits
                                         << ".\n");
@@ -109,12 +123,18 @@ namespace qoala::analysis::qmemeff {
                 // Pick worst case: highest physicalQubits -> worst efficiency.
                 if (trueCounts.physicalQubits >= falseCounts.physicalQubits) {
                     trueCounts.dumpInto(virtualQubits, physicalQubits, measured);
-                    visited = visitedTrue;
                 } else {
-                    // Variables already contain false branch counts
-                    visited = visitedFalse;
+                    falseCounts.dumpInto(virtualQubits, physicalQubits, measured);
                 }
-                return;
+                // Union both visited sets so blocks reachable via either branch are
+                // considered visited when continuing the outer physical-order scan.
+                visited = visitedTrue;
+                for (auto *b : visitedFalse) {
+                    visited.insert(b);
+                }
+                // Continue traversal in physical order (not prerequisite-based readiness).
+                block = scanNextPhysicalBlock(*startBlock->getParent(), visited, condBrTargets);
+                continue;
             }
 
             if (auto br = dyn_cast<cf::BranchOp>(terminator)) {
@@ -122,8 +142,8 @@ namespace qoala::analysis::qmemeff {
                 continue;
             }
 
-            // No explicit CF terminator: find next ready block via blk_meta prerequisites
-            block = scanForReadyBlock(*startBlock->getParent(), visited, prereqs, condBrTargets);
+            // No explicit CF terminator: advance in physical order.
+            block = scanNextPhysicalBlock(*startBlock->getParent(), visited, condBrTargets);
         }
     }
 
@@ -141,13 +161,10 @@ namespace qoala::analysis::qmemeff {
         auto mainFunc = dyn_cast_or_null<qoalahost::MainFuncOp>(*op);
         assert(mainFunc && "QMemoryEfficiency: No MainFuncOp found.");
 
-        BlockPrerequisites prereqs = buildBlockPrerequisites(mainFunc);
-
         uint32_t measured = 0;
         llvm::DenseSet<Block *> visited;
         llvm::DenseSet<Block *> condBrTargets;
-        traverseCFGAndCountQMem(&mainFunc.front(), visited, virtualQubits, physicalQubits, measured, prereqs,
-                                condBrTargets);
+        traverseCFGAndCountQMem(&mainFunc.front(), visited, virtualQubits, physicalQubits, measured, condBrTargets);
     }
 
     float QoalaHostQMemoryEfficiency::getEfficiency() const {
