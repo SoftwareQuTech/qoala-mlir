@@ -57,6 +57,8 @@ namespace qoala::analysis::qmemeff {
                                               const llvm::DenseSet<mlir::Block *> &condBrTargets) {
         for (mlir::Block &b : region.getBlocks()) {
             if (!visited.contains(&b) && !condBrTargets.contains(&b)) {
+                std::string blockId = dyn_cast<dialects::qoalahost::BlkMeta>(b.front()).getBlockId().str();
+                LLVM_DEBUG(llvm::dbgs() << "Next physcal block: " << blockId << ".\n");
                 return &b;
             }
         }
@@ -75,8 +77,9 @@ namespace qoala::analysis::qmemeff {
                 return;
             }
             visited.insert(block);
+            std::string blockId = dyn_cast<dialects::qoalahost::BlkMeta>(block->front()).getBlockId().str();
 
-            LLVM_DEBUG(llvm::dbgs() << "Visiting block.\n");
+            LLVM_DEBUG(llvm::dbgs() << "Visiting block " << blockId << ".\n");
 
             // Process all operations in current block except CF terminators.
             for (auto &op : block->getOperations()) {
@@ -94,6 +97,9 @@ namespace qoala::analysis::qmemeff {
             auto terminator = block->getTerminator();
             if (auto condBr = dyn_cast<cf::CondBranchOp>(terminator)) {
                 LLVM_DEBUG(llvm::dbgs() << "Evaluating conditional branch.\n");
+                std::string trueBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getTrueDest()->front()).getBlockId().str();
+                std::string falseBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getFalseDest()->front()).getBlockId().str();
+                LLVM_DEBUG(llvm::dbgs() << "From block " << blockId << " to: True->" << trueBlockId << "; False->" << falseBlockId << ".\n");
                 // Capture initial counts
                 BranchCounts initialCounts{virtualQubits, physicalQubits, measured};
 
@@ -104,6 +110,7 @@ namespace qoala::analysis::qmemeff {
                 innerForbidden.insert(condBr.getFalseDest());
 
                 // Analyze true branch
+                LLVM_DEBUG(llvm::dbgs() << "Visiting TRUE branch from " << blockId << " ...\n");
                 llvm::DenseSet<Block *> visitedTrue = visited;
                 traverseCFGAndCountQMem(condBr.getTrueDest(), visitedTrue, virtualQubits, physicalQubits, measured,
                                         innerForbidden);
@@ -114,6 +121,7 @@ namespace qoala::analysis::qmemeff {
                 // Restore initial counts and analyze false branch
                 initialCounts.dumpInto(virtualQubits, physicalQubits, measured);
                 llvm::DenseSet<Block *> visitedFalse = visited;
+                LLVM_DEBUG(llvm::dbgs() << "Visiting False branch " << blockId << " ...\n");
                 traverseCFGAndCountQMem(condBr.getFalseDest(), visitedFalse, virtualQubits, physicalQubits, measured,
                                         innerForbidden);
                 BranchCounts falseCounts{virtualQubits, physicalQubits, measured};
@@ -138,6 +146,8 @@ namespace qoala::analysis::qmemeff {
             }
 
             if (auto br = dyn_cast<cf::BranchOp>(terminator)) {
+                std::string destBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(br.getDest()->front()).getBlockId().str();
+                LLVM_DEBUG(llvm::dbgs() << "Unconditional branch from block " << blockId << " to " << destBlockId << ".\n");
                 block = br.getDest();
                 continue;
             }
