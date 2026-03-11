@@ -1,3 +1,4 @@
+#include <deque>
 #include "Analysis/QoalaHost/AnalysisTraversal.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/QoalaHost/QubitLife.h"
@@ -444,6 +445,82 @@ namespace qoala::analysis::qubitlife {
     }
 
     /**
+     * Returns true if the callee contains a qubit allocation op (EprsOp or QInitOp)
+     * or a measurement op (MeasureOp).
+     */
+    static std::pair<bool, bool> calleeAllocOrMeas(FunctionOpInterface callee) {
+        bool hasAlloc = false, hasMeas = false;
+        callee.walk([&](Operation *op) {
+            if (isa<netqasm::EprsOp, netqasm::QInitOp>(op)) {
+                hasAlloc = true;
+            }
+            if (isa<netqasm::MeasureOp>(op)) {
+                hasMeas = true;
+            }
+        });
+        return {hasAlloc, hasMeas};
+    }
+
+    /**
+     * Scan MLIR blocks in physical (region) order — mirroring the iQoala code
+     * generator's virtual-qubit assignment — and detect qubit reuse ordering
+     * constraints.
+     *
+     * The iQoala code generator assigns virtual qubit IDs by iterating blocks in
+     * physical MLIR order. When it encounters a measurement it marks the slot as
+     * free; when it encounters a subsequent qalloc/eprs it reuses that slot.  The
+     * qubit-reuse pair (alloc_block, meas_block) encodes the constraint that the
+     * alloc cannot begin before the measurement has completed, because they share
+     * the same physical qubit slot.
+     *
+     * Returns a vector of (allocBlock, measBlock) pairs.
+     */
+    static std::vector<std::pair<mlir::Block *, mlir::Block *>> detectReuseBlockDeps(qoalahost::MainFuncOp mainFunc) {
+        mlir::Region &region = *mainFunc.front().getParent();
+
+        // FIFO queue of blocks that freed a slot via measurement.
+        std::deque<mlir::Block *> freed;
+        std::vector<std::pair<mlir::Block *, mlir::Block *>> deps;
+
+        for (mlir::Block &blk : region.getBlocks()) {
+            bool blockFreed = false;
+            for (auto &op : blk.getOperations()) {
+                auto callOp = dyn_cast<qoalahost::CallOp>(op);
+                if (!callOp) {
+                    continue;
+                }
+                auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
+                if (!callee) {
+                    continue;
+                }
+
+                auto [hasAlloc, hasMeas] = calleeAllocOrMeas(callee);
+
+                // If this call allocates a qubit and a freed slot is available,
+                // it reuses that slot — record the ordering constraint.
+                if (hasAlloc && !freed.empty()) {
+                    LLVM_DEBUG(llvm::dbgs()
+                               << "Qubit-reuse dep: alloc in block '"
+                               << dyn_cast<dialects::qoalahost::BlkMeta>(blk.front()).getBlockId()
+                               << "' waits for meas in block '"
+                               << dyn_cast<dialects::qoalahost::BlkMeta>(freed.front()->front()).getBlockId()
+                               << "'.\n");
+                    deps.push_back({&blk, freed.front()});
+                    freed.pop_front();
+                }
+                // Measurement frees a slot for future reuse.
+                if (hasMeas) {
+                    blockFreed = true;
+                }
+            }
+            if (blockFreed) {
+                freed.push_back(&blk);
+            }
+        }
+        return deps;
+    }
+
+    /**
      * Traverse blocks using blk_meta prerequisites and accumulate tasks for scheduling.
      * Uses scanForReadyBlock to find the next block whose blk_meta prerequisites are met.
      * At conditional branches, forks recursively with a forbidden set (condBrTargets)
@@ -612,6 +689,19 @@ namespace qoala::analysis::qubitlife {
 
         // Convert prerequisites to MILPBlock-level dependencies for task scheduling.
         auto blockDependences = convertPrereqsToMilpDeps(prereqs, blockToMilpBlock);
+
+        // Augment blockDependences with qubit-reuse ordering constraints.
+        // These encode the constraint that an EPR alloc must wait for the
+        // measurement that freed its physical qubit slot, matching the physical
+        // ordering enforced by the iQoala code generator's virt-id assignment.
+        for (auto [allocBlock, measBlock] : detectReuseBlockDeps(mainFunc)) {
+            auto allocIt = blockToMilpBlock.find(allocBlock);
+            auto measIt = blockToMilpBlock.find(measBlock);
+            if (allocIt == blockToMilpBlock.end() || measIt == blockToMilpBlock.end()) {
+                continue;
+            }
+            blockDependences[allocIt->second->getId()].push_back(measIt->second);
+        }
 
         // Traverse blocks with branch awareness: at conditional branches,
         // evaluate both paths and pick the worst case (longest execution time).
