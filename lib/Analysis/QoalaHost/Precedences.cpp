@@ -346,8 +346,8 @@ namespace qoala::analysis::precedences {
         // predecessor that comes *before* a dependency would gain an impossible
         // constraint).
         // Build a block -> position index for the current block list order.
-        llvm::DenseMap<Block *, unsigned> blockPos;
-        unsigned pos = 0;
+        llvm::DenseMap<Block *, uint32_t> blockPos;
+        uint32_t pos = 0;
         for (Block &b : mainFunc) {
             blockPos[&b] = pos++;
         }
@@ -443,7 +443,7 @@ namespace qoala::analysis::precedences {
                 for (Block &b : mainFunc) {
                     blockPos[&b] = pos++;
                 }
-                const unsigned posC = blockPos[C];
+                const uint32_t posC = blockPos[C];
 
                 // Compute transitive data dependencies of ALL blocks after C.
                 std::unordered_set<Block *> transitiveNeeds;
@@ -483,7 +483,7 @@ namespace qoala::analysis::precedences {
                         continue;
                     }
 
-                    const unsigned posF = blockPos[F];
+                    const uint32_t posF = blockPos[F];
                     if (posF < posC) {
                         // Part 1: F is already before C — add as dependency.
                         // For the static scheduler, skip EPR-request (QC) floaters:
