@@ -32,7 +32,11 @@ def QoalaMIRToQoalaLIR : Pass<"lower-qoala-mir-to-lir", "mlir::ModuleOp"> {
         Option<"maxOpsPerGroup", "max-ops-per-group", "uint32_t", /*default=*/"0",
                "Set the max number of operations to place per group. This option only affects the per-qubit grouping functionization">,
         Option<"doNotUnfoldCommOps", "disable-unfold-comm-ops", "bool", /*default=*/"false",
-               "Disable Unfolding of multi-value, classical communication operations into multiple single-value operations">
+               "Disable Unfolding of multi-value, classical communication operations into multiple single-value operations">,
+        Option<"useOnlineScheduler", "use-online-scheduler", "bool", /*default=*/"false",
+               "Add conservative floater-to-branch dependencies for EPR (QC) blocks required by the online scheduler. "
+               "When false (default), EPR blocks are not forced before branch blocks, allowing the static scheduler "
+               "to pipeline EPR generation with Pauli corrections.">
     ];
     // Since we lower QMem to NetQASM and QoalaHost, we need to depend on all those dialects to create
     // valid MLIR
@@ -54,6 +58,12 @@ def LowerQMemToLowerDialects : Pass<"lower-qmem-to-lower-dialects", "mlir::Modul
     let summary = "Lower all the instances of qmem operations that can be lowered to lower dialects";
     // Since we lower QMem to QoalaHost, we need to depend on all those dialects
     // to create valid MLIR at the end of this pass.
+    let options = [
+        Option<"useOnlineScheduler", "use-online-scheduler", "bool", /*default=*/"false",
+               "Add conservative floater-to-branch dependencies for EPR (QC) blocks required by the online scheduler. "
+               "When false (default), EPR blocks are not forced before branch blocks, allowing the static scheduler "
+               "to pipeline EPR generation with Pauli corrections.">
+    ];
     let dependentDialects = ["mlir::func::FuncDialect",
                              "qoala::dialects::qmem::QMemDialect",
                              "qoala::dialects::qoalahost::QoalaHostDialect",

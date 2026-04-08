@@ -26,7 +26,6 @@ namespace qoala::iqoala {
 
     uint8_t LocalRoutineRegisters::allocateQRegistry() {
         const uint8_t lastAvailable = this->qRegisters.size();
-        assert(lastAvailable < 16 && "No Q register available");
         LLVM_DEBUG(llvm::dbgs() << "Allocate Q Register '" << static_cast<uint32_t>(lastAvailable) << "'\n");
         this->qRegisters.push_back(lastAvailable);
         return lastAvailable;

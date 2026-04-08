@@ -2,9 +2,26 @@
 #define QNET_HELPERS_H
 
 #include "llvm/ADT/StringMap.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/BuiltinOps.h"
 
-namespace qoala::analysis::gatecount {
+namespace qoala::analysis::qnet::gatecount {
+    // Forward declarations for internal helper functions
+    // These are defined in GateCount.cpp and have mutual recursion:
+    // visitOperationsInRegion calls visitScfIfOp for scf.if operations
+    // visitScfIfOp calls visitOperationsInRegion for branch regions
+    void visitOperationsInRegion(mlir::Region &region, llvm::DenseMap<mlir::Value, uint32_t> &opResToId, uint32_t &qId,
+                                 uint32_t &gateCount, uint32_t &oneQubitGateCount, uint32_t &twoQubitGateCount,
+                                 llvm::DenseMap<uint32_t, uint32_t> &detailedGateCount,
+                                 llvm::DenseMap<uint32_t, uint32_t> &detailedOneQubitGateCount,
+                                 llvm::DenseMap<uint32_t, uint32_t> &detailedTwoQubitGateCount);
+
+    void visitScfIfOp(mlir::scf::IfOp ifOp, llvm::DenseMap<mlir::Value, uint32_t> &opResToId, uint32_t &gateCount,
+                      uint32_t &oneQubitGateCount, uint32_t &twoQubitGateCount,
+                      llvm::DenseMap<uint32_t, uint32_t> &detailedGateCount,
+                      llvm::DenseMap<uint32_t, uint32_t> &detailedOneQubitGateCount,
+                      llvm::DenseMap<uint32_t, uint32_t> &detailedTwoQubitGateCount);
+
     class QNetGateCount {
     public:
         explicit QNetGateCount(mlir::Operation *op);
@@ -47,6 +64,6 @@ namespace qoala::analysis::gatecount {
         llvm::DenseMap<uint32_t, uint32_t> detailedOneQubitGateCount;
         llvm::DenseMap<uint32_t, uint32_t> detailedTwoQubitGateCount;
     };
-} // namespace qoala::analysis::gatecount
+} // namespace qoala::analysis::qnet::gatecount
 
 #endif // QNET_HELPERS_H

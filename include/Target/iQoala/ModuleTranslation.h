@@ -164,9 +164,9 @@ namespace qoala::translate {
         mlir::LogicalResult loadClassicalArgWithCallConv(const mlir::BlockArgument &blockArg,
                                                          iqoala::LocalQuantumRoutine *iQoalaRoutine,
                                                          mlir::Operation *localRoutineOp, uint32_t argIndex);
-        mlir::LogicalResult loadQuantumArgWithCalConv(const mlir::BlockArgument &blockArg,
-                                                      iqoala::QuantumRoutine *iQoalaRoutine,
-                                                      mlir::Operation *localRoutineOp);
+        mlir::LogicalResult loadQuantumArgWithCallConv(const mlir::BlockArgument &blockArg,
+                                                       iqoala::QuantumRoutine *iQoalaRoutine,
+                                                       mlir::Operation *localRoutineOp);
         mlir::LogicalResult convertLocalRoutines();
         mlir::LogicalResult convertRequestRoutines() const;
 

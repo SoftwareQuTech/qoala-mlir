@@ -57,43 +57,47 @@ namespace qoala::analysis {
         // read optimal primary scalar as double
         double zStar = blockOrderPrimary.getPrimaryObjectiveValueFromSolution();
 
-        // Compute allocation order from solution
-        auto allocOrder = blockOrderPrimary.computeAllocationOrderFromSolution();
+        // If we skip secondary, we still need an order:
+        std::vector<std::string> orderedBlockIds;
 
-        // we also need the *schedule state* (start times) later to reorder blocks if
-        // the second pass ends up with the same start times but different tie-breaks.
-        // BUT actually we only need final block order from *secondary*, not from primary,
-        // so we don't extract ordering yet.
-        blockOrderPrimary.cleanup();
+        if (qoalaOptUnoptimize) {
+            // In unoptimize mode, do NOT apply the deterministic secondary tie-break.
+            // Use the primary schedule directly (it already reflects the flipped objective).
+            orderedBlockIds = blockOrderPrimary.getOrderedBlocks();
+            blockOrderPrimary.cleanup();
+        } else {
+            // Optimize mode: keep deterministic tie-break that enforces
+            // "earlier alloc => earlier meas" among primary optima.
+            auto allocOrder = blockOrderPrimary.computeAllocationOrderFromSolution();
+            blockOrderPrimary.cleanup();
 
-        reordering::MILPBlockOrderModel blockOrderSecondary;
-        if (!blockOrderSecondary.initialize()) {
-            moduleOp.emitError("Failed to initialize SCIP (secondary).");
-            signalPassFailure();
+            reordering::MILPBlockOrderModel blockOrderSecondary;
+            if (!blockOrderSecondary.initialize()) {
+                moduleOp.emitError("Failed to initialize SCIP (secondary).");
+                signalPassFailure();
+            }
+
+            blockOrderSecondary.setProblemData(blocks, qubits, precedences);
+            blockOrderSecondary.createVariables();
+            blockOrderSecondary.addConstraints();
+
+            // lock the primary optimum
+            blockOrderSecondary.constrainPrimaryObjectiveTo(zStar);
+
+            // Inject allocation order from primary solution
+            blockOrderSecondary.setPrimaryAllocationOrder(allocOrder);
+
+            // deterministic secondary objective (meas early for earlier allocs)
+            blockOrderSecondary.setSecondaryObjectiveDeterministic();
+
+            if (!blockOrderSecondary.optimize() || !blockOrderSecondary.checkSolverStatus(&moduleOp)) {
+                moduleOp.emitError("MILP solve (secondary) failed.");
+                signalPassFailure();
+            }
+
+            orderedBlockIds = blockOrderSecondary.getOrderedBlocks();
+            blockOrderSecondary.cleanup();
         }
-
-        blockOrderSecondary.setProblemData(blocks, qubits, precedences);
-        blockOrderSecondary.createVariables();
-        blockOrderSecondary.addConstraints();
-
-        // lock the primary optimum
-        blockOrderSecondary.constrainPrimaryObjectiveTo(zStar);
-
-        // Inject allocation order from solution
-        blockOrderSecondary.setPrimaryAllocationOrder(allocOrder);
-
-        // now: set the deterministic secondary objective
-        blockOrderSecondary.setSecondaryObjectiveDeterministic();
-
-        if (!blockOrderSecondary.optimize() || !blockOrderSecondary.checkSolverStatus(&moduleOp)) {
-            moduleOp.emitError("MILP solve (secondary) failed.");
-            signalPassFailure();
-        }
-
-        // final canonical block order:
-        std::vector<std::string> orderedBlockIds = blockOrderSecondary.getOrderedBlocks();
-
-        blockOrderSecondary.cleanup();
 
         LogicalResult status = reordering::reorderBlocksByMilpOrder(moduleOp, orderedBlockIds);
         if (failed(status)) {
@@ -145,15 +149,15 @@ namespace qoala::analysis {
 
         // Remove all the qoalahost::NopOp which were only here to model the PostTasks.
         // We cannot leave them as a qoalahost::CallOps must always be the last operation of its block.
-        auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        auto mainFuncs = moduleOp.getOps<dialects::qoalahost::MainFuncOp>();
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
             signalPassFailure();
         }
-        qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
-        mainFunc.walk([](qoalahost::NopOp nop) { nop.erase(); });
+        dialects::qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
+        mainFunc.walk([](dialects::qoalahost::NopOp nop) { nop.erase(); });
 
         // Preserve gate count analysis
-        markAnalysesPreserved<gatecount::QoalaHostGateCount>();
+        markAnalysesPreserved<qoalahost::gatecount::QoalaHostGateCount>();
     }
 } // namespace qoala::analysis

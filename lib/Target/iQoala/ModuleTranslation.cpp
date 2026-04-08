@@ -322,9 +322,9 @@ namespace qoala::translate {
         return success();
     }
 
-    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(const BlockArgument &blockArg,
-                                                               QuantumRoutine *iQoalaRoutine,
-                                                               Operation *localRoutineOp) {
+    LogicalResult ModuleTranslation::loadQuantumArgWithCallConv(const BlockArgument &blockArg,
+                                                                QuantumRoutine *iQoalaRoutine,
+                                                                Operation *localRoutineOp) {
         auto *setInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 this, localRoutineOp, NetQASMMCInstr::OP_SET, {}, {Q}, {iQoalaMCOperand::createPlaceholderOperand()},
                 /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);
@@ -346,20 +346,23 @@ namespace qoala::translate {
                 // We create the routine and process the arguments.
                 auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
                 std::string routineName = localRoutine.getName().str();
+                // Dense index among *classical* args only (qubit args do NOT consume @input slots)
+                uint32_t classicalIdx = 0;
+
                 for (auto arg : localRoutine.getArguments()) {
-                    // We need to load arguments
-                    const uint32_t argNum = arg.getArgNumber();
                     if (netqasm::blockArgIsQubit(arg)) {
-                        if (failed(this->loadQuantumArgWithCalConv(arg, routine, localRoutine.getOperation()))) {
+                        // Qubit args follow the quantum call convention and do NOT map to @input slots
+                        if (failed(this->loadQuantumArgWithCallConv(arg, routine, localRoutine.getOperation()))) {
                             return failure();
                         }
                     } else {
-                        // Follow the classical call convention for other args
-                        routine->addArgument(helpers::formatString(paramNameFormat, argNum));
+                        // Classical args follow the classical call convention: @input[0], @input[1], ...
+                        routine->addArgument(helpers::formatString(paramNameFormat, classicalIdx));
                         if (failed(this->loadClassicalArgWithCallConv(arg, routine, localRoutine.getOperation(),
-                                                                      argNum))) {
+                                                                      classicalIdx))) {
                             return failure();
                         }
+                        classicalIdx++;
                     }
                 }
                 this->iQoalaModule->addRoutine(routine);

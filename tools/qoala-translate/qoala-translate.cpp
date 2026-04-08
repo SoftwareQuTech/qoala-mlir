@@ -12,11 +12,11 @@ namespace qoala::options {
     uint32_t qoalaOptSingleGateDuration = 0;
     uint32_t qoalaOptTwoGateDuration = 0;
     uint32_t qoalaOptLatency = 0;
-    uint32_t qoalaOptLinkDuration = 0;
+    uint64_t qoalaOptLinkDuration = 0;
     uint32_t qoalaOptHostInstrTime = 0;
     uint32_t qoalaOptHostPeerLatency = 0;
     uint32_t qoalaOptQNosInstrTime = 0;
-    uint32_t qoalaOptQubitLifetime = 0;
+    uint64_t qoalaOptQubitLifetime = 0;
     bool qoalaOptGroupEntReqs = false;
     uint32_t qoalaOptProgramHorizon = 0;
 } // namespace qoala::options

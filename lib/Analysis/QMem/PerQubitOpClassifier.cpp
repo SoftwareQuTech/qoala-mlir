@@ -321,7 +321,18 @@ namespace qoala::analysis::functionize {
         }
 
         // Iterate over all the operations of the main function
+        Block *currentBlock = nullptr;
         for (Operation &op : mainFunction.getOps()) {
+            // Commit the current group when crossing a block boundary.
+            // Operations in different blocks must never be merged into the same
+            // wrapper: after SCF→CF lowering, branch arm blocks are conditional
+            // and must each keep their calls in place.
+            if (op.getBlock() != currentBlock) {
+                if (currentBlock != nullptr) {
+                    qubitGroupsMap.commitCurrentGroup();
+                }
+                currentBlock = op.getBlock();
+            }
             LLVM_DEBUG(llvm::dbgs() << " Classifying op = " << op << "\n");
             if (!operationBelongsToQMemDialect(op) || qMemOpShouldRemainInBody(op)) {
                 // Operation is not QMem or it was already grouped

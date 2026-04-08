@@ -15,7 +15,7 @@ using namespace qoala::options;
 
 namespace qoala::analysis::fidelity {
 
-    static float calculateQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
+    static float computeQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
         // qubitEsp = prod(gate_fidelities) *  1/2*(exp(-lifetime/T2) + 1)
         // where fidelity = (1 - error_rate)^gate_counts
         float qubitEsp = 1.0f;
@@ -49,7 +49,7 @@ namespace qoala::analysis::fidelity {
         // gate counts and lifetime already tracks qubit up to measurement or
         // last two-qubit op (see comments in GateCount and QubitLifeime).
         // In future, coudl change by ading further processing here.
-        // Tracking only qubits thta are either measured-and-retruned or
+        // Tracking only qubits that are either measured-and-retruned or
         // that intercats (through two-qubit gates) with other already tarcked qubits.
 
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostESPPass\n");
@@ -59,7 +59,7 @@ namespace qoala::analysis::fidelity {
         const auto lifeTimes = lifetimeAnalysis.getLifetimes();
 
         // Get the gate count
-        const auto &gatecountAnalysis = am.getAnalysis<gatecount::QoalaHostGateCount>();
+        const auto &gatecountAnalysis = am.getAnalysis<qoalahost::gatecount::QoalaHostGateCount>();
         const auto &oneQubitGateCount = gatecountAnalysis.getDetailedOneQubitGateCount();
         const auto &twoQubitGateCount = gatecountAnalysis.getDetailedTwoQubitGateCount();
 
@@ -71,7 +71,7 @@ namespace qoala::analysis::fidelity {
             const auto oneQubitGates = oneQubitGateCount.at(qubitId);
             const auto twoQubitGates = twoQubitGateCount.at(qubitId);
 
-            const auto qubitEsp = calculateQubitEsp(static_cast<float>(lifetime), oneQubitGates, twoQubitGates);
+            const auto qubitEsp = computeQubitEsp(static_cast<float>(lifetime), oneQubitGates, twoQubitGates);
             LLVM_DEBUG(llvm::dbgs() << "Qubit[" << qubitId << "] ESP:" << qubitEsp << "\n");
 
             totalEsp *= qubitEsp;
@@ -82,7 +82,8 @@ namespace qoala::analysis::fidelity {
 
     // This analysis is preserved as long as its dependencies are preserved
     bool isInvalidated(const AnalysisManager::PreservedAnalyses &pa) {
-        return !pa.isPreserved<gatecount::QoalaHostGateCount>() || !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
+        return !pa.isPreserved<qoalahost::gatecount::QoalaHostGateCount>() ||
+               !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
     }
 
 } // namespace qoala::analysis::fidelity

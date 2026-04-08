@@ -17,7 +17,7 @@ namespace qoala::analysis {
     };
 
     void QNetGateCountShowAnalysis::runOnOperation() {
-        const auto &analysis = getAnalysis<gatecount::QNetGateCount>();
+        const auto &analysis = getAnalysis<qnet::gatecount::QNetGateCount>();
         const auto &detailedOneQubitGateCount = analysis.getDetailedOneQubitGateCount();
         const auto &detailedTwoQubitGateCount = analysis.getDetailedTwoQubitGateCount();
         const auto &detailedGateCount = analysis.getDetailedGateCount();
