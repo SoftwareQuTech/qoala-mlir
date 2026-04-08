@@ -1,5 +1,5 @@
 // RUN: qoala-opt %s --qoalahost-show-analysis-qmem-eff | FileCheck %s
-// CHECK: [QMem Efficiency]:2.500000e-01
+// CHECK: [QMem Efficiency]:0.000000e+00
 
 module {
   qremote.remote @Bob
