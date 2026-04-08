@@ -103,7 +103,7 @@ namespace qoala::analysis::qubitlife {
 
         for (const auto &qubit : qubits) {
             const std::string &qubitId = qubit->getId();
-            assert(qubit->getAllocation() != nullptr && "Alloc Op not found for qubit.");
+            assert(qubit->getAllocation() && "Alloc Op not found for qubit.");
             const std::string &allocId = qubit->getAllocation()->getId();
             LLVM_DEBUG(llvm::dbgs() << "Qubit '" << qubitId << "' initialized in '" << allocId << "'.\n");
             auto measPtr = qubit->getMeasurement();
