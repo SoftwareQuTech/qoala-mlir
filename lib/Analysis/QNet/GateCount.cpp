@@ -76,9 +76,9 @@ namespace qoala::analysis::qnet::gatecount {
         // Map the scf.if result values to the qubit IDs from the selected branch's yields
         Region &selectedRegion = thenWins ? ifOp.getThenRegion() : ifOp.getElseRegion();
         auto yields = selectedRegion.front().getTerminator()->getOperands();
-        for (size_t i = 0; i < ifOp.getResults().size(); ++i) {
-            if (i < yields.size() && opResToId.contains(yields[i])) {
-                opResToId[ifOp.getResult(i)] = opResToId.at(yields[i]);
+        for (auto [ifOpResult, yield] : llvm::zip(ifOp.getResults(), yields)) {
+            if (opResToId.contains(yield)) {
+                opResToId[ifOpResult] = opResToId[yield];
             }
         }
     }
