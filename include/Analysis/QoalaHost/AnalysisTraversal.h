@@ -90,9 +90,8 @@ namespace qoala::analysis {
             }
             if (const mlir::ArrayAttr a = blkMeta.getPredecessorsAttr()) {
                 for (const mlir::StringRef s : a.getAsValueRange<mlir::StringAttr>()) {
-                    auto it = idToBlock.find(s);
-                    if (it != idToBlock.end()) {
-                        prereqs.predecessors[&block].push_back(it->second);
+                    if (idToBlock.contains(s)) {
+                        prereqs.predecessors[&block].push_back(idToBlock.at(s));
                     }
                 }
             }
