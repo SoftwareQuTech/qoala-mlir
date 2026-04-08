@@ -2,6 +2,7 @@
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/AsmState.h"
@@ -93,51 +94,56 @@ namespace qoala::analysis::qnet::gatecount {
         }
 
         for (auto &op : region.front().getOperations()) {
-            if (auto ifOp = dyn_cast<scf::IfOp>(&op)) {
-                // Special handling for scf.if
-                visitScfIfOp(ifOp, opResToId, gateCount, oneQubitGateCount, twoQubitGateCount, detailedGateCount,
-                             detailedOneQubitGateCount, detailedTwoQubitGateCount);
-            } else if (auto qubitOp = dyn_cast<QubitOpIface>(&op)) {
-                if (llvm::isa<NewQubitOp, EprsOp>(qubitOp)) {
-                    for (Value result : qubitOp.getQubitResults()) {
-                        opResToId[result] = qId;
-                        LLVM_DEBUG(llvm::dbgs() << "New Qubit Op " << qubitOp.getName().getStringRef()
-                                                << " for qubit: " << qId << ".\n");
-                        detailedOneQubitGateCount[qId] = 0;
-                        detailedTwoQubitGateCount[qId] = 0;
-                        detailedGateCount[qId] = 0;
-                        ++qId;
-                    }
-                } else {
-                    ++gateCount;
-                    if (qubitOp.isTwoQubitOp()) {
-                        LLVM_DEBUG(llvm::dbgs() << "Two Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
-                        ++twoQubitGateCount;
-                    } else {
-                        LLVM_DEBUG(llvm::dbgs() << "One Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
-                        ++oneQubitGateCount;
-                    }
-                    // For each operand, find its init Id and propagate it to the corresponding result.
-                    for (auto [operand, result] : llvm::zip(qubitOp.getQubitOperands(), qubitOp.getQubitResults())) {
-                        // Check if the operand is a qubit we are tracking
-                        assert(opResToId.contains(operand) && "Qubit used but never initialized.");
-                        uint32_t initId = opResToId.at(operand);
-
-                        // Add this operation to the history of the qubit it acts on.
-                        LLVM_DEBUG(llvm::dbgs()
-                                   << "Op " << qubitOp.getName().getStringRef() << " on qubit: " << initId << ".\n");
-                        detailedGateCount[initId]++;
-                        if (qubitOp.isTwoQubitOp()) {
-                            detailedTwoQubitGateCount[initId]++;
+            llvm::TypeSwitch<Operation *>(&op)
+                    .Case<scf::IfOp>([&](scf::IfOp ifOp) {
+                        // Special handling for scf.if
+                        visitScfIfOp(ifOp, opResToId, gateCount, oneQubitGateCount, twoQubitGateCount,
+                                     detailedGateCount, detailedOneQubitGateCount, detailedTwoQubitGateCount);
+                    })
+                    .Case<QubitOpIface>([&](QubitOpIface qubitOp) {
+                        if (llvm::isa<NewQubitOp, EprsOp>(qubitOp)) {
+                            for (Value result : qubitOp.getQubitResults()) {
+                                opResToId[result] = qId;
+                                LLVM_DEBUG(llvm::dbgs() << "New Qubit Op " << qubitOp.getName().getStringRef()
+                                                        << " for qubit: " << qId << ".\n");
+                                detailedOneQubitGateCount[qId] = 0;
+                                detailedTwoQubitGateCount[qId] = 0;
+                                detailedGateCount[qId] = 0;
+                                ++qId;
+                            }
                         } else {
-                            detailedOneQubitGateCount[initId]++;
-                        }
+                            ++gateCount;
+                            if (qubitOp.isTwoQubitOp()) {
+                                LLVM_DEBUG(llvm::dbgs()
+                                           << "Two Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
+                                ++twoQubitGateCount;
+                            } else {
+                                LLVM_DEBUG(llvm::dbgs()
+                                           << "One Qubit Op: " << qubitOp.getName().getStringRef() << ".\n");
+                                ++oneQubitGateCount;
+                            }
+                            // For each operand, find its init Id and propagate it to the corresponding result.
+                            for (auto [operand, result] :
+                                 llvm::zip(qubitOp.getQubitOperands(), qubitOp.getQubitResults())) {
+                                // Check if the operand is a qubit we are tracking
+                                assert(opResToId.contains(operand) && "Qubit used but never initialized.");
+                                uint32_t initId = opResToId.at(operand);
 
-                        // Propagate the init Id to the corresponding result.
-                        opResToId[result] = initId;
-                    }
-                }
-            }
+                                // Add this operation to the history of the qubit it acts on.
+                                LLVM_DEBUG(llvm::dbgs() << "Op " << qubitOp.getName().getStringRef()
+                                                        << " on qubit: " << initId << ".\n");
+                                detailedGateCount[initId]++;
+                                if (qubitOp.isTwoQubitOp()) {
+                                    detailedTwoQubitGateCount[initId]++;
+                                } else {
+                                    detailedOneQubitGateCount[initId]++;
+                                }
+
+                                // Propagate the init Id to the corresponding result.
+                                opResToId[result] = initId;
+                            }
+                        }
+                    });
         }
     }
 
