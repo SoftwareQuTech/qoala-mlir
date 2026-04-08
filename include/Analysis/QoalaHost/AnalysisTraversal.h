@@ -37,10 +37,9 @@ namespace qoala::analysis {
             }
 
             // Check ALL dependencies are met (AND logic)
-            auto depIt = prereqs.dependencies.find(&b);
-            if (depIt != prereqs.dependencies.end()) {
+            if (prereqs.dependencies.contains(&b)) {
                 bool allDepsMet = true;
-                for (mlir::Block *dep : depIt->second) {
+                for (const mlir::Block *dep : prereqs.dependencies.at(&b)) {
                     if (!visited.contains(dep)) {
                         allDepsMet = false;
                         break;
