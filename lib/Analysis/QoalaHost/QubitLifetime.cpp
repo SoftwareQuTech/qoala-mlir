@@ -74,7 +74,7 @@ namespace qoala::analysis::qubitlife {
                 }
             }
 
-            assert(allocOp != nullptr && "Missing Alloc Op for qubit.");
+            assert(allocOp && "Missing Alloc Op for qubit.");
 
             std::string id = allocOp->getId();
             auto qubitPtr = std::make_shared<LiveQubit>(id);
