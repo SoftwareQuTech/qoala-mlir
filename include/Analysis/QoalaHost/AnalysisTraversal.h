@@ -51,10 +51,9 @@ namespace qoala::analysis {
             }
 
             // Check at least ONE predecessor is met (OR logic), vacuously true if empty
-            auto predIt = prereqs.predecessors.find(&b);
-            if (predIt != prereqs.predecessors.end() && !predIt->second.empty()) {
+            if (prereqs.predecessors.contains(&b) && !prereqs.predecessors.at(&b).empty()) {
                 bool anyPredMet = false;
-                for (mlir::Block *pred : predIt->second) {
+                for (mlir::Block *pred : prereqs.predecessors.at(&b)) {
                     if (visited.contains(pred)) {
                         anyPredMet = true;
                         break;
