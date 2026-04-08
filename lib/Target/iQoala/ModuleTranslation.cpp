@@ -350,9 +350,6 @@ namespace qoala::translate {
                 uint32_t classicalIdx = 0;
 
                 for (auto arg : localRoutine.getArguments()) {
-                    // MLIR argument number (includes qubit args)
-                    const uint32_t argNum = arg.getArgNumber();
-
                     if (netqasm::blockArgIsQubit(arg)) {
                         // Qubit args follow the quantum call convention and do NOT map to @input slots
                         if (failed(this->loadQuantumArgWithCallConv(arg, routine, localRoutine.getOperation()))) {
