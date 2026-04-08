@@ -322,7 +322,7 @@ namespace qoala::translate {
         return success();
     }
 
-    LogicalResult ModuleTranslation::loadQuantumArgWithCalConv(const BlockArgument &blockArg,
+    LogicalResult ModuleTranslation::loadQuantumArgWithCallConv(const BlockArgument &blockArg,
                                                                QuantumRoutine *iQoalaRoutine,
                                                                Operation *localRoutineOp) {
         auto *setInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
@@ -355,7 +355,7 @@ namespace qoala::translate {
 
                     if (netqasm::blockArgIsQubit(arg)) {
                         // Qubit args follow the quantum call convention and do NOT map to @input slots
-                        if (failed(this->loadQuantumArgWithCalConv(arg, routine, localRoutine.getOperation()))) {
+                        if (failed(this->loadQuantumArgWithCallConv(arg, routine, localRoutine.getOperation()))) {
                             return failure();
                         }
                     } else {
