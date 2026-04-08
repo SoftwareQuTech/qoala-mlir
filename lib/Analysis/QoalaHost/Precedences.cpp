@@ -589,11 +589,9 @@ namespace qoala::analysis::precedences {
                     if (!blockDeps[&block].count(pred)) {
                         // Condition 4: no quantum memory conflict between pred and block.
                         bool hasConflict = false;
-                        auto itA = callSiteEffects.find(pred);
-                        auto itB = callSiteEffects.find(&block);
-                        if (itA != callSiteEffects.end() && itB != callSiteEffects.end()) {
-                            for (const auto &effA : itA->second.effects) {
-                                for (const auto &effB : itB->second.effects) {
+                        if (callSiteEffects.contains(pred) && callSiteEffects.contains(&block)) {
+                            for (const auto &effA : callSiteEffects.at(pred).effects) {
+                                for (const auto &effB : callSiteEffects.at(&block).effects) {
                                     if (!effA.getValue() || !effB.getValue()) {
                                         continue;
                                     }
