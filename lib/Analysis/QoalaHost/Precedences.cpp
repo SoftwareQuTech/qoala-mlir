@@ -512,19 +512,10 @@ namespace qoala::analysis::precedences {
                                 break;
                             }
                         }
-                        if (canMove) {
-                            auto it = prevCommMap.find(F);
-                            if (it != prevCommMap.end() && blockPos[it->second] >= posC) {
-                                canMove = false;
-                            }
-                        }
-                        if (canMove) {
-                            auto it = prevEntMap.find(F);
-                            if (it != prevEntMap.end() && blockPos[it->second] >= posC) {
-                                canMove = false;
-                            }
-                        }
-
+                        if (auto it = prevCommMap.find(F); it != prevCommMap.end() && blockPos[it->second] >= posC)
+                            canMove = false;
+                        if (auto it = prevEntMap.find(F); it != prevEntMap.end() && blockPos[it->second] >= posC)
+                            canMove = false;
                         if (canMove) {
                             LLVM_DEBUG(llvm::dbgs() << "[FloaterProp] Moving " << blockIdMap[F] << " before "
                                                     << blockIdMap[C] << " and adding as dependency\n");
