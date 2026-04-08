@@ -32,10 +32,7 @@ namespace qoala::analysis {
                                                  const llvm::DenseSet<mlir::Block *> &condBrTargets) {
 
         for (mlir::Block &b : region.getBlocks()) {
-            if (visited.contains(&b)) {
-                continue;
-            }
-            if (condBrTargets.contains(&b)) {
+            if (visited.contains(&b) || condBrTargets.contains(&b)) {
                 continue;
             }
 
