@@ -323,8 +323,8 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::loadQuantumArgWithCallConv(const BlockArgument &blockArg,
-                                                               QuantumRoutine *iQoalaRoutine,
-                                                               Operation *localRoutineOp) {
+                                                                QuantumRoutine *iQoalaRoutine,
+                                                                Operation *localRoutineOp) {
         auto *setInstr = iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                 this, localRoutineOp, NetQASMMCInstr::OP_SET, {}, {Q}, {iQoalaMCOperand::createPlaceholderOperand()},
                 /*useOpOperands=*/false, /*appendInstruction=*/false, /*mapResults=*/false);

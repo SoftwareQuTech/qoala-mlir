@@ -97,9 +97,12 @@ namespace qoala::analysis::qmemeff {
             auto terminator = block->getTerminator();
             if (auto condBr = dyn_cast<cf::CondBranchOp>(terminator)) {
                 LLVM_DEBUG(llvm::dbgs() << "Evaluating conditional branch.\n");
-                std::string trueBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getTrueDest()->front()).getBlockId().str();
-                std::string falseBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getFalseDest()->front()).getBlockId().str();
-                LLVM_DEBUG(llvm::dbgs() << "From block " << blockId << " to: True->" << trueBlockId << "; False->" << falseBlockId << ".\n");
+                std::string trueBlockId =
+                        dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getTrueDest()->front()).getBlockId().str();
+                std::string falseBlockId =
+                        dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getFalseDest()->front()).getBlockId().str();
+                LLVM_DEBUG(llvm::dbgs() << "From block " << blockId << " to: True->" << trueBlockId << "; False->"
+                                        << falseBlockId << ".\n");
                 // Capture initial counts
                 BranchCounts initialCounts{virtualQubits, physicalQubits, measured};
 
@@ -146,8 +149,10 @@ namespace qoala::analysis::qmemeff {
             }
 
             if (auto br = dyn_cast<cf::BranchOp>(terminator)) {
-                std::string destBlockId = dyn_cast<dialects::qoalahost::BlkMeta>(br.getDest()->front()).getBlockId().str();
-                LLVM_DEBUG(llvm::dbgs() << "Unconditional branch from block " << blockId << " to " << destBlockId << ".\n");
+                std::string destBlockId =
+                        dyn_cast<dialects::qoalahost::BlkMeta>(br.getDest()->front()).getBlockId().str();
+                LLVM_DEBUG(llvm::dbgs() << "Unconditional branch from block " << blockId << " to " << destBlockId
+                                        << ".\n");
                 block = br.getDest();
                 continue;
             }
