@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="sans-serif">
+  <rect x="0" y="0" width="800" height="380" fill="#fafafa" stroke="#888" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold">PLACEHOLDER — pass-pipeline-default.svg</text>
+  <text x="400" y="68" text-anchor="middle" font-size="14" fill="#444">qoala-mlir docs · Architecture / Pass pipeline</text>
+  <foreignObject x="40" y="90" width="720" height="270">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: sans-serif; font-size: 14px; color:#222; line-height:1.5;">
+      <strong>What this figure should depict:</strong>
+      <p>Vertical sequence diagram showing the recommended default pass pipeline, top to bottom:</p>
+      <ol>
+        <li>Input HIR (.mlir).</li>
+        <li><code>qnet-peephole-optimizations</code> (optional).</li>
+        <li><code>qnet-dead-code-elimination</code> (optional).</li>
+        <li><code>lower-qoala-hir-to-mir</code> (mandatory; arrow labeled "HIR → MIR").</li>
+        <li><code>lower-float-rotations</code> (mandatory).</li>
+        <li><code>unfold-comm-ops</code>.</li>
+        <li><code>functionize</code>.</li>
+        <li><code>lower-qmem-to-lower-dialects</code> (or just <code>lower-qoala-mir-to-lir</code> wrapping the previous three; arrow labeled "MIR → LIR").</li>
+        <li><code>qoalahost-add-block-precedences</code> (mandatory).</li>
+        <li><code>qoalahost-reorder-blocks</code> (optional).</li>
+        <li>Output LIR feeding into <code>qoala-translate --mlir-to-iqoala</code>.</li>
+      </ol>
+      <p>Use color-coding to mark mandatory vs. optimization passes.</p>
+    </div>
+  </foreignObject>
+</svg>

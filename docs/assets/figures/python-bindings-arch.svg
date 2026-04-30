@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" font-family="sans-serif">
+  <rect x="0" y="0" width="800" height="320" fill="#fafafa" stroke="#888" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold">PLACEHOLDER — python-bindings-arch.svg</text>
+  <text x="400" y="68" text-anchor="middle" font-size="14" fill="#444">qoala-mlir docs · Python bindings</text>
+  <foreignObject x="40" y="90" width="720" height="210">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: sans-serif; font-size: 14px; color:#222; line-height:1.5;">
+      <strong>What this figure should depict:</strong>
+      <p>Build pipeline flowchart:</p>
+      <ul>
+        <li>Inputs: <code>Dialect/QNet/QNet.td</code> (canonical TD), <code>lib/Python/mlir_qnet/dialects/QNetOps.td</code> (Python-binding TD that just <code>include</code>s the canonical one), <code>lib/Python/QNetExtension.cpp</code> (manual type registration).</li>
+        <li>CMake step: <code>declare_mlir_dialect_python_bindings</code> + <code>declare_mlir_python_extension</code> → output package <code>build/python_packages/qnet_bindings/qnet/</code>.</li>
+        <li>Optional packaging step: <code>python -m build -w</code> → wheel containing <code>qnet</code> + bundled <code>qoala-opt</code>/<code>qoala-translate</code> binaries.</li>
+        <li>Final consumer: <code>euqalyptus</code> imports <code>qnet.dialects.qnet</code> and <code>qnet.ir</code>.</li>
+      </ul>
+      <p>Use this figure to make the build dependency between qoala-mlir and the Python bindings concrete.</p>
+    </div>
+  </foreignObject>
+</svg>

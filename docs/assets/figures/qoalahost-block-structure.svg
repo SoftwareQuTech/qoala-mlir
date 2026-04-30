@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" font-family="sans-serif">
+  <rect x="0" y="0" width="800" height="360" fill="#fafafa" stroke="#888" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold">PLACEHOLDER — qoalahost-block-structure.svg</text>
+  <text x="400" y="68" text-anchor="middle" font-size="14" fill="#444">qoala-mlir docs · Operations reference / QoalaHost, Architecture / IRs</text>
+  <foreignObject x="40" y="90" width="720" height="250">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: sans-serif; font-size: 14px; color:#222; line-height:1.5;">
+      <strong>What this figure should depict:</strong>
+      <p>A <code>qoalahost.main_func</code> rectangle containing a vertical sequence of blocks (<code>^bb0</code>, <code>^bb1</code>, <code>^bb2</code>, …). Each block:</p>
+      <ul>
+        <li>Starts with a <code>qoalahost.blk_meta</code> annotation showing its <em>block_id</em> and <em>predecessors</em>.</li>
+        <li>Contains the block's payload: one of <em>(a)</em> a single <code>qoalahost.call @routine(...)</code>, <em>(b)</em> a single <code>qoalahost.recv_int</code>/<code>recv_*</code>, or <em>(c)</em> a sequence of arith/memref ops terminated by <code>qoalahost.nop_term</code>.</li>
+      </ul>
+      <p>Show one separate <code>netqasm.local_routine @routine</code> box being called from a CL block. Highlight how <code>qoalahost-add-block-precedences</code> populates the <em>predecessors</em> list, and how <code>qoalahost-reorder-blocks</code> swaps two blocks (use a small "before / after" mini-diagram in a corner) to shorten qubit lifetime.</p>
+    </div>
+  </foreignObject>
+</svg>

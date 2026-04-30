@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" font-family="sans-serif">
+  <rect x="0" y="0" width="800" height="320" fill="#fafafa" stroke="#888" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold">PLACEHOLDER — netqasm-routine.svg</text>
+  <text x="400" y="68" text-anchor="middle" font-size="14" fill="#444">qoala-mlir docs · Operations reference / NetQASM</text>
+  <foreignObject x="40" y="90" width="720" height="210">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: sans-serif; font-size: 14px; color:#222; line-height:1.5;">
+      <strong>What this figure should depict:</strong>
+      <p>Two function-shaped boxes, side by side or stacked:</p>
+      <ul>
+        <li><code>netqasm.local_routine @subrt(%q: i32, %n: i32, %e: i32) -> i1</code> with a tiny op list inside (<code>netqasm.rot_x</code>, <code>netqasm.hadamard</code>, <code>netqasm.measure</code>, <code>netqasm.return</code>).</li>
+        <li><code>netqasm.request_routine @epr(%q: i32) -> i1</code> with <code>netqasm.eprs_measure %q, @Bob</code>, <code>netqasm.return</code>.</li>
+      </ul>
+      <p>Highlight that arguments and locals are <code>i32</code> qubit pointers, and that classical results bubble out via <code>netqasm.return</code>. Show an arrow from a <code>qoalahost.call</code> in the host body (a small inset) into the routine.</p>
+    </div>
+  </foreignObject>
+</svg>

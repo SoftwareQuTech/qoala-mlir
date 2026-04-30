@@ -1,0 +1,52 @@
+site_name: qoala-mlir
+repo_url:
+theme:
+  name: material
+  favicon: assets/icon/burrito.png
+  logo: assets/icon/burrito.png
+  features:
+    - navigation.indexes
+extra:
+  version:
+    provider: mike
+markdown_extensions:
+  - codehilite
+  - admonition
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Getting started: getting-started.md
+  - Architecture:
+      - architecture/index.md
+      - The three IRs: architecture/irs.md
+      - Pass pipeline: architecture/pipeline.md
+  - Tools:
+      - tools/index.md
+      - qoala-opt: tools/qoala-opt.md
+      - qoala-translate: tools/qoala-translate.md
+      - Interpreter: tools/interpreter.md
+  - Operations reference:
+      - reference/index.md
+      - QNet (HIR): reference/qnet.md
+      - QMem (MIR): reference/qmem.md
+      - QoalaHost (LIR): reference/qoalahost.md
+      - NetQASM (LIR): reference/netqasm.md
+      - QRemote (LIR): reference/qremote.md
+  - Passes reference:
+      - passes/index.md
+      - HIR passes: passes/hir.md
+      - HIR → MIR: passes/hir-to-mir.md
+      - MIR helpers: passes/mir.md
+      - MIR → LIR: passes/mir-to-lir.md
+      - LIR passes: passes/lir.md
+  - Python bindings: bindings.md
+  - Developer's guide:
+      - Building from source: developer-guide/build-from-source.md
+      - Working with MLIR: developer-guide/working-with-mlir.md
+  - Internals:
+      - Functionize algorithm: internals/functionize.md
+      - Original notes: internals/original-notes.md
+  - Contributing: contributing.md

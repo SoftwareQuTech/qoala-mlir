@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" font-family="sans-serif">
+  <rect x="0" y="0" width="800" height="320" fill="#fafafa" stroke="#888" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold">PLACEHOLDER — pipeline-overview.svg</text>
+  <text x="400" y="68" text-anchor="middle" font-size="14" fill="#444">qoala-mlir docs · Home / Overview</text>
+  <foreignObject x="40" y="90" width="720" height="210">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: sans-serif; font-size: 14px; color:#222; line-height:1.5;">
+      <strong>What this figure should depict:</strong>
+      <p>Left-to-right flow of the full Qoala compilation pipeline:</p>
+      <ol>
+        <li>Box: <em>User Python program</em>.</li>
+        <li>Box: <em>euqalyptus frontend</em> (records AST, calls qnet python bindings).</li>
+        <li>Box: <em>Qoala HIR</em> (qnet dialect).</li>
+        <li>Stack of three boxes inside a <em>qoala-opt</em> container:
+            HIR (qnet) → MIR (qmem) → LIR (qoalahost + netqasm + qremote).
+            Inter-box arrows labeled <code>lower-qoala-hir-to-mir</code> and <code>lower-qoala-mir-to-lir</code>.</li>
+        <li>Box: <em>qoala-translate</em> (<code>--mlir-to-iqoala</code>).</li>
+        <li>Box: <em>.iqoala</em> executable.</li>
+      </ol>
+      <p>Highlight the qoala-mlir-owned span (everything from HIR through .iqoala). Cross-link the euqalyptus span back to the eucalyptus docs.</p>
+    </div>
+  </foreignObject>
+</svg>
