@@ -2,8 +2,6 @@ site_name: qoala-mlir
 repo_url:
 theme:
   name: material
-  favicon: assets/icon/burrito.png
-  logo: assets/icon/burrito.png
   features:
     - navigation.indexes
 extra:
@@ -15,6 +13,23 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: true
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [lib/Python]
+          options:
+            docstring_style: google
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            merge_init_into_class: true
+            heading_level: 3
 nav:
   - Home: index.md
   - Overview: overview.md

@@ -12,13 +12,15 @@ For a deeper account of the compiler's design — the design considerations, the
 
 ## Running the documentation locally
 
-You can serve the documentation site locally with the official `squidfunk/mkdocs-material` Docker image, without installing MkDocs into your environment:
+You can serve the documentation site locally with the official `squidfunk/mkdocs-material` Docker image, without installing MkDocs into your environment. Because the site uses the `mkdocstrings[python]` plugin to render API documentation from the `qnet` Python bindings' docstrings, the command below installs the docs-build dependencies (listed in [`requirements-docs.txt`](requirements-docs.txt)) into the container before serving:
 
 ```sh
-docker run --rm -it -p 8000:8000 -v "$(pwd)":/docs squidfunk/mkdocs-material
+docker run --rm -it -p 8000:8000 -v "$(pwd)":/docs \
+  --entrypoint sh squidfunk/mkdocs-material:latest \
+  -c 'pip install --quiet -r requirements-docs.txt && mkdocs serve --dev-addr=0.0.0.0:8000'
 ```
 
-Run the command from the repository root. The site is then available at <http://localhost:8000>, with live reload on every change to `docs/` or `mkdocs.yml`.
+Run the command from the repository root. The site is then available at <http://localhost:8000>, with live reload on every change to `docs/`, `mkdocs.yml`, or the docstrings under `lib/Python/mlir_qnet/`.
 
 ## Citation
 
