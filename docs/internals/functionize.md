@@ -1,242 +1,75 @@
 # Functionize algorithm
 
-
 ## Introduction
 
-As part of the lowering from Qoala Middle to Lower Intermediate Representation (MIR to HIR), the program operations
-need to overcome in a major reorganization. In particular, all quantum instructions that live inside the "main"
-function need to be according to certain rules and places inside their own functions. These function wrappers will
-be called from the main body of the program to maintain the logic of the program.
-This reorganization of the quantum operations is called _functionization_, and it is necessary to prepare the
-translation unit before generating the final assembly in the iQoala format.
+As part of the lowering from Qoala Middle to Lower Intermediate Representation (MIR to LIR), the program undergoes a major reorganization: all quantum instructions that live inside the `main` function need to be grouped according to a set of rules and moved into their own functions. Those function wrappers are then called back from the main body to preserve the program's logic. This reorganization is called *functionization*, and it is necessary to prepare the translation unit before generating the final assembly in the iQoala format.
 
 ## Hands-on description of the algorithm
 
-The `qoala-compiler-specs` repository provides a "hands-on" description about how the functionization algorithm
-must select the operations that belongs to a group, and place them in a separate function.
-This description does not provide a full specification about the algorithm, but it helps to understand how the
-operations are grouped together and how classical communications acts as _barriers_ that define the end of a
-partially-filled quantum operations group.
+The `qoala-compiler-specs` repository provides a "hands-on" description of how the functionization algorithm must select the operations that belong to a group and place them in a separate function. That description does not specify the full algorithm, but it does explain how operations are grouped together and how classical communications act as *barriers* that mark the end of a partially-filled group. The compiler specification limits itself to how operations are classified into a group: once certain conditions are met, the group is considered complete and its operations are "placed into a separate function, replacing the original locations of the functionized operations with the respective `call` operation."
 
-Despite this, the compiler specification limits the description only to how the operations are classified into
-an operations group. In this description, once certain  conditions are met, the group is considered "complete"
-and the operations are "placed into a separate function, replacing the original locations of the functionized
-operations with the respective `call` operation".
-
-From this description, we can identify the first 2 big steps of the functionization:
-
-1. Classify the operations with the objective of forming the groups.
-2. For each of the groups, place all the instructions in its own function definition (within the same translation
-   unit).
-
-Before we proceed with the detailed explanation of each of the aforementioned steps, we need to introduce a few
-concepts.
+From this description we can already identify the two big steps of functionization: first, classify the operations to form the groups; second, for each group, place all of its instructions into its own function definition within the same translation unit. Before going deeper into either step we need to introduce a few concepts.
 
 ## Definitions
 
 ### Qubit lifecycle
 
-In the QMem dialect, we start seeing more "low level" quantum instructions, meaning that we can also observe what
-is the qubit lifecycle.
+In the QMem dialect we start seeing more low-level quantum instructions, meaning that the qubit's lifecycle becomes observable. Most quantum programs use qubits in a stereotyped way: allocate the qubit (with `qalloc`); then initialize it (`init`), create entanglement (`eprs`), or immediately measure an entanglement measure (`eprs_measure`); then perform some gates on the qubit; then measure it with `measure` or `eprs_measure`. Once the qubit has been measured, no more operations can usefully be applied to it without going through the lifecycle again from the start.
 
-In general, we could observe that any quantum program using qubits would use them in a very similar fashion:
-
-1. Allocate a qubit using the `qalloc` operation.
-2. Initialize the qubit (using the `init` operation), create entanglement (using the `eprs` operation) _or_
-   immediately measure an entanglement measure (using the `eprs_measure` operation).
-3. Perform a set of gates on the qubit.
-4. Measure the state of the qubit using either the `measure` or the `eprs_measure` operations.
-
-After measuring the qubit, it is no longer useful to apply more operations on the same qubit without going through 
-the lifecycle once again.
-
-By observing the set of steps we can identify three main stages: 
-1. Qubit allocation and initialization: Steps 1 and 2; these two steps _always_ appear in that order when using a
-   qubit, which means that "there is no `qalloc` without its respective init",
-2. Operations on the qubit: Step 3; these are just a set of quantum operations performed on the qubit, and 
-3. Measure the result: Step 4; putting an end t the life of the qubit value, and an end to the lifecycle.
-
-We will use the observations of the three main stages in the later sections ot explain certain assumptions when
-implementing the grouping algorithm.
-
+These four observable steps decompose into three main stages: qubit allocation and initialization (the first two steps, which *always* appear together — "there is no `qalloc` without its respective `init`"), operations on the qubit (the third step, a set of quantum operations performed on the qubit), and measurement (the fourth step, which ends the qubit's life). We refer to these three stages later to justify certain assumptions made by the grouping algorithm.
 
 ### MLIR operations "closure"
 
-The functionization process shown in the `qoala-compiler-specs` describes how to form a group of operations that
-will be placed in an isolated function within the same translation unit. When moving these operations to it own
-function declaration, we treat this group of operations as an _"operations closure"_ due to its similarities with
-the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
+The functionization process described in `qoala-compiler-specs` produces groups of operations that are placed in isolated functions within the same translation unit. We refer to each such group as an *operations closure*, by analogy with the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
 
-In this document, we understand an _operations closure_ (or simply a _closure_) as a group of operations that:
-
-- May use a set of values (arguments) from _outside_ the group of operation; we call these _external arguments_.
-- May produce a set of values (results) that are used _outside_ the same group of operations; we call these
-  _external results_.
-- May use a set of values _produced by operations within the same group_; we call these _internal arguments_.
-- May produce a set of values _used by operations within the same group_; we call these _internal results_.
-
-We will use these concepts when describing the implementation of the process that creates the function definition
-for a given set of operations.
-
+In this document an operations closure (or simply a *closure*) is a group of operations that may use a set of values produced *outside* the group (its *external arguments*), may produce a set of values that are used *outside* the same group (its *external results*), may use values produced *by operations within the group* (its *internal arguments*), and may produce values *used by other operations in the group* (its *internal results*). These concepts come back in the explanation of how the function definition is built for a given set of operations.
 
 ## High level design of the functionization algorithm
 
-The method `qoala::analysis::functionize::functionizeModule` located in the file `lib/Analysis/QMem/Functionize.cpp`
-is the main entry point of the functionization algorithm. This method receives:
+The method `qoala::analysis::functionize::functionizeModule` in `lib/Analysis/QMem/Functionize.cpp` is the main entry point of the algorithm. It takes the MLIR module that contains the main function to process, and a `classifyOperations` function whose responsibility is to walk all the operations inside the main function (a `qmem.func` operation) and produce a set of operation groups. The correct signature of this classifier function (`ClassifierFnTy`) and the type of the operations group (`QuantumOpsGroupTy`) are declared in `include/Analysis/QMem/Conversion.h`.
 
-1. The MLIR _module_ object that contains the main function to process its operations.
-2. A `classifyOperations` function, whose responsibility is process all the operations inside the main function
-   (a `qmem.func` operation) and produce a set of operation groups. The correct signature of this function
-   (`ClassifierFnTy`) and the type of the operations group (`QuantumOpsGroupTy`) is declared in the file
-   `include/Analysis/QMem/Conversion.h`.
+`functionizeModule` itself sketches the high-level steps of functionization. It first creates the operation groups by calling the classifier. Then, for each operation group, it (1) declares a `FunctionizeData` structure that will hold the value-mapping data; (2) creates a new function with the operations of the group, populating the `FunctionizeData` struct in the process; (3) looks up the symbol (name) of the newly-created function; (4) inserts a `call` operation to that function, using the data from `FunctionizeData` to get the correct argument list; (5) replaces the values generated by the operations in the group with the values generated by the `call` op, using the functionize data to map original external values to the index of the corresponding result of the `call`. To avoid breaking data dependencies — for example, operations in the group that use data from operations "in the middle" of the group — the `call` operation is placed *right after the last operation of the group*, which effectively moves all the data dependencies up to just before the call. The final step is then (6) deleting the original operations from the original function body.
 
-In addition to this, the `functionizeModule` function also outlines the high-level steps of the functionization
-algorithm:
-
-1. Create the operations groups by using the `classificationFunction` reference.
-2. For each one of the function groups:
-   1. Declare a `FunctionizeData` structure that will contain the value-mapping data.
-   2. Create a new function with the operations of the group. This procedure will populate the functionize data struct.
-   3. Search for the symbol (name) of the newly-created function.
-   4. Insert a `call` operation to the newly-created function. This uses the data form the functionization to get the
-      list of right arguments to use.
-   5. Replace the values generated by the operations in the group, with the values generated by the `call` operation.
-      We use the functionization data to aid this process, since it contains a map between the original _external_
-      values of the operations group (closure) and the index of the results produced by the `call` operation. To avoid
-      potentially breaking data dependencies (operations in the group that use data from operations that are "in the
-      middle" of the group) we place the `call` operation _right after the last operation of the group. This will
-      effectively "move up" all the data dependencies right before the call to the functionized operations.
-   6. Delete the original operations from the original function body.
-
-The following sections will go deeper in the step 2.2., which carries most of the complexity when functionizing an
-operation group
-
+The next sections go deeper into step 2.2, which carries most of the complexity when functionizing an operation group.
 
 ## Creation of a new function in the module
 
-The `qoala::analysis::functionize::createNewFunctionWithOperations` located in the file `lib/Analysis/QMem/Functionize.cpp`
-contains the implementation of how to create a new function with a given group of operations. This method receives
-(among other not-so-relevant arguments):
+The implementation of how to create a new function from a given group of operations lives in `qoala::analysis::functionize::createNewFunctionWithOperations` in `lib/Analysis/QMem/Functionize.cpp`. Among its arguments it takes the `FunctionizeData` instance that records the mapping data needed by `functionizeModule`, an `OpBuilder` used to create new operations and clone the ones in the group, and an ordered set containing the operations of the current group. The order of that set establishes the order in which the operations are inserted into the new body, and from that point on we begin treating the set as an operations closure.
 
-1. The `FunctionizeData` instance used to leave the mapping data needed in the `functionizeModule` method.
-2. An `OpBuilder` object, which will be used to create new operations and _clone_ the ones in the group.
-3. An _ordered set_ containing the operations of the current group. The order of this set establishes the
-   order on which these operations need to be inserted in the new body. Additionally, we will start treating
-   set as an _operations closure_.
+It is worth remarking that, despite the appearance of "simply moving" operations from the main body to the body of a new function, moving an operation outside its scope is not easy: doing so effectively breaks the data dependencies of the function — the values used by the moved operation, and the operations that use values from the moved operation, would all need to move with it. `createNewFunctionWithOperations` solves this by *partially cloning* the original operations.
 
-It is important to remark that despite the fact that we need to "simply move" operations from the main body
-to the body of a function that will be created, _moving an operation outside its scope is not an easy thing
-to do_. This is due to the fact the in order to move the operation to a new body _we effectively break the
-data dependencies of the function_, i.e., the values used by that function and operations using values from
-the operation _would need to be moved with the operation under move_. The `createNewFunctionWithOperations`
-method solves this issue by _partially cloning_ the original operations.
+To this end, the QMem operations implement the `qoala::helpers::SimpleCloneInterface` declared in `include/Analysis/Helpers/SimpleCloneInterface.td`. Any operation implementing this interface — that is, every QMem operation, see the `QMem_Op` class definition in `include/Dialect/QMem/QMemOps.td` — is forced to implement the `simpleClone` method, which creates a new operation with the same operands and attributes as the original, but unlinked from any function block and not used (yet) by any other function. After simple-cloning an operation, `createNewFunctionWithOperations` updates the operands to use values that come from operations *within the new body*.
 
-To this end, the QMem operations implement the `qoala::helpers::SimpleCloneInterface` declared in the file
-`include/Analysis/Helpers/SimpleCloneInterface.td`. Any operation implementing this interface (i.e., all
-operations from the QMem dialect, see the `QMem_Op` class definition in the  `include/Dialect/QMem/QMemOps.td`
-file) _are forced_ to implement the `simpleClone` method, which provides a simple way to create new operation
-_with the same operands and attributes as the original_, but not linked in any way to the original function block,
-and, in particular, not used (yet) by any other function. After "simple cloning" an operation the
-`createNewFunctionWithOperations` function will have to update the operands, to use the ones that come from
-operations _within the new body_.
+To help build the cloned operations in the new function body, `createNewFunctionWithOperations` keeps two maps between original operation results and cloned operation results: one for the *internal* results and one for the *external* results of the new function. The map of *external* values is additionally used to populate the `FunctionizeData` field that correlates each original external result with the index of the corresponding value in the new function's return statement. Naturally, these indexes match one-to-one with the indexes of the return values on the `call` operation placed in the main body by `functionizeModule`.
 
-To help the creation of the cloned operations in the new function body, the `createNewFunctionWithOperations` method
-keeps two maps between original operations results and the cloned operations results. One map contains translations
-for the _internal results_ and the second for the _external results_ of the new function.
+`createNewFunctionWithOperations` achieves all of this in six steps. First, it computes the argument and return types of the given operation set by calling `computeArgTypesAndReturns`, whose results are placed in the `FunctionizeData` struct. Second, it creates a new function declaration (`func.func` operation) using the argument and result types collected in step one. Third, it creates a new `OpBuilder` whose insertion point is the start of the body block of the newly-created function. Fourth, for each operation in the given set, it simple-clones the operation, computes the new operands of the clone (via `mapOriginalOperandsInClonedOp`, which uses the external-values info collected earlier together with a map from original internal results to new internal results — and because the operations are iterated in the order they appeared in the original body, the corresponding mapped value always exists by the time it is needed), processes the clone's results (`mapOriginalResultsInClonedOp`, which updates both the internal and external result maps), and updates the operands of the new operation. Fifth, it uses the external-operations map to identify the values that need to be operands of the `return` statement and to correlate the original values with their index in that return statement. Sixth, it creates the `return` and sets its operands accordingly.
 
-Additionally, the  map of the _external values_ is used to populate the `FunctionizeData` map that correlate the
-original external result value with the index of the respective value that is placed in the return statement.
-Naturally, these indexes will match 1-to-1 with the index of the returned values on the `call` operation placed in
-the main body by `functionizeModule`.
-
-Finally, the `createNewFunctionWithOperations` method achieve all these goals in the following steps:
-
-1. Compute the arguments and values and types of the given operations set by calling the method
-   `computeArgTypesAndReturns`. These results are placed in the `FunctionizeData` struct.
-2. Create a new Function declaration (`func.func` operation), using the functionize data collected before for function
-   arguments and results types. 
-3. Create a new `OpBuilder` object, setting the insertion point at the beginning of the body block of the newly-created
-   function definition.
-4. For each one of the operations in the given set:
-   1. Create a simple clone of the operation.
-   2. Compute the new operands of the cloned operation (call to `mapOriginalOperandsInClonedOp`). This is achieved by
-      using the information of the external values discovered before, and a map between the original internal results,
-      and the new internal results. It is possible to assume that the new internal result value exists, since the
-      operations set is iterated _in the order they appear in the original body_, so all the original values used by
-      an operation are _already_ mapped to the new value at this point of the execution.
-   3. Process the results of the cloned operation (call to `mapOriginalResultsInClonedOp`). This is necessary to update
-      both the internal and external results maps. This is done so subsequent operations will know how to map the old
-      operation result with the new one returned by the cloned operation, and help creating the external results map
-      between the original values and their respective index in the return statement of the new function.
-   4. Update the operands of the new operations using the recent computation.
-5. Use the map of the external operations to: (1) identify the values that need to be used as operands of the `return`
-   statement, and (2) correlate the original values with their index on the `return` statement.
-6. Create the return statement and set its operands with the ones computed in the previous step.
-
-The following section will go a bit deeper on the step 1. The `computeArgTypesAndReturns` method is in charge of
-discovering the _external_ arguments and return values (and their types) of a given operations closure.
-
+The next section goes a bit deeper on step one — the `computeArgTypesAndReturns` method, which discovers the *external* arguments and return values (and their types) of a given operations closure.
 
 ## Function type discovery
 
-The final level of nesting in the functionzation algorithm is the discovery of the _external_ results and values
-(and their respective types) of a given operations closure. This process is implemented in the `computeArgTypesAndReturns`
-method, located in the file `lib/Analysis/QMem/Functionize.cpp`. This is where the _closure_ concept becomes more relevant
-to understand the logic behind this computation.
+The final level of nesting in the functionization algorithm is the discovery of the external results and values (and their types) of a given operations closure. This is implemented by `computeArgTypesAndReturns` in `lib/Analysis/QMem/Functionize.cpp`, and is where the *closure* concept becomes most relevant.
 
-The `computeArgTypesAndReturns` receives the following arguments:
-
-1. Declare a `FunctionizeData` structure that will contain the external results and values, together with the types.
-2. An _ordered_ set containing the operations to analyze.
-
-The implementation of the discovery algorithm will simply iterate over each of the given operations, and compute:
-
-1. Get the operands (which are values) of the operation. For each one of them:
-   1. Check if the operation that defines the operand value is _outside_ the set of operations and that the value used
-      value was not discovered before as a value coming from outside the group (to avoid duplication of values). If
-      that is the case, we discovered an _external argument_, then we do some things:
-      1. First, we keep track of how this value will be passes as an argument to the new function, so we map the
-         original value with the position on the arguments list that will correspond.
-      2. Second, we add that value (and the type) to the set of external values (and external types).
-2. Get the results of the operation. For each one of them:
-   1. Check if the results has any uses (another operation _somewhere_ uses the current result of the current operation):
-      1. If there are no uses, we still mark the value as a return value, and its type.
-      2. If there are uses, then we iterate over the value users (operations):
-         1. If the operation that uses the value is not in the operations closure set, then we discovered an _external_
-            result of the operations closure, so we add that value (and the type) to the set of external values (and
-            external types). In this step we also check that the value was not identified before as an external result.
-            This can happen since a value can be used by multiple operations outside the operations closure. To achieve
-            this extra check, we use the index of the result in the current operation.
-3. Populate the `FunctionizeData` structure with the discovered external arguments and result values, and their
-   respective types.
-
+`computeArgTypesAndReturns` takes a `FunctionizeData` structure that will be populated with the external results and values together with their types, and an ordered set of the operations to analyze. The discovery algorithm iterates over each operation and, for each one, processes operands first and then results. For each operand, it checks whether the operation that defines the operand is *outside* the operations set and whether the value was not already discovered as coming from outside the group; if both conditions hold, the operand is an external argument, and the algorithm records how it will be passed to the new function (mapping the original value to its position in the argument list) and adds the value and type to the external-values and external-types sets. For each result, the algorithm checks whether the result has any uses: if it has none, it is still marked as a return value with its type; if it has uses, the algorithm iterates over the user operations and, for any user that is not in the operations closure, records the result as an external result (taking care, via the result's index in the current operation, not to double-count a value that is used by multiple outside operations). Finally, it populates the `FunctionizeData` structure with the discovered external arguments and result values together with their types.
 
 ## Known issues
 
-Despite this design, there are still a few known issues with the functionization implementation:
-
+A few known issues remain in the functionization implementation, each tracked to the commit that fixed it.
 
 ### Deletion of original operations in wrong order
 
-When testing, we discovered that the original operations were deleted in the same order that they appear on the original
-function body. This actually led to an issue of a broken data dependency in the middle of completing the deletion
-process. To better understand the issue, let's consider the following operations group:
+During testing we discovered that deleting the original operations in their textual order led to a broken data dependency in the middle of the deletion process. For example, given:
 
 ```mlir
 %value = dialect.operation_A %value_one, %value_two ;; operation1
 dialect.operation_B %value ;; operation2
 ```
 
-In this example, if we delete `dialect.operation_A` first, then MLIR will complain right after the deletion, since
-`dialect.operation_B` is still on the body, and uses a value from an operation that was deleted. This issue was
-fixed in f5326817d7cd15bb3c221e724e1e4c6ff869150c by simply deleting operations in the reverse order.
-
+if `dialect.operation_A` is deleted first, MLIR complains immediately after the deletion because `dialect.operation_B` is still on the body and uses a value from an operation that no longer exists. The fix, in commit `f5326817d7cd15bb3c221e724e1e4c6ff869150c`, is to delete the operations in reverse order.
 
 ### Insertion of new (cloned) operations in the wrong order
 
-When creating the clones of the operations, the clones are inserted in reverse order, and the return statement is placed
-in second-to-last position. This leads to MLIR failing the validation of the return operations, which is not the last
-operation in the function body:
+When creating the clones, they were inserted in reverse order and the return statement was placed in second-to-last position. This led to MLIR failing the validation of the return operation:
 
 ```mlir
 func.func @__qoala_wrapper() -> i32 {
@@ -248,13 +81,11 @@ func.func @__qoala_wrapper() -> i32 {
 error: 'netqasm.return' op must be the last operation in the parent block
 ```
 
-This issue was fixed in dbdceddf176ab702b2439cb9090c424c38eda9f7, by setting the `OpBuilder` insertion point only
-once, before iterating over all the operations to be cloned
-
+The fix, in commit `dbdceddf176ab702b2439cb9090c424c38eda9f7`, is to set the `OpBuilder` insertion point only once, before the loop that iterates over the operations to be cloned.
 
 ### Incorrect handling of the function arguments when using multiple rotations
 
-Let's consider the following Qoala MIR:
+Consider the following Qoala MIR:
 
 ```mlir
 module {
@@ -275,7 +106,7 @@ module {
 }
 ```
 
-When lowering this MIR to LIR, the `opt` tool complies in a very weird way:
+When lowering this MIR to LIR, `opt` complains in a very weird way:
 
 ```
 file.mlir: error: operand #3 does not dominate this use
@@ -287,10 +118,7 @@ file.mlir: note: operand defined here (op in the same block)
     ^
 ```
 
-By turning on the debug printing of the functionize internals (`--debug-only=mir-to-lir,functionize-internal,op-classifier`),
-we can get some hints about how to fix this bug.
-
-First, we see that the classifier function is correctly recognizing the operations groups:
+Turning on the debug printing of the functionize internals (`--debug-only=mir-to-lir,functionize-internal,op-classifier`) gives some hints. The classifier function recognizes the operation groups correctly:
 
 ```
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -308,7 +136,7 @@ First, we see that the classifier function is correctly recognizing the operatio
    - op: %4 = qmem.measure %0 : i1
 ```
 
-However, the process of the group #2 does not seem to be correct:
+But the processing of group #2 is not correct:
 
 ```
 ------------------------
@@ -343,38 +171,18 @@ With:
  * %6 = "func.call"(%0, %5#0, %5#1, %7#0, %7#1) <{callee = @__qoala_wrapper2}> : (i32, i32, i32, i32, i32) -> i1
 ```
 
-A few observations:
+Two observations come out of this trace. First, the discovery method does not correctly deduct the number of external arguments of the group: for group #2 we expected five discovered arguments, but it discovers seven — the discovery method does not recognize that `%0` is the same argument used in the three functionized operations, so it adds it three times (once per usage in the closure). Second, the created function body shows all the arguments but the operations only use the first three, hinting that the matching between arguments and values is also incorrect.
 
-* We see that the discovery method does not correctly deduct the number of external arguments of the group. For group
-  #2 we expect having 5 discovered arguments, but the method discovers 7. being this said, it seems that the discovery
-  method is not capable or recognizing the `%0` is the same argument used in the three functionized operations, hence it
-  creates a function that passes that value 3 times (once per usage in the operations closure).
-* By checking the created function body, we see all the arguments of the function (despite there must be duplicates),
-  but all the operations _only_ use the first 3. This could hint that the matching of the arguments and their values is
-  not correctly implemented.
+Investigation surfaced three issues. First, when discovering arguments and values, the algorithm did not check whether the argument was already discovered, so an argument could be recorded more than once whenever an operation used the same qubit several times. Commit `3b62033921a32981542786bd4f2baecd7aa41d72` fixes this by keeping track of the discovered argument values. Second, once the arguments were discovered, the algorithm updated the operands of the cloned operation by taking the operand index on the original operation and replacing the value with the function argument *at the same index* — an assumption that does not hold when the group contains more than one operation. Commit `c8361dcc71db03e00c00286c483ad3d4c94a0c12` fixes this by tracking the original values and their mapping to the argument index in the new function. Third, the `call` operation that replaced the functionized operations was being inserted right after the *first* operation of the group; consider this fragment:
 
-After investigation, there were three issues in the functionization implementation:
-
-* When discovering arguments and values, the algorithm did not check if the argument was not already discovered.
-  this led to discovering an argument more than once, in scenarios when the set of operations used, for example,
-  the same qubit in different operations. This issue was fixed in 3b62033921a32981542786bd4f2baecd7aa41d72 by keeping
-  track of the discovered argument values.
-* Once the arguments were discovered, we need to update the arguments of the cloned operation to use the arguments of
-  the function rather than the original values. This was done by getting the operand index on the original operation
-  and replacing the value with the function argument _at the same index_. This assumption doesn't work when the group
-  contains more than one operation. This issue was fixed in c8361dcc71db03e00c00286c483ad3d4c94a0c12 by keeping track
-  of the original values and how they are mapped to the argument index in the new function.
-* When replacing the functioned operations we need to insert a `call` operation. This new call operation was inserted
-  right after th first operation of the group. Let's consider the following example (assuming the unknown registers are
-  correctly defined before):
 ```mlir
 qmem.rot_x %qubit, %cst_0, %cst_1
 %cst_2 = arith.constant 2 : i32
 qmem.rot_y %qubit, %cst_0, %cst_2
 ```
-  If we functionize this part of the IR, then both rotations should go in the same groups, and the `call` operation
-  would be placed right after the first operation of the group, which is `qmem.rot_x`. Functionizing would yield the
-  following result:
+
+If both rotations go in the same group, the `call` operation gets placed right after the first one, yielding:
+
 ```mlir
 func.func @__qoala_wrapper(%arg0: i32, %arg1: i32, %arg2: i32, %arg3: i32) {
   qmem.rot_x %arg0, %arg1, %arg2
@@ -384,9 +192,9 @@ func.func @__qoala_wrapper(%arg0: i32, %arg1: i32, %arg2: i32, %arg3: i32) {
 func.call @__qoala_wrapper(%qubit, %cst_0, %cst_1, %cst_2) ;; forward reference!
 %cst_2 = arith.constant 2 : i32
 ```
-   In this case, the generated `call` contains _a forward reference_ which breaks the data dependency graph. This issue
-   was solved in 618f521416021370316ee3473cb1c4bf58e40a06 by placing the `call` operation _right after the last operation
-   on the group_, which yield the following result:
+
+The generated `call` contains a forward reference to `%cst_2`, which breaks the data dependency graph. Commit `618f521416021370316ee3473cb1c4bf58e40a06` fixes this by placing the `call` operation right after the *last* operation of the group:
+
 ```mlir
 func.func @__qoala_wrapper(%arg0: i32, %arg1: i32, %arg2: i32, %arg3: i32) {
   qmem.rot_x %arg0, %arg1, %arg2

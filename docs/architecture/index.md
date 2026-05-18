@@ -4,16 +4,11 @@ The `qoala-mlir` toolchain is structured around three intermediate representatio
 
 ![Backend overview](../assets/figures/backend-overview.svg)
 
-This section covers:
-
-- **[The three IRs](irs.md)** — the `qnet`, `qmem`, `qoalahost`, `netqasm`, `qremote` dialects and how a program's shape changes between HIR, MIR, and LIR.
-- **[Pass pipeline](pipeline.md)** — the order in which passes are typically composed, which passes are mandatory for correctness, and which are optimizations.
-
-For per-op signatures, see the [Operations reference](../reference/index.md). For per-pass options and behavior, see the [Passes reference](../passes/index.md).
+This section drills into the two structural pieces of the toolchain. [The three IRs](irs.md) covers what each of the `qnet`, `qmem`, `qoalahost`, `netqasm`, and `qremote` dialects expresses, and how the shape of a program changes between HIR, MIR, and LIR. [Pass pipeline](pipeline.md) covers the order in which passes are typically composed, distinguishing the ones that are mandatory for correctness from those that are pure optimizations. Per-op signatures live in the [Operations reference](../reference/index.md), and per-pass options and behavior live in the [Passes reference](../passes/index.md).
 
 ## Module layout
 
-The `include/` and `lib/` directories mirror each other:
+The `include/` and `lib/` directories mirror each other, with `include/Dialect/<DialectName>/` holding the TableGen definitions and headers and `lib/Dialect/<DialectName>/` holding the implementation. The same mirror applies to `Conversion/` (one subdirectory per IR-to-IR conversion), `Analysis/` (which contains the dialect-specific analyses and the MILP-based reordering), and `Target/iQoala/` (the LIR-to-`.iqoala` translation). The Python bindings live under `lib/Python/` and produce the `qnet` package; a small C bindings shim sits in `lib/QNet-CAPI/`.
 
 ```
 qoala-mlir/
@@ -32,5 +27,6 @@ qoala-mlir/
 
 ## Two compilation tools
 
-- **`qoala-opt`** is the main tool of the compiler, aiming to provide the optimization pipeline for quantum hybrid programs. This tool registers all five qoala dialects, all built-in MLIR passes, every dialect-specific pass declared under `Dialect/.../Passes.td` (and its conversion equivalents), and twelve cost-model `cl::opt` flags. See [tools/qoala-opt](../tools/qoala-opt.md).
-- **`qoala-translate`** acts as the "backend" tool that provides a final translation step from an already-optimized quantum hybrid program into a fomat that can be executed by a quantum simulator. This tool registers a single translation, `--mlir-to-iqoala`, which prints the textual `.iqoala` form of an LIR module. It does not register any cost-model flags of its own. See [tools/qoala-translate](../tools/qoala-translate.md).
+`qoala-opt` is the main tool of the compiler — it provides the optimization pipeline for hybrid quantum programs. The tool registers all five qoala dialects, all built-in MLIR passes, every dialect-specific pass declared under `Dialect/.../Passes.td` (and its conversion equivalents), and twelve cost-model `cl::opt` flags. The full surface is documented in [tools/qoala-opt](../tools/qoala-opt.md).
+
+`qoala-translate` is the backend tool: it provides the final translation step from a fully lowered LIR module into the `.iqoala` format consumed by the Qoala runtime. It registers a single translation, `--mlir-to-iqoala`, and no cost-model flags of its own. The full surface is documented in [tools/qoala-translate](../tools/qoala-translate.md).

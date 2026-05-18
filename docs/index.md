@@ -2,20 +2,13 @@
 
 `qoala-mlir` is the MLIR-based middle and back end of the Qoala compiler stack. It consumes a high-level intermediate representation (Qoala HIR) emitted by the [euqalyptus](<EUQALYPTUS_DOCS_URL>) Python frontend, lowers it through three intermediate representations, and emits an `.iqoala` executable that can be run on the Qoala runtime.
 
-The repository builds two command-line tools and a Python bindings package:
-
-- **`qoala-opt`** — runs analyses and optimizations, and lowers between IRs. See [qoala-opt](tools/qoala-opt.md).
-- **`qoala-translate`** — translates the lowest IR to the textual `.iqoala` format. See [qoala-translate](tools/qoala-translate.md).
-- **`qnet` Python bindings** — used by the [euqalyptus](<EUQALYPTUS_DOCS_URL>) frontend to construct Qoala HIR programmatically. See [Python bindings](bindings.md).
+The repository builds two command-line tools and a Python bindings package. `qoala-opt` runs analyses and optimizations and lowers between IRs — see [qoala-opt](tools/qoala-opt.md). `qoala-translate` translates the lowest IR to the textual `.iqoala` format — see [qoala-translate](tools/qoala-translate.md). And the `qnet` Python bindings package is what [euqalyptus](<EUQALYPTUS_DOCS_URL>) imports to construct Qoala HIR programmatically — see [Python bindings](bindings.md).
 
 ![Big picture: full pipeline](assets/figures/pipeline-overview.svg)
 
 ## Where to start
 
-- New to the project? Read the [Overview](overview.md), then follow [Getting started](getting-started.md) to install a release and run the toolchain. Building from a checkout lives under the [Developer's guide](developer-guide/build-from-source.md).
-- Looking to invoke a specific pass or flag? Jump to [Tools / qoala-opt](tools/qoala-opt.md) or [Passes reference](passes/index.md).
-- Looking up an op? Pick the dialect in [Operations reference](reference/index.md).
-- Contributing or working on the dialects themselves? Start with the [Developer's guide](developer-guide/working-with-mlir.md) and the [Internals](internals/functionize.md) notes.
+If you are new to the project, the [Overview](overview.md) sketches the pipeline end-to-end, and [Getting started](getting-started.md) walks you through installing a release and running the toolchain. Building from a checkout (rather than installing a release) lives under the [Developer's guide](developer-guide/build-from-source.md). If you already know what you are looking for, jump straight into [Tools / qoala-opt](tools/qoala-opt.md) or the [Passes reference](passes/index.md) for invoking a specific pass or flag, into the [Operations reference](reference/index.md) for looking up a dialect operation, or into the [Developer's guide](developer-guide/working-with-mlir.md) and the [Internals](internals/functionize.md) notes if you are contributing to the dialects themselves.
 
 ## What lives where
 

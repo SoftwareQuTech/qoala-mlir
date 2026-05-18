@@ -6,13 +6,11 @@
 
 ## The pipeline
 
-A program reaches `qoala-mlir` as a `qnet` (Qoala HIR) module emitted by the [euqalyptus](<EUQALYPTUS_DOCS_URL>) frontend. From there:
+A program reaches `qoala-mlir` as a `qnet` (Qoala HIR) module emitted by the [euqalyptus](<EUQALYPTUS_DOCS_URL>) frontend. At the HIR level the program is expressed in SSA value-to-value form, which makes reasoning about gate cancellation, rotation merging, and quantum dead-code elimination convenient; passes such as `qnet-peephole-optimizations` and `qnet-dead-code-elimination` rewrite the program at this level before any lowering happens. The HIR-to-MIR conversion, run via `lower-qoala-hir-to-mir`, then replaces every `!qnet.qubit` SSA value with an explicit `i32` qubit pointer in the `qmem` dialect, turning quantum operations into side-effecting calls on those pointers.
 
-1. **Optimizations on HIR** — the `qnet` dialect expresses quantum operations as SSA value-to-value transformations. Passes like `qnet-peephole-optimizations` and `qnet-dead-code-elimination` rewrite the program at this level, where reasoning about gate cancellation and rotation merging is convenient.
-2. **HIR → MIR** (`lower-qoala-hir-to-mir`) — quantum SSA values are lowered to explicit memory locations (`i32` qubit pointers) in the `qmem` dialect. Quantum ops become side-effecting calls on those pointers.
-3. **MIR helpers** — passes like `lower-float-rotations`, `unfold-comm-ops`, `functionize`, and `fold-constants` normalize the MIR program in preparation for lowering.
-4. **MIR → LIR** (`lower-qoala-mir-to-lir`) — the single mixed classical/quantum function in `qmem` is split: classical control becomes `qoalahost` blocks, quantum work becomes standalone `netqasm` routines, and remote-node names live in `qremote`.
-5. **LIR finalization** — `qoalahost-add-block-precedences` records inter-block ordering, `qoalahost-reorder-blocks` (optionally MILP-driven) shortens qubit lifetimes, and `qoala-translate --mlir-to-iqoala` emits the textual `.iqoala` executable.
+Once the program is in MIR, a small family of helper passes prepares it for the structural changes that turn it into a Qoala-block-shaped LIR. `lower-float-rotations` rewrites floating-point angles to the integer-pair form NetQASM accepts; `unfold-comm-ops` decomposes multi-value classical communication ops into single-value variants; `functionize` extracts contiguous groups of quantum operations into stand-alone NetQASM routines; and `fold-constants` cleans up the constants left behind. The MIR-to-LIR conversion, run via `lower-qoala-mir-to-lir`, then splits the single mixed function into a classical host body expressed in the `qoalahost` dialect, one or more quantum routines in the `netqasm` dialect, and module-scope remote-node declarations in `qremote`.
+
+LIR is the level at which the runtime-facing structure of the program becomes visible and at which scheduling-oriented passes operate. `qoalahost-add-block-precedences` materializes the inter-block ordering edges the runtime relies on, `qoalahost-reorder-blocks` solves a MILP to shorten qubit lifetimes (and, optionally, to compute per-block deadlines), and once the module is finalized, `qoala-translate --mlir-to-iqoala` emits the textual `.iqoala` executable.
 
 ![Backend pipeline detail](assets/figures/backend-overview.svg)
 
@@ -24,15 +22,12 @@ A program reaches `qoala-mlir` as a `qnet` (Qoala HIR) module emitted by the [eu
 | **MIR** | `qmem` | Explicit quantum-memory model. Qubits are `i32` pointers; ops are side-effecting. Convenient for layout, lifetime, and angle-discretization concerns. |
 | **LIR** | `qoalahost` + `netqasm` + `qremote` | Runtime-shaped form: a classical host body (`qoalahost.main_func`) calls quantum routines (`netqasm.local_routine`, `netqasm.request_routine`); remote nodes are referenced by symbol (`qremote.remote`). |
 
-For the deeper version, see [The three IRs](architecture/irs.md) and the per-dialect reference under [Operations reference](reference/index.md).
+For the deeper version see [The three IRs](architecture/irs.md) and the per-dialect entries in the [Operations reference](reference/index.md).
 
 ## Tooling at a glance
 
-- **[`qoala-opt`](tools/qoala-opt.md)** — registers all standard MLIR passes plus the dialect-specific passes documented in the [Passes reference](passes/index.md). It also exposes a small set of cost-model flags (`--qoala-opt-single-gate-duration`, `--qoala-opt-link-duration`, …) used by analyses and the MILP-based block reorderer.
-- **[`qoala-translate`](tools/qoala-translate.md)** — registers a single translation, `--mlir-to-iqoala`, which prints the `.iqoala` form of an LIR module.
-- **[Python bindings (`qnet`)](bindings.md)** — the `qoala-mlir` build also produces an MLIR Python bindings package. This is what [euqalyptus](<EUQALYPTUS_DOCS_URL>) imports under `qnet.dialects.qnet` to construct HIR programmatically.
+The build produces two command-line tools and a Python bindings package. [`qoala-opt`](tools/qoala-opt.md) is the workhorse: it registers all standard MLIR passes together with the dialect-specific passes documented in the [Passes reference](passes/index.md), and exposes a small set of cost-model flags (`--qoala-opt-single-gate-duration`, `--qoala-opt-link-duration`, and so on) used by the analyses and by the MILP-based block reorderer. [`qoala-translate`](tools/qoala-translate.md) is much narrower in scope — it registers a single translation, `--mlir-to-iqoala`, that prints the `.iqoala` form of an LIR module. Alongside the two binaries, the build produces the [Python bindings (`qnet`)](bindings.md) under `qnet.dialects.qnet`; this is what [euqalyptus](<EUQALYPTUS_DOCS_URL>) imports to construct HIR programmatically.
 
 ## Cross-references
 
-- The frontend that produces the input HIR: [euqalyptus](<EUQALYPTUS_DOCS_URL>).
-- An invariant or behavior question: prefer the [Operations reference](reference/index.md) and the TableGen `.td` files under `include/Dialect/` over the design paper, which may have drifted.
+The frontend that produces the input HIR is documented at [euqalyptus](<EUQALYPTUS_DOCS_URL>). When you need to settle an invariant- or behavior question, prefer the [Operations reference](reference/index.md) and the TableGen `.td` files under `include/Dialect/` over the design paper — the paper describes design intent and may have drifted relative to the implementation.

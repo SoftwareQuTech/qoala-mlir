@@ -1,6 +1,6 @@
 # Working with MLIR
 
-This page collects the practical knowledge needed to extend the qoala-mlir codebase: declaring a new pass, defining a new op, wiring TableGen output into the build, and the few MLIR conventions the existing dialects rely on. It is a *developer's* reference — not a tutorial. For an introduction to MLIR itself, see the [official MLIR docs](https://mlir.llvm.org/docs/).
+This page collects the practical knowledge needed to extend the qoala-mlir codebase: declaring a new pass, defining a new op, wiring TableGen output into the build, and the few MLIR conventions the existing dialects rely on. It is a *developer's* reference, not a tutorial. For an introduction to MLIR itself, see the [official MLIR docs](https://mlir.llvm.org/docs/).
 
 ## Defining a pass with TableGen
 
@@ -25,11 +25,11 @@ def MyPass : Pass<"my-pass", "mlir::ModuleOp"> {
 }
 ```
 
-The first argument to `Pass<…>` is the CLI mnemonic (`--my-pass`). The second is the op type the pass anchors on (typically `mlir::ModuleOp` or a function-like op such as `qmem::FuncOp`). Declaring an anchor type here immediately introduces a dependency on the dialect the pass anchors to.
+The first argument to `Pass<…>` is the CLI mnemonic (`--my-pass`), and the second is the op type the pass anchors on (typically `mlir::ModuleOp` or a function-like op such as `qmem::FuncOp`). Declaring an anchor type here immediately introduces a dependency on the dialect the pass anchors to.
 
 ### Wire the TableGen output into CMake
 
-Using the pass declaration in the `.td` file TableGen (via CMake) can generate a `MyPass.h.inc` header which is the base for the real pass header file:
+Using the pass declaration in the `.td` file, TableGen (via CMake) can generate a `MyPass.h.inc` header which is the base for the real pass header file:
 
 ```cmake
 set(LLVM_TARGET_DEFINITIONS MyPass.td)
@@ -80,6 +80,7 @@ struct MyPass : public impl::MyPassBase<MyPass> {
 ```
 
 The pass is registered automatically when `tools/qoala-opt/qoala-opt.cpp` calls the generated `register*Passes()` for the owning dialect. If you add a new dialect, also add the corresponding `qoala::analysis::register*Passes()` call there:
+
 ```cpp
     // And also the passes from QMem, QNet and QoalaHost
     qoala::analysis::registerQNetPasses();
@@ -149,13 +150,7 @@ The CMake `add_mlir_dialect(Foo foo)` invocation wires up TableGen for ops, type
 
 ### Op naming convention
 
-`mlir-tblgen` strips a leading `Prefix_` from the TableGen `def` name when forming the C++ class name:
-
-- `def MyOp` → `class MyOp`.
-- `def Foo_MyOp` → `class MyOp` (the `Foo_` prefix is dropped).
-- `def Foo_Bar_MyOp` → `class Bar_MyOp` (only the *first* prefix is dropped).
-
-The qoala dialects all use the simple `Foo_Op<"…">` mixin form, which avoids the second case.
+`mlir-tblgen` strips a leading `Prefix_` from the TableGen `def` name when forming the C++ class name. `def MyOp` becomes `class MyOp`. `def Foo_MyOp` becomes `class MyOp` — the `Foo_` prefix is dropped. `def Foo_Bar_MyOp` becomes `class Bar_MyOp` — only the *first* prefix is dropped. The qoala dialects all use the simple `Foo_Op<"…">` mixin form, which avoids the second-prefix case.
 
 ### Custom types
 
@@ -170,7 +165,7 @@ The TableGen-generated Python op bindings emit *operations only* — types must 
 | `add_mlir_conversion_library(MLIRFooToBar …)` | Same shape as `add_mlir_dialect_library` but for a conversion pass. |
 | `mlir_tablegen(Out.h.inc -gen-pass-decls -name Foo)` | Generates pass-declaration boilerplate from a `Passes.td`. |
 
-Each `add_mlir_dialect_library` should live in its own subdirectory with its own `CMakeLists.txt` (the qoala-mlir codebase already follows this).
+Each `add_mlir_dialect_library` should live in its own subdirectory with its own `CMakeLists.txt` — the qoala-mlir codebase already follows this layout throughout.
 
 ## ODS quick reference
 
@@ -187,7 +182,7 @@ Each `add_mlir_dialect_library` should live in its own subdirectory with its own
 | `DeclareOpInterfaceMethods<Iface, ["m1", "m2"]>` | Pull in interface methods that you implement in C++. |
 | `let dependentDialects = [...]` (on a Pass) | Dialects this pass produces ops in or otherwise needs registered. |
 
-For the canonical list, check the TableGen files `llvm/mlir/include/mlir/IR/OpBase.td` and `BuiltinOps.td` located inside the LLVM summodule tree.
+For the canonical list, check the TableGen files `llvm/mlir/include/mlir/IR/OpBase.td` and `BuiltinOps.td` located inside the LLVM submodule tree.
 
 ## Common traits used in qoala-mlir
 
@@ -207,12 +202,7 @@ For the canonical list, check the TableGen files `llvm/mlir/include/mlir/IR/OpBa
 
 ## Useful upstream files
 
-When in doubt about a TableGen primitive, the upstream LLVM/MLIR sources are the cleanest reference:
-
-- `llvm/mlir/include/mlir/IR/OpBase.td` — `Op`, `Trait`, `MemoryEffects` building blocks.
-- `llvm/mlir/include/mlir/IR/BuiltinOps.td` — `module`, `unrealized_conversion_cast`.
-- `llvm/mlir/include/mlir/IR/AttrTypeBase.td` — `TypeDef`, `AttrDef`.
-- `llvm/mlir/include/mlir/Pass/PassBase.td` — `Pass`, `Option`.
+When in doubt about a TableGen primitive, the upstream LLVM/MLIR sources are the cleanest reference. `llvm/mlir/include/mlir/IR/OpBase.td` defines the `Op`, `Trait`, and `MemoryEffects` building blocks. `llvm/mlir/include/mlir/IR/BuiltinOps.td` defines `module` and `unrealized_conversion_cast`. `llvm/mlir/include/mlir/IR/AttrTypeBase.td` defines `TypeDef` and `AttrDef`. And `llvm/mlir/include/mlir/Pass/PassBase.td` defines `Pass` and `Option`.
 
 ## Patterns and rewrites
 
@@ -225,15 +215,10 @@ if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
     signalPassFailure();
 ```
 
-The method `applyPatternsGreedily` was backported from newer LLVM versions, since the one available in the pinned LLVM commit (`applyPatternsAndFoldGreedily`) also applies a constant folding without any option to disable this last optimization. In some cases in this codebase, we neede to avoid folding constants while applying this certain rewrite patterns, motivating the backport of the this method. The full implementation can be check in `lib/Analysis/Helpers/PatternRewriteDriver.cpp`.
+The method `applyPatternsGreedily` was backported from newer LLVM versions because the one available in the pinned LLVM commit (`applyPatternsAndFoldGreedily`) also applies constant folding with no option to disable that last optimization. In some places in this codebase we need to apply rewrite patterns without folding constants, which is what motivated the backport. The full implementation lives in `lib/Analysis/Helpers/PatternRewriteDriver.cpp`.
 
-Patterns inherit from `OpRewritePattern<MyOp>` and override `matchAndRewrite`. For lowerings, `OpConversionPattern<MyOp>` plus a `ConversionTarget` is the standard combo.
+Patterns inherit from `OpRewritePattern<MyOp>` and override `matchAndRewrite`. For lowerings, the standard combo is `OpConversionPattern<MyOp>` plus a `ConversionTarget`.
 
 ## Debugging your pass
 
-- Add `LLVM_DEBUG(llvm::dbgs() << ...)` statements; toggle them on with `qoala-opt --debug` or scope them with `--debug-only=<DEBUG_TYPE>` (define `#define DEBUG_TYPE "my-tag"` at the top of the source file).
-- Use `--print-ir-before=<my-pass>` and `--print-ir-after=<my-pass>` to dump the IR around the pass.
-- If your custom verifier is recursing through a custom printer, set `--mlir-print-op-generic` and/or `--mlir-print-assume-verified` to break the loop.
-- For deterministic debug output across multi-threaded pipelines, add `--mlir-disable-threading`.
-
-These flags are listed in full in [tools/qoala-opt](../tools/qoala-opt.md#standard-mlir-knobs).
+The cheapest way to inspect pass behavior is `LLVM_DEBUG(llvm::dbgs() << ...)` statements; toggle them on with `qoala-opt --debug`, or scope them with `--debug-only=<DEBUG_TYPE>` after defining `#define DEBUG_TYPE "my-tag"` at the top of the source file. `--print-ir-before=<my-pass>` and `--print-ir-after=<my-pass>` dump the IR around the pass. If your custom verifier recurses through a custom printer, `--mlir-print-op-generic` and `--mlir-print-assume-verified` break the loop. And for deterministic debug output across multi-threaded pipelines, `--mlir-disable-threading` serializes pass execution. The full list of these knobs is in [tools/qoala-opt](../tools/qoala-opt.md#standard-mlir-knobs).
