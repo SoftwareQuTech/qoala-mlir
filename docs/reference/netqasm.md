@@ -1,12 +1,14 @@
 # NetQASM (LIR)
 
-The `netqasm` dialect describes the **quantum routines** that run on the QPS. A routine is a `netqasm.local_routine` or `netqasm.request_routine` — both are function-like ops with their own qubit-pointer arguments and (optionally) classical return values. Quantum gates are NetQASM-shaped: only the integer-encoded rotation form (`angle = n·π / 2^e`) is allowed.
+The `netqasm` dialect defines the MLIR operations used for describing the **quantum routines and operations** that run on the QPS. To this end, this dialect defines operations representing the set of *quantum gates* that can be applied to a qubit. These operations are compatible with the NetQASM convention for expressing rotations, using arguments `n` and `e` such that the rotation angle can be expressed as `angle = n·π / 2^e`.
+
+At LIR level, these quantum operations are grouped in *quantum routines*, which can either be a `netqasm.local_routine` or `netqasm.request_routine`. Both are function-like operations that receive `i32` qubit-pointer arguments, and (optionally) producing classical return values.
 
 Source: `include/Dialect/NetQASM/{NetQASM,NetQASMDialect,NetQASMOps}.td`.
 
 ![NetQASM routine](../assets/figures/netqasm-routine.svg)
 
-All ops in this dialect carry the `QuantumOpInterface` trait (and most carry `getDuration`).
+All operations in this dialect carry the `QuantumOpInterface` trait, and can override the `getDuration` method to provide a different-than-default value for the execution time of the quantum gate they model.
 
 ## Routines
 
@@ -64,12 +66,12 @@ All gates take `i32` qubit pointers (`MemWrite`-annotated) and produce no result
 
 ## Entanglement
 
-Both ops reference a `qremote.remote` symbol via `remote: FlatSymbolRefAttr`, validated by `UsesRemoteInterface`. They appear inside `netqasm.request_routine` bodies.
-
 | Op | Operands / attrs | Results | Notes |
 | --- | --- | --- | --- |
 | `netqasm.eprs` | `i32` qubit (`MemWrite`), `remote` | — | Generates one entangled qubit. |
 | `netqasm.eprs_measure` | `i32` qubit (`MemWrite`), `remote` | `i1` | Generates and measures the entangled qubit; only the classical outcome is returned. |
+
+Both ops reference a `qremote.remote` symbol via `remote: FlatSymbolRefAttr`, validated by `UsesRemoteInterface`. They appear inside `netqasm.request_routine` bodies.
 
 ## Example
 

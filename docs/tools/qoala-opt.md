@@ -53,7 +53,7 @@ See [Architecture / Pass pipeline](../architecture/pipeline.md) for the recommen
 
 ## Standard MLIR knobs
 
-`qoala-opt` inherits these flags from `MlirOptMain`:
+`qoala-opt` inherits **all** flags from `MlirOptMain` (LLVM's `opt` tool). The most notable ones are mentioned here:
 
 | Flag | Use |
 | --- | --- |

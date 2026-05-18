@@ -6,7 +6,7 @@ The build chain is heavy because it includes a pinned LLVM/MLIR build and a SCIP
 
 ## 1. Initialize the LLVM submodule
 
-The repository pins a specific LLVM/MLIR commit as a submodule. After cloning:
+The repository pins a specific LLVM/MLIR commit as a submodule. Since LLVM is a very dynamic project, updating this dependency has a high potential of breaking the whole build. Please stick with the provided commit reference and do not update it. After cloning:
 
 ```sh
 git submodule update --init
@@ -22,7 +22,7 @@ sudo apt-get install build-essential cmake ninja-build python3-full python3-dev
 
 Python **3.10, 3.11, or 3.12** is required. Python 3.13 is **not supported** because MLIR's transitive dependency on `numpy <= 1.26` does not work on 3.13.
 
-Recommended (faster builds, better optimizations): clang/LLVM 21 from [apt.llvm.org](https://apt.llvm.org/) and `clang-format-18` (the `scripts/check-clang-format.sh` checker is sensitive to clang-format versions).
+Recommended (faster builds, better optimizations): clang/LLVM 21 (or newer) from [apt.llvm.org](https://apt.llvm.org/) and `clang-format-18` (the `scripts/check-clang-format.sh` checker is sensitive to clang-format versions).
 
 ## 3. Python virtual environment
 
@@ -39,7 +39,7 @@ pip install -r llvm/mlir/python/requirements.txt
 
 ## 4. Build LLVM/MLIR
 
-From the repo root:
+From the repo root (update the `clang-21` and `ld.lld-21` commands with the corresponding clang version you installed):
 
 ```sh
 cd llvm
@@ -63,15 +63,17 @@ cmake --build .
 sudo cmake --build . --target install
 ```
 
+Running the `cmake --build .` command might take quite some time (several hours), since it need to build the whole LLVM/MLIR system. After this, before running the `install` command, make sure that you have write permissions on the folder that you specified in the `CMAKE_INSTALL_PREFIX` option of the first `cmake` command.
+
 `CMAKE_INSTALL_PREFIX` matters: it must point to a writable, dedicated location (e.g. `/opt/mlir`). Setting it after the configure step does **not** work — it has to be in the initial `cmake` invocation.
 
 ## 5. Install SCIP
 
-[SCIP](https://github.com/scipopt/scip/blob/master/INSTALL.md) is the MILP solver used by some optimization passes (notably `qoalahost-reorder-blocks`). The codebase has been validated against **SCIP 9.2.2**; later major versions may have a different C API.
+[SCIP](https://github.com/scipopt/scip/blob/master/INSTALL.md) is the MILP solver used by some optimization passes (notably `qoalahost-reorder-blocks`). The codebase has been proved working using **SCIP 9.2.2**; later major versions may have a different C API. For this reason, we recommend using SCIP 9.2.2.
 
 ## 6. Build qoala-mlir
 
-From the repository root, with the venv activated:
+From the repository root, with the venv activated (update the `clang-21` and `ld.lld-21` commands with the corresponding clang version you installed)::
 
 ```sh
 mkdir build && cd build

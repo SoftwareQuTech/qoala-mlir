@@ -32,5 +32,5 @@ qoala-mlir/
 
 ## Two entry-point binaries
 
-- **`qoala-opt`** registers all five qoala dialects, all built-in MLIR passes, every dialect-specific pass declared under `Dialect/.../Passes.td` (and its conversion equivalents), and twelve cost-model `cl::opt` flags. See [tools/qoala-opt](../tools/qoala-opt.md).
-- **`qoala-translate`** registers a single translation, `--mlir-to-iqoala`, which prints the textual `.iqoala` form of an LIR module. It does not register any cost-model flags of its own. See [tools/qoala-translate](../tools/qoala-translate.md).
+- **`qoala-opt`** is the main tool of the compiler, aiming to provide the optimization pipeline for quantum hybrid programs. This tool registers all five qoala dialects, all built-in MLIR passes, every dialect-specific pass declared under `Dialect/.../Passes.td` (and its conversion equivalents), and twelve cost-model `cl::opt` flags. See [tools/qoala-opt](../tools/qoala-opt.md).
+- **`qoala-translate`** acts as the "backend" tool that provides a final translation step from an already-optimized quantum hybrid program into a fomat that can be executed by a quantum simulator. This tool registers a single translation, `--mlir-to-iqoala`, which prints the textual `.iqoala` form of an LIR module. It does not register any cost-model flags of its own. See [tools/qoala-translate](../tools/qoala-translate.md).

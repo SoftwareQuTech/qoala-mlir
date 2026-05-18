@@ -27,10 +27,10 @@ This expands to the following logical stages (the last two are bundled by the wr
    - `lower-qoala-hir-to-mir` — full QNet → QMem lowering; introduces explicit `i32` qubit pointers and side-effecting ops.
 
 3. **MIR helpers** (run by `lower-qoala-mir-to-lir` internally; can also be invoked individually)
-   - `lower-float-rotations` — convert f32-angle rotations to integer-pair `(n, e)` form. Required because NetQASM only accepts the integer encoding.
+   - `lower-float-rotations` — convert f32-angle rotations to their integer-pair `(n, e)` equivalent form. Required because NetQASM only accepts the integer-based rotation encoding.
    - `unfold-comm-ops` — split multi-value classical comm ops into single-value variants. Disable with `--lower-qoala-mir-to-lir=disable-unfold-comm-ops=true`.
    - `fold-constants` — generic constant folding inside nested ops.
-   - `functionize` — extract groups of contiguous quantum ops into NetQASM routines. Tuned by `max-ops-per-group`.
+   - `functionize` — extract groups of contiguous quantum ops into NetQASM routines. It is possible to limit the maximum number of quantum operations per routine by using the `max-ops-per-group` option.
    - `insert-convert-float-angle` — inject the `__qoala_convert_float_angle` runtime declaration whenever runtime angle discretization is needed.
 
 4. **MIR → LIR**

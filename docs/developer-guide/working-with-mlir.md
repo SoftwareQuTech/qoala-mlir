@@ -16,22 +16,20 @@ def MyPass : Pass<"my-pass", "mlir::ModuleOp"> {
     }];
     // List dialects this pass *uses*: it inspects ops in them or creates them.
     // BuiltinDialect is implicit.
+    // This list depends on the dialects that you use in your pass. In this example, we assume these two.
+    // Declaring a dependency on mlir::BuiltinDialect is not necessary, since it is implicit.
     let dependentDialects = [
-        "::mlir::func::FuncDialect",
+        "mlir::func::FuncDialect",
         "qoala::dialects::qnet::QNetDialect"
-    ];
-    let options = [
-        Option<"flag", "flag", "bool", /*default=*/"false", "Description.">,
-        Option<"limit", "limit", "uint32_t", /*default=*/"0", "Description.">
     ];
 }
 ```
 
-The first argument to `Pass<…>` is the CLI mnemonic (`--my-pass`). The second is the op type the pass anchors on (typically `mlir::ModuleOp` or a function-like op such as `qmem::FuncOp`).
+The first argument to `Pass<…>` is the CLI mnemonic (`--my-pass`). The second is the op type the pass anchors on (typically `mlir::ModuleOp` or a function-like op such as `qmem::FuncOp`). Declaring an anchor type here immediately introduces a dependency on the dialect the pass anchors to.
 
 ### Wire the TableGen output into CMake
 
-The CMake target generates `MyPass.h.inc` from the `.td` file:
+Using the pass declaration in the `.td` file TableGen (via CMake) can generate a `MyPass.h.inc` header which is the base for the real pass header file:
 
 ```cmake
 set(LLVM_TARGET_DEFINITIONS MyPass.td)
@@ -39,15 +37,17 @@ mlir_tablegen(MyPass.h.inc -gen-pass-decls -name MyPass)
 add_public_tablegen_target(MLIRMyPassIncGen)
 ```
 
-The `Passes.h` header that consumers `#include` then has the standard skeleton (compare with `include/Dialect/QNet/Passes.h`):
+After this, you need to create a `Passes.h` header that uses the `.h.inc` file created by TableGen. This new header has the following standard skeleton (compare with `include/Dialect/QNet/Passes.h`):
 
 ```cpp
 #include "mlir/Pass/Pass.h"
 
 namespace qoala::analysis {
+// The following two lines inserts declarations of the base classes of the pass
 #define GEN_PASS_DECL
 #include "Dialect/MyDialect/Passes.h.inc"
 
+// The following two lines creates declarations of the functions used to register the pass in qoala-opt
 #define GEN_PASS_REGISTRATION
 #include "Dialect/MyDialect/Passes.h.inc"
 } // namespace qoala::analysis
@@ -58,13 +58,17 @@ namespace qoala::analysis {
 In a `.cpp` file under `lib/Analysis/<MyDialect>/`:
 
 ```cpp
+// We insert the delcarations of the classes and functions from the main pass header
 #include "Dialect/MyDialect/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 
+
+namespace qoala::analysis {
+// Using the TableGen generated file, we insert the definitions of the pass' base classes.
+// These definitions match the declarations imported from TableGen placed in the main pass header class
 #define GEN_PASS_DEF_MYPASS
 #include "Dialect/MyDialect/Passes.h.inc"
 
-namespace qoala::analysis {
 struct MyPass : public impl::MyPassBase<MyPass> {
     using MyPassBase::MyPassBase;
     void runOnOperation() override {
@@ -75,7 +79,15 @@ struct MyPass : public impl::MyPassBase<MyPass> {
 } // namespace qoala::analysis
 ```
 
-The pass is registered automatically when `tools/qoala-opt/qoala-opt.cpp` calls the generated `register*Passes()` for the owning dialect. If you add a new dialect, also add the corresponding `qoala::analysis::register*Passes()` call there.
+The pass is registered automatically when `tools/qoala-opt/qoala-opt.cpp` calls the generated `register*Passes()` for the owning dialect. If you add a new dialect, also add the corresponding `qoala::analysis::register*Passes()` call there:
+```cpp
+    // And also the passes from QMem, QNet and QoalaHost
+    qoala::analysis::registerQNetPasses();
+    qoala::analysis::registerMIRToLIRHelpersPasses();
+    qoala::analysis::registerQoalaHostPasses();
+    // Register all the passes from MyDialect
+    qoala::analysis::registerMyDialectPasses();
+```
 
 ### Conversion passes
 
@@ -128,7 +140,7 @@ def MyOp : Foo_Op<"my_op", [Pure]> {
 }
 ```
 
-The CMake `add_mlir_dialect(Foo foo)` invocation wires up TableGen for ops, types, and the dialect class. After it runs, the generated `*.h.inc` and `*.cpp.inc` files appear in `build/include/Dialect/Foo/`. Source files under `lib/Dialect/Foo/` `#include` them with the standard `GEN_OP_CLASSES` / `GEN_TYPEDEF_CLASSES` macros:
+The CMake `add_mlir_dialect(Foo foo)` invocation wires up TableGen for ops, types, and the dialect class. After it runs, the generated `*.h.inc` and `*.cpp.inc` files appear in `build/include/Dialect/Foo/`. Source files generated under `lib/Dialect/Foo/` need to be `#include`d with the standard `GEN_OP_CLASSES` / `GEN_TYPEDEF_CLASSES` macros:
 
 ```cpp
 #define GET_OP_CLASSES
@@ -168,14 +180,14 @@ Each `add_mlir_dialect_library` should live in its own subdirectory with its own
 | `let arguments = (ins …)` | Op operands and attributes. Use `Variadic<Type>` for variadic, `Optional<Type>` for optional. |
 | `let results = (outs …)` | Op results. Same syntax. |
 | `let assemblyFormat = "…"` | Custom textual assembly. Use `operands`, `attr-dict`, `type($x)`, `functional-type($args, results)`. |
-| `let hasCustomAssemblyFormat = 1` | Implement `parse`/`print` in C++ instead. |
-| `let hasVerifier = 1` | Implement `LogicalResult verify()` in C++. |
-| `let hasRegionVerifier = 1` | Implement `LogicalResult verifyRegions()` in C++. |
+| `let hasCustomAssemblyFormat = 1` | Marks this operation as having a custom assembly format. Doing so requires implementing `parse`/`print` method in C++. |
+| `let hasVerifier = 1` | Marks this operation as having a verifier. Doing so requires implementing `LogicalResult verify()` method in C++. |
+| `let hasRegionVerifier = 1` | Only used in operations that have a nested region. Marks this operation as having a verifier. Doing so requires implementing `LogicalResult verifyRegions()` method in C++. |
 | `Arg<Type, "name", [MemRead/MemWrite]>` | Operand with a memory-effect annotation (used widely in QMem to say "this op writes the qubit slot"). |
 | `DeclareOpInterfaceMethods<Iface, ["m1", "m2"]>` | Pull in interface methods that you implement in C++. |
 | `let dependentDialects = [...]` (on a Pass) | Dialects this pass produces ops in or otherwise needs registered. |
 
-For the canonical list, `llvm/mlir/include/mlir/IR/OpBase.td` and `BuiltinOps.td` are the sources of truth.
+For the canonical list, check the TableGen files `llvm/mlir/include/mlir/IR/OpBase.td` and `BuiltinOps.td` located inside the LLVM summodule tree.
 
 ## Common traits used in qoala-mlir
 
@@ -213,7 +225,7 @@ if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
     signalPassFailure();
 ```
 
-(The older `applyPatternsAndFoldGreedily` was renamed; both names appear in older code.)
+The method `applyPatternsGreedily` was backported from newer LLVM versions, since the one available in the pinned LLVM commit (`applyPatternsAndFoldGreedily`) also applies a constant folding without any option to disable this last optimization. In some cases in this codebase, we neede to avoid folding constants while applying this certain rewrite patterns, motivating the backport of the this method. The full implementation can be check in `lib/Analysis/Helpers/PatternRewriteDriver.cpp`.
 
 Patterns inherit from `OpRewritePattern<MyOp>` and override `matchAndRewrite`. For lowerings, `OpConversionPattern<MyOp>` plus a `ConversionTarget` is the standard combo.
 

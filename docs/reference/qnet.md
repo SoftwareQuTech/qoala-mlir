@@ -72,7 +72,7 @@ Both ops reference a `qnet.remote` symbol via the `remote` attribute. They carry
 
 ## Classical communication
 
-All four pairs are present in single-value and multi-value forms. The multi-value forms use `tensor<…x{i32,f32}>` and exist in HIR mainly so they can be unfolded later (`unfold-comm-ops` at MIR level). All carry `UsesRemoteInterface`.
+All four pairs are present in single-value and multi-value forms. The multi-value forms use `tensor<…x{i32,f32}>` and exist in HIR mainly so they can be unfolded later (`unfold-comm-ops` at MIR level). (*WIP*: We are exploring solutions to avoid using tensors, since they carry too much complexity for purpose of simply encasulating a set of integers). All carry `UsesRemoteInterface`.
 
 | Op | Operands / attrs | Results |
 | --- | --- | --- |

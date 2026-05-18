@@ -1,6 +1,6 @@
 # Operations reference
 
-Five MLIR dialects make up the qoala-mlir IR surface. Pick a dialect:
+The `qoala-opt` and `qoala-translate` tools use five MLIR dialects:
 
 - **[QNet (HIR)](qnet.md)** — value-based quantum semantics, `!qnet.qubit` SSA values, classical send/recv operations referenced by symbol.
 - **[QMem (MIR)](qmem.md)** — explicit `i32` qubit-pointer memory model. Side-effecting quantum ops.

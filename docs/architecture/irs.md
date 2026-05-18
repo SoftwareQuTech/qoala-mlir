@@ -21,7 +21,7 @@ In HIR a quantum program is expressed as **value-to-value transformations on `!q
 %m  = qnet.measure %q3 : i1
 ```
 
-This shape makes algebraic rewrites (gate cancellation, rotation merging, dead-code elimination) straightforward. Use cases:
+This construction makes some algebraic rewrites (gate cancellation, rotation merging, dead-code elimination) straightforward. Some use cases:
 
 - `qnet-peephole-optimizations` — Hermitian cancellation, rotation folding, optional Pauli→rotation conversion.
 - `qnet-dead-code-elimination` — drop quantum dataflow that has no observable effect; with `with-classical-awareness=true`, only measurements whose classical outcome is observably used count as liveness roots.
@@ -43,7 +43,7 @@ qmem.hadamard %qptr
 
 MIR is the level at which:
 
-- Floating-point rotation angles can still appear, but `lower-float-rotations` rewrites them to integer-pair `(n, e)` form `qmem.rot_*_int` ops where `angle = n·π / 2^e`. This matches NetQASM's allowed encoding.
+- Floating-point rotation angles can still appear, but `lower-float-rotations` rewrites them to `qmem.rot_*_int` ops which use an integer-pair `(n, e)` form  where `angle = n·π / 2^e`. This matches NetQASM's allowed encoding.
 - `unfold-comm-ops` decomposes multi-value classical communication (`qmem.send_ints`, `qmem.recv_floats`) into single-value variants.
 - `functionize` extracts contiguous groups of quantum ops into stand-alone NetQASM routines, replacing each group with a single `qoalahost.call`.
 
@@ -97,4 +97,4 @@ Two convenience passes wrap whole stages:
 - `lower-qoala-hir-to-mir` — runs the full HIR→MIR conversion.
 - `lower-qoala-mir-to-lir` — runs the full MIR→LIR conversion (functionize + lower-qmem-to-lower-dialects). Options of inner passes are exposed as pass options of this wrapper, e.g. `--lower-qoala-mir-to-lir=use-simple-functionize=true,max-ops-per-group=5`.
 
-Note: when invoking a pass option from `qoala-opt`, you pass it **inside** the pass argument, not as a separate flag. For example, `--lower-qoala-mir-to-lir=use-online-scheduler=true` works; `--lower-qoala-mir-to-lir --use-online-scheduler=true` does not.
+Note: when invoking a pass option from `qoala-opt`, you need to specify the option **inside** the pass argument, not as a separate flag. For example, `--lower-qoala-mir-to-lir=use-online-scheduler=true` works, but `--lower-qoala-mir-to-lir --use-online-scheduler=true` does not.

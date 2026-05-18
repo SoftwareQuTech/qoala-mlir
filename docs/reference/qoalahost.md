@@ -22,7 +22,7 @@ The CPS entry point. Hosts the classical program structure.
 
 Direct call to a `netqasm.local_routine` or `netqasm.request_routine`.
 
-- **Why a `Terminator`?** Per the iQoala block-shape requirements (one call per QL block), `qoalahost.call` is given the `Terminator` trait. This forces every call to live in its own block, since each MLIR block can only have one terminator.
+- **Why a `Terminator`?** Per the iQoala block-shape requirements (one call per QL/QR block), `qoalahost.call` is given the `Terminator` trait. This forces every call to live in its own block, since each MLIR block can only have one terminator.
 - **Traits:** `CallOpInterface`, `MemRefsNormalizable`, `SymbolUserOpInterface`, `Terminator`, `QuantumOpInterface`.
 - **Operands:** `callee` (`FlatSymbolRefAttr`), `Variadic<AnyType>` arguments.
 - **Results:** `Variadic<AnyType>` (the return values of the routine).
@@ -77,10 +77,10 @@ The dialect provides two nop ops to satisfy MLIR's "every block has a terminator
 | `qoalahost.recv_int` | `remote` | `i32` | `Terminator`. |
 | `qoalahost.send_float` | `f32`, `remote` | — | — |
 | `qoalahost.recv_float` | `remote` | `f32` | `Terminator`. |
-| `qoalahost.send_ints` | `tensor<?xi32>`, `remote` | — | TODO #72: tensor → memref at LIR. |
-| `qoalahost.recv_ints` | `remote`, `length: i32` (attr) | `tensor<?xi32>` | `Terminator`. TODO #72. |
-| `qoalahost.send_floats` | `tensor<?xf32>`, `remote` | — | TODO #72. |
-| `qoalahost.recv_floats` | `remote`, `length: i32` (attr) | `tensor<?xf32>` | `Terminator`. TODO #72. |
+| `qoalahost.send_ints` | `tensor<?xi32>`, `remote` | — | — |
+| `qoalahost.recv_ints` | `remote`, `length: i32` (attr) | `tensor<?xi32>` | `Terminator`. |
+| `qoalahost.send_floats` | `tensor<?xf32>`, `remote` | — | — |
+| `qoalahost.recv_floats` | `remote`, `length: i32` (attr) | `tensor<?xf32>` | `Terminator`. |
 
 ## Example
 
