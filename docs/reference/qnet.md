@@ -4,8 +4,6 @@ The `qnet` dialect expresses **value-based quantum semantics**. Every quantum op
 
 Source: `include/Dialect/QNet/{QNet,QNetDialect,QNetOps,QNetTypes}.td`.
 
-![QNet op anatomy](../assets/figures/qnet-op-anatomy.svg)
-
 ## Types
 
 | Type | Mnemonic | Description |

@@ -8,6 +8,4 @@ The `qoala-opt` and `qoala-translate` tools use five MLIR dialects:
 - **[NetQASM (LIR)](netqasm.md)** — quantum routines (`local_routine`, `request_routine`) executed on the QPS, using NetQASM's integer-encoded rotation angles.
 - **[QRemote (LIR)](qremote.md)** — module-scope symbols for remote nodes referenced by send/recv/eprs ops.
 
-![Dialect graph](../assets/figures/dialect-graph.svg)
-
 Every page lists ops with their assembly form, operands, results, and notable traits, all extracted from the corresponding `*Ops.td` file under `include/Dialect/`.

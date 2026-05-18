@@ -4,8 +4,6 @@ The `qoalahost` dialect describes the **classical host body** of an LIR program 
 
 Source: `include/Dialect/QoalaHost/{QoalaHost,QoalaHostDialect,QoalaHostOps}.td`.
 
-![QoalaHost block structure](../assets/figures/qoalahost-block-structure.svg)
-
 All ops in this dialect carry the `QuantumOpInterface` trait via the dialect's op base class.
 
 ## Structural ops

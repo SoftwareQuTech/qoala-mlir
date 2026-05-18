@@ -2,8 +2,6 @@
 
 `qoala-opt` does not enforce a fixed pipeline: the user composes passes via `--pass-name=…` arguments, exactly like upstream `mlir-opt`. This page documents the orderings that are known to be correct and that the toolchain is built around.
 
-![Default pass pipeline](../assets/figures/pass-pipeline-default.svg)
-
 ## End-to-end recommended order
 
 Given an HIR module `program.mlir`, the canonical lowering to LIR is:

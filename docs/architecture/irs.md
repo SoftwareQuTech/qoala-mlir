@@ -2,8 +2,6 @@
 
 `qoala-mlir` lowers programs through three intermediate representations: HIR, expressed in the `qnet` dialect; MIR, expressed in the `qmem` dialect; and LIR, expressed jointly in the `qoalahost`, `netqasm`, and `qremote` dialects. The three levels describe the same program at progressively more concrete levels of abstraction, and a given pass is meaningful at exactly one of them.
 
-![Dialect graph](../assets/figures/dialect-graph.svg)
-
 ## HIR — `qnet`
 
 HIR follows the Static Single Assignment (SSA) paradigm for quantum data: every quantum gate takes one or more `!qnet.qubit` values as operands and produces fresh `!qnet.qubit` result values that represent the post-operation state of those qubits. The qubit is never mutated in place; it is replaced, at the SSA level, by a new value. There is no explicit memory model in HIR — qubits exist only as SSA values flowing through the program — and communication and entanglement ops reference remote nodes by symbol (`qnet.remote`).
@@ -35,8 +33,6 @@ MIR is where the program is prepared for the structural changes that turn it int
 
 See [Operations reference / QMem](../reference/qmem.md) and [Passes / MIR helpers](../passes/mir.md).
 
-![QMem memory model](../assets/figures/qmem-memory-model.svg)
-
 ## LIR — `qoalahost` + `netqasm` + `qremote`
 
 The MIR→LIR lowering (`lower-qoala-mir-to-lir`, which itself sequences `functionize`, the dialect mapping, and the precedence-annotation pass) splits the single mixed function into three layers that mirror the iQoala executable. The classical host body lives in a `qoalahost.main_func`, structured as a chain of MLIR basic blocks. Each block carries a `qoalahost.blk_meta` annotation that records its block ID, control-flow predecessors, data and side-effect dependencies, the immediately preceding communication or request-routine block (if any), and the deadlines computed during reordering. Classical computation, classical sends, classical receives, and calls into quantum routines live directly inside these blocks. The quantum routines themselves are extracted into one or more `netqasm.local_routine` and `netqasm.request_routine` operations, each called from the host body via `qoalahost.call`. Finally, every remote node referenced by `qoalahost.send_*`, `qoalahost.recv_*`, `netqasm.eprs`, or similar is declared once at module scope as a `qremote.remote @<name>` symbol.
@@ -64,8 +60,6 @@ qoalahost.main_func @main() {
 LIR is where the runtime-facing structure of the program becomes visible and where the scheduling-oriented passes operate. `qoalahost-add-block-precedences` materializes the block-ordering edges required by the runtime — control-flow edges, SSA data dependencies, classical-communication ordering, request-routine ordering, and conservative qubit-side-effect ordering — into the `blk_meta` annotations. `qoalahost-reorder-blocks` then solves a MILP that picks a block permutation minimizing total qubit lifetime, optionally computing per-block deadlines that are also recorded in `blk_meta` when invoked with `with-deadlines=true`. The analysis-print passes — `qoalahost-show-analysis-qmem-eff`, `qubit-life`, `gate-count`, and `esp` — read the same structure to report static metrics. Once the module is finalized, `qoala-translate --mlir-to-iqoala` walks it once more to emit the `.iqoala` executable.
 
 See [Operations reference / QoalaHost](../reference/qoalahost.md), [/ NetQASM](../reference/netqasm.md), [/ QRemote](../reference/qremote.md), and [Passes / LIR](../passes/lir.md).
-
-![QoalaHost block structure](../assets/figures/qoalahost-block-structure.svg)
 
 ## Single-pass shortcuts
 

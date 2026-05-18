@@ -2,8 +2,6 @@
 
 The qoala-mlir build produces an MLIR Python bindings package named `qnet`. This is the package that the [euqalyptus](<EUQALYPTUS_DOCS_URL>) frontend imports to construct Qoala HIR programmatically.
 
-![Python bindings architecture](assets/figures/python-bindings-arch.svg)
-
 ## What's in the package
 
 After a successful build the package lives under `build/python_packages/qnet_bindings/qnet/`. The importable surface is split in three. `qnet.ir` re-exports MLIR's core Python API — `Module`, `Context`, `Location`, `InsertionPoint`, `Operation`, `Block`, and `Region` are the names you will typically reach for. `qnet.dialects.qnet` contains the Python builders for every operation in the [QNet](reference/qnet.md) dialect, generated from `lib/Python/mlir_qnet/dialects/QNetOps.td` together with `qnet.py`. Finally, `qnet._mlir_libs` bundles the C/C++ runtime libraries; it is loaded automatically and not imported directly.

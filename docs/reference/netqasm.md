@@ -6,8 +6,6 @@ At LIR level, these quantum operations are grouped in *quantum routines*, which 
 
 Source: `include/Dialect/NetQASM/{NetQASM,NetQASMDialect,NetQASMOps}.td`.
 
-![NetQASM routine](../assets/figures/netqasm-routine.svg)
-
 All operations in this dialect carry the `QuantumOpInterface` trait, and can override the `getDuration` method to provide a different-than-default value for the execution time of the quantum gate they model.
 
 ## Routines

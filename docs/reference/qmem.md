@@ -4,8 +4,6 @@ The `qmem` dialect makes the **quantum-memory model explicit**. Qubits are no lo
 
 Source: `include/Dialect/QMem/{QMem,QMemDialect,QMemOps}.td`.
 
-![QMem memory model](../assets/figures/qmem-memory-model.svg)
-
 All ops in this dialect carry the `SimpleCloneInterface` and `OpQubitsInterface` traits via the dialect's op base class.
 
 ## Structural ops
