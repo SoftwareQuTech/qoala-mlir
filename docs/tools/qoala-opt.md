@@ -14,20 +14,22 @@ Source: `tools/qoala-opt/qoala-opt.cpp`.
 
 These flags configure the durations and error rates used by analyses (gate count, qubit lifetime, ESP, qmem-efficiency) and by the MILP-based block reorderer (`qoalahost-reorder-blocks`). They have no effect on lowering correctness.
 
+All durations are in ticks; the deadline-estimation and reordering MILPs treat one tick as one nanosecond.
+
 | Flag | Type | Default | Description |
 | --- | --- | ---: | --- |
-| `--qoala-opt-single-gate-duration` | `uint32` | 10 | Time taken by a single-qubit gate operation. |
-| `--qoala-opt-single-gate-error` | `float` | 0.01 | Error rate of a single-qubit gate operation. |
-| `--qoala-opt-two-gate-duration` | `uint32` | 50 | Time taken by a two-qubit gate operation. |
-| `--qoala-opt-dual-gate-error` | `float` | 0.05 | Error rate of a two-qubit gate operation. |
-| `--qoala-opt-latency` | `uint32` | 100 | Generic latency parameter (no description string in the registration). |
-| `--qoala-opt-link-duration` | `uint64` | 1000 | Time taken to generate entanglement (an `eprs` link). |
-| `--qoala-opt-host-instr-time` | `uint32` | 1 | Time taken by a classical operation running on the QNPU host. |
-| `--qoala-opt-host-peer-latency` | `uint32` | 1 | Latency of receiving a classical communication message. |
-| `--qoala-opt-qnos-instr-time` | `uint32` | 1 | Time taken by a classical instruction running on the QNPU. |
-| `--qoala-opt-qubit-lifetime` | `uint64` | 500 | Maximum lifetime of a qubit. |
-| `--qoala-opt-group-ent-reqs` | `bool` | `false` | Whether to group entanglement requests during analyses. |
-| `--qoala-opt-program-horizon` | `uint32` | 0 | Program horizon — the maximum time the program is allowed to take. |
+| `--qoala-opt-single-gate-duration` | `uint32` | 10 | Duration of a single-qubit gate. |
+| `--qoala-opt-single-gate-error` | `float` | 0.01 | Error probability of a single-qubit gate (used by the ESP analysis). |
+| `--qoala-opt-two-gate-duration` | `uint32` | 50 | Duration of a two-qubit gate. |
+| `--qoala-opt-dual-gate-error` | `float` | 0.05 | Error probability of a two-qubit gate (used by the ESP analysis). |
+| `--qoala-opt-latency` | `uint32` | 100 | Per-receive base latency for classical communication operations. The duration of a `qoalahost.recv_int`/`recv_float` is `qoalaOptLatency + qoalaOptHostPeerLatency` (for tensor variants `recv_ints`/`recv_floats`, multiplied by the number of values). Note: no `desc()` string is registered for this flag in the source, so it appears without a description in `qoala-opt --help`. |
+| `--qoala-opt-link-duration` | `uint64` | 1000 | Time taken by a single entanglement-generation attempt (a `qnet.eprs` / `qmem.eprs` / `netqasm.eprs` link). |
+| `--qoala-opt-host-instr-time` | `uint32` | 1 | Time taken by a single classical instruction executed on the **host** (CPS) side. Combined with operation arity in `getDuration()` to model durations of `qoalahost.*` ops. (The string registered as `desc()` in the source erroneously refers to the QNPU.) |
+| `--qoala-opt-host-peer-latency` | `uint32` | 1 | Per-message network latency for classical communication. Together with `--qoala-opt-latency`, sets the duration of receive operations (see the row above for the formula). |
+| `--qoala-opt-qnos-instr-time` | `uint32` | 1 | Time taken by a single classical instruction executed on the **QNPU/QPS** side (the embedded classical processor inside the quantum stack). Used by NetQASM classical sub-instructions. |
+| `--qoala-opt-qubit-lifetime` | `uint64` | 500 | Maximum allowed lifetime of a qubit (`L_max` in the deadline MILP). The same value is reused as the dephasing time `T₂` by the fidelity-estimate analysis. |
+| `--qoala-opt-group-ent-reqs` | `bool` | `false` | If true, the functionization pass groups entanglement requests targeting the same remote into a single request routine. Reflects the current near-term-hardware constraint of one outstanding request routine per remote per program. |
+| `--qoala-opt-program-horizon` | `uint32` | 0 | Upper bound on total execution time used by the deadline MILP. The default `0` is a sentinel meaning "derive automatically from the program"; the deadline MILP then uses `H = 2 × Σ duration(op)`. A user-supplied positive value below `Σ duration(op)` is rejected with a warning and the default is used instead. |
 
 There is also one **hidden** flag:
 

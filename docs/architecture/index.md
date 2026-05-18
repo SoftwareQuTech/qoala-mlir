@@ -1,6 +1,6 @@
 # Architecture
 
-The `qoala-mlir` toolchain is structured around three intermediate representations and two entry-point binaries that drive them.
+The `qoala-mlir` toolchain is structured around three intermediate representations and two tools that allow hybrid quantum programs to be compiled and optimized through them.
 
 ![Backend overview](../assets/figures/backend-overview.svg)
 
@@ -26,7 +26,7 @@ qoala-mlir/
 ├── lib/                # implementation, mirroring include/
 │   ├── Python/         # MLIR Python bindings (package: qnet)
 │   └── QNet-CAPI/      # C bindings
-├── tools/{qoala-opt,qoala-translate,interpreter}/
+├── tools/{qoala-opt,qoala-translate}/
 └── llvm/               # LLVM submodule
 ```
 

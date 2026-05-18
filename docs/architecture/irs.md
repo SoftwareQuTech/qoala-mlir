@@ -12,7 +12,7 @@ Each level describes the same program at a different level of abstraction. A giv
 
 ## HIR — `qnet`
 
-In HIR a quantum program is expressed as **value-to-value transformations on `!qnet.qubit` SSA values**. There is no explicit memory model: every gate consumes its qubit operand(s) and produces fresh result qubit value(s). Communication and entanglement ops reference remote nodes by symbol (`qnet.remote`).
+HIR follows the **Static Single Assignment (SSA) paradigm** for quantum data: every quantum gate takes one or more `!qnet.qubit` values as operands and produces fresh `!qnet.qubit` result values that represent the post-operation state of those qubits. The qubit is never mutated in place; it is replaced, at the SSA level, by a new value. There is no explicit memory model in HIR. Communication and entanglement ops reference remote nodes by symbol (`qnet.remote`).
 
 ```mlir
 %q1 = qnet.new_qubit : !qnet.qubit

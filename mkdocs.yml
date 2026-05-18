@@ -27,7 +27,6 @@ nav:
       - tools/index.md
       - qoala-opt: tools/qoala-opt.md
       - qoala-translate: tools/qoala-translate.md
-      - Interpreter: tools/interpreter.md
   - Operations reference:
       - reference/index.md
       - QNet (HIR): reference/qnet.md

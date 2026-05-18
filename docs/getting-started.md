@@ -47,6 +47,7 @@ The wheel bundles the same binaries *plus* the `qnet` Python bindings, all in on
 Requirements:
 
 - **Python 3.10, 3.11, or 3.12.** Python 3.13 is **not supported** — the bundled MLIR Python bindings depend on `numpy ≤ 1.26`, which itself does not support 3.13.
+- Each release attaches a **separate wheel per supported Python version** (e.g. `cp310`, `cp311`, `cp312` tags in the filename). Pick the one that matches the interpreter you intend to run; wheels are not interchangeable across Python minor versions because the bundled MLIR Python bindings link against a specific CPython ABI.
 
 In a fresh virtual environment, install the wheel directly from the release URL:
 

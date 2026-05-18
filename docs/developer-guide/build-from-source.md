@@ -12,6 +12,8 @@ The repository pins a specific LLVM/MLIR commit as a submodule. Since LLVM is a 
 git submodule update --init
 ```
 
+This command checks out the LLVM commit recorded in the parent repository — it does **not** fetch the latest upstream LLVM. Do not run `git submodule update --remote` or otherwise advance the submodule unless you intend to migrate the toolchain to a new LLVM revision.
+
 ## 2. System packages
 
 On Debian-like distributions:
