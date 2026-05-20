@@ -14,7 +14,7 @@ Converts every `qmem.rot_x`, `qmem.rot_y`, `qmem.rot_z`, and `qmem.crot_x` op th
 
 ## `unfold-comm-ops`
 
-Unfolds the multi-value classical communication ops (`qmem.send_ints`, `qmem.recv_ints`, `qmem.send_floats`, `qmem.recv_floats`) into sequences of their single-value variants (`qmem.send_int`, `qmem.recv_int`, `qmem.send_float`, `qmem.recv_float`). This is what lets each individual classical send or receive be isolated into its own block during the downstream functionization step. If you want to keep the multi-value forms (the long-term plan is to replace the tensor representation with `memref`, see TODO #72), use `--lower-qoala-mir-to-lir=disable-unfold-comm-ops=true`.
+Unfolds the multi-value classical communication ops (`qmem.send_ints`, `qmem.recv_ints`, `qmem.send_floats`, `qmem.recv_floats`) into sequences of their single-value variants (`qmem.send_int`, `qmem.recv_int`, `qmem.send_float`, `qmem.recv_float`). This is what lets each individual classical send or receive be isolated into its own block during the downstream functionization step. If you want to keep the multi-value forms (the long-term plan is to replace the tensor representation with `memref` for simplicify reasons), use `--lower-qoala-mir-to-lir=disable-unfold-comm-ops=true`.
 
 - **Pass class:** `UnfoldClassicalCommOps`.
 - **Anchor:** `qmem::FuncOp`.
