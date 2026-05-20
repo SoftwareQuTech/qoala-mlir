@@ -5,11 +5,12 @@
 
 ## Implementation-specific documentation
 
-Despite most of the documentation of the Qoala Compiler can be found in the `qoala-compiler-specs` repository,
-the implementation of those also have some intricacies that are worth explaining a bit longer.
+The design rationale of the Qoala compiler — its IR architecture, lowering pipeline, optimization passes, and
+analyses — is documented in the [compiler paper](<PAPER_URL>). The notes in this directory complement that
+material with implementation-specific intricacies that the paper does not cover at the source-code level.
 
 Please note that most of the details explained in these documents refer to *implementation-specific details*
-or explain *the algorithms implemented to achieve the specs of the compiler*.
+or explain *the algorithms implemented to realize what the paper describes at the design level*.
 
 ## Index
 

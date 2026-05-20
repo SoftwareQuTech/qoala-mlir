@@ -6,7 +6,13 @@ As part of the lowering from Qoala Middle to Lower Intermediate Representation (
 
 ## Hands-on description of the algorithm
 
-The `qoala-compiler-specs` repository provides a "hands-on" description of how the functionization algorithm must select the operations that belong to a group and place them in a separate function. That description does not specify the full algorithm, but it does explain how operations are grouped together and how classical communications act as *barriers* that mark the end of a partially-filled group. The compiler specification limits itself to how operations are classified into a group: once certain conditions are met, the group is considered complete and its operations are "placed into a separate function, replacing the original locations of the functionized operations with the respective `call` operation."
+At a "hands-on" level, functionization selects which operations belong to a group and then places each group into a separate function. Two rules drive the grouping:
+
+- **Contiguous quantum-operation groups.** Sequences of QMem operations that act on the same logical qubit (or set of qubits) are accumulated into the same group. Once certain conditions are met (resource boundary, group-size limit, or barrier — see below), the group is considered complete and its operations are placed into a separate function, with their original locations in the main body replaced by a single `call` to that function.
+
+- **Classical communication as barriers.** Operations that perform classical communication or receive data from the network (e.g.\ `qmem.recv_*`) act as *barriers*: they terminate any currently-open group and stay in the main body. This keeps classical-communication semantics observable in the host program, where the Qoala runtime expects them, instead of burying them inside a quantum routine.
+
+One invariant is enforced unconditionally on top of these rules: a logical-qubit allocation and its corresponding initialization (either a local `init` or an entanglement-generating operation) are always placed in the same group and are never separated by the classifier. The size of the resulting groups is otherwise configurable through a tunable upper bound on the number of quantum operations per group, which the [compiler paper](<PAPER_URL>) refers to as the selfish-vs-cooperative compilation knob.
 
 From this description we can already identify the two big steps of functionization: first, classify the operations to form the groups; second, for each group, place all of its instructions into its own function definition within the same translation unit. Before going deeper into either step we need to introduce a few concepts.
 
@@ -20,7 +26,7 @@ These four observable steps decompose into three main stages: qubit allocation a
 
 ### MLIR operations "closure"
 
-The functionization process described in `qoala-compiler-specs` produces groups of operations that are placed in isolated functions within the same translation unit. We refer to each such group as an *operations closure*, by analogy with the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
+The functionization process described above produces groups of operations that are placed in isolated functions within the same translation unit. We refer to each such group as an *operations closure*, by analogy with the concept of [function closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)).
 
 In this document, we define an operations closure (or simply a *closure*) as a group of operations that *isolate the operations applied to certain (quantum) values*. This definition does not restrict the isolated operations to use values from or create values that are used outside the enclosed set.
 
