@@ -14,7 +14,7 @@ Source: `tools/qoala-opt/qoala-opt.cpp`.
 
 These flags configure the durations and error rates used by analyses (gate count, qubit lifetime, ESP, qmem-efficiency) and by the MILP-based block reorderer (`qoalahost-reorder-blocks`). They have no effect on lowering correctness.
 
-All durations are in ticks; the deadline-estimation and reordering MILPs treat one tick as one nanosecond.
+All durations are in ticks. A *tick* is the compiler's discrete unit of time — a single timestep, defined as **one nanosecond**. This matches the resolution at which the Qoala runtime tracks wall-clock time, and lets the deadline-estimation and reordering MILPs encode every start time, duration, and gap as an integer SCIP variable rather than a continuous one.
 
 | Flag | Type | Default | Description |
 | --- | --- | ---: | --- |
