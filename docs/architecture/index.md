@@ -1,6 +1,6 @@
 # Architecture
 
-The `qoala-mlir` toolchain is structured around three intermediate representations and two tools that allow hybrid quantum programs to be compiled and optimized through them.
+The `qoala-mlir` toolchain is structured around three intermediate representations and two tools that allow hybrid quantum programs to be compiled and optimized using the three intermediate representations.
 
 ![Backend overview](../assets/figures/backend-overview.svg)
 
