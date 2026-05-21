@@ -1,6 +1,6 @@
 # QNet (HIR)
 
-The `qnet` dialect expresses **value-based quantum semantics**. Every quantum operation consumes one or more `!qnet.qubit` SSA values and produces fresh result qubit value(s); there is no explicit memory model. Rotation angles are accepted both as `f32` (the user-facing form emitted by [euqalyptus](<EUQALYPTUS_DOCS_URL>)) and as integer-pair `(n, e)` encoding `angle = n·π / 2^e`.
+The `qnet` dialect expresses **value-based quantum semantics**. Every quantum operation consumes one or more `!qnet.qubit` SSA values and produces fresh result qubit value(s); there is no explicit memory model. Rotation angles are accepted both as `f32` (the user-facing form emitted by [euqalyptus](https://softwarequtech.github.io/euqalyptus/)) and as integer-pair `(n, e)` encoding `angle = n·π / 2^e`.
 
 Source: `include/Dialect/QNet/{QNet,QNetDialect,QNetOps,QNetTypes}.td`.
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution. This page covers the practical bits: how to set up your environment, where new code typically goes, and how this repo interacts with [euqalyptus](<EUQALYPTUS_DOCS_URL>).
+Thanks for considering a contribution. This page covers the practical bits: how to set up your environment, where new code typically goes, and how this repo interacts with [euqalyptus](https://softwarequtech.github.io/euqalyptus/).
 
 ## Set up your dev environment
 
@@ -29,7 +29,7 @@ C++ is formatted with `clang-format-18` — other versions reformat the codebase
 
 ## How qoala-mlir relates to euqalyptus
 
-[euqalyptus](<EUQALYPTUS_DOCS_URL>) is the user-facing Python frontend. Its only direct dependency on this repo is the `qnet` Python bindings package described in [Python bindings](bindings.md). The contract between the two is simple: euqalyptus compiles user Python into a `qnet`-dialect MLIR module (Qoala HIR); that module is fed into `qoala-opt`, which lowers it through MIR to LIR; and `qoala-translate --mlir-to-iqoala` produces the textual `.iqoala` executable.
+[euqalyptus](https://softwarequtech.github.io/euqalyptus/) is the user-facing Python frontend. Its only direct dependency on this repo is the `qnet` Python bindings package described in [Python bindings](bindings.md). The contract between the two is simple: euqalyptus compiles user Python into a `qnet`-dialect MLIR module (Qoala HIR); that module is fed into `qoala-opt`, which lowers it through MIR to LIR; and `qoala-translate --mlir-to-iqoala` produces the textual `.iqoala` executable.
 
 A change to a `qnet` op or to the `qnet` Python builders has a direct impact on euqalyptus's emitted IR, while additions to euqalyptus's SDK do not affect this repo unless they introduce new HIR ops. When making changes that span both repos, the cleanest order is to land the new ops or passes in qoala-mlir first (the `qnet` Python bindings get updated automatically when you rebuild), then update the euqalyptus AST builders to use the new ops, and finally add tests on both sides — `test/IR/HIR/*.mlir` here, `tests/bindings/*.py` over there.
 

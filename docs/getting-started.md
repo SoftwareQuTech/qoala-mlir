@@ -8,12 +8,12 @@ If you need to modify the toolchain itself (add a pass, change a dialect, hack o
 
 Every release publishes its artifacts to the GitHub releases page:
 
-> [`<QOALA_MLIR_RELEASES_URL>`](<QOALA_MLIR_RELEASES_URL>)
+> [`https://github.com/SoftwareQuTech/qoala-mlir/releases`](https://github.com/SoftwareQuTech/qoala-mlir/releases)
 
 Each release attaches two kinds of artifacts:
 
 - A **binary tarball** (e.g. `qoala-mlir-<version>-linux-x86_64.tar.gz`) containing the standalone `qoala-opt` and `qoala-translate` executables. Use this if you only need to run the tools on `.mlir` files.
-- A **Python wheel** (e.g. `qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl`) containing the same executables plus the `qnet` Python bindings package. Use this if you (or [euqalyptus](<EUQALYPTUS_DOCS_URL>)) need to construct HIR from Python.
+- A **Python wheel** (e.g. `qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl`) containing the same executables plus the `qnet` Python bindings package. Use this if you (or [euqalyptus](https://softwarequtech.github.io/euqalyptus/)) need to construct HIR from Python.
 
 Pick whichever matches your platform (Linux x86-64 is the primary target).
 
@@ -74,7 +74,7 @@ python -c "from qnet.dialects import qnet; from qnet.ir import Module, Context, 
 
 ## Run a sample program
 
-The simplest end-to-end exercise: take a Qoala HIR program produced by [euqalyptus](<EUQALYPTUS_DOCS_URL>), lower it, and translate it.
+The simplest end-to-end exercise: take a Qoala HIR program produced by [euqalyptus](https://softwarequtech.github.io/euqalyptus/), lower it, and translate it.
 
 ```sh
 qoala-opt program.hir.mlir \
@@ -87,7 +87,7 @@ qoala-opt program.hir.mlir \
 
 See [Architecture / Pass pipeline](architecture/pipeline.md) for what each pass does and which combinations are recommended.
 
-If you don't yet have an HIR module, the [euqalyptus docs](<EUQALYPTUS_DOCS_URL>) walk through writing one in Python.
+If you don't yet have an HIR module, the [euqalyptus docs](https://softwarequtech.github.io/euqalyptus/) walk through writing one in Python.
 
 ## Where to go next
 

@@ -1,16 +1,16 @@
 # Python bindings
 
-The qoala-mlir build produces an MLIR Python bindings package named `qnet`. This is the package that the [euqalyptus](<EUQALYPTUS_DOCS_URL>) frontend imports to construct Qoala HIR programmatically.
+The qoala-mlir build produces an MLIR Python bindings package named `qnet`. This is the package that the [euqalyptus](https://softwarequtech.github.io/euqalyptus/) frontend imports to construct Qoala HIR programmatically.
 
 ## What's in the package
 
 After a successful build the package lives under `build/python_packages/qnet_bindings/qnet/`. The importable surface is split in three. `qnet.ir` re-exports MLIR's core Python API — `Module`, `Context`, `Location`, `InsertionPoint`, `Operation`, `Block`, and `Region` are the names you will typically reach for. `qnet.dialects.qnet` contains the Python builders for every operation in the [QNet](reference/qnet.md) dialect, generated from `lib/Python/mlir_qnet/dialects/QNetOps.td` together with `qnet.py`. Finally, `qnet._mlir_libs` bundles the C/C++ runtime libraries; it is loaded automatically and not imported directly.
 
-The release wheel attached to the [GitHub releases page](<QOALA_MLIR_RELEASES_URL>) ships the same package contents along with the `qoala-opt` and `qoala-translate` binaries under `<wheel>.data/scripts/`. To build the wheel yourself, see [Developer's guide / Building from source / Build a wheel](developer-guide/build-from-source.md#9-build-a-wheel).
+The release wheel attached to the [GitHub releases page](https://github.com/SoftwareQuTech/qoala-mlir/releases) ships the same package contents along with the `qoala-opt` and `qoala-translate` binaries under `<wheel>.data/scripts/`. To build the wheel yourself, see [Developer's guide / Building from source / Build a wheel](developer-guide/build-from-source.md#9-build-a-wheel).
 
 ## How euqalyptus consumes it
 
-[euqalyptus](<EUQALYPTUS_DOCS_URL>)'s `QoalaModule.generate_qoala_hir()` walks its internal AST and, for each node, calls into `qnet.dialects.qnet` to produce the equivalent MLIR op. The output is a `qnet.ir.Module` whose `.operation.get_asm()` is the textual HIR fed into `qoala-opt`. If you are building tools on top of qoala-mlir directly, without euqalyptus, the same idiom applies:
+[euqalyptus](https://softwarequtech.github.io/euqalyptus/)'s `QoalaModule.generate_qoala_hir()` walks its internal AST and, for each node, calls into `qnet.dialects.qnet` to produce the equivalent MLIR op. The output is a `qnet.ir.Module` whose `.operation.get_asm()` is the textual HIR fed into `qoala-opt`. If you are building tools on top of qoala-mlir directly, without euqalyptus, the same idiom applies:
 
 ```python
 from qnet.dialects import qnet

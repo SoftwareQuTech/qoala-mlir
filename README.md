@@ -1,10 +1,10 @@
 # qoala-mlir
 
-`qoala-mlir` is the MLIR-based middle and back end of the Qoala compiler stack. It consumes a Qoala HIR module — emitted by the [euqalyptus](<EUQALYPTUS_DOCS_URL>) Python frontend — lowers it through three intermediate representations (`qnet` → `qmem` → `qoalahost` + `netqasm` + `qremote`), and emits a textual `.iqoala` executable that can be run on the Qoala runtime. The build produces two command-line tools, `qoala-opt` (analyses, optimizations, and lowerings) and `qoala-translate` (LIR-to-`.iqoala` translation), together with a `qnet` Python bindings package that the frontend imports to construct HIR programmatically.
+`qoala-mlir` is the MLIR-based middle and back end of the Qoala compiler stack. It consumes a Qoala HIR module — emitted by the [euqalyptus](https://softwarequtech.github.io/euqalyptus/) Python frontend — lowers it through three intermediate representations (`qnet` → `qmem` → `qoalahost` + `netqasm` + `qremote`), and emits a textual `.iqoala` executable that can be run on the Qoala runtime. The build produces two command-line tools, `qoala-opt` (analyses, optimizations, and lowerings) and `qoala-translate` (LIR-to-`.iqoala` translation), together with a `qnet` Python bindings package that the frontend imports to construct HIR programmatically.
 
 ## Documentation
 
-The full documentation is published at [`<QOALA_MLIR_DOCS_URL>`](<QOALA_MLIR_DOCS_URL>). It covers installation, the three intermediate representations, the pass pipeline, the per-op and per-pass reference, the Python bindings, and contributor-facing material.
+The full documentation is published at [`https://softwarequtech.github.io/qoala-mlir/`](https://softwarequtech.github.io/qoala-mlir/). It covers installation, the three intermediate representations, the pass pipeline, the per-op and per-pass reference, the Python bindings, and contributor-facing material.
 
 ## Design and paper
 
