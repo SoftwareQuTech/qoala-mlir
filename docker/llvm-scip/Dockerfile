@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get install -y build-essential cmake ninja-build \
  && rm -rf /var/lib/apt/lists/*
 
-# LLVM/Clang 17/21 + lld-17/21 from apt.llvm.org
-RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 17 all
+# LLVM/Clang 21 + lld-21 from apt.llvm.org
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh
 RUN ./llvm.sh 21 all && rm -f llvm.sh
 
 WORKDIR /workspace
