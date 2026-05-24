@@ -14,5 +14,6 @@ add_mlir_dialect_library(MLIRQMemAnalysisLibs
 
         DEPENDS
         MLIRQMemInterfacesIncGen
+        MLIRQoalaMIRToQoalaLIRPassIncGen
         MLIRMIRToLIRHelperPassesIncGen
 )

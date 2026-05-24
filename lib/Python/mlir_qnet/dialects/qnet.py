@@ -7,8 +7,11 @@ from ._ods_common import (
 )
 # Import the types registered in the C++ python extension
 from .._mlir_libs._qnetTypes.qnet_types import *
+from .._mlir_libs._qnetTypes import __version__ as _cext_version
 
 from typing import Any, List, Optional, Sequence, Union
+
+__version__ = _cext_version
 
 
 @_ods_cext.register_operation(_Dialect, replace=True)
