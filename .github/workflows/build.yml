@@ -1,0 +1,114 @@
+name: Build, Test as Publish
+on:
+  push:
+    # Runs on pushing a tag iff the tag has the following format
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE_NAME: "llvm-scip"
+  COMPILER_BIN: "clang-21"
+  LINKER_BIN: "ld.lld-21"
+
+jobs:
+  lint-versions:
+    name: Get LLVM and SCIP versions and run linter
+    runs-on: ubuntu-latest
+    outputs:
+      llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
+      scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Retrieve LLVM and SCIP referenced versions
+        id: llvm-scip-versions
+        run: |
+          echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
+          echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
+
+      - name: Run clang-format check
+        run: |
+          chmod +x scripts/check-clang-format.sh 
+          bash scripts/check-clang-format.sh
+
+  build-and-test:
+    name: Build artifacts for Python 3.10 and test
+    needs: [lint-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [python310, python311, python312]
+    container:
+      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_NAME }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set build toolchain paths
+        id: toolchain-paths
+        run: |
+          bash /toolchain/get_path.sh scip > $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh mlir > $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh ${{ matrix.python-version }} > $GITHUB_OUTPUT
+
+      - name: Configure and compile python wheel
+        run: |
+          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ steps.toolchain-paths.outputs.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
+          SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
+            python -m build --wheel
+
+      - name: Test binary artifacts
+        run: |
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
+          llvm-lit test/
+
+      # TODO - Review and change this step! How to upload artifacts? Do they need to be zipped?
+      - name: Package artifacts
+        run: |
+          cmake --install build --prefix dist
+          tar -czf artifacts.tar.gz -C dist *.whl py-build/bin/qoala-*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: artifacts.tar.gz
+          retention-days: 7
+
+  # TODO -Review this job! IS it needed?
+  release:
+    name: Publish Release
+    needs: [ lint-versions, build-and-test ]
+    runs-on: ubuntu-latest
+    # Only run when a version tag (e.g. v1.2.3) is pushed
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+
+      - name: Rename artifact with version tag
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          mv artifacts.tar.gz "artifacts-${VERSION}.tar.gz"
+          echo "ARTIFACT=artifacts-${VERSION}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release and upload artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ env.ARTIFACT }}
