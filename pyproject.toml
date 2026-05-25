@@ -1,7 +1,7 @@
 [project]
 name = "qoala-mlir"
 readme = "README.md"
-version = "0.0.3"
+dynamic = ["version"]
 # Python 3.13 is not supported, since numpy (dependency from MLIR, required <=1.26)
 # supports python <3.13. Numpy 2.2+ is the first version that supports python 3.13,
 # which might break the build (untested though).
@@ -30,34 +30,21 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["py-build-cmake~=0.4.3"]
-build-backend = "py_build_cmake.build"
+requires = [
+    "scikit-build-core>=0.12.2",
+    "setuptools-scm>=8",
+]
+# BUILD WITH ENV VARIABLE: SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}'
+# This avoids using git hashed in th eversion number!
+build-backend = "scikit_build_core.build"
 
-[tool.py-build-cmake.module]
-generated = "package"
-
-[tool.py-build-cmake.sdist]
-include = ["CMakeLists.txt", "include/*", "lib/*"]
-
-[tool.py-build-cmake.cmake]
-# This is the minimum cmake version reuqired to build this wheel
-# This value *must match* the cmake_minimum_required version specified in the root CMakeLists.txt
-minimum_version = "3.13.4"
-build_type = "Release"
-build_path = "py-build/"
-source_path = "."
-# The arguments for the cmake command
-# In general we need to use ths same list fo arguments we use to configure the build of the C++ project
-# IMPORTANT: Before building update the SCIP_DIR, MLIR_DIR, Python3_EXECUTABLE, CMAKE_C_COMPILER,
-# CMAKE_CXX_COMPILER and CMAKE_LINKER commands to match your platform.
-# SUPER IMPORTANT! Make sure that the Python3_EXECUTABLE *matches* the python version of the
-# virtual environment used to create the wheel, otherwise you might end up in a situaiton tha the package
-# is marked for 1 verison of python (e.g. 3.12), but the packed python bindings are compiled for
-# another version of python (e.g. 3.11). This leads to python to *not* find the python bindings
-# resulting in import errors.
-# A good way to make sure that the versions match is to use the *exact same* virtual environment as
-# declared in Python3_EXECUTABLE to create the wheel.
-args = [
+[tool.scikit-build]
+build-dir = "py-build/"
+minimum-version = "build-system.requires"
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+cmake.build-type = "Release"
+cmake.version = ">=3.28"
+cmake.args = [
     "-DSCIP_DIR=/usr/lib/cmake/scip",
     "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
     "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv-12/bin/python",
@@ -65,11 +52,8 @@ args = [
     "-DCMAKE_CXX_COMPILER=clang++-21",
     "-DCMAKE_LINKER=clang-21"
 ]
-build_args = ["-j"]
-generator = "Ninja"
-install_components = ["QNetPythonModules", "qoala-translate-wheel", "qoala-opt-wheel"]
-find_python = false
-find_python3 = false
 
-[tool.py-build-cmake.wheel]
-python_abi = "none"
+sdist.include = ["lib/Python/mlir_qnet/_version.py"]
+
+[tool.setuptools_scm]  # Section required
+write_to = "lib/Python/mlir_qnet/_version.py"
