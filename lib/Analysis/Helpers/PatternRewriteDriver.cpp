@@ -924,65 +924,6 @@ LogicalResult port::applyPatternsGreedily(Region &region, const FrozenRewritePat
     return converged;
 }
 
-//===----------------------------------------------------------------------===//
-// MultiOpPatternRewriteDriver
-//===----------------------------------------------------------------------===//
-
-namespace {
-    /// This driver simplfies a list of ops.
-    class MultiOpPatternRewriteDriver : public GreedyPatternRewriteDriver {
-    public:
-        explicit MultiOpPatternRewriteDriver(MLIRContext *ctx, const FrozenRewritePatternSet &patterns,
-                                             const port::GreedyRewriteConfig &config, ArrayRef<Operation *> ops,
-                                             llvm::SmallDenseSet<Operation *, 4> *survivingOps = nullptr);
-
-        /// Simplify `ops`. Return `success` if the transformation converged.
-        LogicalResult simplify(ArrayRef<Operation *> ops, bool *changed = nullptr) &&;
-
-    private:
-        void notifyOperationRemoved(Operation *op) override {
-            GreedyPatternRewriteDriver::notifyOperationRemoved(op);
-            if (survivingOps) {
-                survivingOps->erase(op);
-            }
-        }
-
-        /// An optional set of ops that survived the rewrite. This set is populated
-        /// at the beginning of `simplifyLocally` with the inititally provided list
-        /// of ops.
-        llvm::SmallDenseSet<Operation *, 4> *const survivingOps = nullptr;
-    };
-} // namespace
-
-MultiOpPatternRewriteDriver::MultiOpPatternRewriteDriver(MLIRContext *ctx, const FrozenRewritePatternSet &patterns,
-                                                         const port::GreedyRewriteConfig &config,
-                                                         ArrayRef<Operation *> ops,
-                                                         llvm::SmallDenseSet<Operation *, 4> *survivingOps):
-    GreedyPatternRewriteDriver(ctx, patterns, config), survivingOps(survivingOps) {
-    if (config.getStrictness() != port::GreedyRewriteStrictness::AnyOp) {
-        strictModeFilteredOps.insert(ops.begin(), ops.end());
-    }
-
-    if (survivingOps) {
-        survivingOps->clear();
-        survivingOps->insert(ops.begin(), ops.end());
-    }
-}
-
-LogicalResult MultiOpPatternRewriteDriver::simplify(ArrayRef<Operation *> ops, bool *changed) && {
-    // Populate the initial worklist.
-    for (Operation *op : ops) {
-        addSingleOpToWorklist(op);
-    }
-
-    // Process ops on the worklist.
-    bool result = processWorklist();
-    if (changed) {
-        *changed = result;
-    }
-
-    return success(worklist.empty());
-}
 
 /// Find the region that is the closest common ancestor of all given ops.
 ///
