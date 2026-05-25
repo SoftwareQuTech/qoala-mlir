@@ -1,18 +1,19 @@
 name: Build and Publish Docker Image
 
 on:
-  push:
-    branches:
-      - master
+  pull_request:
+    # Runs on Pull Requests iff the following files change
+    paths:
+      - .llvm_sha
+      - .scip_version
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: "llvm-scip"
-  SCIP_VERSION: "9.2.1"
+  IMAGE_BASE_NAME: "llvm-scip"
 
 jobs:
   build-and-push:
-    name: Build and Push to GHCR
+    name: Build docker image and Push to GHCR
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,9 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Retrieve LLVM referenced commit
+      - name: Retrieve LLVM and SCIP referenced versions
         id: llvm-hash
-        run: echo "LLVM_SHA=$(git rev-parse HEAD:llvm)" >> $GITHUB_OUTPUT
+        run: |
+          echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
+          echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3.6.0
@@ -40,7 +43,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.llvm-hash.outputs.LLVM_SHA }}-${{ env.SCIP_VERSION }}
+            type=raw,value=${{ steps.llvm-hash.outputs.LLVM_SHA }}-${{ steps.llvm-hash.outputs.SCIP_VERSION }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7.1.0
@@ -51,5 +54,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            SCIP_VERSION=${{ env.SCIP_VERSION }}
+            SCIP_VERSION=${{ steps.llvm-hash.outputs.SCIP_VERSION }}
             LLVM_SHA=${{ steps.llvm-hash.outputs.LLVM_SHA }}
