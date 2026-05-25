@@ -44,13 +44,20 @@ minimum-version = "build-system.requires"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 cmake.build-type = "Release"
 cmake.version = ">=3.28"
+# To override these defaults form the CLI, you can use two options:
+# - Use the "-" option from the python build module:
+#     python -m build --wheel -Ccmake.args="-DSCIP_DIR=/path/to/cmake/scip;-DMLIR_DIR=/path/to/mlir/lib/cmake/mlir"...
+# - Use the SKBUILD_CMAKE_ARGS env variable
+#     SKBUILD_CMAKE_ARGS="-DSCIP_DIR=/path/to/cmake/scip;-DMLIR_DIR=/path/to/mlir/lib/cmake/mlir" python -m build --wheel
+# IMPORTANT: You need to override **ALL** of the options here from the CLI, otherwise, the defualts will be used
+# (e.g. if not overriding CMAKE_CXX_COMPILER, then the default gcc compiler will be used".
 cmake.args = [
-    "-DSCIP_DIR=/usr/lib/cmake/scip",
-    "-DMLIR_DIR=/opt/mlir/lib/cmake/mlir",
-    "-DPython3_EXECUTABLE=/home/diego/.virtualenvs/llvm-venv-12/bin/python",
+    "-DSCIP_DIR=/path/to/cmake/scip",
+    "-DMLIR_DIR=/path/to/mlir/lib/cmake/mlir",
+    "-DPython3_EXECUTABLE=/path/to/llvm-venv/bin/python",
     "-DCMAKE_C_COMPILER=clang-21",
     "-DCMAKE_CXX_COMPILER=clang++-21",
-    "-DCMAKE_LINKER=clang-21"
+    "-DCMAKE_LINKER=ld.lld-21"
 ]
 
 sdist.include = ["lib/Python/mlir_qnet/_version.py"]

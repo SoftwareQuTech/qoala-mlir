@@ -80,11 +80,6 @@ add_mlir_python_modules(QNetPythonModules
         QNetPythonCAPI
 )
 
-configure_file(
-        "${PROJECT_SOURCE_DIR}/cmake/_version.py.in"
-        "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/_version.py"
-        @ONLY
-)
 # Copy the hand-written __init__ into the build tree so add_mlir_python_modules
 # picks it up in the same root prefix.
 configure_file(
@@ -94,7 +89,7 @@ configure_file(
 )
 
 install(FILES
-        "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/_version.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet/_version.py"
         "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/__init__.py"
         DESTINATION qnet
 )
