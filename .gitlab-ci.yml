@@ -74,8 +74,8 @@ qoalac:build:
     pull_policy: if-not-present   # key bit: use local image if available
   script:
     - source "$VENV_DIR_IN_IMAGE/bin/activate"
-
     - |
+        export SKBUILD_PROJECT_VERSION="0.0.0.1" && \
         mkdir build && cd build && LD=ld.ldd-21 cmake -G Ninja .. \
           -DCMAKE_C_COMPILER=clang-21 \
           -DCMAKE_CXX_COMPILER=clang++-21 \
