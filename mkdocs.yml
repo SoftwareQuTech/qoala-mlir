@@ -1,5 +1,5 @@
 site_name: qoala-mlir
-repo_url:
+repo_url: https://github.com/SoftwareQuTech/qoala-mlir
 theme:
   name: material
   features:

@@ -64,7 +64,7 @@ jobs:
 
       - name: Test binary artifacts
         run: |
-          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
+          export PATH=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
           llvm-lit test/
 
       # TODO - Review and change this step! How to upload artifacts? Do they need to be zipped?

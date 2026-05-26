@@ -28,7 +28,7 @@ ARG LLVM_SHA
 RUN git clone --depth 1 https://github.com/llvm/llvm-project.git llvm \
  && cd llvm && git fetch --depth 1 origin "$LLVM_SHA" && git checkout "$LLVM_SHA"
 
-ENV MLIR_DIR=/toolchain/llvm
+ENV MLIR_DIR=/toolchain/mlir
 
 # Let us use `source` in RUN steps
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -37,31 +37,31 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV VENV_DIR_310=/toolchain/llvm-venv-310
 RUN /usr/bin/python3.10 -m venv "${VENV_DIR_310}" \
  && source "${VENV_DIR_310}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools \
- && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_311=/toolchain/llvm-venv-311
 RUN /usr/bin/python3.11 -m venv "${VENV_DIR_311}" \
  && source "${VENV_DIR_311}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools \
- && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_312=/toolchain/llvm-venv-312
 RUN /usr/bin/python3.12 -m venv "${VENV_DIR_312}" \
  && source "${VENV_DIR_312}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools \
- && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 # Build & install LLVM/MLIR
 # We use the python 3.10 venv for building LLVM. This is *not* an issue for
 # compiling wheels for python 3.11 and python 3.12 later, since "most" of the
 # code generated for python 3.10 will run on python 3.11 and 3.12.
-RUN mkdir -p ${MLIR_DIR}/build && cd ${MLIR_DIR}/build \
+RUN mkdir -p /toolchain/llvm/build && cd /toolchain/llvm/build \
  && cmake -G Ninja ../llvm \
       -DCMAKE_C_COMPILER=clang-21 \
       -DCMAKE_CXX_COMPILER=clang++-21 \
       -DCMAKE_LINKER=ld.lld-21 \
-      -DCMAKE_INSTALL_PREFIX=/opt/mlir \
+      -DCMAKE_INSTALL_PREFIX=${MLIR_DIR} \
       -DLLVM_ENABLE_PROJECTS=mlir \
       -DLLVM_BUILD_EXAMPLES=ON \
       -DLLVM_TARGETS_TO_BUILD="X86" \
@@ -70,10 +70,26 @@ RUN mkdir -p ${MLIR_DIR}/build && cd ${MLIR_DIR}/build \
       -DLLVM_INSTALL_UTILS=ON \
       -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
       -DPython3_EXECUTABLE="${VENV_DIR_310}/bin/python3" \
- && cmake --build .
+ && cmake --build . && cmake --install . \
+ && cp bin/FileCheck ${MLIR_DIR}/bin/ \
+ && cd /toolchain && rm -rf llvm/
 
-ENV PATH=${MLIR_DIR}/build/bin:${PATH}
-ENV MLIR_CMAKE_DIR=${MLIR_DIR}/build/lib/cmake/mlir
+# "llvm-lit" is jsut a python script, generated (from a template) at compile time.
+# This is an effort to recreate it, without mapping unnecesary paths.
+# The original (template) can be found at llvm/llvm/utils/llvm-lit/llvm-lit.in
+RUN printf "#!${VENV_DIR_310}/bin/python3 \
+\n# -*- coding: utf-8 -*- \
+\n \
+\nbuiltin_parameters = {} \
+\nbuiltin_parameters['config_map'] = {} \
+\n \
+\nif __name__=='__main__': \
+\n    from lit.main import main \
+\n    main(builtin_parameters)" > ${MLIR_DIR}/bin/llvm-lit
+RUN chmod +x ${MLIR_DIR}/bin/llvm-lit
+
+ENV PATH=${MLIR_DIR}/bin:${PATH}
+ENV MLIR_CMAKE_DIR=${MLIR_DIR}/lib/cmake/mlir
 
 ARG SCIP_VERSION=9.2.2
 
