@@ -6,7 +6,7 @@ on:
       - "main"
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY_NAME: ghcr.io
   IMAGE_BASE_NAME: "llvm-scip"
   COMPILER_BIN: "clang-21"
   LINKER_BIN: "ld.lld-21"
@@ -16,6 +16,8 @@ jobs:
     name: Get LLVM and SCIP versions and run linter
     runs-on: ubuntu-latest
     outputs:
+      registry: ${{ steps.llvm-scip-versions.outputs.GHCR_REGISTRY }}
+      image_base_name: $ {{ steps.llvm-scip-versions.outputs.IMG_BASE_NAME }}
       llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
       scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
     steps:
@@ -27,6 +29,8 @@ jobs:
         run: |
           echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
           echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
+          echo "GHCR_REGISTRY=$${{ env.REGISTRY_NAME }}" >> $GITHUB_OUTPUT
+          echo "IMG_BASE_NAME=$${{ env.IMAGE_BASE_NAME }}" >> $GITHUB_OUTPUT
 
       - name: Run clang-format check
         run: |
@@ -41,7 +45,7 @@ jobs:
       matrix:
         python-version: [python310, python311, python312]
     container:
-      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_BASE_NAME }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      image: ${{ needs.lint-versions.outputs.registry }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ needs.lint-versions.outputs.image_base_name }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
