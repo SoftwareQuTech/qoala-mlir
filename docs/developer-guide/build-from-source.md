@@ -141,18 +141,54 @@ You also need MLIR's runtime Python requirements installed in the same venv (`pi
 
 A `pyproject.toml` at the repository root lets you build a Python wheel that bundles `qoala-opt`, `qoala-translate`, and the `qnet` Python bindings. This is the same artifact that's published as a release.
 
+Before proceeding with the build, you need to install some build requirements: 
+
 ```sh
 pip install -r build-requirements.txt
-python -m build -w
 ```
 
-Edit the `[tool.py-build-cmake.cmake]` `args` block before building to point `MLIR_DIR`, `SCIP_DIR`, and `Python3_EXECUTABLE` at the locations from steps 4–6.
+Then, you need to provide some configurations to build for the `MLIR_DIR`, `SCIP_DIR`, and `Python3_EXECUTABLE` variables, and optionally, for the `CMAKE_C_COMPILER`, `CMAKE_CXX_COMPILER` and `CMAKE_LINKER` variables. You can do this in two ways:
+
+### 9.1. Provide configurations as environment variables
+
+With this method you simply define the variables inside the `SKBUILD_CMAKE_ARGS` as shown:
+
+```sh
+export SKBUILD_CMAKE_ARGS="-DSCIP_DIR=/path/to/cmake/scip;-DMLIR_DIR=/path/to/mlir/lib/cmake/mlir;-DPython3_EXECUTABLE=/path/to/llvm-venv/bin/python;-DCMAKE_C_COMPILER=clang-21;-DCMAKE_CXX_COMPILER=clang++-21;-DCMAKE_LINKER=ld.lld-21"
+```
+
+## 9.2. Modify the `pyproject.toml` file
+
+You can also define these variables by modifying the `cmake.args` value within the `[tool.scikit-build]` section in the `pyproject.toml` file:
+
+```toml
+cmake.args = [
+    "-DSCIP_DIR=/path/to/cmake/scip",
+    "-DMLIR_DIR=/path/to/mlir/lib/cmake/mlir",
+    "-DPython3_EXECUTABLE=/path/to/llvm-venv/bin/python",
+    "-DCMAKE_C_COMPILER=clang-21",
+    "-DCMAKE_CXX_COMPILER=clang++-21",
+    "-DCMAKE_LINKER=ld.lld-21"
+]
+```
+
+After providing the build configuration (independently of the way you chose), you *need*  to define the `SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR` as follows:
+
+```sh
+export SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}'
+```
+
+and then start the build:
+
+```sh
+python -m build --wheel
+```
 
 The wheel ends up under `dist/`.
 
 ## Docker alternative
 
-If you prefer a containerized build, the repository ships a `docker/llvm-scip/Dockerfile`:
+If you prefer a containerized build, the repository ships a `docker/llvm-scip/Dockerfile` that creates an environment for building Qoala MLIR. You can build the Docker image with:
 
 ```sh
 LLVM_SHA=$(git rev-parse HEAD:llvm)
@@ -163,6 +199,14 @@ docker build \
   -f docker/llvm-scip/Dockerfile \
   -t qoalac/llvm-scip:$LLVM_SHA-$SCIP_VERSION .
 ```
+
+Then you can simply start the docker container by mounting the current directory inside the container:
+
+```sh
+docker run --volume $(pwd):/workspace -w /workspace --rm -it qoalac/llvm-scip:$LLVM_SHA-$SCIP_VERSION /bin/bash
+```
+
+Which gives you a bash terminal within the container. After this, you can configure your build as per steps 4-6. Additionally, inside the docker image you can use the `MLIR_DIR`, `MLIR_CMAKE_DIR`, `SCIP_DIR`, `VENV_DIR_310`, `VENV_DIR_311` and ``VENV_DIR_310` environment variables to help you configuring the build.
 
 ## Next steps
 

@@ -13,7 +13,7 @@ Every release publishes its artifacts to the GitHub releases page:
 Each release attaches two kinds of artifacts:
 
 - A **binary tarball** (e.g. `qoala-mlir-<version>-linux-x86_64.tar.gz`) containing the standalone `qoala-opt` and `qoala-translate` executables. Use this if you only need to run the tools on `.mlir` files.
-- A **Python wheel** (e.g. `qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl`) containing the same executables plus the `qnet` Python bindings package. Use this if you (or [euqalyptus](https://softwarequtech.github.io/euqalyptus/)) need to construct HIR from Python.
+- A set of **Python wheels** (e.g. `qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl`) containing the same executables plus the `qnet` Python bindings package. Use this if you (or [euqalyptus](https://softwarequtech.github.io/euqalyptus/)) need to construct HIR from Python.
 
 Pick whichever matches your platform (Linux x86-64 is the primary target).
 
@@ -54,10 +54,16 @@ In a fresh virtual environment, install the wheel directly from the release URL:
 ```sh
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install https://github.com/<org>/qoala-mlir/releases/download/<version>/qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl
+pip install https://github.com/SoftwareQuTech/qoala-mlir/releases/download/<version>/qoala_mlir-<version>-cp311-cp311-linux_x86_64.whl
 ```
 
-(Replace the `<…>` with the actual release URL for your version. The exact filename varies by Python and platform.)
+(Replace the `<version>` with the actual release URL for your version. The exact filename varies by Python and platform.)
+
+Alternatively, you can use `pip``to install the appropriate wheel from PyPI:
+
+```sh
+pip install qoala-mlir
+```
 
 The wheel installs:
 
