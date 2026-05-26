@@ -1,5 +1,10 @@
-cmake_minimum_required(VERSION 3.13.4)
-project(qoala-mlir LANGUAGES CXX C)
+cmake_minimum_required(VERSION 3.28)
+include(cmake/DynamicVersion.cmake)
+
+detect_project_version()
+message(STATUS "Detected version: '${PROJECT_VERSION}'")
+
+project(qoala-mlir VERSION ${PROJECT_VERSION} LANGUAGES CXX C)
 
 set(CMAKE_BUILD_WITH_INSTALL_NAME_DIR ON)
 
@@ -44,6 +49,13 @@ add_subdirectory(lib)
 add_subdirectory(include)
 # add_subdirectory(test)
 add_subdirectory(tools)
+
+# Generate a version header so C++ can query the version at runtime
+configure_file(
+        "${CMAKE_SOURCE_DIR}/include/version.h.in"
+        "${CMAKE_BINARY_DIR}/include/version.h"
+        @ONLY
+)
 
 # Install the qoala-opt executable
 install(

@@ -89,9 +89,8 @@ namespace qoala::assembly {
             case OP_LOAD:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 2-reg instruction: operand 0 must be a register");
-                assert(mcOperands[1]->isRegister() ||
-                       mcOperands[1]->isImmediate() &&
-                               "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
+                assert((mcOperands[1]->isRegister() || mcOperands[1]->isImmediate()) &&
+                       "NetQASM 2-reg instruction: operand 1 must be a register or an immediate");
                 break;
             case OP_MEAS:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
@@ -106,9 +105,8 @@ namespace qoala::assembly {
             case OP_SET:
                 assert(mcOperands.size() == 2 && "NetQASM instruction builder: expected 2 operands");
                 assert(mcOperands[0]->isRegister() && "NetQASM 1-reg, 1-imm instruction: operand 0 is not a register.");
-                assert(mcOperands[1]->isImmediate() ||
-                       mcOperands[1]->isPlaceHolder() &&
-                               "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate or placeholder.");
+                assert((mcOperands[1]->isImmediate() || mcOperands[1]->isPlaceHolder()) &&
+                       "NetQASM 1-reg, 1-imm instruction: operand 1 is not an immediate or placeholder.");
                 break;
             case OP_BEZ:
             case OP_BNZ:

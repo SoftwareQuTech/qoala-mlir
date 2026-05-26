@@ -1,0 +1,84 @@
+name: Build and Test Pull Requests
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    branches:
+      - "master"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE_NAME: "llvm-scip"
+  COMPILER_BIN: "clang-21"
+  LINKER_BIN: "ld.lld-21"
+
+jobs:
+  lint-versions:
+    name: Get LLVM and SCIP versions and run linter
+    runs-on: ubuntu-latest
+    outputs:
+      llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
+      scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Retrieve LLVM and SCIP referenced versions
+        id: llvm-scip-versions
+        run: |
+          echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
+          echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
+
+      - name: Run clang-format check
+        run: |
+          chmod +x scripts/check-clang-format.sh 
+          bash scripts/check-clang-format.sh
+
+  build-and-test:
+    name: Build artifacts for Python and test
+    needs: [lint-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [python310, python311, python312]
+    container:
+      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_NAME }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set build toolchain paths
+        id: toolchain-paths
+        run: |
+          bash /toolchain/get_path.sh scip > $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh mlir > $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh ${{ matrix.python-version }} > $GITHUB_OUTPUT
+
+      - name: Configure and compile python wheel
+        run: |
+          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ steps.toolchain-paths.outputs.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
+          SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
+            python -m build --wheel
+
+      - name: Test binary artifacts
+        run: |
+          export PATH=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
+          llvm-lit test/
+
+      - name: Prepare artifacts
+        # We tar the artifacts, so they preseve the execution permission when expanding
+        run: |
+          mkdir -p /workspace/artifacts
+          cd /workspace/artifacts
+          cp /workspace/dist/*.whl .
+          cp /workspace/py-build/bin/qoala-* .
+          tar cvfz qoala-mlir-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: /workspace/artifacts/qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
+          retention-days: 7
+          if-no-files-found: error

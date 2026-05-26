@@ -25,6 +25,7 @@ declare_mlir_dialect_python_bindings(
         TD_FILE dialects/QNetOps.td
         SOURCES
         dialects/qnet.py
+        __init__.py
         DIALECT_NAME qnet)
 
 # At the moment, generating the python bindings for MLIR dialects _only_ works for the declared
@@ -77,4 +78,18 @@ add_mlir_python_modules(QNetPythonModules
         MLIRPythonSources
         COMMON_CAPI_LINK_LIBS
         QNetPythonCAPI
+)
+
+# Copy the hand-written __init__ into the build tree so add_mlir_python_modules
+# picks it up in the same root prefix.
+configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet/__init__.py"
+        "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/__init__.py"
+        COPYONLY
+)
+
+install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet/_version.py"
+        "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/__init__.py"
+        DESTINATION qnet
 )

@@ -1,0 +1,47 @@
+name: Documentation
+on:
+  push:
+    # Runs on pushing a tag iff the tag has the following format
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install mkdocs-material "mkdocstrings[python]"
+
+      - name: Build pages
+        run: mkdocs build
+
+      - name: Upload static files as artifact
+        id: pages-artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site/
+
+  deploy:
+    name: Deploy docs
+    needs: build
+    runs-on: ubuntu-latest
+    # We only execute this step if the commit is tagged, i.e., this is a release
+    if: startsWith(github.ref, 'refs/tags')
+    environment:
+      name: github-pages
+      url: ${{ steps.pages-artifact.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

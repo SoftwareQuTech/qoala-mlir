@@ -10,8 +10,8 @@ variables:
   LLVM_SHA: ""
   SCIP_VERSION: 9.2.2
   # Your project will use these paths INSIDE the toolchain image:
-  MLIR_DIR_IN_IMAGE: "/workspace/llvm/build/lib/cmake/mlir"
-  VENV_DIR_IN_IMAGE: "/workspace/llvm-venv"
+  MLIR_DIR_IN_IMAGE: "/toolchain/llvm/build/lib/cmake/mlir"
+  VENV_DIR_IN_IMAGE: "/toolchain/llvm-venv-310"
   SCIP_DIR_IN_IMAGE: "/usr/lib/cmake/scip"
 
 clang-format:check:
@@ -74,8 +74,8 @@ qoalac:build:
     pull_policy: if-not-present   # key bit: use local image if available
   script:
     - source "$VENV_DIR_IN_IMAGE/bin/activate"
-
     - |
+        export SKBUILD_PROJECT_VERSION="0.0.0.1" && \
         mkdir build && cd build && LD=ld.ldd-21 cmake -G Ninja .. \
           -DCMAKE_C_COMPILER=clang-21 \
           -DCMAKE_CXX_COMPILER=clang++-21 \

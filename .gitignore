@@ -13,5 +13,11 @@ test/**/.lit_test_times.txt
 **/dist/
 **.whl
 
+# built docfiles
+site/
+
 # clang format check output
 clang-format.patch
+
+# Generated version file when compiling CI/CD
+lib/Python/mlir_qnet/_version.py

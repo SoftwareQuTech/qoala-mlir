@@ -10,37 +10,58 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && add-apt-repository ppa:deadsnakes/ppa -y \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
-      python3.10-full python3.10-dev \
+      python3.10-full python3.10-dev python3.11-full python3.11-dev python3.12-full python3.12-dev \
  && apt-get install -y build-essential cmake ninja-build \
  && rm -rf /var/lib/apt/lists/*
 
-# LLVM/Clang 17/21 + lld-17/21 from apt.llvm.org
-RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 17 all
+# LLVM/Clang 21 + lld-21 from apt.llvm.org
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh
 RUN ./llvm.sh 21 all && rm -f llvm.sh
 
-WORKDIR /workspace
+# We need to leave the LLVM toolchain in another directory. GitHub recommends against using
+# the WORKDIR directive, since it will mount GITHUB_WORKSPACE at the location of WORKDIR
+# https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#workdir
+# W ecan avoid that by using another workir, and later setting a new one
+WORKDIR /toolchain
 
 ARG LLVM_SHA  
 RUN git clone --depth 1 https://github.com/llvm/llvm-project.git llvm \
  && cd llvm && git fetch --depth 1 origin "$LLVM_SHA" && git checkout "$LLVM_SHA"
 
+ENV MLIR_DIR=/toolchain/mlir
+
 # Let us use `source` in RUN steps
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Create venv and install MLIR Python binding requirements (from the submodule)
-ENV VENV_DIR=/workspace/llvm-venv
-RUN /usr/bin/python3.10 -m venv "${VENV_DIR}" \
- && source "${VENV_DIR}/bin/activate" \
- && python -m pip install --upgrade pip wheel setuptools \
- && pip install -r /workspace/llvm/mlir/python/requirements.txt
+# Create venvs (3.10, 3.11 and 3.12) and install MLIR Python binding requirements (from the submodule)
+ENV VENV_DIR_310=/toolchain/llvm-venv-310
+RUN /usr/bin/python3.10 -m venv "${VENV_DIR_310}" \
+ && source "${VENV_DIR_310}/bin/activate" \
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
+
+ENV VENV_DIR_311=/toolchain/llvm-venv-311
+RUN /usr/bin/python3.11 -m venv "${VENV_DIR_311}" \
+ && source "${VENV_DIR_311}/bin/activate" \
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
+
+ENV VENV_DIR_312=/toolchain/llvm-venv-312
+RUN /usr/bin/python3.12 -m venv "${VENV_DIR_312}" \
+ && source "${VENV_DIR_312}/bin/activate" \
+ && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 # Build & install LLVM/MLIR
-RUN mkdir -p /workspace/llvm/build && cd /workspace/llvm/build \
+# We use the python 3.10 venv for building LLVM. This is *not* an issue for
+# compiling wheels for python 3.11 and python 3.12 later, since "most" of the
+# code generated for python 3.10 will run on python 3.11 and 3.12.
+RUN mkdir -p /toolchain/llvm/build && cd /toolchain/llvm/build \
  && cmake -G Ninja ../llvm \
       -DCMAKE_C_COMPILER=clang-21 \
       -DCMAKE_CXX_COMPILER=clang++-21 \
       -DCMAKE_LINKER=ld.lld-21 \
-      -DCMAKE_INSTALL_PREFIX=/opt/mlir \
+      -DCMAKE_INSTALL_PREFIX=${MLIR_DIR} \
       -DLLVM_ENABLE_PROJECTS=mlir \
       -DLLVM_BUILD_EXAMPLES=ON \
       -DLLVM_TARGETS_TO_BUILD="X86" \
@@ -48,10 +69,27 @@ RUN mkdir -p /workspace/llvm/build && cd /workspace/llvm/build \
       -DLLVM_ENABLE_ASSERTIONS=ON \
       -DLLVM_INSTALL_UTILS=ON \
       -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
-      -DPython3_EXECUTABLE="${VENV_DIR}/bin/python3" \
- && cmake --build .
+      -DPython3_EXECUTABLE="${VENV_DIR_310}/bin/python3" \
+ && cmake --build . && cmake --install . \
+ && cp bin/FileCheck ${MLIR_DIR}/bin/ \
+ && cd /toolchain && rm -rf llvm/
 
-ENV PATH=/workspace/llvm/build/bin:${PATH}
+# "llvm-lit" is jsut a python script, generated (from a template) at compile time.
+# This is an effort to recreate it, without mapping unnecesary paths.
+# The original (template) can be found at llvm/llvm/utils/llvm-lit/llvm-lit.in
+RUN printf "#!${VENV_DIR_310}/bin/python3 \
+\n# -*- coding: utf-8 -*- \
+\n \
+\nbuiltin_parameters = {} \
+\nbuiltin_parameters['config_map'] = {} \
+\n \
+\nif __name__=='__main__': \
+\n    from lit.main import main \
+\n    main(builtin_parameters)" > ${MLIR_DIR}/bin/llvm-lit
+RUN chmod +x ${MLIR_DIR}/bin/llvm-lit
+
+ENV PATH=${MLIR_DIR}/bin:${PATH}
+ENV MLIR_CMAKE_DIR=${MLIR_DIR}/lib/cmake/mlir
 
 ARG SCIP_VERSION=9.2.2
 
@@ -60,3 +98,34 @@ RUN wget -q https://www.scipopt.org/download/release/SCIPOptSuite-${SCIP_VERSION
     && rm SCIPOptSuite-${SCIP_VERSION}-Linux-ubuntu24.deb
 
 ENV SCIP_DIR=/usr/lib/cmake/scip
+
+# We leave a script that is able to return the paths of the toolchains
+# We use this script in CI/CD:
+# docker run --rm <image_tag> /toolchain/get_path.sh <scip|python310|python311|python312>
+RUN printf "#!/bin/bash \
+\n# Bash script used to easily get the locations of the LLVM toolchain and python venvs \
+\ncase \$1 in \
+\n\tscip) \
+\n\t\tprintf '\"SCIP_DIR_IN_IMAGE=${SCIP_DIR}\"' \
+\n\t\t;; \
+\n\tmlir) \
+\n\t\tprintf '\"MLIR_DIR_IN_IMAGE=${MLIR_CMAKE_DIR}\"' \
+\n\t\t;; \
+\n\tpython310) \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_310}\"' \
+\n\t\t;; \
+\n\tpython311) \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_311}\"' \
+\n\t\t;; \
+\n\tpython312) \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_312}\"' \
+\n\t\t;; \
+\n\t*) \
+\n\t\tprintf 'Unknown' \
+\n\t\t;; \
+\nesac" > get_path.sh
+
+RUN chmod +x get_path.sh
+
+# We set this one as the workdir for builds
+WORKDIR /workspace

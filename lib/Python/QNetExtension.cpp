@@ -1,5 +1,6 @@
 #include "QNet-C/QNet-c.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "version.h"
 
 namespace py = pybind11;
 using namespace mlir::python::adaptors;
@@ -31,6 +32,7 @@ static void registerQNetTypes(py::module &m) {
 PYBIND11_MODULE(_qnetTypes, m) {
     // We declare a submodule called "qnet_types"
     auto qnetTypesM = m.def_submodule("qnet_types");
+    m.attr("__version__") = QNET_BINDINGS_VERSION;
 
     // Registration of the QNet dialect under the "qir_types" module
     qnetTypesM.def(
