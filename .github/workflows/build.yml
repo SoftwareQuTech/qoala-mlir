@@ -41,7 +41,7 @@ jobs:
       matrix:
         python-version: [python310, python311, python312]
     container:
-      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_NAME }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_BASE_NAME }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
