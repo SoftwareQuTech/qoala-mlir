@@ -13,6 +13,9 @@ test/**/.lit_test_times.txt
 **/dist/
 **.whl
 
+# built docfiles
+site/
+
 # clang format check output
 clang-format.patch
 
