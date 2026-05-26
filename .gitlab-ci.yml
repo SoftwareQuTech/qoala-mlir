@@ -11,7 +11,7 @@ variables:
   SCIP_VERSION: 9.2.2
   # Your project will use these paths INSIDE the toolchain image:
   MLIR_DIR_IN_IMAGE: "/toolchain/llvm/build/lib/cmake/mlir"
-  VENV_DIR_IN_IMAGE: "/toolchain/llvm-venv"
+  VENV_DIR_IN_IMAGE: "/toolchain/llvm-venv-310"
   SCIP_DIR_IN_IMAGE: "/usr/lib/cmake/scip"
 
 clang-format:check:

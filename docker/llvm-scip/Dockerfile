@@ -38,13 +38,13 @@ ENV VENV_DIR_310=/toolchain/llvm-venv-310
 RUN /usr/bin/python3.10 -m venv "${VENV_DIR_310}" \
  && source "${VENV_DIR_310}/bin/activate" \
  && python -m pip install --upgrade pip build wheel setuptools \
- && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt \
+ && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt
 
 ENV VENV_DIR_311=/toolchain/llvm-venv-311
 RUN /usr/bin/python3.11 -m venv "${VENV_DIR_311}" \
  && source "${VENV_DIR_311}/bin/activate" \
  && python -m pip install --upgrade pip build wheel setuptools \
- && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt \
+ && pip install -r ${MLIR_DIR}/mlir/python/requirements.txt
 
 ENV VENV_DIR_312=/toolchain/llvm-venv-312
 RUN /usr/bin/python3.12 -m venv "${VENV_DIR_312}" \
@@ -109,7 +109,7 @@ RUN printf "#!/bin/bash \
 \n\t\t;; \
 \nesac" > get_path.sh
 
-RUN chmod +x script.sh
+RUN chmod +x get_path.sh
 
 # We set this one as the workdir for builds
 WORKDIR /workspace
