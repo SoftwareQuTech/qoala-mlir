@@ -54,9 +54,9 @@ jobs:
         id: toolchain-paths
         shell: bash
         run: |
-          echo $(/toolchain/get_path.sh scip) >> $GITHUB_ENV
-          echo $(/toolchain/get_path.sh mlir) >> $GITHUB_ENV
-          echo $(/toolchain/get_path.sh ${{ matrix.python-version }}) >> $GITHUB_ENV
+          echo "SCIP_DIR_IN_IMAGE=$(/toolchain/get_path.sh scip)" >> $GITHUB_ENV
+          echo "MLIR_DIR_IN_IMAGE=$(/toolchain/get_path.sh mlir)" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(/toolchain/get_path.sh ${{ matrix.python-version }})" >> $GITHUB_ENV
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
