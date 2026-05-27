@@ -60,6 +60,7 @@ jobs:
           echo "" >> $GITHUB_OUTPUT
           echo $(/toolchain/get_path.sh ${{ matrix.python-version }}) >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
@@ -70,6 +71,7 @@ jobs:
         env:
           COMPILER_BIN: "clang-21"
           LINKER_BIN: "ld.lld-21"
+        shell: bash
         run: |
           source ${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/activate
           SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ steps.toolchain-paths.outputs.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
