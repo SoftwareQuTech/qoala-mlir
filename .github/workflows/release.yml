@@ -58,14 +58,14 @@ jobs:
       - name: Set build toolchain paths
         id: toolchain-paths
         run: |
-          bash /toolchain/get_path.sh scip > $GITHUB_OUTPUT
-          bash /toolchain/get_path.sh mlir > $GITHUB_OUTPUT
-          bash /toolchain/get_path.sh ${{ matrix.python-version }} > $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh scip >> $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh mlir >> $GITHUB_OUTPUT
+          bash /toolchain/get_path.sh ${{ matrix.python-version }} >> $GITHUB_OUTPUT
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
         run: |
-          git tag v${{ inputs.version_override }}
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
 
       - name: Configure and compile python wheel
         run: |
