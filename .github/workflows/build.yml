@@ -85,8 +85,8 @@ jobs:
         run: |
           mkdir -p /workspace/artifacts
           cd /workspace/artifacts
-          cp /workspace/dist/*.whl .
-          cp /workspace/py-build/bin/qoala-* .
+          cp $GITHUB_WORKSPACE/dist/*.whl .
+          cp $GITHUB_WORKSPACE/py-build/bin/qoala-* .
           tar cvfz qoala-mlir-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
 
       - name: Upload build artifacts
