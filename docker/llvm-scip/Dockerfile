@@ -106,19 +106,19 @@ RUN printf "#!/bin/bash \
 \n# Bash script used to easily get the locations of the LLVM toolchain and python venvs \
 \ncase \$1 in \
 \n\tscip) \
-\n\t\tprintf '%s' '${SCIP_DIR}' \
+\n\t\tprintf '%%s' '${SCIP_DIR}' \
 \n\t\t;; \
 \n\tmlir) \
-\n\t\tprintf '%s' '${MLIR_CMAKE_DIR}' \
+\n\t\tprintf '%%s' '${MLIR_CMAKE_DIR}' \
 \n\t\t;; \
 \n\tpython310) \
-\n\t\tprintf '%s' '${VENV_DIR_310}' \
+\n\t\tprintf '%%s' '${VENV_DIR_310}' \
 \n\t\t;; \
 \n\tpython311) \
-\n\t\tprintf '%s' '${VENV_DIR_311}' \
+\n\t\tprintf '%%s' '${VENV_DIR_311}' \
 \n\t\t;; \
 \n\tpython312) \
-\n\t\tprintf '%s' '${VENV_DIR_312}' \
+\n\t\tprintf '%%s' '${VENV_DIR_312}' \
 \n\t\t;; \
 \n\t*) \
 \n\t\tprintf 'Unknown' \
