@@ -24,21 +24,15 @@ jobs:
     name: Get LLVM and SCIP versions and run linter
     runs-on: ubuntu-latest
     outputs:
-      registry: ${{ steps.llvm-scip-versions.outputs.GHCR_REGISTRY }}
-      image_base_name: ${{ steps.llvm-scip-versions.outputs.IMG_BASE_NAME }}
-      llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
-      scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
+      image_name: ${{ steps.llvm-scip-versions.outputs.IMAGE_NAME }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Retrieve LLVM and SCIP referenced versions
+      - name: Compute Docker image name from LLVM and SCIP referenced versions
         id: llvm-scip-versions
         run: |
-          echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
-          echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
-          echo "GHCR_REGISTRY=${{ env.REGISTRY_NAME }}" >> $GITHUB_OUTPUT
-          echo "IMG_BASE_NAME=${{ env.IMAGE_BASE_NAME }}" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=${{ env.REGISTRY_NAME }}/${GITHUB_REPOSITORY_OWNER,,}/${{ github.event.repository.name }}-${{ env.IMAGE_BASE_NAME }}:$(cat .llvm_sha)-$(cat .scip_version)" >> $GITHUB_OUTPUT
 
       - name: Run clang-format check
         run: |
@@ -53,7 +47,7 @@ jobs:
       matrix:
         python-version: [python310, python311, python312]
     container:
-      image: ${{ needs.lint-versions.outputs.registry }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ needs.lint-versions.outputs.image_base_name }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      image: ${{ needs.lint-versions.outputs.image_name }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
