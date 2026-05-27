@@ -77,8 +77,8 @@ jobs:
 
       - name: Test binary artifacts
         run: |
-          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
-          llvm-lit test/
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/py-build/bin:$PATH
+          llvm-lit --verbose test/
 
       - name: Prepare artifacts
         # We tar the artifacts, so they preseve the execution permission when expanding
