@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       registry: ${{ steps.llvm-scip-versions.outputs.GHCR_REGISTRY }}
-      image_base_name: $ {{ steps.llvm-scip-versions.outputs.IMG_BASE_NAME }}
+      image_base_name: ${{ steps.llvm-scip-versions.outputs.IMG_BASE_NAME }}
       llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
       scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
     steps:
