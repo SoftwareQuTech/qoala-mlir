@@ -54,12 +54,9 @@ jobs:
         id: toolchain-paths
         shell: bash
         run: |
-          echo $(/toolchain/get_path.sh scip) >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo $(/toolchain/get_path.sh mlir) >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo $(/toolchain/get_path.sh ${{ matrix.python-version }}) >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
+          echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
+          echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh ${{ matrix.python-version }})" >> $GITHUB_ENV
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
@@ -72,14 +69,14 @@ jobs:
           LINKER_BIN: "ld.lld-21"
         shell: bash
         run: |
-          source ${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/activate
-          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ steps.toolchain-paths.outputs.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
           SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
             python -m build --wheel
 
       - name: Test binary artifacts
         run: |
-          export PATH=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
           llvm-lit test/
 
       - name: Prepare artifacts
