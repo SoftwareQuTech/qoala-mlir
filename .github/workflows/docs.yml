@@ -4,6 +4,12 @@ on:
     # Runs on pushing a tag iff the tag has the following format
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: "Version override"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -18,7 +24,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install mkdocs-material "mkdocstrings[python]"
+        run: pip install --quiet -r requirements-docs.txt
 
       - name: Build pages
         run: mkdocs build

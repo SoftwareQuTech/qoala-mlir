@@ -4,6 +4,12 @@ on:
     types: [ opened, synchronize, reopened ]
     branches:
       - "main"
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: "Version override"
+        required: true
+        type: string
 
 env:
   REGISTRY_NAME: ghcr.io
@@ -59,6 +65,11 @@ jobs:
           bash /toolchain/get_path.sh scip > $GITHUB_OUTPUT
           bash /toolchain/get_path.sh mlir > $GITHUB_OUTPUT
           bash /toolchain/get_path.sh ${{ matrix.python-version }} > $GITHUB_OUTPUT
+
+      - name: Local version override
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git tag v$${{ inputs.version_override }}
 
       - name: Configure and compile python wheel
         run: |
