@@ -41,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ env.IMAGE_BASE_NAME }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ steps.llvm-hash.outputs.LLVM_SHA }}-${{ steps.llvm-hash.outputs.SCIP_VERSION }}
