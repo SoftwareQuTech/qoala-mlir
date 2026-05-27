@@ -106,24 +106,25 @@ RUN printf "#!/bin/bash \
 \n# Bash script used to easily get the locations of the LLVM toolchain and python venvs \
 \ncase \$1 in \
 \n\tscip) \
-\n\t\tprintf '\"SCIP_DIR_IN_IMAGE=${SCIP_DIR}\"' \
+\n\t\tprintf '\"SCIP_DIR_IN_IMAGE=${SCIP_DIR}\"\\\n' \
 \n\t\t;; \
 \n\tmlir) \
-\n\t\tprintf '\"MLIR_DIR_IN_IMAGE=${MLIR_CMAKE_DIR}\"' \
+\n\t\tprintf '\"MLIR_DIR_IN_IMAGE=${MLIR_CMAKE_DIR}\"\\\n' \
 \n\t\t;; \
 \n\tpython310) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_310}\"' \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_310}\"\\\n' \
 \n\t\t;; \
 \n\tpython311) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_311}\"' \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_311}\"\\\n' \
 \n\t\t;; \
 \n\tpython312) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_312}\"' \
+\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_312}\"\\\n' \
 \n\t\t;; \
 \n\t*) \
 \n\t\tprintf 'Unknown' \
 \n\t\t;; \
-\nesac" > get_path.sh
+\nesac \
+\n" > get_path.sh
 
 RUN chmod +x get_path.sh
 
