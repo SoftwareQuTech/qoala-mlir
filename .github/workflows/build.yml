@@ -59,7 +59,7 @@ jobs:
           echo $(/toolchain/get_path.sh mlir) >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo $(/toolchain/get_path.sh ${{ matrix.python-version }}) >> $GITHUB_OUTPUT
-         echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
