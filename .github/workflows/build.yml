@@ -65,12 +65,13 @@ jobs:
 
       - name: Configure and compile python wheel
         env:
-          COMPILER_BIN: "clang-21"
+          C_COMPILER_BIN: "clang-21"
+          CXX_COMPILER_BIN: "clang++-21"
           LINKER_BIN: "ld.lld-21"
         shell: bash
         run: |
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
-          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
+          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
           SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
             python -m build --wheel
 
