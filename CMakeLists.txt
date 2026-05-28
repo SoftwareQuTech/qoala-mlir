@@ -56,20 +56,3 @@ configure_file(
         "${CMAKE_BINARY_DIR}/include/version.h"
         @ONLY
 )
-
-# Install the qoala-opt executable
-install(
-        TARGETS qoala-opt
-        EXCLUDE_FROM_ALL
-        COMPONENT qoala-opt-wheel
-        RUNTIME DESTINATION ${PY_BUILD_CMAKE_PROJECT_NAME}-${PY_BUILD_CMAKE_PROJECT_VERSION}.data/scripts
-        LIBRARY DESTINATION ${PY_BUILD_CMAKE_PROJECT_NAME}-${PY_BUILD_CMAKE_PROJECT_VERSION}.data/platlib
-)
-# Install the qoala-opt executable
-install(
-        TARGETS qoala-translate
-        EXCLUDE_FROM_ALL
-        COMPONENT qoala-translate-wheel
-        RUNTIME DESTINATION ${PY_BUILD_CMAKE_PROJECT_NAME}-${PY_BUILD_CMAKE_PROJECT_VERSION}.data/scripts
-        LIBRARY DESTINATION ${PY_BUILD_CMAKE_PROJECT_NAME}-${PY_BUILD_CMAKE_PROJECT_VERSION}.data/platlib
-)
