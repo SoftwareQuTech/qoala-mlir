@@ -61,15 +61,15 @@ jobs:
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
-          echo "QOALA_MLIR_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
-
-      - name: Set version
-        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-        run: |
           $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm 
           $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
-          echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
+
+      - name: Set version
+        if: github.ref_type == 'tag' && startsW4ith(github.ref, 'refs/tags/v')
+        run: |
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:]))
+          echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
 
       - name: Configure qoala-mlir build
         env:
@@ -88,7 +88,7 @@ jobs:
             -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
             -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
             -DCMAKE_LINKER=${{ env.LINKER_BIN }} \
-            -DSKBUILD_PROJECT_VERSION="$QOALA_MLIR_VERSION"
+            -DSKBUILD_PROJECT_VERSION="${{ env.QOALA_MLIR_VERSION }}"
 
       - name: Build qoala-opt and qoala-translate binaries
         shell: bash
@@ -107,12 +107,12 @@ jobs:
           mkdir -p /workspace/artifacts
           cd /workspace/artifacts
           cp $GITHUB_WORKSPACE/build/bin/qoala-* .
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz qoala-opt qoala-translate
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz qoala-opt qoala-translate
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: /workspace/artifacts/${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
-          name: ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          path: /workspace/artifacts/${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
           retention-days: 7
           if-no-files-found: error
