@@ -145,7 +145,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1.14
 
   release-test:
-    name: Publish Release
+    name: Publish Release Test PyPI
     needs: [ lint-versions, build-and-test ]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
@@ -182,8 +182,8 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           name: "Release ${{ github.ref_name }}"
-          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
+          draft: true
           files: |
             artifacts/*.whl
             artifacts/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
