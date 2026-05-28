@@ -126,7 +126,8 @@ jobs:
           BINARIES_ARCH: "linux-x86_64"
         run: |
           cd artifacts
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz
+          ls -lah
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           mkdir -p $GITHUB_WORKSPACE/dist
           cp *.whl $GITHUB_WORKSPACE/dist
@@ -173,7 +174,8 @@ jobs:
           BINARIES_ARCH: "linux-x86_64"
         run: |
           cd artifacts
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz
+          ls -lah
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           mkdir -p $GITHUB_WORKSPACE/dist
           cp *.whl $GITHUB_WORKSPACE/dist
