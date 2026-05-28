@@ -145,7 +145,6 @@ jobs:
         with:
           name: "Release ${{ github.ref_name }}"
           tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
           files: |
             $GITHUB_WORKSPACE/dist/*.whl
             $GITHUB_WORKSPACE/dist/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
@@ -194,7 +193,6 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           name: "Release ${{ inputs.version_override }}"
-          generate_release_notes: true
           draft: true
           files: |
             $GITHUB_WORKSPACE/dist/*.whl
