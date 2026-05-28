@@ -35,7 +35,7 @@ jobs:
           bash scripts/check-clang-format.sh
 
   build-and-test:
-    name: Build artifacts for Python 3.10 and test
+    name: Build artifacts for Python and test
     needs: [lint-versions]
     runs-on: ubuntu-latest
     strategy:
@@ -93,6 +93,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           path: /workspace/artifacts/qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
+          name: qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
           retention-days: 7
           if-no-files-found: error
 

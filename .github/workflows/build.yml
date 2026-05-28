@@ -93,5 +93,6 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           path: /workspace/artifacts/qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
+          name: qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
           retention-days: 7
           if-no-files-found: error
