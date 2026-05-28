@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: |
           cd $GITHUB_WORKSPACE/build
-          cmake cmake --build . --target qoala-opt --target qoala-translate
+          cmake --build . --target qoala-opt --target qoala-translate
 
       - name: Test binary artifacts
         run: |
