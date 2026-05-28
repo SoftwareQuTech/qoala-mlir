@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
           echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
-          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh python310" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh python310)" >> $GITHUB_ENV
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
