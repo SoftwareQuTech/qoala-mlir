@@ -62,7 +62,6 @@ jobs:
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
         run: |
-          $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm
           $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
           echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
 
@@ -169,7 +168,6 @@ jobs:
         shell: bash
         run: |
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
-          pip install auditwheel patchelf
           auditwheel repair dist/*.whl
 
       - name: Upload build artifacts
@@ -251,7 +249,7 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" *.whl *.tgz
+          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ env.BINARIES_BASE_PKG_NAME }}
 
       - name: Upload python wheels to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
