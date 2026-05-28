@@ -131,6 +131,7 @@ jobs:
         env:
           BINARIES_BASE_PKG_NAME: "qoala-mlir"
           BINARIES_ARCH: "linux-x86_64"
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
           for file in *.tgz; do tar xvfz $file; done
@@ -183,6 +184,7 @@ jobs:
         env:
           BINARIES_BASE_PKG_NAME: "qoala-mlir"
           BINARIES_ARCH: "linux-x86_64"
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
           for file in *.tgz; do tar xvfz $file; done
