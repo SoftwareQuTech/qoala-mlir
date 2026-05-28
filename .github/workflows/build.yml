@@ -35,7 +35,7 @@ jobs:
           bash scripts/check-clang-format.sh
 
   build-and-test:
-    name: Build artifacts for Python and test
+    name: Build qoala-opt and qoala-translate artifacts for test
     needs: [lint-versions]
     runs-on: ubuntu-latest
     env:
@@ -85,7 +85,7 @@ jobs:
             -DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python \
             -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
             -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
-            -DCMAKE_LINKER=${{ env.LINKER_BIN }}"
+            -DCMAKE_LINKER=${{ env.LINKER_BIN }}
             ..
 
       - name: Build qoala-opt and qoala-translate binaries
