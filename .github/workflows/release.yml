@@ -136,9 +136,9 @@ jobs:
           tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           ls -lah
-          mkdir -p /workspace/release
-          cp *.whl /workspace/release
-          cp ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz /workspace/release
+          mkdir -p /release
+          cp *.whl release/
+          cp ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz release/
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v3.0.0
@@ -146,13 +146,13 @@ jobs:
           name: "Release ${{ github.ref_name }}"
           tag_name: ${{ github.ref_name }}
           files: |
-            /workspace/release/*.whl
-            /workspace/release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+            release/*.whl
+            release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
         with:
-          packages-dir: /workspace/release/
+          packages-dir: release/
 
   release-test:
     name: Publish Release Test PyPI
@@ -187,9 +187,9 @@ jobs:
           tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           ls -lah
-          mkdir -p /workspace/release
-          cp *.whl /workspace/release
-          cp ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz /workspace/release
+          mkdir -p release
+          cp *.whl release/
+          cp ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz release/
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v3.0.0
@@ -197,12 +197,12 @@ jobs:
           name: "Release ${{ inputs.version_override }}"
           draft: true
           files: |
-            /workspace/release/*.whl
-            /workspace/release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+            release/*.whl
+            release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
 
       - name: Upload python wheels to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: /workspace/release/
+          packages-dir: release/
 
