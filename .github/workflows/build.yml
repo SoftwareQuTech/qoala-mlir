@@ -79,7 +79,6 @@ jobs:
         shell: bash
         run: |
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
-          ls -lah && echo $(pwd)
           mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build
           LD=${{ env.LINKER_BIN }} cmake -G Ninja .. \
             -DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }} \

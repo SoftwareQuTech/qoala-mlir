@@ -11,6 +11,10 @@ on:
         required: true
         type: string
 
+env:
+  BINARIES_BASE_PKG_NAME: "qoala-mlir"
+  BINARIES_ARCH: "linux-x86_64"
+
 jobs:
   lint-versions:
     name: Get LLVM and SCIP versions and run linter
@@ -34,8 +38,87 @@ jobs:
           chmod +x scripts/check-clang-format.sh 
           bash scripts/check-clang-format.sh
 
-  build-and-test:
-    name: Build artifacts for Python and test
+  build-bins:
+    name: Build qoala-opt and qoala-translate artifacts
+    needs: [lint-versions]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.lint-versions.outputs.image_name }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set build toolchain paths
+        id: toolchain-paths
+        shell: bash
+        run: |
+          echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
+          echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh python310)" >> $GITHUB_ENV
+
+      - name: Local version override
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm 
+          $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
+          echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
+
+      - name: Set version
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:]))
+          echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
+
+      - name: Configure qoala-mlir build
+        env:
+          C_COMPILER_BIN: "clang-21"
+          CXX_COMPILER_BIN: "clang++-21"
+          LINKER_BIN: "ld.lld-21"
+        shell: bash
+        run: |
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build
+          LD=${{ env.LINKER_BIN }} cmake -G Ninja .. \
+            -DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }} \
+            -DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }} \
+            -DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python \
+            -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
+            -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
+            -DCMAKE_LINKER=${{ env.LINKER_BIN }} \
+            -DSKBUILD_PROJECT_VERSION="${{ env.QOALA_MLIR_VERSION }}"
+
+      - name: Build qoala-opt and qoala-translate binaries
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/build
+          cmake cmake --build . --target qoala-opt --target qoala-translate
+
+      - name: Test binary artifacts
+        run: |
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/build/bin:$PATH
+          llvm-lit --verbose test/
+
+      - name: Prepare artifacts
+        # We tar the artifacts, so they preseve the execution permission when expanding
+        run: |
+          mkdir -p /workspace/artifacts
+          cd /workspace/artifacts
+          cp $GITHUB_WORKSPACE/build/bin/qoala-* .
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz qoala-opt qoala-translate
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: /workspace/artifacts/${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  build-wheels:
+    name: Build Python wheels
     needs: [lint-versions]
     runs-on: ubuntu-latest
     strategy:
@@ -62,12 +145,13 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
-          echo "QOALA_MLIR_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
 
       - name: Set version
         if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
         run: |
-          echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:]))
+          echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
 
       - name: Configure and compile python wheel
         env:
@@ -81,31 +165,25 @@ jobs:
           SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
             python -m build --wheel
 
-      - name: Test binary artifacts
-        run: |
-          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/py-build/bin:$PATH
-          llvm-lit --verbose test/
-
-      - name: Prepare artifacts
-        # We tar the artifacts, so they preseve the execution permission when expanding
-        run: |
-          mkdir -p /workspace/artifacts
-          cd /workspace/artifacts
-          cp $GITHUB_WORKSPACE/dist/*.whl .
-          cp $GITHUB_WORKSPACE/py-build/bin/qoala-* .
-          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+#      - name: Prepare artifacts
+#        # We tar the artifacts, so they preseve the execution permission when expanding
+#        run: |
+#          mkdir -p /workspace/artifacts
+#          cd /workspace/artifacts
+#          cp $GITHUB_WORKSPACE/dist/*.whl .
+#          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: /workspace/artifacts/qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz
-          name: qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz
+          path: dist/*.whl
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ matrix.python-version }}.whl
           retention-days: 7
           if-no-files-found: error
 
   release:
     name: Publish Release
-    needs: [ lint-versions, build-and-test ]
+    needs: [ lint-versions, build-bins, build-wheels ]
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     environment:
@@ -123,23 +201,22 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-*
+          pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
 
       - name: Create Linux binaries tag and prepare python wheels
         id: rename-artifact
         env:
-          BINARIES_BASE_PKG_NAME: "qoala-mlir"
-          BINARIES_ARCH: "linux-x86_64"
           GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
           for file in *.tgz; do tar xvfz $file; done
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           echo $(pwd)
           ls -lah
-          mkdir -p /release
+          mkdir -p release
+          cp *.whl release/
           gh release create --title "Version ${{ github.ref_name }}" ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
 
 #      - name: Create GitHub Release and upload artifacts
@@ -158,7 +235,7 @@ jobs:
 
   release-test:
     name: Publish Release Test PyPI
-    needs: [ lint-versions, build-and-test ]
+    needs: [ lint-versions, build-bins, build-wheels ]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     environment:
@@ -176,29 +253,28 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-*
+          pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
 
       - name: Create Linux binaries tag and prepare python wheels
         id: rename-artifact
         env:
-          BINARIES_BASE_PKG_NAME: "qoala-mlir"
-          BINARIES_ARCH: "linux-x86_64"
           GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
-          for file in *.tgz; do tar xvfz $file; done
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
-          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
-          echo $(pwd)
-          ls -lah
+          ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
+          gh release create --draft --title "Version ${{ inputs.version_override }}" *.tgz *.whl
 
 #      - name: Create GitHub Release and upload artifacts
 #        uses: softprops/action-gh-release@v3.0.0
 #        with:
+#               for file in *.tgz; do tar xvfz $file; done
+#               tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
+#               echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
+#               echo $(pwd)
+#               ls -lah
 #          name: "Release ${{ inputs.version_override }}"
 #          draft: true
 #          files: |
