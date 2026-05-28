@@ -62,7 +62,7 @@ jobs:
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
         run: |
-          $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm 
+          $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm
           $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
           echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
 
@@ -165,6 +165,12 @@ jobs:
           SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
             python -m build --wheel
 
+      - name: Repair wheel
+        run: |
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          pip install auditwheel patchelf
+          auditwheel repair dist/*.whl
+
 #      - name: Prepare artifacts
 #        # We tar the artifacts, so they preseve the execution permission when expanding
 #        run: |
@@ -176,7 +182,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: dist/*.whl
+          path: wheelhouse/*.whl
           name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ matrix.python-version }}.whl
           retention-days: 7
           if-no-files-found: error

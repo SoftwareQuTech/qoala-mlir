@@ -37,19 +37,19 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV VENV_DIR_310=/toolchain/llvm-venv-310
 RUN /usr/bin/python3.10 -m venv "${VENV_DIR_310}" \
  && source "${VENV_DIR_310}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_311=/toolchain/llvm-venv-311
 RUN /usr/bin/python3.11 -m venv "${VENV_DIR_311}" \
  && source "${VENV_DIR_311}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_312=/toolchain/llvm-venv-312
 RUN /usr/bin/python3.12 -m venv "${VENV_DIR_312}" \
  && source "${VENV_DIR_312}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 # Build & install LLVM/MLIR
