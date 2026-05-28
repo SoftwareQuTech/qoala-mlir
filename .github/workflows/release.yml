@@ -62,6 +62,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+
+      - name: Set version
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Configure and compile python wheel
         env:
@@ -87,7 +93,7 @@ jobs:
           cd /workspace/artifacts
           cp $GITHUB_WORKSPACE/dist/*.whl .
           cp $GITHUB_WORKSPACE/py-build/bin/qoala-* .
-          tar cvfz qoala-mlir-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
@@ -116,7 +122,7 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-artifacts-*
+          pattern: qoala-mlir-*
           merge-multiple: true
 
       - name: Create Linux binaries tag and prepare python wheels
@@ -127,10 +133,12 @@ jobs:
         run: |
           cd artifacts
           ls -lah
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *
+          for file in *.tgz; do tar xvfz $file; done
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
           echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           mkdir -p $GITHUB_WORKSPACE/dist
           cp *.whl $GITHUB_WORKSPACE/dist
+          cp ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz $GITHUB_WORKSPACE/dist
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v3.0.0
@@ -139,8 +147,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            artifacts/*.whl
-            artifacts/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+            $GITHUB_WORKSPACE/dist/*.whl
+            $GITHUB_WORKSPACE/dist/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
@@ -152,7 +160,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/simulaqron
+      url: https://test.pypi.org/p/qoala-mlir
     permissions:
       contents: write
 
@@ -164,7 +172,7 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-artifacts-*
+          pattern: qoala-mlir-*
           merge-multiple: true
 
       - name: Create Linux binaries tag and prepare python wheels
@@ -175,20 +183,22 @@ jobs:
         run: |
           cd artifacts
           ls -lah
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *
-          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
+          for file in *.tgz; do tar xvfz $file; done
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl qoala-*
+          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
           mkdir -p $GITHUB_WORKSPACE/dist
           cp *.whl $GITHUB_WORKSPACE/dist
+          cp ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz $GITHUB_WORKSPACE/dist
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v3.0.0
         with:
-          name: "Release ${{ github.ref_name }}"
+          name: "Release ${{ inputs.version_override }}"
           generate_release_notes: true
           draft: true
           files: |
-            artifacts/*.whl
-            artifacts/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+            $GITHUB_WORKSPACE/dist/*.whl
+            $GITHUB_WORKSPACE/dist/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
 
       - name: Upload python wheels to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14

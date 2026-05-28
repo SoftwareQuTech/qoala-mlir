@@ -62,6 +62,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+
+      - name: Set version
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Configure and compile python wheel
         env:
@@ -87,7 +93,7 @@ jobs:
           cd /workspace/artifacts
           cp $GITHUB_WORKSPACE/dist/*.whl .
           cp $GITHUB_WORKSPACE/py-build/bin/qoala-* .
-          tar cvfz qoala-mlir-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
