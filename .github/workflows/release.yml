@@ -166,6 +166,7 @@ jobs:
             python -m build --wheel
 
       - name: Repair wheel
+        shell: bash
         run: |
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
           pip install auditwheel patchelf
