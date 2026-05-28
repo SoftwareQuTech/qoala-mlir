@@ -67,6 +67,8 @@ jobs:
       - name: Set version
         if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
         run: |
+          $VENV_DIR_IN_IMAGE/bin/python -m pip install setuptools_scm 
+          $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
           echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Configure qoala-mlir build
@@ -79,13 +81,14 @@ jobs:
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
           ls -lah && echo $(pwd)
           mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build
-          SKBUILD_PROJECT_VERSION="$QOALA_MLIR_VERSION" LD=${{ env.LINKER_BIN }} cmake -G Ninja .. \
+          LD=${{ env.LINKER_BIN }} cmake -G Ninja .. \
             -DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }} \
             -DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }} \
             -DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python \
             -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
             -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
-            -DCMAKE_LINKER=${{ env.LINKER_BIN }}
+            -DCMAKE_LINKER=${{ env.LINKER_BIN }} \
+            -DSKBUILD_PROJECT_VERSION="$QOALA_MLIR_VERSION"
 
       - name: Build qoala-opt and qoala-translate binaries
         shell: bash
