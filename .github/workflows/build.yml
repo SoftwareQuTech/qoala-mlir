@@ -38,9 +38,9 @@ jobs:
     name: Build artifacts for Python and test
     needs: [lint-versions]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [python310, python311, python312]
+    env:
+      BINARIES_BASE_PKG_NAME: "qoala-mlir"
+      BINARIES_ARCH: "linux-x86_64"
     container:
       image: ${{ needs.lint-versions.outputs.image_name }}
       credentials:
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
           echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
-          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh ${{ matrix.python-version }})" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh python310" >> $GITHUB_ENV
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
@@ -69,7 +69,7 @@ jobs:
         run: |
           echo "QOALA_MLIR_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
-      - name: Configure and compile python wheel
+      - name: Configure qoala-mlir build
         env:
           C_COMPILER_BIN: "clang-21"
           CXX_COMPILER_BIN: "clang++-21"
@@ -77,13 +77,26 @@ jobs:
         shell: bash
         run: |
           source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
-          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
-          SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
-            python -m build --wheel
+          mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build
+          SKBUILD_PROJECT_VERSION="$QOALA_MLIR_VERSION" LD=${{ env.LINKER_BIN }} cmake \
+            -G Ninja \
+            -DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }} \
+            -DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }} \
+            -DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python \
+            -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
+            -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
+            -DCMAKE_LINKER=${{ env.LINKER_BIN }}"
+            ..
+
+      - name: Build qoala-opt and qoala-translate binaries
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/build
+          cmake cmake --build . --target qoala-opt --target qoala-translate
 
       - name: Test binary artifacts
         run: |
-          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/py-build/bin:$PATH
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/build/bin:$PATH
           llvm-lit --verbose test/
 
       - name: Prepare artifacts
@@ -91,14 +104,13 @@ jobs:
         run: |
           mkdir -p /workspace/artifacts
           cd /workspace/artifacts
-          cp $GITHUB_WORKSPACE/dist/*.whl .
-          cp $GITHUB_WORKSPACE/py-build/bin/qoala-* .
-          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+          cp $GITHUB_WORKSPACE/build/bin/qoala-* .
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz qoala-opt qoala-translate
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: /workspace/artifacts/qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz
-          name: qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz
+          path: /workspace/artifacts/${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
           retention-days: 7
           if-no-files-found: error
