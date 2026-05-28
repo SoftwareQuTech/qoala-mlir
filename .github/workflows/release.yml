@@ -172,14 +172,6 @@ jobs:
           pip install auditwheel patchelf
           auditwheel repair dist/*.whl
 
-#      - name: Prepare artifacts
-#        # We tar the artifacts, so they preseve the execution permission when expanding
-#        run: |
-#          mkdir -p /workspace/artifacts
-#          cd /workspace/artifacts
-#          cp $GITHUB_WORKSPACE/dist/*.whl .
-#          tar cvfz qoala-mlir-${{ env.QOALA_MLIR_VERSION }}-artifacts-${{ matrix.python-version }}.tgz *.whl
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -217,23 +209,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
-          for file in *.tgz; do tar xvfz $file; done
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
-          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
-          echo $(pwd)
-          ls -lah
+          ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --title "Version ${{ github.ref_name }}" ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
-
-#      - name: Create GitHub Release and upload artifacts
-#        uses: softprops/action-gh-release@v3.0.0
-#        with:
-#          name: "Release ${{ github.ref_name }}"
-#          tag_name: ${{ github.ref_name }}
-#          files: |
-#            release/*.whl
-#            release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ github.ref_name }} *.whl *.tgz
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
@@ -272,21 +251,7 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" *.tgz *.whl
-
-#      - name: Create GitHub Release and upload artifacts
-#        uses: softprops/action-gh-release@v3.0.0
-#        with:
-#               for file in *.tgz; do tar xvfz $file; done
-#               tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-v${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz *.whl
-#               echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ inputs.version_override }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
-#               echo $(pwd)
-#               ls -lah
-#          name: "Release ${{ inputs.version_override }}"
-#          draft: true
-#          files: |
-#            release/*.whl
-#            release/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+          gh release create --draft --title "Version ${{ inputs.version_override }}" *.whl *.tgz
 
       - name: Upload python wheels to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14

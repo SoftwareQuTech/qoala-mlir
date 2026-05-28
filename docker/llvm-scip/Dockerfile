@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
       python3.10-full python3.10-dev python3.11-full python3.11-dev python3.12-full python3.12-dev \
- && apt-get install -y build-essential cmake ninja-build \
+ && apt-get install -y build-essential cmake ninja-build patchelf \
  && rm -rf /var/lib/apt/lists/*
 
 # LLVM/Clang 21 + lld-21 from apt.llvm.org
