@@ -182,7 +182,7 @@ jobs:
     name: Publish Release
     needs: [ lint-versions, build-bins, build-wheels ]
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
       url: https://pypi.org/p/qoala-mlir
@@ -195,11 +195,19 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Download built artifacts
+        id: download-artifacts
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
           pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
+
+      - name: Create Release in GitHub
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
+            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
 
       - name: Create Linux binaries tag and prepare python wheels
         id: rename-artifact
@@ -210,7 +218,6 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ github.ref_name }} *
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
@@ -241,27 +248,26 @@ jobs:
           pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: |
-            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
-            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
-
-#      - name: Create Linux binaries tag and prepare python wheels
-#        id: rename-artifact
-#        env:
-#          GH_TOKEN: ${{ github.token }}
-#        run: |
-#          cd artifacts
-#          ls -lah && echo $(pwd)
-#          mkdir -p release
-#          cp *.whl release/
-#          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ steps.download-artifacts.outputs.download-path }}/*
-
-#      - name: Upload python wheels to Test PyPI
-#        uses: pypa/gh-action-pypi-publish@release/v1.14
+#      # Creating a gh release only works when there is a tag involved
+#      - name: Create Release in GitHub
+#        uses: softprops/action-gh-release@v3
 #        with:
-#          repository-url: https://test.pypi.org/legacy/
-#          packages-dir: artifacts/release/
+#          files: |
+#            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
+#            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
+
+      - name: Create Linux binaries tag and prepare python wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd artifacts
+          ls -lah && echo $(pwd)
+          mkdir -p release
+          cp *.whl release/
+
+      - name: Upload python wheels to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1.14
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: artifacts/release/
 
