@@ -210,7 +210,7 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ github.ref_name }} *.whl *.tgz
+          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ github.ref_name }} *
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
@@ -249,11 +249,11 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ env.BINARIES_BASE_PKG_NAME }}
+          gh release create --draft --title "Version ${{ inputs.version_override }}" *
 
-      - name: Upload python wheels to Test PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.14
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          packages-dir: artifacts/release/
+#      - name: Upload python wheels to Test PyPI
+#        uses: pypa/gh-action-pypi-publish@release/v1.14
+#        with:
+#          repository-url: https://test.pypi.org/legacy/
+#          packages-dir: artifacts/release/
 
