@@ -68,25 +68,11 @@ jobs:
         run: |
           echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
 
-      - name: Get Previous tag
-        if: github.event_name == 'pull_request'
-        id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v2"
-        with:
-          fallback: 1.0.0 # Optional fallback tag to use when no tag can be found
-
-      - name: Get next minor version
-        if: github.event_name == 'pull_request'
-        id: semvers
-        uses: "WyriHaximus/github-action-next-semvers@v1"
-        with:
-          version: ${{ steps.previoustag.outputs.tag }}
-
       - name: Set version on PR
         if: github.event_name == 'pull_request'
         run: |
           QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:])')
-          echo "QOALA_MLIR_VERSION=${{ steps.semvers.outputs.patch }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=0.0.1" >> $GITHUB_ENV
 
       - name: Configure qoala-mlir build
         env:
