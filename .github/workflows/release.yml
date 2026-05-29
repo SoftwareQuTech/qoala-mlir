@@ -241,16 +241,23 @@ jobs:
           pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
 
-      - name: Create Linux binaries tag and prepare python wheels
-        id: rename-artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd artifacts
-          ls -lah && echo $(pwd)
-          mkdir -p release
-          cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ steps.download-artifacts.outputs.download-path }}/*
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
+            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
+
+#      - name: Create Linux binaries tag and prepare python wheels
+#        id: rename-artifact
+#        env:
+#          GH_TOKEN: ${{ github.token }}
+#        run: |
+#          cd artifacts
+#          ls -lah && echo $(pwd)
+#          mkdir -p release
+#          cp *.whl release/
+#          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ steps.download-artifacts.outputs.download-path }}/*
 
 #      - name: Upload python wheels to Test PyPI
 #        uses: pypa/gh-action-pypi-publish@release/v1.14
