@@ -149,7 +149,7 @@ jobs:
       - name: Set version
         if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
         run: |
-          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:]))
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:])')
           echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
 
       - name: Configure and compile python wheel
