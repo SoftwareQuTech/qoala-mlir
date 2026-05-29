@@ -8,14 +8,14 @@ dynamic = ["version"]
 requires-python = ">=3.10, <3.13"
 license = { "file" = "LICENSE" }
 authors = [
+    { "name" = "Sacha Bernheim", "email" = "s.b.bernheim@tudelft.nl"},
     { "name" = "Bart van der Vecht", "email" = "b.vandervecht@tudelft.nl" },
-    { "name" = "Diego Rivera", "email" = "d.a.g.a.rivera@tudelft.nl"},
-    { "name" = "Sacha Bernheim", "email" = "s.b.bernheim@tudelft.nl"}
+    { "name" = "Diego Rivera", "email" = "d.a.g.a.rivera@tudelft.nl"}
 ]
 maintainers = [
+    {name = "Sacha Bernheim", email ="s.b.bernheim@tudelft.nl"},
     {name = "Bart van der Vecht", email ="b.vanderVecht@tudelft.nl"},
-    {name = "Diego Rivera", email ="d.a.g.a.rivera@tudelft.nl"},
-    {name = "Sacha Bernheim", email ="s.b.bernheim@tudelft.nl"}
+    {name = "Diego Rivera", email ="d.a.g.a.rivera@tudelft.nl"}
 ]
 description = ""
 keywords = ["compiler", "quantum", "bindings"]
@@ -40,6 +40,8 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 build-dir = "py-build/"
+build.targets = ["QNetPythonModules"]
+install.components = ["QNetPythonModules"]
 minimum-version = "build-system.requires"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 cmake.build-type = "Release"

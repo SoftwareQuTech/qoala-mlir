@@ -2,6 +2,9 @@ add_mlir_library(QoalaAnalysisHelpers
         Helpers.cpp
         PatternRewriteDriver.cpp
 
+        DEPENDS
+        MLIRQoalaHostIncGen
+
         LINK_LIBS PUBLIC
         MLIRIR
 )

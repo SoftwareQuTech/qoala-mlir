@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
       python3.10-full python3.10-dev python3.11-full python3.11-dev python3.12-full python3.12-dev \
- && apt-get install -y build-essential cmake ninja-build \
+ && apt-get install -y build-essential cmake ninja-build patchelf \
  && rm -rf /var/lib/apt/lists/*
 
 # LLVM/Clang 21 + lld-21 from apt.llvm.org
@@ -37,19 +37,19 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV VENV_DIR_310=/toolchain/llvm-venv-310
 RUN /usr/bin/python3.10 -m venv "${VENV_DIR_310}" \
  && source "${VENV_DIR_310}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_311=/toolchain/llvm-venv-311
 RUN /usr/bin/python3.11 -m venv "${VENV_DIR_311}" \
  && source "${VENV_DIR_311}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 ENV VENV_DIR_312=/toolchain/llvm-venv-312
 RUN /usr/bin/python3.12 -m venv "${VENV_DIR_312}" \
  && source "${VENV_DIR_312}/bin/activate" \
- && python -m pip install --upgrade pip build wheel setuptools lit==18.1.1 \
+ && python -m pip install --upgrade pip build wheel setuptools setuptools_scm auditwheel patchelf lit==18.1.1 \
  && pip install -r /toolchain/llvm/mlir/python/requirements.txt
 
 # Build & install LLVM/MLIR
@@ -106,24 +106,25 @@ RUN printf "#!/bin/bash \
 \n# Bash script used to easily get the locations of the LLVM toolchain and python venvs \
 \ncase \$1 in \
 \n\tscip) \
-\n\t\tprintf '\"SCIP_DIR_IN_IMAGE=${SCIP_DIR}\"' \
+\n\t\tprintf '%%s' '${SCIP_DIR}' \
 \n\t\t;; \
 \n\tmlir) \
-\n\t\tprintf '\"MLIR_DIR_IN_IMAGE=${MLIR_CMAKE_DIR}\"' \
+\n\t\tprintf '%%s' '${MLIR_CMAKE_DIR}' \
 \n\t\t;; \
 \n\tpython310) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_310}\"' \
+\n\t\tprintf '%%s' '${VENV_DIR_310}' \
 \n\t\t;; \
 \n\tpython311) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_311}\"' \
+\n\t\tprintf '%%s' '${VENV_DIR_311}' \
 \n\t\t;; \
 \n\tpython312) \
-\n\t\tprintf '\"VENV_DIR_IN_IMAGE=${VENV_DIR_312}\"' \
+\n\t\tprintf '%%s' '${VENV_DIR_312}' \
 \n\t\t;; \
 \n\t*) \
 \n\t\tprintf 'Unknown' \
 \n\t\t;; \
-\nesac" > get_path.sh
+\nesac \
+\n" > get_path.sh
 
 RUN chmod +x get_path.sh
 

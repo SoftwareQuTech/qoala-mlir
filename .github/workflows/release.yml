@@ -12,10 +12,6 @@ on:
         type: string
 
 env:
-  REGISTRY_NAME: ghcr.io
-  IMAGE_BASE_NAME: "llvm-scip"
-  COMPILER_BIN: "clang-21"
-  LINKER_BIN: "ld.lld-21"
   BINARIES_BASE_PKG_NAME: "qoala-mlir"
   BINARIES_ARCH: "linux-x86_64"
 
@@ -24,36 +20,30 @@ jobs:
     name: Get LLVM and SCIP versions and run linter
     runs-on: ubuntu-latest
     outputs:
-      registry: ${{ steps.llvm-scip-versions.outputs.GHCR_REGISTRY }}
-      image_base_name: $ {{ steps.llvm-scip-versions.outputs.IMG_BASE_NAME }}
-      llvm_sha: ${{ steps.llvm-scip-versions.outputs.LLVM_SHA }}
-      scip_version: ${{ steps.llvm-scip-versions.outputs.SCIP_VERSION }}
+      image_name: ${{ steps.llvm-scip-versions.outputs.IMAGE_NAME }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Retrieve LLVM and SCIP referenced versions
+      - name: Compute Docker image name from LLVM and SCIP referenced versions
         id: llvm-scip-versions
+        env:
+          REGISTRY_NAME: "ghcr.io"
+          IMAGE_BASE_NAME: "llvm-scip"
         run: |
-          echo "LLVM_SHA=$(cat .llvm_sha)" >> $GITHUB_OUTPUT
-          echo "SCIP_VERSION=$(cat .scip_version)" >> $GITHUB_OUTPUT
-          echo "GHCR_REGISTRY=$${{ env.REGISTRY_NAME }}" >> $GITHUB_OUTPUT
-          echo "IMG_BASE_NAME=$${{ env.IMAGE_BASE_NAME }}" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=${{ env.REGISTRY_NAME }}/${GITHUB_REPOSITORY_OWNER,,}/${{ github.event.repository.name }}-${{ env.IMAGE_BASE_NAME }}:$(cat .llvm_sha)-$(cat .scip_version)" >> $GITHUB_OUTPUT
 
       - name: Run clang-format check
         run: |
           chmod +x scripts/check-clang-format.sh 
           bash scripts/check-clang-format.sh
 
-  build-and-test:
-    name: Build artifacts for Python 3.10 and test
+  build-bins:
+    name: Build qoala-opt and qoala-translate artifacts
     needs: [lint-versions]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [python310, python311, python312]
     container:
-      image: ${{ needs.lint-versions.outputs.registry }}/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ needs.lint-versions.outputs.image_base_name }}:${{ needs.lint-versions.outputs.llvm_sha }}-${{ needs.lint-versions.outputs.llvm-scip-versions.outputs.scip_version }}
+      image: ${{ needs.lint-versions.outputs.image_name }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -63,52 +53,142 @@ jobs:
 
       - name: Set build toolchain paths
         id: toolchain-paths
+        shell: bash
         run: |
-          bash /toolchain/get_path.sh scip > $GITHUB_OUTPUT
-          bash /toolchain/get_path.sh mlir > $GITHUB_OUTPUT
-          bash /toolchain/get_path.sh ${{ matrix.python-version }} > $GITHUB_OUTPUT
+          echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
+          echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh python310)" >> $GITHUB_ENV
 
       - name: Local version override
         if: github.event_name == 'workflow_dispatch'
         run: |
-          git tag v$${{ inputs.version_override }}
+          $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
+          echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
 
-      - name: Configure and compile python wheel
+      - name: Set version
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
         run: |
-          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ steps.toolchain-paths.outputs.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ steps.toolchain-paths.outputs.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
-          SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
-            python -m build --wheel
+          $VENV_DIR_IN_IMAGE/bin/python -c 'from setuptools_scm import get_version; get_version(write_to="lib/Python/mlir_qnet/_version.py", local_scheme = "no-local-version")'
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:])')
+          echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
+
+      - name: Configure qoala-mlir build
+        env:
+          C_COMPILER_BIN: "clang-21"
+          CXX_COMPILER_BIN: "clang++-21"
+          LINKER_BIN: "ld.lld-21"
+        shell: bash
+        run: |
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build
+          LD=${{ env.LINKER_BIN }} cmake -G Ninja .. \
+            -DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }} \
+            -DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }} \
+            -DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python \
+            -DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }} \
+            -DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }} \
+            -DCMAKE_LINKER=${{ env.LINKER_BIN }} \
+            -DSKBUILD_PROJECT_VERSION="${{ env.QOALA_MLIR_VERSION }}"
+
+      - name: Build qoala-opt and qoala-translate binaries
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/build
+          cmake --build . --target qoala-opt --target qoala-translate
 
       - name: Test binary artifacts
         run: |
-          export PATH=${{ steps.toolchain-paths.outputs.MLIR_DIR_IN_IMAGE }}:/workspace/py-build/bin:$PATH
-          llvm-lit test/
+          export PATH=${{ env.MLIR_DIR_IN_IMAGE }}:$GITHUB_WORKSPACE/build/bin:$PATH
+          llvm-lit --verbose test/
 
       - name: Prepare artifacts
         # We tar the artifacts, so they preseve the execution permission when expanding
         run: |
           mkdir -p /workspace/artifacts
           cd /workspace/artifacts
-          cp /workspace/dist/*.whl .
-          cp /workspace/py-build/bin/qoala-* .
-          tar cvfz qoala-mlir-artifacts-${{ matrix.python-version }}.tgz *.whl qoala-*
+          cp $GITHUB_WORKSPACE/build/bin/qoala-* .
+          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz qoala-opt qoala-translate
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: /workspace/artifacts/qoala-mlir-artifacts-${{ matrix.python-version }}.tgz
+          path: /workspace/artifacts/${{ env.BINARIES_BASE_PKG_NAME }}-${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ env.BINARIES_ARCH }}.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  build-wheels:
+    name: Build Python wheels
+    needs: [lint-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [python310, python311, python312]
+    container:
+      image: ${{ needs.lint-versions.outputs.image_name }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set build toolchain paths
+        id: toolchain-paths
+        shell: bash
+        run: |
+          echo "SCIP_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh scip)" >> $GITHUB_ENV
+          echo "MLIR_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh mlir)" >> $GITHUB_ENV
+          echo "VENV_DIR_IN_IMAGE=$(bash /toolchain/get_path.sh ${{ matrix.python-version }})" >> $GITHUB_ENV
+
+      - name: Local version override
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=v${{ inputs.version_override }}" >> $GITHUB_ENV
+          echo "QOALA_MLIR_VERSION=${{ inputs.version_override }}" >> $GITHUB_ENV
+
+      - name: Set version
+        if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          QOALA_VER=$($VENV_DIR_IN_IMAGE/bin/python -c 'print("${{ github.ref_name }}"[1:])')
+          echo "QOALA_MLIR_VERSION=$QOALA_VER" >> $GITHUB_ENV
+
+      - name: Configure and compile python wheel
+        env:
+          C_COMPILER_BIN: "clang-21"
+          CXX_COMPILER_BIN: "clang++-21"
+          LINKER_BIN: "ld.lld-21"
+        shell: bash
+        run: |
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          SKBUILD_CMAKE_ARGS="-DSCIP_DIR=${{ env.SCIP_DIR_IN_IMAGE }};-DMLIR_DIR=${{ env.MLIR_DIR_IN_IMAGE }};-DPython3_EXECUTABLE=${{ env.VENV_DIR_IN_IMAGE }}/bin/python;-DCMAKE_C_COMPILER=${{ env.C_COMPILER_BIN }};-DCMAKE_CXX_COMPILER=${{ env.CXX_COMPILER_BIN }};-DCMAKE_LINKER=${{ env.LINKER_BIN }}" \
+          SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}' \
+            python -m build --wheel
+
+      - name: Repair wheel
+        shell: bash
+        run: |
+          source ${{ env.VENV_DIR_IN_IMAGE }}/bin/activate
+          auditwheel repair dist/*.whl
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: wheelhouse/*.whl
+          name: ${{ env.BINARIES_BASE_PKG_NAME }}-v${{ env.QOALA_MLIR_VERSION }}-${{ matrix.python-version }}.whl
           retention-days: 7
           if-no-files-found: error
 
   release:
     name: Publish Release
-    needs: [ lint-versions, build-and-test ]
+    needs: [ lint-versions, build-bins, build-wheels ]
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
       url: https://pypi.org/p/qoala-mlir
     permissions:
+      id-token: write
       contents: write
 
     steps:
@@ -116,43 +196,44 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Download built artifacts
+        id: download-artifacts
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-artifacts-*
+          pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
+
+      - name: Create Release in GitHub
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
+            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
 
       - name: Create Linux binaries tag and prepare python wheels
         id: rename-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz
-          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
-          mkdir -p $GITHUB_WORKSPACE/dist
-          cp *.whl $GITHUB_WORKSPACE/dist
-
-      - name: Create GitHub Release and upload artifacts
-        uses: softprops/action-gh-release@v3.0.0
-        with:
-          name: "Release ${{ github.ref_name }}"
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            artifacts/*.whl
-            artifacts/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+          mkdir -p release
+          cp *.whl release/
 
       - name: Upload python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
+        with:
+          packages-dir: artifacts/release/
 
   release-test:
-    name: Publish Release
-    needs: [ lint-versions, build-and-test ]
+    name: Publish Release Test PyPI
+    needs: [ lint-versions, build-bins, build-wheels ]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/simulaqron
+      url: https://test.pypi.org/p/qoala-mlir
     permissions:
+      id-token: write
       contents: write
 
     steps:
@@ -160,33 +241,32 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Download built artifacts
+        id: download-artifacts
         uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
-          pattern: qoala-mlir-artifacts-*
+          pattern: ${{ env.BINARIES_BASE_PKG_NAME }}-*
           merge-multiple: true
 
+#      # Creating a gh release only works when there is a tag involved
+#      - name: Create Release in GitHub
+#        uses: softprops/action-gh-release@v3
+#        with:
+#          files: |
+#            ${{ steps.download-artifacts.outputs.download-path }}/*.whl
+#            ${{ steps.download-artifacts.outputs.download-path }}/*.tgz
+
       - name: Create Linux binaries tag and prepare python wheels
-        id: rename-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd artifacts
-          tar cvfz ${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz
-          echo "ARTIFACT_NAME=${{ env.BINARIES_BASE_PKG_NAME}}-${{ github.ref_name }}-${{ env.BINARIES_ARCH }}.tar.gz" >> $GITHUB_OUTPUT
-          mkdir -p $GITHUB_WORKSPACE/dist
-          cp *.whl $GITHUB_WORKSPACE/dist
-
-      - name: Create GitHub Release and upload artifacts
-        uses: softprops/action-gh-release@v3.0.0
-        with:
-          name: "Release ${{ github.ref_name }}"
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            artifacts/*.whl
-            artifacts/${{ steps.rename-artifact.outputs.ARTIFACT_NAME }}
+          mkdir -p release
+          cp *.whl release/
 
       - name: Upload python wheels to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.14
         with:
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: artifacts/release/
 

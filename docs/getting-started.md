@@ -17,7 +17,7 @@ Each release attaches two kinds of artifacts:
 
 Pick whichever matches your platform (Linux x86-64 is the primary target).
 
-## Path A — install just the binaries
+## Part A — install the binaries
 
 Download the `qoala-mlir-<version>-<platform>.tar.gz` for your release, then:
 
@@ -40,9 +40,9 @@ You should see the `qoala-opt` cost-model flags listed (see [Tools / qoala-opt](
 
 This is enough if you're feeding hand-written `.mlir` files (or `.mlir` files emitted by a separate tool) through the pipeline.
 
-## Path B — install the wheel (binaries + Python bindings)
+## Part B — install the wheel (Python bindings)
 
-The wheel bundles the same binaries *plus* the `qnet` Python bindings, all in one install.
+The wheel contains the `qnet` Python bindings, required by the [euqalyptus](https://softwarequtech.github.io/euqalyptus/) frontend.
 
 Requirements:
 
@@ -67,9 +67,8 @@ pip install qoala-mlir
 
 The wheel installs:
 
-- `qoala-opt` and `qoala-translate` under your venv's `bin/`.
 - The `qnet` Python bindings, importable as `qnet.dialects.qnet` and `qnet.ir`.
-- The MLIR runtime libraries needed by both.
+- The MLIR runtime libraries required by the Python bindings.
 
 Smoke-test:
 

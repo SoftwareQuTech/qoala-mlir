@@ -24,9 +24,12 @@ declare_mlir_dialect_python_bindings(
         ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet"
         TD_FILE dialects/QNetOps.td
         SOURCES
+        dialects/__init__.py
         dialects/qnet.py
         __init__.py
-        DIALECT_NAME qnet)
+        _version.py
+        DIALECT_NAME qnet
+)
 
 # At the moment, generating the python bindings for MLIR dialects _only_ works for the declared
 # *operations*. Types need to be declared in a C++ class which is invoked from the python side
@@ -71,7 +74,7 @@ add_mlir_python_modules(QNetPythonModules
         # We no longer bring "everything" (all the dialects) in the linkage.
         # This means that compilation is faster and the generated library is lighter
         # This also means that we now need to "include" the mlir_core python bindings
-        # to use the "common" dialects. This can be done by modifying the PYHTONPATH var
+        # to use the "common" dialects. This can be done by modifying the PYTHONPATH var
         QNetPythonSources.Extension
         QNetPythonSources
         MLIRPythonExtension.RegisterEverything
@@ -85,6 +88,12 @@ add_mlir_python_modules(QNetPythonModules
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet/__init__.py"
         "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/__init__.py"
+        COPYONLY
+)
+
+configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/mlir_qnet/_version.py"
+        "${MLIR_BINARY_DIR}/python_packages/qnet_bindings/qnet/_version.py"
         COPYONLY
 )
 
