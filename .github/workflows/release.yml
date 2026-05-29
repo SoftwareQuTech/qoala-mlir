@@ -250,7 +250,7 @@ jobs:
           ls -lah && echo $(pwd)
           mkdir -p release
           cp *.whl release/
-          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ steps.download-artifacts.outputs.download-path }}*
+          gh release create --draft --title "Version ${{ inputs.version_override }}" ${{ steps.download-artifacts.outputs.download-path }}/*
 
 #      - name: Upload python wheels to Test PyPI
 #        uses: pypa/gh-action-pypi-publish@release/v1.14
