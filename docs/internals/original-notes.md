@@ -6,7 +6,7 @@
 ## Implementation-specific documentation
 
 The design rationale of the Qoala compiler — its IR architecture, lowering pipeline, optimization passes, and
-analyses — is documented in the [compiler paper](<PAPER_URL>). The notes in this directory complement that
+analyses — is documented in the [compiler paper](https://ieeexplore.ieee.org/document/11662182). The notes in this directory complement that
 material with implementation-specific intricacies that the paper does not cover at the source-code level.
 
 Please note that most of the details explained in these documents refer to *implementation-specific details*

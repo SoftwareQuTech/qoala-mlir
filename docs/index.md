@@ -22,3 +22,4 @@ If you are new to the project, the [Overview](overview.md) sketches the pipeline
 | See every `qoala-opt` / `qoala-translate` flag | [Tools](tools/index.md) |
 | Write a Python script that produces Qoala HIR | [Python bindings](bindings.md) and the [euqalyptus docs](https://softwarequtech.github.io/euqalyptus/) |
 | Add a new dialect, op or pass | [Developer's guide](developer-guide/working-with-mlir.md), [Contributing](contributing.md) |
+| Cite the project, or read the paper | [Paper and citation](citation.md) |

@@ -64,3 +64,4 @@ nav:
       - Functionize algorithm: internals/functionize.md
       - Original notes: internals/original-notes.md
   - Contributing: contributing.md
+  - Paper and citation: citation.md
