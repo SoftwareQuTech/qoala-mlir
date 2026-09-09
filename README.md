@@ -8,7 +8,7 @@ The full documentation is published at [`https://softwarequtech.github.io/qoala-
 
 ## Design and paper
 
-For a deeper account of the compiler's design — the design considerations, the optimization passes (peephole rules, quantum dead-code elimination, MILP-based block reordering), the deadline-estimation MILP, and the static analyses — please refer to the accompanying paper: [`<PAPER_URL>`](<PAPER_URL>).
+For a deeper account of the compiler's design — the design considerations, the optimization passes (peephole rules, quantum dead-code elimination, MILP-based block reordering), the deadline-estimation MILP, and the static analyses — please refer to the accompanying paper, [*A Multi-Level Compiler Pipeline for Qoala Quantum Internet Programs*](https://ieeexplore.ieee.org/document/11662182) (IEEE QSW 2026).
 
 ## Running the documentation locally
 
@@ -24,10 +24,22 @@ Run the command from the repository root. The site is then available at <http://
 
 ## Citation
 
-If you use `qoala-mlir` in academic work, please cite the accompanying paper. A BibTeX entry will be available alongside the paper at the URL above; the placeholder below will be replaced once the paper is published:
+If you use `qoala-mlir` in academic work, please cite the accompanying paper:
 
 ```bibtex
-<BIBTEX_PLACEHOLDER>
+@inproceedings{bernheim2026qoalacompiler,
+  author    = {Bernheim, Sacha and van der Vecht, Bart and Ferrari, Davide and
+               Rivera, Diego and Wehner, Stephanie},
+  title     = {A Multi-Level Compiler Pipeline for Qoala Quantum Internet Programs},
+  booktitle = {2026 IEEE International Conference on Quantum Software (QSW)},
+  year      = {2026},
+  month     = jul,
+  address   = {Sydney, Australia},
+  publisher = {IEEE},
+  pages     = {12--24},
+  doi       = {10.1109/QSW72780.2026.00012},
+  url       = {https://ieeexplore.ieee.org/document/11662182},
+}
 ```
 
 ## License
