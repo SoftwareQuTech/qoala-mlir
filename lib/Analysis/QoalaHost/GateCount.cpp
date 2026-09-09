@@ -148,6 +148,20 @@ namespace qoala::analysis::qoalahost::gatecount {
         });
     }
 
+    // True if all blk_meta dependencies of `block` have already been visited.
+    static bool blockDepsMet(mlir::Block *block, const llvm::DenseSet<mlir::Block *> &visited,
+                             const BlockPrerequisites &prereqs) {
+        if (!prereqs.dependencies.contains(block)) {
+            return true;
+        }
+        for (const mlir::Block *dep : prereqs.dependencies.at(block)) {
+            if (!visited.contains(dep)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Traverse CFG and count gates.
      * For conditional branches, evaluates both paths and selects the one with more gates.
@@ -162,6 +176,28 @@ namespace qoala::analysis::qoalahost::gatecount {
             if (visited.contains(block)) {
                 return;
             }
+
+            // Branch destinations are entered unconditionally, but the block
+            // reorderer may have scheduled blocks this destination depends on
+            // (e.g. an EPR request hoisted into a conditional region) that have
+            // not been visited yet. Drain ready blocks first so that qubit
+            // initializations are seen before their uses. If no ready block
+            // exists (e.g. the dependency lies on the not-taken arm of the
+            // current branch), proceed anyway (previous behaviour).
+            while (!blockDepsMet(block, visited, prereqs)) {
+                llvm::DenseSet<Block *> innerForbidden = condBrTargets;
+                innerForbidden.insert(block);
+                Block *ready = scanForReadyBlock(*block->getParent(), visited, prereqs, innerForbidden);
+                if (!ready) {
+                    break;
+                }
+                traverseCFGAndCountGates(ready, visited, state, prereqs, innerForbidden);
+            }
+            if (visited.contains(block)) {
+                // The block was reached (e.g. via a cf.br) while draining.
+                return;
+            }
+
             visited.insert(block);
 
             // Extract block ID
