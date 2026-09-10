@@ -1,4 +1,5 @@
 #include "Analysis/QoalaHost/GateCount.h"
+#include <algorithm>
 #include "Analysis/NetQASM/Helpers.h"
 #include "Analysis/QoalaHost/AnalysisTraversal.h"
 #include "Analysis/QoalaHost/Helpers.h"
@@ -154,12 +155,9 @@ namespace qoala::analysis::qoalahost::gatecount {
         if (!prereqs.dependencies.contains(block)) {
             return true;
         }
-        for (const mlir::Block *dep : prereqs.dependencies.at(block)) {
-            if (!visited.contains(dep)) {
-                return false;
-            }
-        }
-        return true;
+        auto &dependencies = prereqs.dependencies.at(block);
+        return std::all_of(dependencies.begin(), dependencies.end(),
+                           [&visited](const Block *dep) { return visited.contains(dep); });
     }
 
     /**
