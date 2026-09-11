@@ -10,8 +10,9 @@
 
 #include <scip/scip.h>
 
-// TODO including "Dialect/QoalaHost/QoalaHost.h" creates
-// circular inclusion issues at compile time. See qoala-kanban-board#110.
+// TODO including "Dialect/QoalaHost/QoalaHost.h" creates a circular inclusion at compile time.
+//  A proper separation of the header file will be tackled in the future
+//  (https://github.com/SoftwareQuTech/qoala-mlir/issues/4)
 #define GET_OP_FWD_DEFINES
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
 

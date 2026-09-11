@@ -128,7 +128,11 @@ namespace qoala::iqoala {
     }
 
     LogicalResult HostSection::setBlockTypes() const {
-        // This logic is based on the criteria explained on ticket #73
+        // This logic is based on the criteria explained on the following criteria:
+        // * The block contains *one single `run_request` instruction* -> QC block.
+        // * The block contains *one single `run_subroutine` instruction* -> QL block.
+        // * The block contains *one single `receive_cmsg` instruction* -> CC block.
+        // * In any other case, set the block type to CL.
         for (Block *block : this->hostBlocks) {
             if (block->blockContainsRunRequest()) {
                 if (block->getNumInstructions() != 1) {

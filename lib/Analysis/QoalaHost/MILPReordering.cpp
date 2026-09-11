@@ -1075,8 +1075,7 @@ namespace qoala::analysis::reordering {
             // If a qubit is missing a measurement operation, we cannot meaningfully define
             // its lifetime for optimization purposes (i.e., we can't compute the interval
             // between allocation and measurement). In such cases, we exclude the qubit from
-            // the objective function. Proper handling of this situation (e.g., warning or fallback)
-            // is tracked under ticket #91.
+            // the objective function.
             if (!(alloc && meas)) {
                 continue;
             }

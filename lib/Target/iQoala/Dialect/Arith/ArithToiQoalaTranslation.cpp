@@ -184,12 +184,14 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
             })
             .Case<arith::MaxSIOp>([&](arith::MaxSIOp op) -> LogicalResult {
                 // TODO - some arith operations are not supported in qoala instruction set, most probably introduced by
-                // peephole optimizations for this op, this will be solved with ticket #137
+                // peephole optimizations for this op, this will be solved in the future
+                // (https://github.com/SoftwareQuTech/qoala-mlir/issues/5)
                 return op->emitOpError("arith.maxsi is not supported in the qoala instruction set");
             })
             .Case<arith::ShLIOp>([&](arith::ShLIOp op) -> LogicalResult {
                 // TODO - some arith operations are not supported in qoala instruction set, most probably introduced by
-                // peephole optimizations for this op, this will be solved with ticket #137
+                // peephole optimizations for this op, this will be solved in the future
+                // (https://github.com/SoftwareQuTech/qoala-mlir/issues/5)
                 return op->emitOpError("arith.shli is not supported in the qoala instruction set");
             })
             .Default([](Operation *op) -> LogicalResult {

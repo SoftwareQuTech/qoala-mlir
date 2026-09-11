@@ -153,7 +153,7 @@ namespace qoala::analysis {
         // - There is exactly one `qnet.func` per module.
         // - The dialect currently treats all unitaries as pure (no side effects).
         // - Measurements are always retained in this version; later iterations may refine this to only keep
-        // measurements whose classical outcomes are actually consumed or exported (issue #106).
+        // measurements whose classical outcomes are actually consumed or exported.
         // - Remote entanglement creation (`qnet.eprs`) is never removed, as doing so could alter global protocol
         // structure.
         // - The pass assumes the IR is already in SSA form and free of structural errors; no CFG analysis is performed
