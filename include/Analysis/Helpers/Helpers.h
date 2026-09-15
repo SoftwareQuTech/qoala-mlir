@@ -8,10 +8,8 @@
 #endif
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/Operation.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/FoldUtils.h"
 
 #include <set>
@@ -83,7 +81,7 @@ namespace qoala::helpers {
     template<typename OpTy>
     void moveOperationToTop(mlir::ModuleOp module, OpTy op) {
         if (op->getPrevNode() != nullptr) {
-            // Simply remove the FuncOp, and insert it at the top of the module
+            // Simply remove the FuncOp and insert it at the top of the module
             mlir::OpBuilder kk = mlir::OpBuilder::atBlockBegin(&module.getBodyRegion().front());
             op->remove();
             kk.insert(op);
@@ -103,12 +101,12 @@ namespace qoala::helpers {
      */
     template<typename... Args>
     std::string formatString(const std::string &fmt, Args &&...args) {
-        /* When using C++20 or later standard, we can make use of the "format" header,
+        /* When using C++20 or later standard, we can make use of the "format" header
          * and easily format the string */
 #if __cplusplus >= 202002L
         return std::vformat(std::string_view(fmt), std::make_format_args(args...));
 #else
-        /* In older versions of the standard, we need to default to the good'ol C-way
+        /* In older versions of the standard, we need to default to the good ol' C-way
          * of formatting a string */
         const int length = std::snprintf(nullptr, 0, fmt.c_str(), args...);
         std::vector<char> formattedString(length + 1);
@@ -124,7 +122,7 @@ namespace qoala::helpers {
      * This must happen both for the Key and Value types.
      * @tparam KeyPrintableTy Type of the keys; this type needs to implement the PrintInterface interface
      * @tparam ValPrintableTy Type of the values; this type needs to implement the PrintInterface interface
-     * @param socketsMap An std::map instance of `PrintableTy` type.
+     * @param socketsMap A std::map instance of `PrintableTy` type.
      * @return A string with all the members printed, separated with commas.
      */
     template<typename KeyPrintableTy, typename ValPrintableTy>
@@ -144,10 +142,10 @@ namespace qoala::helpers {
     /**
      * Helper function that returns a string containing the "string" representation of each member of
      * the given vector, separated by a comma. To this end, the parametric type of the vector members
-     * *must* implement the "<<" operator for the given type.
+     * *must* implement the << operator for the given type.
      * @tparam PrintableTy
-     * @param vector An std::vector instance of `PrintableTy` type.
-     * @return A string with all the members printed, separated with commas.
+     * @param vector A std::vector instance of `PrintableTy` type.
+     * @return A comma-separated string with all the members.
      */
     template<typename PrintableTy>
     std::string formatVector(const std::vector<PrintableTy> &vector) {
@@ -169,7 +167,7 @@ namespace qoala::helpers {
      *
      * @tparam KeyTy Type of the keys in the map.
      * @tparam ValueTy Type of the values in the map.
-     * @param map An std::unordered_map instance of <KeyTy, ValueTy>.
+     * @param map A std::unordered_map instance of <KeyTy, ValueTy>.
      * @return A string with all key-value pairs printed as "key: value", separated with commas.
      */
     template<typename KeyTy, typename ValueTy>
@@ -191,7 +189,7 @@ namespace qoala::helpers {
      * the given set, separated by a comma. To this end, the parametric type of the vector members
      * *must* implement the "<<" operator for the given type.
      * @tparam PrintableTy
-     * @param vector An std::vector instance of `PrintableTy` type.
+     * @param vector A std::vector instance of `PrintableTy` type.
      * @return A string with all the members printed, separated with commas.
      */
     template<typename PrintableTy>
@@ -205,57 +203,6 @@ namespace qoala::helpers {
         } else {
             return partialResult.substr(0, partialResult.length() - 2);
         }
-    }
-
-    /**
-     * Small class that keeps that of all the constants that are marked for removal
-     * It implements methods from RewriterBase::Listener to keep track of the folder instructions
-     * and instructions that can be safely removed after folding.
-     */
-    class FolderTracker : public mlir::RewriterBase::Listener {
-        // All constants in the operation post folding.
-        std::vector<mlir::Operation *> existingConstants;
-
-    public:
-        std::vector<mlir::Operation *> getExistingConstants() { return existingConstants; }
-
-        void notifyOperationInserted(mlir::Operation *op) override { existingConstants.push_back(op); }
-
-        void notifyOperationRemoved(mlir::Operation *op) override {
-            if (const auto it = llvm::find(existingConstants, op); it != existingConstants.end()) {
-                existingConstants.erase(it);
-            }
-        }
-    };
-
-    /**
-     * Simple analysis method that folds instructions statically if it is possible.
-     * This is used for folding constants (arith.constants declared statically, operated
-     * and then used within the same scope) and remove them to simplify any further analysis.
-     * @param op The operation to analyze for constant folding
-     * @return Weather the analysis succeeded or failed
-     */
-    template<typename OpTy>
-    mlir::LogicalResult foldConstants(OpTy &op) {
-        std::vector<mlir::Operation *> ops;
-        FolderTracker folderTracker;
-        mlir::OperationFolder folderHelper(op.getContext(), /*listener=*/&folderTracker);
-
-        // We just walk over all the instructions, discovering them for potential folding
-        op.template walk<mlir::WalkOrder::PreOrder>([&](mlir::Operation *operation) { ops.push_back(operation); });
-
-        // Visit the discovered ops in reverse order, so we don't break data dependencies
-        for (mlir::Operation *operation : llvm::reverse(ops)) {
-            (void) folderHelper.tryToFold(operation);
-        }
-
-        // Finally, remove all orphaned constants after folding them
-        for (const auto cst : folderTracker.getExistingConstants()) {
-            if (cst->use_empty()) {
-                cst->erase();
-            }
-        }
-        return mlir::success();
     }
 
     enum class RotationAxis { X, Y, Z };
