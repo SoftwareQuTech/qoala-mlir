@@ -25,7 +25,7 @@ namespace qoala::dialects::qmem {
 namespace qoala::helpers {
     // This templated function is inspired by the implementation of llvm::isa<>()
     /**
-     * Determines if the given operations belongs to the template types dialect.
+     * Determines if the given operation belongs to the template types dialect.
      * @tparam Dialect The dialect class
      * @param operation The operation to test.
      * @return `true` if the operation belongs to the templated dialect type. `false` otherwise.
@@ -38,7 +38,7 @@ namespace qoala::helpers {
 
     // This templated function is inspired by the implementation of llvm::isa<>()
     /**
-     * Determines if the given operations belongs to one of the template types dialects.
+     * Determines if the given operation belongs to one of the template types dialects.
      * @tparam DialectOne The first dialect class
      * @tparam DialectTwo A second dialect class
      * @tparam RestDialects The rest of the dialect classes
@@ -80,92 +80,6 @@ namespace qoala::helpers {
         return result;
     }
 
-    /* Helper functions to expose the conversion patterns from QMemToQoalaHost
-     * and QMemToNetQASM, to use them in the QoalaMIRToQoalaLIR general wrapper pass.
-     * WARNING: The definitions of these functions are in the respective CPP files,
-     * so they can be used both in the general MIR to LIR wrapper but also in the
-     * passes they belong to.
-     */
-
-    /**
-     * Configures the given ConversionTarget object to specify the valid state of the IR after
-     * applying the QMem to QoalaHost dialect conversion.
-     * @param target The ConversionTarget object to configure
-     * @param intRotsAreLegal Whether the integer rotations are considered legal in the target or not.
-     * @param floatRotsAreLegal Whether the float rotations are considered legal in the target or not.
-     */
-    void configureQMemToQoalaHostTarget(mlir::ConversionTarget &target, bool intRotsAreLegal, bool floatRotsAreLegal);
-
-    /**
-     * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
-     * It also uses the given type converter.
-     * @param context The MLIRContext object.
-     * @param patterns The pattern set object to populate.
-     * @param typeConverter The type converter object used by the rewriter methods.
-     */
-    void populateQMemToQoalaHostPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
-                                         mlir::TypeConverter &typeConverter);
-
-    /**
-     * Configures the given ConversionTarget object to specify the valid state of the IR after
-     * applying the QMem to NetQASM dialect conversion.
-     * @param target The ConversionTarget object to configure
-     */
-    void configureQMemToNetQASMTarget(mlir::ConversionTarget &target);
-
-    /**
-     * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
-     * It also uses the given type converter.
-     * @param context The MLIRContext object.
-     * @param patterns The pattern set object to populate.
-     * @param typeConverter The type converter object used by the rewriter methods.
-     */
-    void populateQMemToNetQASMPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
-                                       mlir::TypeConverter &typeConverter);
-
-    /**
-     * Configures the given ConversionTarget object to specify the valid state of the IR after
-     * applying the rotation operations conversion.
-     * @param target The ConversionTarget object to configure
-     */
-    void configureF32LoweringTarget(mlir::ConversionTarget &target);
-
-    /**
-     * Adds the QMem to _intermediate_ QMem conversions patterns to the given rewrite pattern set.
-     * It also uses the given type converter.
-     * @param context The MLIRContext object.
-     * @param patterns The pattern set object to populate.
-     * @param typeConverter The type converter object used by the rewriter methods.
-     */
-    void populateQMemF32ToInt32RotPatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
-                                           mlir::TypeConverter &typeConverter);
-
-    /**
-     * Configures the given ConversionTarget object to specify the valid state of the IR after
-     * converting QMem (remote) to QRemote dialect.
-     * @param target The ConversionTarget object to configure
-     */
-    void configureQMemToQRemoteTarget(mlir::ConversionTarget &target);
-
-    /**
-     * Adds the QMem to QRemote conversions patterns to the given rewrite pattern set.
-     * It also uses the given type converter.
-     * @param context The MLIRContext object.
-     * @param patterns The pattern set object to populate.
-     * @param typeConverter The type converter object used by the rewriter methods.
-     */
-    void populateQMemToQRemotePatterns(mlir::MLIRContext &context, mlir::RewritePatternSet &patterns,
-                                       mlir::TypeConverter &typeConverter);
-
-    /**
-     * Simple "null" type converter for dialect conversion passes. This type
-     * converter simply returns the same type for any given type.
-     */
-    class NullTypeConverter : public mlir::TypeConverter {
-    public:
-        explicit NullTypeConverter(mlir::MLIRContext *ctx);
-    };
-
     template<typename OpTy>
     void moveOperationToTop(mlir::ModuleOp module, OpTy op) {
         if (op->getPrevNode() != nullptr) {
@@ -175,18 +89,6 @@ namespace qoala::helpers {
             kk.insert(op);
         }
     }
-
-    /**
-     * Simple interface that defines a "print" method
-     */
-    class PrintInterface {
-    public:
-        PrintInterface() = default;
-        virtual ~PrintInterface() = default;
-        virtual void print(mlir::raw_ostream &os) const = 0;
-    };
-
-    mlir::raw_ostream &operator<<(mlir::raw_ostream &os, const PrintInterface &printable);
 
     /**
      * Formats a given format string using the given values. IMPORTANT: The format string style

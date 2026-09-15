@@ -2,6 +2,7 @@
 #define QOALA_MLIR_IQOALAMC_H
 
 #include "Analysis/Helpers/Helpers.h"
+#include "Analysis/Helpers/Print.h"
 
 // This file defines iQoalaMCOperand and iQoalaMCInst, which represent the
 // low-level "machine code" instructions and operands.
@@ -19,7 +20,7 @@ namespace qoala::translate {
 namespace qoala::assembly {
     enum iQoalaRegType { LOCAL = 0, R, C, M, Q };
 
-    class iQoalaMC : public helpers::PrintInterface { };
+    class iQoalaMC : public helpers::print::PrintInterface { };
 
     // Forward declaration for using it inside the iQoalaMCOperand class
     class iQoalaMCInstruction;
@@ -67,7 +68,7 @@ namespace qoala::assembly {
         };
     };
 
-    class iQoalaRegReference : public helpers::PrintInterface {
+    class iQoalaRegReference : public helpers::print::PrintInterface {
     public:
         iQoalaRegReference(): type(R), num(0) { }
 

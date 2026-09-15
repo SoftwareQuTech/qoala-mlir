@@ -4,13 +4,16 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/Helpers/Conversion.h"
 #include "Analysis/QoalaHost/Helpers.h"
 #include "Analysis/QoalaHost/Isolate.h"
 #include "Analysis/QoalaHost/RemoteIDs.h"
 #include "Conversion/Helpers/Helpers.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "Dialect/NetQASM/NetQASM.h"
+#include "Dialect/QMem/QMem.h"
+#include "Dialect/QoalaHost/QoalaHost.h"
 
 #define DEBUG_TYPE "qmem-to-qoalahost"
 
@@ -20,74 +23,111 @@ using namespace qoala::helpers;
 using namespace qoala::dialects;
 using namespace qoala::conversion;
 using namespace qoala::helpers::angle;
+using namespace qoala::helpers::conversion;
 
-namespace qoala::helpers {
-    void configureQMemToQoalaHostTarget(ConversionTarget &target, const bool intRotsAreLegal,
-                                        const bool floatRotsAreLegal) {
-        target.addLegalDialect<qoalahost::QoalaHostDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
-        target.addLegalOp<
-                // We declare as "legal" all the operations that directly map to NetQASM operations
-                qmem::CnotOp, qmem::CzOp, qmem::EprsMeasureOp, qmem::EprsOp, qmem::HadamardOp, qmem::XOp, qmem::YOp,
-                qmem::ZOp, qmem::InitOp, qmem::MeasureOp, qmem::QAllocOp>();
-        if (intRotsAreLegal) {
-            target.addLegalOp<qmem::RotateXIntOp, qmem::RotateYIntOp, qmem::RotateZIntOp, qmem::CrotXIntOp>();
-        } else {
-            target.addIllegalOp<qmem::RotateXIntOp, qmem::RotateYIntOp, qmem::RotateZIntOp, qmem::CrotXIntOp>();
-        }
-        if (floatRotsAreLegal) {
-            target.addLegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
-        } else {
-            target.addIllegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
-        }
+/**
+ * Configures the given ConversionTarget object to specify the valid state of the IR after
+ * applying the QMem to QoalaHost dialect conversion.
+ * @param target The ConversionTarget object to configure
+ * @param intRotsAreLegal Whether the integer rotations are considered legal in the target or not.
+ * @param floatRotsAreLegal Whether the float rotations are considered legal in the target or not.
+ */
+static void configureQMemToQoalaHostTarget(ConversionTarget &target, const bool intRotsAreLegal,
+                                           const bool floatRotsAreLegal) {
+    target.addLegalDialect<qoalahost::QoalaHostDialect>();
+    target.addIllegalDialect<qmem::QMemDialect>();
+    target.addLegalOp<
+            // We declare as "legal" all the operations that directly map to NetQASM operations
+            qmem::CnotOp, qmem::CzOp, qmem::EprsMeasureOp, qmem::EprsOp, qmem::HadamardOp, qmem::XOp, qmem::YOp,
+            qmem::ZOp, qmem::InitOp, qmem::MeasureOp, qmem::QAllocOp>();
+    if (intRotsAreLegal) {
+        target.addLegalOp<qmem::RotateXIntOp, qmem::RotateYIntOp, qmem::RotateZIntOp, qmem::CrotXIntOp>();
+    } else {
+        target.addIllegalOp<qmem::RotateXIntOp, qmem::RotateYIntOp, qmem::RotateZIntOp, qmem::CrotXIntOp>();
     }
-
-    void populateQMemToQoalaHostPatterns(MLIRContext &context, RewritePatternSet &patterns,
-                                         TypeConverter &typeConverter) {
-        patterns.add<mir::RemoteOpLowering, mir::FuncOpLowering, mir::ReturnOpLowering, mir::CallOpLowering>(
-                typeConverter, &context);
-        patterns.add<mir::RecvIntOpLowering, mir::RecvFloatOpLowering, mir::SendIntOpLowering,
-                     mir::SendFloatOpLowering>(typeConverter, &context);
-        patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
-                     mir::SendFloatsOpLowering>(typeConverter, &context);
+    if (floatRotsAreLegal) {
+        target.addLegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
+    } else {
+        target.addIllegalOp<qmem::RotateXOp, qmem::RotateYOp, qmem::RotateZOp, qmem::CrotXOp>();
     }
+}
 
-    void configureQMemToNetQASMTarget(ConversionTarget &target) {
-        target.addLegalDialect<netqasm::NetQASMDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
-        target.addLegalOp<
-                // We declare as "legal" all the operations that directly map to QoalaHost operations
-                qmem::FuncOp, qmem::ReturnOp, qmem::RemoteOp, qmem::RecvIntsOp, qmem::RecvFloatsOp, qmem::SendIntsOp,
-                qmem::SendFloatsOp>();
-    }
+/**
+ * Adds the QMem to QoalaHost conversions patterns to the given rewrite pattern set.
+ * It also uses the given type converter.
+ * @param context The MLIRContext object.
+ * @param patterns The pattern set object to populate.
+ * @param typeConverter The type converter object used by the rewriter methods.
+ */
+static void populateQMemToQoalaHostPatterns(MLIRContext &context, RewritePatternSet &patterns,
+                                            TypeConverter &typeConverter) {
+    patterns.add<mir::RemoteOpLowering, mir::FuncOpLowering, mir::ReturnOpLowering, mir::CallOpLowering>(typeConverter,
+                                                                                                         &context);
+    patterns.add<mir::RecvIntOpLowering, mir::RecvFloatOpLowering, mir::SendIntOpLowering, mir::SendFloatOpLowering>(
+            typeConverter, &context);
+    patterns.add<mir::RecvIntsOpLowering, mir::RecvFloatsOpLowering, mir::SendIntsOpLowering,
+                 mir::SendFloatsOpLowering>(typeConverter, &context);
+}
 
-    void populateQMemToNetQASMPatterns(MLIRContext &context, RewritePatternSet &patterns,
-                                       TypeConverter &typeConverter) {
-        patterns.add<mir::MeasureOpLowering, mir::EprsOpLowering, mir::EprsMeasureOpLowering,
-                     mir::NetQASMFunctionLowering, mir::NetQASMReturnOpLowering, mir::QAllocLowering,
-                     mir::QInitLowering, mir::HadamardLowering, mir::XLowering, mir::YLowering, mir::ZLowering,
-                     mir::CNotLowering, mir::CzLowering, mir::RotateXIntLowering, mir::RotateYIntLowering,
-                     mir::RotateZIntLowering, mir::CRotXIntLowering>(typeConverter, &context);
-    }
+/**
+ * Configures the given ConversionTarget object to specify the valid state of the IR after
+ * applying the QMem to NetQASM dialect conversion.
+ * @param target The ConversionTarget object to configure
+ */
+static void configureQMemToNetQASMTarget(ConversionTarget &target) {
+    target.addLegalDialect<netqasm::NetQASMDialect>();
+    target.addIllegalDialect<qmem::QMemDialect>();
+    target.addLegalOp<
+            // We declare as "legal" all the operations that directly map to QoalaHost operations
+            qmem::FuncOp, qmem::ReturnOp, qmem::RemoteOp, qmem::RecvIntsOp, qmem::RecvFloatsOp, qmem::SendIntsOp,
+            qmem::SendFloatsOp>();
+}
 
-    void configureQMemToQRemoteTarget(ConversionTarget &target) {
-        target.addLegalDialect<qremote::QRemoteDialect>();
-        target.addIllegalDialect<qmem::QMemDialect>();
-        // We declare everything as "legal"
-        target.addLegalOp<
+/**
+ * Adds the QMem to NetQASM conversions patterns to the given rewrite pattern set.
+ * It also uses the given type converter.
+ * @param context The MLIRContext object.
+ * @param patterns The pattern set object to populate.
+ * @param typeConverter The type converter object used by the rewriter methods.
+ */
+static void populateQMemToNetQASMPatterns(MLIRContext &context, RewritePatternSet &patterns,
+                                          TypeConverter &typeConverter) {
+    patterns.add<mir::MeasureOpLowering, mir::EprsOpLowering, mir::EprsMeasureOpLowering, mir::NetQASMFunctionLowering,
+                 mir::NetQASMReturnOpLowering, mir::QAllocLowering, mir::QInitLowering, mir::HadamardLowering,
+                 mir::XLowering, mir::YLowering, mir::ZLowering, mir::CNotLowering, mir::CzLowering,
+                 mir::RotateXIntLowering, mir::RotateYIntLowering, mir::RotateZIntLowering, mir::CRotXIntLowering>(
+            typeConverter, &context);
+}
+
+/**
+ * Configures the given ConversionTarget object to specify the valid state of the IR after
+ * converting QMem (remote) to QRemote dialect.
+ * @param target The ConversionTarget object to configure
+ */
+static void configureQMemToQRemoteTarget(ConversionTarget &target) {
+    target.addLegalDialect<qremote::QRemoteDialect>();
+    target.addIllegalDialect<qmem::QMemDialect>();
+    // We declare everything as "legal"
+    target.addLegalOp<
 #define GET_OP_LIST
 #include "Dialect/QMem/QMem.cpp.inc"
-                >();
-        target.addIllegalOp<
-                // Except the remote operation, which is illegal after this pass
-                qmem::RemoteOp>();
-    }
+            >();
+    target.addIllegalOp<
+            // Except the remote operation, which is illegal after this pass
+            qmem::RemoteOp>();
+}
 
-    void populateQMemToQRemotePatterns(MLIRContext &context, RewritePatternSet &patterns,
-                                       TypeConverter &typeConverter) {
-        patterns.add<mir::RemoteOpLowering>(typeConverter, &context);
-    }
-} // namespace qoala::helpers
+/**
+ * Adds the QMem to QRemote conversions patterns to the given rewrite pattern set.
+ * It also uses the given type converter.
+ * @param context The MLIRContext object.
+ * @param patterns The pattern set object to populate.
+ * @param typeConverter The type converter object used by the rewriter methods.
+ */
+static void populateQMemToQRemotePatterns(MLIRContext &context, RewritePatternSet &patterns,
+                                          TypeConverter &typeConverter) {
+    patterns.add<mir::RemoteOpLowering>(typeConverter, &context);
+}
 
 namespace qoala::conversion {
 #define GEN_PASS_DEF_LOWERQMEMTOLOWERDIALECTS
