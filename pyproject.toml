@@ -35,7 +35,7 @@ requires = [
     "setuptools-scm>=8",
 ]
 # BUILD WITH ENV VARIABLE: SETUPTOOLS_SCM_OVERRIDES_FOR_QOALA_MLIR='{local_scheme = "no-local-version"}'
-# This avoids using git hashed in th eversion number!
+# This avoids using git hashed in the eversion number!
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]

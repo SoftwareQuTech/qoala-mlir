@@ -123,6 +123,38 @@ uint64_t netqasm::EprsMeasureOp::getDuration() {
     return options::qoalaOptLinkDuration + options::qoalaOptSingleGateDuration;
 }
 
+static bool containsEPRSOperation(Operation *op) {
+    bool hasEPRS = false;
+    bool hasEPRSMeasure = false;
+    op->walk([&hasEPRS](netqasm::EprsMeasureOp op) {
+        hasEPRS = true;
+        return WalkResult::interrupt();
+    });
+    op->walk([&hasEPRSMeasure](netqasm::EprsOp op) {
+        hasEPRSMeasure = true;
+        return WalkResult::interrupt();
+    });
+    return hasEPRS || hasEPRSMeasure;
+}
+
+LogicalResult netqasm::RequestRoutineOp::validateNestedInstructions() {
+    // Request routines *must* contain an EPRS-related operation
+    if (!containsEPRSOperation(this->getOperation())) {
+        this->emitError("Request routines must contain an EPRS-related operation");
+        return failure();
+    }
+    return success();
+}
+
+LogicalResult netqasm::LocalRoutineOp::validateNestedInstructions() {
+    // EPRS-related operations are not allowed in local routines
+    if (containsEPRSOperation(this->getOperation())) {
+        this->emitError("EPRS-related operations are not allowed in local routines");
+        return failure();
+    }
+    return success();
+}
+
 std::string netqasm::NetQASMDialect::getAllowedDialectNames() {
     return getDialectNamesList<
 #define GET_ALLOWED_DIALECTS
