@@ -71,7 +71,7 @@ class UsingRemote_Op<string mnemonic, list<Trait> extraTraits = []> :
 
 /* Region verifier function for LocalRoutineOp and RequestRoutineOp */
 class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
-    NetQASM_Op<mnemonic, extraTraits> {
+    NetQASM_Op<mnemonic, extraTraits # [DeclareOpInterfaceMethods<ExtraRegionVerifierInterface>]> {
         let extraClassDefinition = [{
             LogicalResult $cppClass::verifyRegions() {
                 for (Operation &operation : this->getBody().getOps()) {
@@ -82,14 +82,16 @@ class ConstraintRegion_Op<string mnemonic, list<Trait> extraTraits = []> :
                                                    << "]. Operation: '" << operation << "'";
                     }
                 }
-                return success();
+                return this->validateNestedInstructions();
             }
         }];
 }
 
 def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
-        IsolatedFromAbove, Symbol, DeclareOpInterfaceMethods<NetQASMRoutineInterface>]> {
+        IsolatedFromAbove, Symbol,
+        DeclareOpInterfaceMethods<NetQASMRoutineInterface>,
+        DeclareOpInterfaceMethods<ExtraRegionVerifierInterface, ["validateNestedInstructions"]>]> {
     let summary = "Function declaration/definition for a netqasm local routine";
     let description = [{
         This function declaration operation differs from func.func operation in
@@ -137,7 +139,8 @@ def LocalRoutineOp: ConstraintRegion_Op<"local_routine", [
 
 def RequestRoutineOp: ConstraintRegion_Op<"request_routine", [
         AffineScope, AutomaticAllocationScope, FunctionOpInterface,
-        IsolatedFromAbove, Symbol, DeclareOpInterfaceMethods<NetQASMRoutineInterface>]> {
+        IsolatedFromAbove, Symbol, DeclareOpInterfaceMethods<NetQASMRoutineInterface>,
+        DeclareOpInterfaceMethods<ExtraRegionVerifierInterface, ["validateNestedInstructions"]>]> {
     let summary = "Function declaration/definition for a netqasm request routine";
     let description = [{
         This function declaration operation differs from func.func operation in

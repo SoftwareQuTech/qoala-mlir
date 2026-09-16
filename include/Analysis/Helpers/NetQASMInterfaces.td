@@ -20,6 +20,23 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     ];
 }
 
+def ExtraRegionVerifierInterface : OpInterface<"ExtraRegionVerifierInterface"> {
+    let description = [{
+        Interface for NetQASM operations that define an extra region verifier method.
+    }];
+    let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Method used to perform extra verification of the region. Override this method to implement it.
+        }], "mlir::LogicalResult", "validateNestedInstructions",
+        (ins), /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{
+            return mlir::LogicalResult::success();
+        }]
+        >
+    ];
+}
+
 def MeasOp : OpInterface<"MeasOp"> {
     let description = [{
         Interface for NetQASM measure operations.
