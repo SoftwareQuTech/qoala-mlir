@@ -41,7 +41,7 @@ namespace qoala::analysis::qubitlife {
      * TODO This could be merged with the check for MeasureOp,
      * removing the need of the LiveQubit class.
      * Need to check if MILP reordering would still work even when
-     * the measure op is instead a two-qubit op. See issue qoala-kanban-board#109.
+     * the measure op is instead a two-qubit op. See https://github.com/SoftwareQuTech/qoala-mlir/issues/10.
      */
     static std::vector<std::shared_ptr<LiveQubit>>
     getQubitCriticalOps(const llvm::DenseMap<Value, std::vector<Operation *>> &qubitToOps,

@@ -275,7 +275,8 @@ static LogicalResult translateNetQASMOperation(Operation *operation, ModuleTrans
                 return success();
             })
             .Case([](EprsMeasureOp op) -> LogicalResult {
-                // TODO - Translation of EprsMeasureOp to request of type `measure_directly` will be done in ticket #95.
+                // TODO - Translation of EprsMeasureOp to request of type `measure_directly` will be done in
+                //  the future (see https://github.com/SoftwareQuTech/qoala-mlir/issues/6).
                 return success();
             })
             .Default([](Operation *op) -> LogicalResult {

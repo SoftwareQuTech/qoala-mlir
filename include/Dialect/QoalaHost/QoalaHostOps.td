@@ -260,7 +260,8 @@ def SendIntsOp : UsingRemote_Op<"send_ints", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
+    //  it should have been lowered to memref. This issue will be addressed as part of the
+    //  handling of the tensor dialect. See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
     let arguments = (ins TensorOf<[I32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -271,7 +272,8 @@ def RecvIntsOp : UsingRemote_Op<"recv_ints", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
+    //  it should have been lowered to memref. This issue will be addressed as part of the
+    //  handling of the tensor dialect. See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[I32]>:$cout);
     let assemblyFormat = [{
@@ -283,7 +285,8 @@ def SendFloatsOp : UsingRemote_Op<"send_floats", [
     DeclareOpInterfaceMethods<QuantumOpInterface, ["getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
+    //  it should have been lowered to memref. This issue will be addressed as part of the
+    //  handling of the tensor dialect. See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
     let arguments = (ins TensorOf<[F32]>:$cin, FlatSymbolRefAttr:$remote);
     let assemblyFormat = [{
         operands attr-dict `:` type($cin)
@@ -294,7 +297,8 @@ def RecvFloatsOp : UsingRemote_Op<"recv_floats", [
     Terminator, DeclareOpInterfaceMethods<QuantumOpInterface, ["getDuration", "getBlockType"]>,
     DeclareOpInterfaceMethods<ClassicalCommInterface>, DeclareOpInterfaceMethods<UsesRemoteInterface>]> {
     // TODO - This operation uses a tensor as an input. At this level (LIR)
-    //  it should have been lowered to memref. This issue will be addressed by #72
+    //  it should have been lowered to memref. This issue will be addressed as part of the
+    //  handling of the tensor dialect. See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
     let arguments = (ins FlatSymbolRefAttr:$remote, AnyI32Attr:$length);
     let results = (outs TensorOf<[F32]>:$cout);
     let assemblyFormat = [{

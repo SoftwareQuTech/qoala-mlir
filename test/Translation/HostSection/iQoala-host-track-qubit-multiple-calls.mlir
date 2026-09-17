@@ -21,8 +21,7 @@
 // CHECK-NEXT: %[[HOST_REG4:.*]] = add_cval_c(%[[HOST_REG2]], %[[HOST_REG3]])
 // CHECK-NEXT: return_result(%[[HOST_REG4]])
 
-// WARNING: This using the same request routine multiple times does not work
-// correctly.
+// WARNING: Using the same request routine multiple times does not work correctly.
 // Subroutines *must declare* the qubits they use. In this sense, we *cannot*
 // reuse the same code for different qubits, despite in MLIR we can pass different
 // qubit values to the same subroutine.

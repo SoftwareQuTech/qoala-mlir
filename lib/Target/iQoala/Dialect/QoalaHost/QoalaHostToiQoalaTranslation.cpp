@@ -450,19 +450,23 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
             })
             // Plural versions of the classical comm ops
             .Case([](const SendFloatsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                // TODO - This will be implemented *after* as part of the handling of the tensor dialect.
+                //  See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
                 return op->emitOpError("Sending floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](const RecvFloatsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                // TODO - This will be implemented *after* as part of the handling of the tensor dialect.
+                //  See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
                 return op->emitOpError("Receiving floats is not supported yet: '") << *op << "'\n";
             })
             .Case([](const SendIntsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                // TODO - This will be implemented *after* as part of the handling of the tensor dialect.
+                //  See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
                 return success();
             })
             .Case([](const RecvIntsOp op) -> LogicalResult {
-                // TODO - This will be implemented *after* ticket #72, which will implement the lowering of tensors
+                // TODO - This will be implemented *after* as part of the handling of the tensor dialect.
+                //  See https://github.com/SoftwareQuTech/qoala-mlir/issues/9.
                 return success();
             })
             .Default([](Operation *op) -> LogicalResult {

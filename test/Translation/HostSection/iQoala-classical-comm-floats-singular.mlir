@@ -1,5 +1,5 @@
 // UNSUPPORTED: true
-// This file uses classical communication of float values, which is nto suppoorted yet
+// This file uses classical communication of float values, which is not suppoorted yet
 // RUN: qoala-translate %s --mlir-to-iqoala | FileCheck %s
 // CHECK: META_START
 // CHECK-NEXT: name: test_remote_quantum_program
