@@ -1,6 +1,7 @@
 #ifndef ARITHTOIQOALATRANSLATION_H
 #define ARITHTOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "mlir/Support/LogicalResult.h"
 

@@ -1,6 +1,7 @@
 #ifndef CFTOIQOALATRANSLATION_H
 #define CFTOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "mlir/Support/LogicalResult.h"
 

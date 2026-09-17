@@ -1,7 +1,7 @@
-
+#include "llvm/Support/Debug.h"
 #include "mlir/Pass/Pass.h"
 
-#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/Helpers/Folding.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 #define DEBUG_TYPE "fold-constants"
@@ -23,7 +23,7 @@ namespace qoala::analysis {
         LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
         LLVM_DEBUG(llvm::dbgs() << "* Removing unnecessary constants *\n");
         LLVM_DEBUG(llvm::dbgs() << "**********************************\n");
-        if (Operation *op = this->getOperation(); failed(helpers::foldConstants(*op))) {
+        if (Operation *op = this->getOperation(); failed(helpers::folding::foldConstants(*op))) {
             signalPassFailure();
         }
     }
