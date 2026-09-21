@@ -5,19 +5,26 @@ module {
   qremote.remote @Bob
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> (i32, i32)
   netqasm.local_routine @__qoala_wrapper0() -> i32 {
-    %cst = arith.constant 1 : i32
-    netqasm.return %cst : i32
+    %qubit = netqasm.qalloc : i32
+    netqasm.init %qubit
+    netqasm.return %qubit : i32
   }
-  qoalahost.main_func @test_host_ret_one_val() -> i32 {
+  netqasm.local_routine @__qoala_wrapper1(%qubit: i32) -> i1 {
+    %meas = netqasm.measure %qubit : i1
+    netqasm.return %meas : i1
+  }
+  qoalahost.main_func @test_host_ret_one_val() -> i1 {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
     %cst = arith.constant 3 : i32
     qoalahost.nop_term
   ^bb1:
     qoalahost.blk_meta  {block_id = "block_1", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
-    %0 = qoalahost.call @__qoala_wrapper0() : () -> i32
+    %qubit = qoalahost.call @__qoala_wrapper0() : () -> i32
   ^bb2:
     qoalahost.blk_meta  {block_id = "block_2", deadlines = {}, dependencies = ["block_0", "block_1"], predecessors = [], prev_comm = "", prev_ent = ""}
-    %1 = arith.addi %0, %cst : i32
-    qoalahost.return %1 : i32
+    %0 = qoalahost.call @__qoala_wrapper1(%qubit) : (i32) -> i1
+  ^bb3:
+    qoalahost.blk_meta  {block_id = "block_3", deadlines = {}, dependencies = ["block_2"], predecessors = [], prev_comm = "", prev_ent = ""}
+    qoalahost.return %0 : i1
   }
 }

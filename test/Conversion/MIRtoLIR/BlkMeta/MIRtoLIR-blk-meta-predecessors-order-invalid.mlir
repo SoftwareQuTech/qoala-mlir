@@ -5,6 +5,8 @@
 module {
   netqasm.local_routine private @__qoala_convert_float_angle(f32) -> i1
   netqasm.local_routine @__qoala_wrapper0(%arg0: i32) -> i32 {
+    %qubit = netqasm.qalloc : i32
+    netqasm.init %qubit
     %cstA = arith.constant 10 : i32
     cf.br ^bb2
   ^bb1:
@@ -15,7 +17,7 @@ module {
     cf.br ^bb1
   ^bb3:
     %3 = arith.muli %arg0, %cstA : i32
-    netqasm.return %3 : i32
+    netqasm.return %qubit : i32
   }
   qoalahost.main_func @test_branching_unconditional() {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}
