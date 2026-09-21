@@ -16,7 +16,13 @@ namespace qoala::analysis::netqasm {
                     getRoutineWithName(mlirModule, functionName))) {
             const auto returnOp = routineOp.getReturnOperation();
 
-            for (auto returnVal : llvm::enumerate(returnOp->getOperands())) {
+            if (!returnOp.has_value()) {
+                // If the routine does not have a return value, then it doesn't return a qubit,
+                // so we return an empty map.
+                return result;
+            }
+
+            for (auto returnVal : llvm::enumerate(returnOp.value()->getOperands())) {
                 // Assumption: In general, local routines return either qubit references
                 // OR measurement values, but NOT both (mixed value types).
                 // Being this said, we have two options to check if the local routine
