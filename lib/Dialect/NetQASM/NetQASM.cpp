@@ -1,7 +1,8 @@
-#include "Analysis/Helpers/Helpers.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 
+#include "Analysis/Helpers/Helpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 
 using namespace mlir;
@@ -15,6 +16,8 @@ using namespace qoala::helpers;
 
 // include generated "dispatcher" of the operation interface
 #include "Analysis/Helpers/NetQASMInterfaces.cpp.inc"
+
+#define DEBUG_TYPE "NetQASM ops"
 
 /* Parse and print functions "ported" from func.func: parse, print and build */
 ParseResult netqasm::LocalRoutineOp::parse(OpAsmParser &parser, OperationState &result) {
@@ -126,11 +129,11 @@ uint64_t netqasm::EprsMeasureOp::getDuration() {
 static bool containsEPRSOperation(Operation *op) {
     bool hasEPRS = false;
     bool hasEPRSMeasure = false;
-    op->walk([&hasEPRS](netqasm::EprsMeasureOp op) {
+    op->walk([&hasEPRS](netqasm::EprsMeasureOp eprsOp) {
         hasEPRS = true;
         return WalkResult::interrupt();
     });
-    op->walk([&hasEPRSMeasure](netqasm::EprsOp op) {
+    op->walk([&hasEPRSMeasure](netqasm::EprsOp eprsOp) {
         hasEPRSMeasure = true;
         return WalkResult::interrupt();
     });
@@ -140,16 +143,55 @@ static bool containsEPRSOperation(Operation *op) {
 LogicalResult netqasm::RequestRoutineOp::validateNestedInstructions() {
     // Request routines *must* contain an EPRS-related operation
     if (!containsEPRSOperation(this->getOperation())) {
-        this->emitError("Request routines must contain an EPRS-related operation");
+        this->emitError("Request routines must contain an EPRS-related operation.");
         return failure();
     }
+
+    // Request routines return value must complain with one of the following criteria:
+    // * Return an i1. If so, the i1 value *must* trace back directly to an eprs_measure operation.
+    //   This is the case of a "create_measure" type of request routine.
+    // * Return an i32. If so, the i32 value *must* be used directly by an eprs operation.
+    //   This is the case of a "create_keep" type of request routine.
+
+    auto returnOp = dyn_cast<ReturnOp>(this->getReturnOperation());
+    if (!returnOp) {
+        this->emitError() << "Request routine '" << this->getName() << "' does not return a value.";
+        return failure();
+    }
+    for (Value retVal : returnOp.getOperands()) {
+        if (retVal.getType().isInteger(1)) {
+            if (!isa<EprsMeasureOp>(retVal.getDefiningOp())) {
+                returnOp.emitError() << "Returned value '" << retVal << "' is an i1 and does not come from "
+                                     << "a netqasm.eprs_measure operation.";
+            }
+            continue;
+        }
+        if (retVal.getType().isInteger(32)) {
+            if (auto allocOp = dyn_cast<QAllocOp>(retVal.getDefiningOp()); !allocOp) {
+                returnOp.emitError() << "Returned value '" << retVal << "' is an i32 and it was not created "
+                                     << "by netqasm.qalloc operation.";
+            } else {
+                auto userOps = allocOp->getUsers();
+                assert(!userOps.empty() && "Qubit users are empty - This should not be the case");
+                bool entangled = std::any_of(userOps.begin(), userOps.end(),
+                                             [](Operation *userOp) { return isa<EprsOp>(userOp); });
+                if (!entangled) {
+                    returnOp.emitError() << "Returned value '" << retVal << "' is an i32 and was not entangled "
+                                         << "by netqasm.eprs operation.";
+                }
+                continue;
+            }
+        }
+        returnOp.emitError() << "Returned value '" << retVal << "' is not an i1 or i32.";
+    }
+
     return success();
 }
 
 LogicalResult netqasm::LocalRoutineOp::validateNestedInstructions() {
     // EPRS-related operations are not allowed in local routines
     if (containsEPRSOperation(this->getOperation())) {
-        this->emitError("EPRS-related operations are not allowed in local routines");
+        this->emitError("EPRS-related operations are not allowed in local routines.");
         return failure();
     }
     return success();

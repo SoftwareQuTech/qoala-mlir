@@ -1,7 +1,10 @@
+// NOTE: clang-format is disabled for the following includes.
+// These must remain in this specific order, changing it breaks the build.
+// clang-format off
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/NetQASM/NetQASMDialect.h"
+// clang-format on
 #include "Dialect/QoalaHost/QoalaHost.h"
-//#include "Dialect/QoalaHost/QoalaHostDialect.h"
 
 // important! otherwise the source code in this inc file is not linked into the
 // lib
