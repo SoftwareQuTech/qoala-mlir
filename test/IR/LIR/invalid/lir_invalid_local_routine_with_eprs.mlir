@@ -2,7 +2,7 @@
 
 module {
     qremote.remote @Bob
-    // expected-error@+1 {{PRS-related operations are not allowed in local routines}}
+    // expected-error@+1 {{EPRS-related operations are not allowed in local routines}}
     netqasm.local_routine @invalid_local_routine() -> i32 {
         %vqubit = netqasm.qalloc : i32
         netqasm.eprs %vqubit {remote = @Bob}
