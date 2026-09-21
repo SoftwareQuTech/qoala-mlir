@@ -66,15 +66,17 @@ void netqasm::RequestRoutineOp::print(OpAsmPrinter &p) {
                                              getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
-Operation *netqasm::LocalRoutineOp::getReturnOperation() {
+std::optional<Operation *> netqasm::LocalRoutineOp::getReturnOperation() {
     const auto returnOps = this->getOps<ReturnOp>();
-    assert(!returnOps.empty() && "Local routine must have at least one return operation");
-    return *returnOps.begin();
+    if (!returnOps.empty()) {
+        return *returnOps.begin();
+    }
+    return std::nullopt;
 }
 
-Operation *netqasm::RequestRoutineOp::getReturnOperation() {
+std::optional<Operation *> netqasm::RequestRoutineOp::getReturnOperation() {
     const auto returnOps = this->getOps<ReturnOp>();
-    assert(!returnOps.empty() && "Local routine must have at least one return operation");
+    assert(!returnOps.empty() && "Request routine must have at least one return operation");
     return *returnOps.begin();
 }
 

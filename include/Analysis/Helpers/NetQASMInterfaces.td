@@ -11,7 +11,7 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     let methods = [
         InterfaceMethod<[{
             Returns the return operation of this routine
-        }], "mlir::Operation *", "getReturnOperation"
+        }], "std::optional<mlir::Operation *>", "getReturnOperation"
         >,
         InterfaceMethod<[{
             Returns the an Array with the Types of the arguments of this routine
