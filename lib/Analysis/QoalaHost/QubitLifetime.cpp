@@ -607,8 +607,7 @@ namespace qoala::analysis::qubitlife {
         // lifetime is tracked up to measurement or last wto-qubit op.
         // In future could change to track every qubit up to last quantum op.
 
-        // Comply with mlir assumptions on analisys passes.
-        // Clone operation to avoid modifying the actual IR.
+        // Comply with mlir assumptions on analysis actual IR.
         Operation *clonedOp = op->clone();
         auto module = dyn_cast<ModuleOp>(*clonedOp);
         auto mainFuncs = module.getOps<qoalahost::MainFuncOp>();
@@ -617,7 +616,7 @@ namespace qoala::analysis::qubitlife {
 
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        llvm::StringMap<Operation *> routineMap = reordering::collectRoutineMap(module);
+        const dialects::helpers::RoutineMap routineMap(&module);
 
         auto [blocks, opToMilpOp, _, unresolvedEdges, idToBlockMap, blocksStatus] =
                 reordering::buildMilpBlocks(mainFunc, routineMap);
@@ -641,7 +640,7 @@ namespace qoala::analysis::qubitlife {
             }
         }
 
-        auto [qubitToOps, collStatus] = reordering::collectQubitUsage(mainFunc, module);
+        auto [qubitToOps, collStatus] = reordering::collectQubitUsage(mainFunc, routineMap);
         assert(!failed(collStatus) && "Could not collect qubit usage.");
 
         std::vector<std::shared_ptr<LiveQubit>> qubits = getQubitCriticalOps(qubitToOps, opToMilpOp);

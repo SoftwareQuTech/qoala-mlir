@@ -41,9 +41,9 @@ namespace qoala::dialects::helpers {
         return this->getRequestRoutineWithName(functionName).has_value();
     }
 
-
     std::optional<Operation *> RoutineMap::getRoutineWithName(const StringRef &functionName) const {
-        return this->getLocalRoutineWithName(functionName) ? this->getLocalRoutineWithName(functionName) : this->getRequestRoutineWithName(functionName);
+        return this->getLocalRoutineWithName(functionName) ? this->getLocalRoutineWithName(functionName)
+                                                           : this->getRequestRoutineWithName(functionName);
     }
 
     bool operationIsInsideMainFunc(Operation *op) {
@@ -79,33 +79,5 @@ namespace qoala::dialects::helpers {
         auto parent = op->getParentOfType<netqasm::RequestRoutineOp>();
         assert(parent != nullptr);
         return parent.getSymName().str();
-    }
-
-    template<typename RoutineOpType>
-    static Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        Operation *routineOp = nullptr;
-        mlirModule->walk([&](RoutineOpType routine) -> WalkResult {
-            if (routine.getSymNameAttr() == functionName) {
-                routineOp = routine.getOperation();
-                return WalkResult::interrupt();
-            }
-            return WalkResult::advance();
-        });
-        return routineOp;
-    }
-
-    bool hasLocalRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        return getRoutineWithName<netqasm::LocalRoutineOp>(mlirModule, functionName) != nullptr;
-    }
-
-    bool hasRequestRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        return getRoutineWithName<netqasm::RequestRoutineOp>(mlirModule, functionName) != nullptr;
-    }
-
-    Operation *getRoutineWithName(ModuleOp *mlirModule, const StringRef &functionName) {
-        if (const auto localRoutine = getRoutineWithName<netqasm::LocalRoutineOp>(mlirModule, functionName)) {
-            return localRoutine;
-        }
-        return getRoutineWithName<netqasm::RequestRoutineOp>(mlirModule, functionName);
     }
 } // namespace qoala::dialects::helpers

@@ -9,11 +9,12 @@ using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::netqasm;
 
 namespace qoala::analysis::netqasm {
-    std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
+    std::map<uint32_t, uint8_t> getReturnedQubitsMap(const RoutineMap &routineMap, const StringRef &functionName,
                                                      const iqoala::QuantumRoutine *quantumRoutine) {
         std::map<uint32_t, uint8_t> result;
-        if (auto routineOp = dyn_cast_if_present<helpers::NetQASMRoutineInterface>(
-                    getRoutineWithName(mlirModule, functionName))) {
+
+        if (const auto routine = routineMap.getRoutineWithName(functionName); routine.has_value()) {
+            auto routineOp = dyn_cast<helpers::NetQASMRoutineInterface>(routine.value());
             const auto returnOp = routineOp.getReturnOperation();
 
             if (!returnOp.has_value()) {

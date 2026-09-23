@@ -19,7 +19,7 @@ def QuantumOpInterface : OpInterface<"QuantumOpInterface"> {
         InterfaceMethod<[{
             Returns the block type where this operation belongs to.
         }], "qoala::analysis::reordering::BlockType", "getBlockType",
-        (ins "const llvm::StringMap<mlir::Operation *> &":$routineMap),
+        (ins "const qoala::dialects::helpers::RoutineMap &":$routineMap),
         /*methodBody=*/[{}],
         /*defaultImplementation=*/[{
             return qoala::analysis::reordering::BlockType::CL;

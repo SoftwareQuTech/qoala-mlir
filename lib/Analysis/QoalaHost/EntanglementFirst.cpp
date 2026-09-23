@@ -19,7 +19,7 @@ namespace qoala::analysis::reordering {
 
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        const llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
+        const dialects::helpers::RoutineMap routineMap(&moduleOp);
 
         SmallVector<Block *> entBlocks;
         SmallVector<Block *> otherBlocks;

@@ -104,13 +104,14 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
                                           std::vector<uint8_t> &qubitsToUnmap) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
-    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
     const std::string calleeStr = callee.str();
 
-    Operation *calledFunction = getRoutineWithName(mlirModule, callee);
-    if (!calledFunction) {
+    const std::optional<Operation *> calledOp = moduleTranslation->getRoutineMap().getRoutineWithName(callee);
+    if (!calledOp.has_value()) {
         return failure();
     }
+
+    Operation *calledFunction = calledOp.value();
 
     // BEFORE pushing a new frame on the stack, we have to discover the arguments that are mapped to
     // a qubit in the current stack frame:
@@ -224,7 +225,7 @@ static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslat
 
 static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, RemoteIDRefOp &op) {
     // Create a constant value that references the csocket from the META section
-    std::optional<iQoalaRegReference *> csocketOperand =
+    const std::optional<iQoalaRegReference *> csocketOperand =
             addSocketRefAssignCVal(moduleTranslation, op.getOperation(), op.getRemote());
     if (!csocketOperand) {
         return failure();
@@ -235,7 +236,7 @@ static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, 
 
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
-    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
+    const RoutineMap &routineMap = moduleTranslation->getRoutineMap();
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
@@ -264,10 +265,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // Compute the right opcode
-                if (hasLocalRoutineWithName(mlirModule, callee)) {
+                if (routineMap.hasLocalRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (hasRequestRoutineWithName(mlirModule, callee)) {
+                if (routineMap.hasRequestRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 
@@ -280,7 +281,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // in the qoalahost section to the physical qubitID
                 const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
 
-                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
+                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(routineMap, callee, routine)) {
                     if (qubitId != 0xFF) {
                         Value valueAtCaller = op.getResult(retIndex);
                         // We map the MLIR value with the qubitID in the current stack frame held by

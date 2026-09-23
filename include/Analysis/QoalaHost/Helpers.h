@@ -6,7 +6,6 @@
 #include "llvm/Support/Casting.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/AnalysisManager.h"
-#include "mlir/Transforms/DialectConversion.h"
 
 #include <scip/scip.h>
 
@@ -15,6 +14,8 @@
 //  (https://github.com/SoftwareQuTech/qoala-mlir/issues/4)
 #define GET_OP_FWD_DEFINES
 #include "Dialect/QoalaHost/QoalaHost.h.inc"
+
+#include "Dialect/Helpers/DialectHelpers.h"
 
 namespace qoala::analysis {
     namespace precedences {
@@ -376,15 +377,6 @@ namespace qoala::analysis {
         using Closure = std::set<std::pair<std::string, std::string>>;
 
         /**
-         * Collects all NetQASM routines defined in the module and returns a map
-         * from their symbol names to their corresponding operations.
-         * This includes both `netqasm.local_routine` and `netqasm.request_routine`.
-         * @param moduleOp The module from which to extract routines.
-         * @returns A map from routine name (as string) to its defining operation.
-         */
-        llvm::StringMap<mlir::Operation *> collectRoutineMap(mlir::ModuleOp &moduleOp);
-
-        /**
          * Constructs the MILP model from the given MLIR module. This includes building
          * MILP blocks, qubit usage, and block precedence constraints.
          * @param moduleOp The MLIR module to analyze.
@@ -407,17 +399,18 @@ namespace qoala::analysis {
                    BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                    mlir::LogicalResult>
         buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp &mainFunc,
-                        const llvm::StringMap<mlir::Operation *> &routineMap);
+                        const dialects::helpers::RoutineMap &routineMap);
 
         /**
          * Constructs a map between qubits as MLIR values and all the MLIR operations that have memory effects on them.
          * @param mainFunc The main function.
-         * @param moduleOp The MLIR module to analyze.
+         * @param routineMap a map from NetQASM routines' symbol names to their corresponding operations
          * @returns A map between the qubit MLIR values and a vector of MLIR operations that have memory effects on
          * them, and a LogicalResult indicating success or failure.
          */
         std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
-        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp &mainFunc, mlir::ModuleOp &moduleOp);
+        collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp &mainFunc,
+                          const dialects::helpers::RoutineMap &routineMap);
 
         /**
          * Reorders the blocks in the given module based on the specified MILP solution order.

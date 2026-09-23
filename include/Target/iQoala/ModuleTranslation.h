@@ -3,6 +3,7 @@
 
 #include <stack>
 
+#include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/Export.h"
 #include "Target/iQoala/QoalaTranslationInterface.h"
 #include "Target/iQoala/iQoala.h"
@@ -146,6 +147,8 @@ namespace qoala::translate {
         [[nodiscard]]
         mlir::ModuleOp *getMLIRModule() const;
         [[nodiscard]]
+        dialects::helpers::RoutineMap &getRoutineMap() const;
+        [[nodiscard]]
         iqoala::iQoalaModule *getQoalaModule() const;
 
         [[nodiscard]]
@@ -172,6 +175,7 @@ namespace qoala::translate {
 
     private:
         mlir::ModuleOp *mlirModule;
+        std::unique_ptr<dialects::helpers::RoutineMap> routineMap;
         std::unique_ptr<iqoala::iQoalaModule> iQoalaModule;
         QoalaTranslationInterfaces ifaces;
         // Mappings MLIR and MC objects

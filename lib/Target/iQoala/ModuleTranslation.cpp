@@ -20,6 +20,7 @@ using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::analysis;
+using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::netqasm;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::dialects::qremote;
@@ -40,6 +41,8 @@ namespace qoala::translate {
 
     ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
 
+    RoutineMap &ModuleTranslation::getRoutineMap() const { return *this->routineMap; }
+
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
     std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const StringRef &key) const {
@@ -50,7 +53,8 @@ namespace qoala::translate {
     }
 
     ModuleTranslation::ModuleTranslation(ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule):
-        mlirModule(module), iQoalaModule(std::move(iQoalaModule)), ifaces(module->getContext()) { }
+        mlirModule(module), routineMap(std::make_unique<RoutineMap>(module)), iQoalaModule(std::move(iQoalaModule)),
+        ifaces(module->getContext()) { }
 
     LogicalResult ModuleTranslation::convertOperation(Operation &op) {
         // This is the entry point of the translation of any operation.

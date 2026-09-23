@@ -19,14 +19,6 @@ using namespace qoala::analysis;
 using namespace qoala::options;
 
 namespace qoala::analysis::reordering {
-    inline Operation *resolveCallee(qoalahost::CallOp callOp, const llvm::StringMap<Operation *> &routineMap) {
-        // Fast lookup of the callee routine for a qoalahost.call.
-        // Returns nullptr if the symbol is not in `routineMap`.
-        // `getCallee()` is cheaper than going through SymbolRefAttr plumbing.
-        const StringRef symName = callOp.getCallee();
-        return routineMap.contains(symName) ? routineMap.at(callOp.getCallee()) : nullptr;
-    }
-
     static LogicalResult createTasksForBlock(MILPBlock *blk, const Location &loc) {
         // Creates the set of MILP tasks associated with a given block.
 
@@ -80,7 +72,7 @@ namespace qoala::analysis::reordering {
     }
 
     static LogicalResult inlineCallIntoBlock(qoalahost::CallOp callOp, const std::string &blkId, uint32_t &opIdx,
-                                             const llvm::StringMap<Operation *> &routineMap, Block *callerBlock,
+                                             const dialects::helpers::RoutineMap &routineMap, Block *callerBlock,
                                              MILPBlock *blk,
                                              std::unordered_map<Operation *, MILPOperation *> &opToMilpOp) {
         // Inline the body of a qoalahost.call whose callee is a LocalRoutineOp or
@@ -90,11 +82,11 @@ namespace qoala::analysis::reordering {
         // callee does not end in netqasm.return).
 
         // Resolve the callee.
-        Operation *callee = resolveCallee(callOp, routineMap);
-        if (!callee || !isa<FunctionOpInterface>(callee)) {
+        const std::optional<Operation *> callee = routineMap.getRoutineWithName(callOp.getCallee());
+        if (!callee.has_value() || !isa<FunctionOpInterface>(callee.value())) {
             return callOp.emitError("Callee is not a FunctionOpInterface"), failure();
         }
-        const auto calleeFunc = llvm::cast<FunctionOpInterface>(callee);
+        const auto calleeFunc = llvm::cast<FunctionOpInterface>(callee.value());
 
         bool foundReturn = false;
         bool foundOpWithoutDuration = false;
@@ -156,20 +148,10 @@ namespace qoala::analysis::reordering {
         }
     }
 
-    llvm::StringMap<Operation *> collectRoutineMap(ModuleOp &moduleOp) {
-        llvm::StringMap<Operation *> routineMap;
-
-        moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
-            routineMap.try_emplace(routine.getRoutineName(), routine.getOperation());
-        });
-
-        return routineMap;
-    }
-
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,
                BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                LogicalResult>
-    buildMilpBlocks(qoalahost::MainFuncOp &mainFunc, const llvm::StringMap<Operation *> &routineMap) {
+    buildMilpBlocks(qoalahost::MainFuncOp &mainFunc, const dialects::helpers::RoutineMap &routineMap) {
         std::vector<std::shared_ptr<MILPBlock>> blocks;
         BlockPrecedenceList precedences;
 
@@ -438,7 +420,7 @@ namespace qoala::analysis::reordering {
     }
 
     std::tuple<llvm::DenseMap<Value, std::vector<Operation *>>, LogicalResult>
-    collectQubitUsage(qoalahost::MainFuncOp &mainFunc, ModuleOp &moduleOp) {
+    collectQubitUsage(qoalahost::MainFuncOp &mainFunc, const dialects::helpers::RoutineMap &routineMap) {
         // Maps canonicalized Qubit Value to list of ops using it (e.g., qinit, measure, epr)
         llvm::DenseMap<Value, std::vector<Operation *>> qubitToOps;
         // Maps result of call to actual QAlloc op it aliases (transitive resolution)
@@ -473,7 +455,9 @@ namespace qoala::analysis::reordering {
             //     return WalkResult::advance();
             // }
 
-            Operation *callee = dialects::helpers::getRoutineWithName(&moduleOp, callOp.getCallee());
+            const std::optional<Operation *> calleeOp = routineMap.getRoutineWithName(callOp.getCallee());
+            assert(calleeOp.has_value() && "Could not resolve callee");
+            Operation *callee = calleeOp.value();
             Block &entry = callee->getRegion(0).front();
 
             // Map formal function arguments to actual call operands
@@ -628,7 +612,7 @@ namespace qoala::analysis::reordering {
         }
         qoalahost::MainFuncOp mainFunc = *mainFuncs.begin();
 
-        llvm::StringMap<Operation *> routineMap = collectRoutineMap(moduleOp);
+        const dialects::helpers::RoutineMap routineMap(&moduleOp);
 
         auto [blocks, opToMilpOp, precedences, unresolvedEdges, idToBlockMap, blocksStatus] =
                 buildMilpBlocks(mainFunc, routineMap);
@@ -677,7 +661,7 @@ namespace qoala::analysis::reordering {
 
         LLVM_DEBUG(llvm::dbgs() << "=== Generating all MILPQubits ===\n");
 
-        auto [qubitToOps, collStatus] = collectQubitUsage(mainFunc, moduleOp);
+        auto [qubitToOps, collStatus] = collectQubitUsage(mainFunc, routineMap);
         if (failed(collStatus)) {
             return {{}, {}, {}, {}, failure()};
         }
@@ -1341,6 +1325,7 @@ namespace qoala::analysis::reordering {
 
     LogicalResult reorderBlocksByMilpOrder(ModuleOp &moduleOp, const std::vector<std::string> &orderedBlockIds) {
         const auto mainFuncs = moduleOp.getOps<qoalahost::MainFuncOp>();
+        const dialects::helpers::RoutineMap routineMap(&moduleOp);
         if (mainFuncs.empty()) {
             emitError(moduleOp.getLoc(), "No main function found in module");
             return failure();
@@ -1376,8 +1361,7 @@ namespace qoala::analysis::reordering {
                 blk.walk([&](qoalahost::BlkMeta meta) -> WalkResult {
                     if (idToBlock.contains(meta.getBlockId())) {
                         if (auto call = dyn_cast_or_null<qoalahost::CallOp>(&*std::next(blk.begin()))) {
-                            isQC = dialects::helpers::hasRequestRoutineWithName(&moduleOp,
-                                                                                call.getCalleeAttr().getValue());
+                            isQC = routineMap.hasRequestRoutineWithName(call.getCalleeAttr().getValue());
                         }
                         if (isQC) {
                             blk.moveBefore(insertionPoint);
