@@ -24,8 +24,8 @@ namespace qoala::analysis {
 
         std::vector<uint32_t> sortedQubits;
         sortedQubits.reserve(detailedOneQubitGateCount.size());
-        for (const auto &item : detailedOneQubitGateCount) {
-            sortedQubits.push_back(item.first);
+        for (const auto [qubit, count] : detailedOneQubitGateCount) {
+            sortedQubits.push_back(qubit);
         }
         std::sort(sortedQubits.begin(), sortedQubits.end());
 

@@ -103,17 +103,17 @@ namespace qoala::iqoala {
             }
         }
 
-        for (auto exprToResolve : expressionsToResolve) {
-            assert(operationToIndex.contains(exprToResolve.second) &&
+        for (auto [expression, operation] : expressionsToResolve) {
+            assert(operationToIndex.contains(operation) &&
                    "Resolve Instr Refs: Instruction containing an InstrRef comes from an MLIR operation not present in "
                    "NetQASM body!");
-            assert(operationToIndex.contains(exprToResolve.first->getTargetOp()) &&
+            assert(operationToIndex.contains(expression->getTargetOp()) &&
                    "Resolve Instr Refs: InstrRef refers to an operation not found within the NetQASM body!");
 
-            const int32_t sourceIndex = operationToIndex[exprToResolve.first->getTargetOp()];
-            const int32_t targetIndex = operationToIndex[exprToResolve.second];
+            const int32_t sourceIndex = operationToIndex[expression->getTargetOp()];
+            const int32_t targetIndex = operationToIndex[operation];
 
-            exprToResolve.first->resolveDisplacement(sourceIndex - targetIndex);
+            expression->resolveDisplacement(sourceIndex - targetIndex);
         }
     }
 

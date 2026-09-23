@@ -90,9 +90,9 @@ namespace mlir::port {
                 // Note: Run "mlir-opt -debug" to see which pattern is broken.
                 llvm::report_fatal_error("pattern returned success but IR did not change");
             }
-            for (const auto &it : fingerprints) {
+            for (const auto [operation, fingerprint] : fingerprints) {
                 // Skip top-level op, its finger print is never invalidated.
-                if (it.first == topLevel) {
+                if (operation == topLevel) {
                     continue;
                 }
                 // Note: Finger print computation may crash when an op was erased
@@ -101,7 +101,7 @@ namespace mlir::port {
                 // API.) Finger print computation does may not crash if a new op was
                 // created at the same memory location. (But then the finger print should
                 // have changed.)
-                if (it.second != OperationFingerPrint(it.first, /*includeNested=*/false)) {
+                if (it.second != OperationFingerPrint(operation, /*includeNested=*/false)) {
                     // Note: Run "mlir-opt -debug" to see which pattern is broken.
                     llvm::report_fatal_error("operation finger print changed");
                 }

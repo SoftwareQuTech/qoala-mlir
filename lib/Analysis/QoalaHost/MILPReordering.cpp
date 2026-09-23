@@ -210,8 +210,8 @@ namespace qoala::analysis::reordering {
                 return WalkResult::advance();
             }
 
-            StringRef id = blkMeta.getBlockId();
-            MetaRefInfo &info = metaRefInfo[id]; // ensure exists
+            const StringRef id = blkMeta.getBlockId();
+            auto &[hasOutgoing, incoming] = metaRefInfo[id]; // ensure exists
 
             // Outgoing refs present in this block's metadata?
             bool hasPreds = false;
@@ -234,7 +234,7 @@ namespace qoala::analysis::reordering {
                 hasPrevComm = !a.getValue().empty();
             }
 
-            info.hasOutgoing = hasPreds || hasDeps || hasPrevEnt || hasPrevComm;
+            hasOutgoing = hasPreds || hasDeps || hasPrevEnt || hasPrevComm;
 
             // Record incoming refs: who does this blk_meta mention?
             if (const ArrayAttr a = blkMeta.getPredecessorsAttr()) {
@@ -258,17 +258,17 @@ namespace qoala::analysis::reordering {
         });
 
         // Finalize incoming counts.
-        for (auto &kv : metaRefInfo) {
-            kv.second.incoming = incomingCountTmp.lookup(kv.first());
+        for (auto &[key, value] : metaRefInfo) {
+            value.incoming = incomingCountTmp.lookup(key);
         }
 
         // Helper: decide if we should skip an empty block entirely.
-        auto isIsolatedEmptyBlock = [&](StringRef blkId) -> bool {
-            auto it = metaRefInfo.find(blkId);
-            if (it == metaRefInfo.end()) {
+        auto isIsolatedEmptyBlock = [&](const StringRef blkId) -> bool {
+            if (!metaRefInfo.contains(blkId)) {
                 return false; // be conservative
             }
-            return !it->second.hasOutgoing && it->second.incoming == 0;
+            auto [hasOutgoing, incoming] = metaRefInfo.at(blkId);
+            return !hasOutgoing && incoming == 0;
         };
         // End prepass
 
@@ -362,7 +362,7 @@ namespace qoala::analysis::reordering {
                 bool shouldAdd = false;
 
                 if (auto durationOp = dyn_cast<helpers::QuantumOpInterface>(&op)) {
-                    dur = durationOp.getDuration();
+                    dur = static_cast<int64_t>(durationOp.getDuration());
                     shouldAdd = true;
                 } else if (blkType == BlockType::CL) {
                     dur = qoalaOptHostInstrTime;
@@ -853,16 +853,15 @@ namespace qoala::analysis::reordering {
         // Implemented using a linear inequality with a lower bound (right-hand side).
 
         for (const auto &[pred, succ] : precedences_) {
-            // const MILPBlock *pred = e.first;
-            // const MILPBlock *succ = e.second;
             const MILPOperation *predLast = pred->lastOp();
             const MILPOperation *succFirst = succ->firstOp();
 
             SCIP_CONS *c;
             std::string name = "prec_" + pred->getId() + "_" + succ->getId();
-            const int64_t lhs = predLast->getDuration();
+            const auto lhs = static_cast<int64_t>(predLast->getDuration());
             LLVM_DEBUG(llvm::dbgs() << "B...lhs = " << lhs << "\n");
-            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, lhs, SCIPinfinity(scip_));
+            SCIPcreateConsBasicLinear(scip_, &c, name.c_str(), 0, nullptr, nullptr, static_cast<double>(lhs),
+                                      SCIPinfinity(scip_));
             SCIPaddCoefLinear(scip_, c, startVars_[succFirst->getId()], 1.0);
             SCIPaddCoefLinear(scip_, c, startVars_[predLast->getId()], -1.0);
             SCIPaddCons(scip_, c);
@@ -1175,8 +1174,8 @@ namespace qoala::analysis::reordering {
         // Extract IDs in order
         std::vector<std::string> allocOrder;
         allocOrder.reserve(allocWithTimes.size());
-        for (const auto &p : allocWithTimes) {
-            allocOrder.push_back(p.first);
+        for (const auto &[id, time] : allocWithTimes) {
+            allocOrder.push_back(id);
         }
 
         return allocOrder;

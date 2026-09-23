@@ -22,7 +22,7 @@ namespace qoala::analysis::netqasm {
                 return result;
             }
 
-            for (auto returnVal : llvm::enumerate(returnOp.value()->getOperands())) {
+            for (auto [index, returnVal] : llvm::enumerate(returnOp.value()->getOperands())) {
                 // Assumption: In general, local routines return either qubit references
                 // OR measurement values, but NOT both (mixed value types).
                 // Being this said, we have two options to check if the local routine
@@ -32,10 +32,10 @@ namespace qoala::analysis::netqasm {
                 // * An operand is a function argument (returnVal.getDefiningOp() == nullptr)
                 //   so we need to check in the QoalaHost section if the value is labeled as
                 //   a qubit.
-                if (auto definingOp = returnVal.value().getDefiningOp()) {
+                if (auto definingOp = returnVal.getDefiningOp()) {
                     if (isa<QAllocOp>(definingOp)) {
-                        uint8_t qubitID = quantumRoutine->getQubitNum(returnVal.value());
-                        result.emplace(returnVal.index(), qubitID);
+                        uint8_t qubitID = quantumRoutine->getQubitNum(returnVal);
+                        result.emplace(index, qubitID);
                     }
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the

@@ -47,7 +47,7 @@ namespace qoala::analysis::functionize {
                     // We discovered an external argument of the group
                     // Map the discovered value to the function argument index that will correspond to the same value
                     // Luckily we know that its position will be exactly the current size of the argumentValues vector
-                    externalArgsIdxMap.insert(std::pair{opOperand, argumentValues.size()});
+                    externalArgsIdxMap.insert({opOperand, argumentValues.size()});
                     // Add the value and its type to the discovered sets
                     argumentValues.insert(opOperand);
                     argTypes.push_back(opOperand.getType());
@@ -167,15 +167,15 @@ namespace qoala::analysis::functionize {
 
                 // If the current operation has the "Entangle" trait, then the function wrapper needs
                 // to have the "entangle" attribute. This will be used later when lowering to NetQASM
-                if (originalQuantumOp->hasTrait<mlir::OpTrait::Entangle>()) {
+                if (originalQuantumOp->hasTrait<OpTrait::Entangle>()) {
                     functionHasEPRSOp = true;
                 }
 
                 LLVM_DEBUG(llvm::dbgs() << " * cloned op: " << *clonedOp << "\n");
             }
             if (functionHasEPRSOp) {
-                // We "mark" the function declaration, so when lowering the func operation the pass can
-                // know that this particular function needs to be lowered to netqasm.request_routine
+                // We "mark" the function declaration, so the pass can know when lowering the func
+                // operation that this particular function needs to be lowered to netqasm.request_routine
                 const Attribute entangle = opBuilder.getStringAttr("true");
                 newFunc->setAttr("entangle", entangle);
             }
@@ -186,15 +186,13 @@ namespace qoala::analysis::functionize {
             // At this time, we also consolidate the external function results (values) that will be used as
             // operands of the return operation.
             std::vector<Value> functionResults;
-            for (auto resultMapPair : externalResultsMap) {
-                Value originalResult = resultMapPair.first;
-                Value functionResult = resultMapPair.second;
+            for (auto [originalResult, functionResult] : externalResultsMap) {
                 // Hack: the position of this argument will be exactly the current size of the functionResults vector
                 data.replacementMap.insert(std::pair{originalResult, functionResults.size()});
                 functionResults.push_back(functionResult);
             }
             // Create the "return" for the new operation
-            auto returnOp = opBuilder.create<func::ReturnOp>(newFunc.getLoc(), functionResults);
+            const auto returnOp = opBuilder.create<func::ReturnOp>(newFunc.getLoc(), functionResults);
             LLVM_DEBUG(llvm::dbgs() << "New Function:\n" << newFunc << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Has entanglement: " << (functionHasEPRSOp ? "Yes" : "No") << "\n");
             LLVM_DEBUG(llvm::dbgs() << "Return op:\n - " << returnOp << "\n");
@@ -203,7 +201,7 @@ namespace qoala::analysis::functionize {
         data.newFunction = newFunc;
     }
 
-    void functionizeModule(ModuleOp &module, ClassifierFnTy classifyOperations, uint32_t maxOpsPerGroup) {
+    void functionizeModule(ModuleOp &module, ClassifierFnTy operationsClassifier, uint32_t maxOpsPerGroup) {
         uint32_t groupNum = 0;
 
         auto mainFunctions = module.getOps<dialects::qmem::FuncOp>();
@@ -211,7 +209,7 @@ namespace qoala::analysis::functionize {
         assert(!mainFunctions.empty());
         // We assume that the main function to analyze is just the first one (lexicographically) in the module
         dialects::qmem::FuncOp mainFunction = *mainFunctions.begin();
-        std::vector<QuantumOpsGroupTy> functionGroups = classifyOperations(mainFunction, maxOpsPerGroup);
+        std::vector<QuantumOpsGroupTy> functionGroups = operationsClassifier(mainFunction, maxOpsPerGroup);
 
         // We start building our new functions at the start of the body of the module
         OpBuilder opBuilder(module.getBodyRegion());

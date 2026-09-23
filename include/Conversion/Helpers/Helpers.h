@@ -17,19 +17,19 @@ namespace qoala::helpers {
         //
         // To avoid these lifetime issues, OpAndValues eagerly copies all replacement
         // values into an owning container.
-        OpAndValues(mlir::Operation *op, mlir::ValueRange vr): operation(op), values(vr.begin(), vr.end()) { }
+        OpAndValues(mlir::Operation *op, const mlir::ValueRange &vr): operation(op), values(vr.begin(), vr.end()) { }
 
-        OpAndValues(mlir::Operation *op, mlir::Value v): operation(op), values{v} { }
+        OpAndValues(mlir::Operation *op, const mlir::Value &v): operation(op), values{v} { }
 
         // Convenience overload: accept operand ranges too.
-        OpAndValues(mlir::Operation *op, mlir::OperandRange orng): operation(op) {
+        OpAndValues(mlir::Operation *op, const mlir::OperandRange &orng): operation(op) {
             values.reserve(orng.size());
-            for (mlir::Value v : orng) {
+            for (const mlir::Value &v : orng) {
                 values.push_back(v);
             }
         }
 
-        mlir::Operation *operation{};
+        mlir::Operation *operation;
         llvm::SmallVector<mlir::Value, 4> values;
     };
 
