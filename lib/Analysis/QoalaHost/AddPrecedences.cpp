@@ -1,4 +1,4 @@
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Precedences.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"

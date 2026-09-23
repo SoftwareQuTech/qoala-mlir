@@ -1,4 +1,4 @@
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/QMemoryEfficiency.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/ADT/DenseSet.h"
@@ -13,8 +13,22 @@
 using namespace mlir;
 using namespace qoala::dialects;
 
-namespace qoala::analysis::qmemeff {
+namespace {
+    // Struct to track counts during branch evaluation.
+    struct BranchCounts {
+        uint32_t virtualQubits;
+        uint32_t physicalQubits;
+        uint32_t measured;
 
+        void dumpInto(uint32_t &virt, uint32_t &phys, uint32_t &meas) const {
+            virt = virtualQubits;
+            phys = physicalQubits;
+            meas = measured;
+        }
+    };
+} // namespace
+
+namespace qoala::analysis::qmemeff {
     // Process qalloc and measure operations inside a callee function,
     // updating virtualQubits, physicalQubits and measured buffer accordingly.
     static void processCalleeQMemOps(FunctionOpInterface callee, uint32_t &virtualQubits, uint32_t &physicalQubits,
@@ -37,27 +51,14 @@ namespace qoala::analysis::qmemeff {
         });
     }
 
-    // Struct to track counts during branch evaluation.
-    struct BranchCounts {
-        uint32_t virtualQubits;
-        uint32_t physicalQubits;
-        uint32_t measured;
-
-        void dumpInto(uint32_t &virt, uint32_t &phys, uint32_t &meas) const {
-            virt = virtualQubits;
-            phys = physicalQubits;
-            meas = measured;
-        }
-    };
-
     // Return the first unvisited block in physical (region) order, skipping condBrTargets.
     // This mirrors the iQoala code generator's physical-order traversal, so the qubit
     // alloc/free sequence here matches what allocateQubit/releaseQubit would produce.
-    static mlir::Block *scanNextPhysicalBlock(mlir::Region &region, const llvm::DenseSet<mlir::Block *> &visited,
-                                              const llvm::DenseSet<mlir::Block *> &condBrTargets) {
-        for (mlir::Block &b : region.getBlocks()) {
+    static Block *scanNextPhysicalBlock(Region &region, const llvm::DenseSet<Block *> &visited,
+                                        const llvm::DenseSet<Block *> &condBrTargets) {
+        for (Block &b : region.getBlocks()) {
             if (!visited.contains(&b) && !condBrTargets.contains(&b)) {
-                std::string blockId = dyn_cast<dialects::qoalahost::BlkMeta>(b.front()).getBlockId().str();
+                const std::string blockId = dyn_cast<qoalahost::BlkMeta>(b.front()).getBlockId().str();
                 LLVM_DEBUG(llvm::dbgs() << "Next physcal block: " << blockId << ".\n");
                 return &b;
             }
@@ -68,16 +69,16 @@ namespace qoala::analysis::qmemeff {
     // Traverse CFG and count qalloc/measure ops.
     // Blocks are visited in physical (region) order so that qubit reuse detected here
     // matches the virtual-qubit assignments made by the iQoala code generator.
-    static void traverseCFGAndCountQMem(mlir::Block *startBlock, llvm::DenseSet<mlir::Block *> &visited,
-                                        uint32_t &virtualQubits, uint32_t &physicalQubits, uint32_t &measured,
-                                        llvm::DenseSet<mlir::Block *> condBrTargets) {
+    static void traverseCFGAndCountQMem(Block *startBlock, llvm::DenseSet<Block *> &visited, uint32_t &virtualQubits,
+                                        uint32_t &physicalQubits, uint32_t &measured,
+                                        const llvm::DenseSet<Block *> &condBrTargets) {
         Block *block = startBlock;
         while (block) {
             if (visited.contains(block)) {
                 return;
             }
             visited.insert(block);
-            std::string blockId = dyn_cast<dialects::qoalahost::BlkMeta>(block->front()).getBlockId().str();
+            std::string blockId = dyn_cast<qoalahost::BlkMeta>(block->front()).getBlockId().str();
 
             LLVM_DEBUG(llvm::dbgs() << "Visiting block " << blockId << ".\n");
 
@@ -88,19 +89,19 @@ namespace qoala::analysis::qmemeff {
                 }
 
                 if (auto callOp = dyn_cast<qoalahost::CallOp>(&op)) {
-                    auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
+                    const auto callee = callOp.getCalleeOperation<FunctionOpInterface>();
                     processCalleeQMemOps(callee, virtualQubits, physicalQubits, measured);
                 }
             }
 
             // Handle branching via terminator.
-            auto terminator = block->getTerminator();
+            const auto terminator = block->getTerminator();
             if (auto condBr = dyn_cast<cf::CondBranchOp>(terminator)) {
                 LLVM_DEBUG(llvm::dbgs() << "Evaluating conditional branch.\n");
                 std::string trueBlockId =
-                        dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getTrueDest()->front()).getBlockId().str();
+                        dyn_cast<qoalahost::BlkMeta>(condBr.getTrueDest()->front()).getBlockId().str();
                 std::string falseBlockId =
-                        dyn_cast<dialects::qoalahost::BlkMeta>(condBr.getFalseDest()->front()).getBlockId().str();
+                        dyn_cast<qoalahost::BlkMeta>(condBr.getFalseDest()->front()).getBlockId().str();
                 LLVM_DEBUG(llvm::dbgs() << "From block " << blockId << " to: True->" << trueBlockId << "; False->"
                                         << falseBlockId << ".\n");
                 // Capture initial counts
@@ -149,8 +150,7 @@ namespace qoala::analysis::qmemeff {
             }
 
             if (auto br = dyn_cast<cf::BranchOp>(terminator)) {
-                std::string destBlockId =
-                        dyn_cast<dialects::qoalahost::BlkMeta>(br.getDest()->front()).getBlockId().str();
+                std::string destBlockId = dyn_cast<qoalahost::BlkMeta>(br.getDest()->front()).getBlockId().str();
                 LLVM_DEBUG(llvm::dbgs() << "Unconditional branch from block " << blockId << " to " << destBlockId
                                         << ".\n");
                 block = br.getDest();
@@ -178,7 +178,7 @@ namespace qoala::analysis::qmemeff {
 
         uint32_t measured = 0;
         llvm::DenseSet<Block *> visited;
-        llvm::DenseSet<Block *> condBrTargets;
+        const llvm::DenseSet<Block *> condBrTargets;
         traverseCFGAndCountQMem(&mainFunc.front(), visited, virtualQubits, physicalQubits, measured, condBrTargets);
     }
 
