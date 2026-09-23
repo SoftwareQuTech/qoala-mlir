@@ -160,13 +160,7 @@ namespace qoala::analysis::reordering {
         llvm::StringMap<Operation *> routineMap;
 
         moduleOp.walk([&](helpers::NetQASMRoutineInterface routine) {
-            Operation *op = routine.getOperation();
-
-            if (auto localRoutine = llvm::dyn_cast<dialects::netqasm::LocalRoutineOp>(op)) {
-                routineMap.try_emplace(localRoutine.getSymName(), op);
-            } else if (auto requestRoutine = llvm::dyn_cast<dialects::netqasm::RequestRoutineOp>(op)) {
-                routineMap.try_emplace(requestRoutine.getSymName(), op);
-            }
+            routineMap.try_emplace(routine.getRoutineName(), routine.getOperation());
         });
 
         return routineMap;

@@ -16,6 +16,14 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
         InterfaceMethod<[{
             Returns the an Array with the Types of the arguments of this routine
         }], "llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
+        >,
+        InterfaceMethod<[{
+            Returns the symbol (function) name of this routine
+        }], "llvm::StringRef", "getRoutineName",
+        (ins), /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{
+            return $_op.getSymName();
+        }]
         >
     ];
 }
