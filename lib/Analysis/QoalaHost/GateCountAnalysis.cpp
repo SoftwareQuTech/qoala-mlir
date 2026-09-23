@@ -1,5 +1,5 @@
 #include "Analysis/QoalaHost/GateCount.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 

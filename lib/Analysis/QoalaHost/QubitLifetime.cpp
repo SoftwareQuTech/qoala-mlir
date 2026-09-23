@@ -1,11 +1,10 @@
 #include <deque>
 #include "Analysis/QoalaHost/AnalysisTraversal.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Analysis/QoalaHost/QubitLife.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"

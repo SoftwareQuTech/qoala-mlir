@@ -3,7 +3,7 @@
 
 // IMPORTANT: We need to include the qoala-op options *before* including
 // The generated interfaces, otherwise the option variables will not be found
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Tools/QoalaOpt.h"
 

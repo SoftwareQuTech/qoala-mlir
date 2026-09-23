@@ -1,5 +1,5 @@
 #include "Analysis/NetQASM/Helpers.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/Passes.h"

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "Analysis/NetQASM/Helpers.h"
 #include "Analysis/QoalaHost/AnalysisTraversal.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
