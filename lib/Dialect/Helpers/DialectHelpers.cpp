@@ -5,6 +5,47 @@
 using namespace mlir;
 
 namespace qoala::dialects::helpers {
+    RoutineMap::RoutineMap(ModuleOp *module) {
+        module->walk([&](netqasm::LocalRoutineOp routine) {
+            this->localRoutinesMap.try_emplace(routine.getRoutineName(), routine.getOperation());
+        });
+
+        module->walk([&](netqasm::RequestRoutineOp routine) {
+            this->requestRoutinesMap.try_emplace(routine.getRoutineName(), routine.getOperation());
+        });
+    }
+
+    bool RoutineMap::containsSymbolWithName(const StringRef &functionName) const {
+        return this->localRoutinesMap.contains(functionName) || this->requestRoutinesMap.contains(functionName);
+    }
+
+    std::optional<Operation *> RoutineMap::getLocalRoutineWithName(const StringRef &functionName) const {
+        if (this->localRoutinesMap.contains(functionName)) {
+            return this->localRoutinesMap.at(functionName);
+        }
+        return std::nullopt;
+    }
+
+    std::optional<Operation *> RoutineMap::getRequestRoutineWithName(const StringRef &functionName) const {
+        if (this->requestRoutinesMap.contains(functionName)) {
+            return this->requestRoutinesMap.at(functionName);
+        }
+        return std::nullopt;
+    }
+
+    bool RoutineMap::hasLocalRoutineWithName(const StringRef &functionName) const {
+        return this->getLocalRoutineWithName(functionName).has_value();
+    }
+
+    bool RoutineMap::hasRequestRoutineWithName(const StringRef &functionName) const {
+        return this->getRequestRoutineWithName(functionName).has_value();
+    }
+
+
+    std::optional<Operation *> RoutineMap::getRoutineWithName(const StringRef &functionName) const {
+        return this->getLocalRoutineWithName(functionName) ? this->getLocalRoutineWithName(functionName) : this->getRequestRoutineWithName(functionName);
+    }
+
     bool operationIsInsideMainFunc(Operation *op) {
         const auto parent = op->getParentOfType<qoalahost::MainFuncOp>();
         return parent != nullptr;
