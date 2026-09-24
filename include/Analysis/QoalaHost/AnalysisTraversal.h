@@ -3,9 +3,7 @@
 
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
 #include "mlir/IR/Block.h"
-#include "mlir/IR/Region.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"
 
@@ -25,7 +23,7 @@ namespace qoala::analysis {
     /**
      * Scan all blocks in physical order and return the first unvisited block
      * whose blk_meta prerequisites are met, skipping forbidden condBrTargets.
-     * Physical order is the tie-breaker for equally-ready blocks.
+     * Physical order is the tie-breaker for equally ready blocks.
      */
     mlir::Block *scanForReadyBlock(mlir::Region &region, const llvm::DenseSet<mlir::Block *> &visited,
                                    const BlockPrerequisites &prereqs,

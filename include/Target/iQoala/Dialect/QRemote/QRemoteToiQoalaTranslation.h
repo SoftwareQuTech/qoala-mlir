@@ -1,8 +1,8 @@
 #ifndef QREMOTETOIQOALATRANSLATION_H
 #define QREMOTETOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/Support/LogicalResult.h"
 
 #include "Dialect/QRemote/QRemote.h"

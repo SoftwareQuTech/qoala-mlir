@@ -16,8 +16,7 @@
 using namespace mlir;
 using namespace qoala;
 
-namespace qoala::analysis::qoalahost::gatecount {
-
+namespace {
     // Mutable state threaded through the CFG traversal.
     struct GateCountState {
         llvm::DenseMap<Value, std::string> qubitIds;
@@ -29,6 +28,9 @@ namespace qoala::analysis::qoalahost::gatecount {
         llvm::StringMap<uint32_t> detailedOneQubitGateCount;
         llvm::StringMap<uint32_t> detailedTwoQubitGateCount;
     };
+} // namespace
+
+namespace qoala::analysis::qoalahost::gatecount {
 
     // Map call operands/results to callee block args/returns.
     static DenseMap<Value, Value> mapReturnValToCaller(dialects::qoalahost::CallOp callOp, FunctionOpInterface callee) {
@@ -105,13 +107,13 @@ namespace qoala::analysis::qoalahost::gatecount {
         callee.walk([&](Operation *innerOp) {
             llvm::TypeSwitch<Operation *>(innerOp)
                     .Case<dialects::netqasm::MeasureOp>([&](auto meas) {
-                        auto operand = meas.getOperation()->getOperands().front();
+                        auto operand = meas.getOperation()->getOperand(0);
                         auto qId = getQubitID(operand, state.qubitIds, valuesArgMap, returnedValuesMap);
                         LLVM_DEBUG(llvm::dbgs() << "Found Meas op on qubit " << qId << ".\n");
                         flushTempOneQubitCount(qId, state);
                     })
                     .Case<dialects::netqasm::QInitOp, dialects::netqasm::EprsOp>([&](auto init) {
-                        auto operand = init.getOperation()->getOperands().front();
+                        auto operand = init.getOperation()->getOperand(0);
                         std::string qId = blockId + "::" + std::to_string(opIdx);
                         LLVM_DEBUG(llvm::dbgs() << "Found initialization of qubit " << qId << ".\n");
                         if (auto newQubit = getCallValFromCallee(operand, valuesArgMap, returnedValuesMap)) {
@@ -127,7 +129,7 @@ namespace qoala::analysis::qoalahost::gatecount {
                         state.detailedGateCount[qId] = 0;
                     })
                     .Case<dialects::netqasm::ifaces::SingleQubitOp>([&](auto oneQubitOp) {
-                        auto operand = oneQubitOp.getOperation()->getOperands().front();
+                        auto operand = oneQubitOp.getOperation()->getOperand(0);
                         auto qId = getQubitID(operand, state.qubitIds, valuesArgMap, returnedValuesMap);
                         LLVM_DEBUG(llvm::dbgs() << "Found one-qubit gate " << oneQubitOp << ".\n");
                         LLVM_DEBUG(llvm::dbgs() << "Updating one-qubit gate count on qubit " << qId << ".\n");
@@ -150,7 +152,7 @@ namespace qoala::analysis::qoalahost::gatecount {
     }
 
     // True if all blk_meta dependencies of `block` have already been visited.
-    static bool blockDepsMet(mlir::Block *block, const llvm::DenseSet<mlir::Block *> &visited,
+    static bool blockDepsMet(const Block *block, const llvm::DenseSet<Block *> &visited,
                              const BlockPrerequisites &prereqs) {
         if (!prereqs.dependencies.contains(block)) {
             return true;
@@ -163,12 +165,11 @@ namespace qoala::analysis::qoalahost::gatecount {
     /**
      * Traverse CFG and count gates.
      * For conditional branches, evaluates both paths and selects the one with more gates.
-     * For blocks without explicit control-flow terminators, uses scanForReadyBlock
+     * For blocks without explicit control-flow terminators, it uses scanForReadyBlock
      * to determine the next block based on blk_meta prerequisites and physical order.
      */
-    static void traverseCFGAndCountGates(mlir::Block *startBlock, llvm::DenseSet<mlir::Block *> &visited,
-                                         GateCountState &state, const BlockPrerequisites &prereqs,
-                                         llvm::DenseSet<mlir::Block *> condBrTargets) {
+    static void traverseCFGAndCountGates(Block *startBlock, llvm::DenseSet<Block *> &visited, GateCountState &state,
+                                         const BlockPrerequisites &prereqs, llvm::DenseSet<Block *> &condBrTargets) {
         Block *block = startBlock;
         while (block) {
             if (visited.contains(block)) {
@@ -273,9 +274,9 @@ namespace qoala::analysis::qoalahost::gatecount {
      */
     QoalaHostGateCount::QoalaHostGateCount(Operation *op) {
 
-        // Current implementation is tightly coupled with fidelity estimation, i.e.,
+        // The current implementation is tightly coupled with fidelity estimation, i.e.,
         // gate count is tracked up to measurement or last two-qubit op.
-        // In future could change to track every qubit up to last quantum op.
+        // In the future could change to track every qubit up to the last quantum op.
 
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostGateCountPass\n");
 

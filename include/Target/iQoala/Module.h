@@ -5,7 +5,7 @@
 #include "Target/iQoala/iQoalaContext.h"
 
 namespace qoala::iqoala {
-    class iQoalaModule : public helpers::PrintInterface {
+    class iQoalaModule : public helpers::print::PrintInterface {
     public:
         iQoalaModule(const llvm::StringRef &name, iQoalaContext *context): moduleName(name), iQoalaCtx(context) { }
 

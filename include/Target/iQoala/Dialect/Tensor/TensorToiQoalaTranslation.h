@@ -1,8 +1,8 @@
 #ifndef QOALA_MLIR_TENSORTOIQOALATRANSLATION_H
 #define QOALA_MLIR_TENSORTOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/Support/LogicalResult.h"
 
 #include "mlir/Dialect/Tensor/IR/Tensor.h"

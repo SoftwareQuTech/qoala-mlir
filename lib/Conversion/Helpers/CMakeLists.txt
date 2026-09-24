@@ -1,6 +1,7 @@
 add_library(QoalaConversionHelpers
         STATIC
         PrintHelpers.cpp
+        TypeConversionHelpers.cpp
         AngleTransformHelper.cpp
 )
 

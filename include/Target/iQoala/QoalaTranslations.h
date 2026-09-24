@@ -1,8 +1,6 @@
 #ifndef QOALATRANSLATIONS_H
 #define QOALATRANSLATIONS_H
 
-#include "mlir/IR/DialectRegistry.h"
-
 #include "Target/iQoala/Dialect/Arith/ArithToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/Builtin/BuiltinToiQoalaTranslation.h"
 #include "Target/iQoala/Dialect/ControlFlow/ControlFlowToiQoalaTranslation.h"

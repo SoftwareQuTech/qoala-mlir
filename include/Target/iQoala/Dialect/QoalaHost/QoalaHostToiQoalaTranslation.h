@@ -1,8 +1,8 @@
 #ifndef QOALAHOSTTOIQOALATRANSLATION_H
 #define QOALAHOSTTOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/Support/LogicalResult.h"
 
 #include "Dialect/QoalaHost/QoalaHost.h"

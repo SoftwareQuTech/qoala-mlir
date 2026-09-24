@@ -1,6 +1,7 @@
 #ifndef BUILTINTOIQOALATRANSLATION_H
 #define BUILTINTOIQOALATRANSLATION_H
 
+#include "Analysis/Helpers/Translation.h"
 #include "Target/iQoala/ModuleTranslation.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Support/LogicalResult.h"
