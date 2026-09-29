@@ -98,24 +98,6 @@ namespace qoala::helpers {
         }
     };
 
-    namespace print {
-        /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
-        struct IdentRAII {
-            uint32_t &indent;
-
-            explicit IdentRAII(uint32_t &indent): indent(indent) { }
-
-            ~IdentRAII() { --indent; }
-        };
-
-        void printOperation(mlir::Operation *op);
-        void printRegion(mlir::Region &region);
-        void printBlock(mlir::Block &block);
-        void resetIndent();
-        IdentRAII pushIndent();
-
-        llvm::raw_ostream &printIndent();
-    } // namespace print
 } // namespace qoala::helpers
 
 #endif // QOALA_MLIR_HELPERS_H
