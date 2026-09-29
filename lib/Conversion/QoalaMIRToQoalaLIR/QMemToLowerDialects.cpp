@@ -8,7 +8,7 @@
 #include "Analysis/QoalaHost/Isolate.h"
 #include "Analysis/QoalaHost/Precedences.h"
 #include "Analysis/QoalaHost/RemoteIDs.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
 #include "Dialect/NetQASM/NetQASM.h"

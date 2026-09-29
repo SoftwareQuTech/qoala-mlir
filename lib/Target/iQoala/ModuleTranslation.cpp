@@ -2,7 +2,7 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/NetQASM/Helpers.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Target/iQoala/MC/Helpers.h"

@@ -98,14 +98,6 @@ namespace qoala::helpers {
         }
     };
 
-    namespace angle {
-        extern std::string angleConversionFunctionName;
-
-        bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
-        mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);
-        std::vector<uint32_t> transformDouble(double angleRads);
-    } // namespace angle
-
     namespace print {
         /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
         struct IdentRAII {

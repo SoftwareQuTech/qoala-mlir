@@ -2,7 +2,7 @@
 #include "mlir/IR/Operation.h"
 
 #include "Analysis/Helpers/Helpers.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Dialect/Helpers/DialectHelpers.h"
 #include "Target/iQoala/Dialect/NetQASM/NetQASMToiQoalaTranslation.h"
 #include "Target/iQoala/MC/Helpers.h"

@@ -1,4 +1,5 @@
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Isolate.h"
 #include "Analysis/QoalaHost/Reordering.h"

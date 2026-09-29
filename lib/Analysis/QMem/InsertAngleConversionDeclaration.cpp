@@ -1,5 +1,6 @@
+#include "Conversion/Helpers/Angle.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
-#include "Dialect/QMem/QMem.h"
+//#include "Dialect/QMem/QMem.h"
 #include "mlir/IR/BuiltinOps.h"
 
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
