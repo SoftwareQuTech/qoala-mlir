@@ -168,7 +168,8 @@ namespace {
             reordering::MILPOperation *measOp = nullptr;
 
             for (Operation *op : ops) {
-                if (llvm::isa<qoala::dialects::netqasm::QInitOp>(op) || llvm::isa<qoala::dialects::netqasm::EprsOp>(op)) {
+                if (llvm::isa<qoala::dialects::netqasm::QInitOp>(op) ||
+                    llvm::isa<qoala::dialects::netqasm::EprsOp>(op)) {
                     auto it = opToMilpOp.find(op);
                     allocOp = (it != opToMilpOp.end()) ? it->second : nullptr;
                 }
@@ -208,7 +209,7 @@ namespace {
         // which is particularly relevant when enforcing FCFS constraints only between independent blocks.
         return C.count({a->getId(), b->getId()}) > 0;
     };
-}
+} // namespace
 
 namespace qoala::analysis::reordering {
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<Operation *, MILPOperation *>,

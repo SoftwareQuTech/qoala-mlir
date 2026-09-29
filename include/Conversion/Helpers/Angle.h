@@ -9,6 +9,6 @@ namespace qoala::helpers::angle {
     bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
     mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);
     std::vector<uint32_t> transformDouble(double angleRads);
-} // namespace angle
+} // namespace qoala::helpers::angle
 
 #endif // QOALA_MLIR_ANGLE_H

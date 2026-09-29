@@ -9,7 +9,7 @@ namespace mlir::OpTrait {
      * WARNING: This class _must_ be defined in the mlir::OpTrait namespace.
      */
     template<typename ConcreteType>
-    class Entangle : public mlir::OpTrait::TraitBase<ConcreteType, Entangle> {
+    class Entangle : public TraitBase<ConcreteType, Entangle> {
         // In the meantime, we don't have any specific behavior for operation
         // with the "Entangle" trait
     };

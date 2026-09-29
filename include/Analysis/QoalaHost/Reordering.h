@@ -372,8 +372,7 @@ namespace qoala::analysis::reordering {
      * them, and a LogicalResult indicating success or failure.
      */
     std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
-    collectQubitUsage(dialects::qoalahost::MainFuncOp &mainFunc,
-                      const dialects::helpers::RoutineMap &routineMap);
+    collectQubitUsage(dialects::qoalahost::MainFuncOp &mainFunc, const dialects::helpers::RoutineMap &routineMap);
 
     /**
      * Reorders the blocks in the given module based on the specified MILP solution order.
