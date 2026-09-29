@@ -331,7 +331,7 @@ namespace qoala::analysis::reordering {
 
         void addFCFSConsistencyConstraints();
 
-        void addQubitLifetimeConstraints();
+        void addQubitLifetimeConstraints() const;
         void addInterBlockGapConstraints();
         void addProgramHorizonConstraint();
 
@@ -362,7 +362,7 @@ namespace qoala::analysis::reordering {
     std::tuple<std::vector<std::shared_ptr<MILPBlock>>, std::unordered_map<mlir::Operation *, MILPOperation *>,
                BlockPrecedenceList, std::vector<std::pair<std::string, std::string>>, llvm::StringMap<MILPBlock *>,
                mlir::LogicalResult>
-    buildMilpBlocks(qoala::dialects::qoalahost::MainFuncOp &mainFunc, const dialects::helpers::RoutineMap &routineMap);
+    buildMilpBlocks(dialects::qoalahost::MainFuncOp &mainFunc, const dialects::helpers::RoutineMap &routineMap);
 
     /**
      * Constructs a map between qubits as MLIR values and all the MLIR operations that have memory effects on them.
@@ -372,7 +372,7 @@ namespace qoala::analysis::reordering {
      * them, and a LogicalResult indicating success or failure.
      */
     std::tuple<llvm::DenseMap<mlir::Value, std::vector<mlir::Operation *>>, mlir::LogicalResult>
-    collectQubitUsage(qoala::dialects::qoalahost::MainFuncOp &mainFunc,
+    collectQubitUsage(dialects::qoalahost::MainFuncOp &mainFunc,
                       const dialects::helpers::RoutineMap &routineMap);
 
     /**
