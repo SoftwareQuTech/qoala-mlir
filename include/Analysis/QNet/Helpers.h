@@ -1,7 +1,6 @@
 #ifndef QNET_HELPERS_H
 #define QNET_HELPERS_H
 
-#include "llvm/ADT/StringMap.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/BuiltinOps.h"
 

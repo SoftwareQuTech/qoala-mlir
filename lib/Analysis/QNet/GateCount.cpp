@@ -1,13 +1,10 @@
 #include "Analysis/QNet/Helpers.h"
 #include "Dialect/QNet/Passes.h"
 #include "Dialect/QNet/QNet.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
-#include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 
 #define DEBUG_TYPE "qnet-gate-count"
 
@@ -15,8 +12,7 @@ using namespace mlir;
 using namespace qoala::helpers;
 using namespace qoala::dialects::qnet;
 
-namespace qoala::analysis::qnet::gatecount {
-
+namespace {
     struct BranchCounts {
         uint32_t gateCount;
         uint32_t oneQubitGateCount;
@@ -41,7 +37,9 @@ namespace qoala::analysis::qnet::gatecount {
             outOpResToId = opResToId;
         }
     };
+} // namespace
 
+namespace qoala::analysis::qnet::gatecount {
     void visitScfIfOp(scf::IfOp ifOp, llvm::DenseMap<Value, uint32_t> &opResToId, uint32_t &gateCount,
                       uint32_t &oneQubitGateCount, uint32_t &twoQubitGateCount,
                       llvm::DenseMap<uint32_t, uint32_t> &detailedGateCount,
@@ -50,17 +48,25 @@ namespace qoala::analysis::qnet::gatecount {
         uint32_t qId = 0; // Dummy qId, won't be modified in branches
 
         // Process then-branch
-        BranchCounts thenState{gateCount,         oneQubitGateCount,         twoQubitGateCount,
-                               detailedGateCount, detailedOneQubitGateCount, detailedTwoQubitGateCount,
-                               opResToId};
+        BranchCounts thenState{.gateCount = gateCount,
+                               .oneQubitGateCount = oneQubitGateCount,
+                               .twoQubitGateCount = twoQubitGateCount,
+                               .detailedGateCount = detailedGateCount,
+                               .detailedOneQubitGateCount = detailedOneQubitGateCount,
+                               .detailedTwoQubitGateCount = detailedTwoQubitGateCount,
+                               .opResToId = opResToId};
         visitOperationsInRegion(ifOp.getThenRegion(), thenState.opResToId, qId, thenState.gateCount,
                                 thenState.oneQubitGateCount, thenState.twoQubitGateCount, thenState.detailedGateCount,
                                 thenState.detailedOneQubitGateCount, thenState.detailedTwoQubitGateCount);
 
         // Process else-branch
-        BranchCounts elseState{gateCount,         oneQubitGateCount,         twoQubitGateCount,
-                               detailedGateCount, detailedOneQubitGateCount, detailedTwoQubitGateCount,
-                               opResToId};
+        BranchCounts elseState{.gateCount = gateCount,
+                               .oneQubitGateCount = oneQubitGateCount,
+                               .twoQubitGateCount = twoQubitGateCount,
+                               .detailedGateCount = detailedGateCount,
+                               .detailedOneQubitGateCount = detailedOneQubitGateCount,
+                               .detailedTwoQubitGateCount = detailedTwoQubitGateCount,
+                               .opResToId = opResToId};
         if (!ifOp.getElseRegion().empty()) {
             visitOperationsInRegion(ifOp.getElseRegion(), elseState.opResToId, qId, elseState.gateCount,
                                     elseState.oneQubitGateCount, elseState.twoQubitGateCount,
@@ -69,7 +75,7 @@ namespace qoala::analysis::qnet::gatecount {
         }
 
         // Select the branch with higher gate count (worst-case) and apply it
-        bool thenWins = thenState.gateCount >= elseState.gateCount;
+        const bool thenWins = thenState.gateCount >= elseState.gateCount;
         (thenWins ? thenState : elseState)
                 .dumpInto(gateCount, oneQubitGateCount, twoQubitGateCount, detailedGateCount, detailedOneQubitGateCount,
                           detailedTwoQubitGateCount, opResToId);
@@ -95,7 +101,7 @@ namespace qoala::analysis::qnet::gatecount {
 
         for (auto &op : region.front().getOperations()) {
             llvm::TypeSwitch<Operation *>(&op)
-                    .Case<scf::IfOp>([&](scf::IfOp ifOp) {
+                    .Case<scf::IfOp>([&](const scf::IfOp ifOp) {
                         // Special handling for scf.if
                         visitScfIfOp(ifOp, opResToId, gateCount, oneQubitGateCount, twoQubitGateCount,
                                      detailedGateCount, detailedOneQubitGateCount, detailedTwoQubitGateCount);
@@ -163,7 +169,7 @@ namespace qoala::analysis::qnet::gatecount {
         uint32_t qId = 0;
 
         // Find the qnet.func operation and traverse its body
-        auto funcOps = module.getOps<qoala::dialects::qnet::FuncOp>();
+        const auto funcOps = module.getOps<FuncOp>();
         assert(!funcOps.empty() && "No qnet.func operation found");
         auto funcOp = *funcOps.begin();
         visitOperationsInRegion(funcOp.getRegion(), opResToId, qId, gateCount, oneQubitGateCount, twoQubitGateCount,

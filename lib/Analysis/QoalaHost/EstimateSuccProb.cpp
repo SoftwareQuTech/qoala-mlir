@@ -13,9 +13,8 @@ using namespace qoala::analysis;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::options;
 
-namespace qoala::analysis::fidelity {
-
-    static float computeQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
+namespace {
+    float computeQubitEsp(const float lifetime, const uint32_t oneQubitGates, const uint32_t twoQubitGates) {
         // qubitEsp = prod(gate_fidelities) *  1/2*(exp(-lifetime/T2) + 1)
         // where fidelity = (1 - error_rate)^gate_counts
         float qubitEsp = 1.0f;
@@ -33,7 +32,9 @@ namespace qoala::analysis::fidelity {
 
         return qubitEsp;
     }
+} // namespace
 
+namespace qoala::analysis::fidelity {
     QoalaHostEstimateSuccProb::QoalaHostEstimateSuccProb(Operation *op, AnalysisManager &am) {
 
         /**
@@ -47,10 +48,10 @@ namespace qoala::analysis::fidelity {
 
         // Current implementation works under the assumption that
         // gate counts and lifetime already tracks qubit up to measurement or
-        // last two-qubit op (see comments in GateCount and QubitLifeime).
-        // In future, coudl change by ading further processing here.
-        // Tracking only qubits that are either measured-and-retruned or
-        // that intercats (through two-qubit gates) with other already tarcked qubits.
+        // last two-qubit op (see comments in GateCount and QubitLifetime).
+        // In future, could change by adding further processing here.
+        // Tracking only qubits that are either measured-and-returned or
+        // that interacts (through two-qubit gates) with other already tracked qubits.
 
         LLVM_DEBUG(llvm::dbgs() << "Running QoalaHostESPPass\n");
 
@@ -81,7 +82,7 @@ namespace qoala::analysis::fidelity {
     }
 
     // This analysis is preserved as long as its dependencies are preserved
-    bool isInvalidated(const AnalysisManager::PreservedAnalyses &pa) {
+    bool QoalaHostEstimateSuccProb::isInvalidated(const AnalysisManager::PreservedAnalyses &pa) const {
         return !pa.isPreserved<qoalahost::gatecount::QoalaHostGateCount>() ||
                !pa.isPreserved<qubitlife::QoalaHostQubitLifetime>();
     }

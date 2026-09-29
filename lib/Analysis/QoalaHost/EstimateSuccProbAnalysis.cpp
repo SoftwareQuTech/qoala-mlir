@@ -1,6 +1,8 @@
 #include "Analysis/QoalaHost/Fidelity.h"
 #include "Dialect/QoalaHost/Passes.h"
 
+#include "mlir/IR/BuiltinOps.h"
+
 #define DEBUG_TYPE "qoalahost-show-analysis-pass-esp"
 
 using namespace mlir;

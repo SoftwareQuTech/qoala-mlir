@@ -15,5 +15,5 @@ namespace qoala::analysis::precedences {
      */
 
     mlir::LogicalResult addPrecedences(mlir::ModuleOp &moduleOp, bool useOnlineScheduler = false);
-} // namespace precedences
+} // namespace qoala::analysis::precedences
 #endif // QOALA_MLIR_PRECEDENCES_H

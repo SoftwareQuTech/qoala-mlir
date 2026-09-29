@@ -2,7 +2,6 @@
 #define HELPERS_H
 
 #include "Target/iQoala/iQoala.h"
-#include "mlir/IR/BuiltinOps.h"
 
 #include "Dialect/Helpers/DialectHelpers.h"
 

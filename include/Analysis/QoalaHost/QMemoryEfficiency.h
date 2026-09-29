@@ -25,6 +25,6 @@ namespace qoala::analysis::qmemeff {
         uint32_t virtualQubits = 0;
         uint32_t physicalQubits = 0;
     };
-} // namespace qmemeff
+} // namespace qoala::analysis::qmemeff
 
 #endif // QOALA_MLIR_QMEMORYEFFICIENCY_H
