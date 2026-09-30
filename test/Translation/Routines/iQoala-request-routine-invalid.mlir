@@ -8,8 +8,10 @@ module {
   // expected-error@+1 {{argument #0 from request routine '__qoala_wrapper0' is used. This is not supported}}
   netqasm.request_routine @__qoala_wrapper0(%arg: i32) -> i32 {
     %0 = netqasm.qalloc  : i32
+    %cst_0 = arith.constant 0 : i32
+    %1 = arith.addi %arg, %cst_0 : i32
     netqasm.eprs %0  {remote = @Bob}
-    netqasm.return %arg : i32
+    netqasm.return %0 : i32
   }
   qoalahost.main_func @test_call_local_routine() {
     qoalahost.blk_meta  {block_id = "block_0", deadlines = {}, dependencies = [], predecessors = [], prev_comm = "", prev_ent = ""}

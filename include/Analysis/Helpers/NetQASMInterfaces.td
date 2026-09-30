@@ -11,11 +11,28 @@ def NetQASMRoutineInterface : OpInterface<"NetQASMRoutineInterface"> {
     let methods = [
         InterfaceMethod<[{
             Returns the return operation of this routine
-        }], "mlir::Operation *", "getReturnOperation"
+        }], "std::optional<mlir::Operation *>", "getReturnOperation"
         >,
         InterfaceMethod<[{
             Returns the an Array with the Types of the arguments of this routine
         }], "llvm::MutableArrayRef<mlir::BlockArgument>", "getArgsTypesList"
+        >
+    ];
+}
+
+def ExtraRegionVerifierInterface : OpInterface<"ExtraRegionVerifierInterface"> {
+    let description = [{
+        Interface for NetQASM operations that define an extra region verifier method.
+    }];
+    let cppNamespace = "qoala::helpers";
+    let methods = [
+        InterfaceMethod<[{
+            Method used to perform extra verification of the region. Override this method to implement it.
+        }], "mlir::LogicalResult", "validateNestedInstructions",
+        (ins), /*methodBody=*/[{}],
+        /*defaultImplementation=*/[{
+            return mlir::LogicalResult::success();
+        }]
         >
     ];
 }
