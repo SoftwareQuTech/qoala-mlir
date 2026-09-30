@@ -5,6 +5,7 @@
 
 namespace qoala::helpers::angle {
     extern std::string angleConversionFunctionName;
+    extern llvm::StringRef angleConversionFuncNameStrRef;
 
     bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
     mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);

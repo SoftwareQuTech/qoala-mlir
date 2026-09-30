@@ -342,14 +342,15 @@ namespace qoala::translate {
 
     LogicalResult ModuleTranslation::convertLocalRoutines() {
         for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
-            if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
+            const StringRef routineNameStrRef = localRoutine.getName();
+            if (routineNameStrRef == helpers::angle::angleConversionFuncNameStrRef) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
                 // Since this routine is intended to be provided by the runtime,
                 // we simply don't need to do anything
             } else {
                 // We create the routine and process the arguments.
-                auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
-                std::string routineName = localRoutine.getName().str();
+                auto *routine = LocalQuantumRoutine::createLocalRoutine(routineNameStrRef);
+                std::string routineName = routineNameStrRef.str();
                 // Dense index among *classical* args only (qubit args do NOT consume @input slots)
                 uint32_t classicalIdx = 0;
 
@@ -432,10 +433,7 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
-        if (failed(this->convertLocalRoutines()) || failed(this->convertRequestRoutines())) {
-            return failure();
-        }
-        return success();
+        return success(this->convertLocalRoutines().succeeded() && this->convertRequestRoutines().succeeded());
     }
 
     std::unique_ptr<iQoalaModule> translateModuleToiQoala(Operation *originalModule, iQoalaContext &iQoalaContext,
