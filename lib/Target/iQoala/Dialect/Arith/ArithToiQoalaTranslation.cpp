@@ -15,6 +15,7 @@ using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::dialects;
 using namespace qoala::translate;
+using namespace qoala::dialects::helpers;
 
 static LogicalResult processOperandsForMul(ModuleTranslation *moduleTranslation, arith::MulIOp &mulOp,
                                            SmallVector<iQoalaMCOperand *> &mappedOperands) {
@@ -62,13 +63,13 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 iQoalaMCOperand *immediateVal =
                         iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(op.value()));
                 processedOperands.push_back(immediateVal);
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (operationIsInsideMainFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ASSIGN_CVAL, {op.getResult()},
                             {LOCAL}, processedOperands);
                     return instruction ? success() : failure();
                 }
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SET, {op.getResult()}, {C},
                             processedOperands);
@@ -89,12 +90,12 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return success();
             })
             .Case<arith::AddIOp>([&](arith::AddIOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (operationIsInsideMainFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_ADD, {op.getResult()}, {LOCAL});
                     return instruction ? success() : failure();
                 }
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_ADD, {op.getResult()}, {C});
                     return instruction ? success() : failure();
@@ -102,13 +103,13 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return op.emitOpError("Arith add operation not in host or netqasm section!\n");
             })
             .Case<arith::SubIOp>([&](arith::SubIOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (operationIsInsideMainFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
                             moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_SUBTRACT, {op.getResult()},
                             {LOCAL});
                     return instruction ? success() : failure();
                 }
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_SUB, {op.getResult()}, {C});
                     return instruction ? success() : failure();
@@ -117,7 +118,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
             })
             .Case<arith::MulIOp>([&](arith::MulIOp op) -> LogicalResult {
                 SmallVector<iQoalaMCOperand *> processedOperands;
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (operationIsInsideMainFunc(operation)) {
                     if (succeeded(processOperandsForMul(moduleTranslation, op, processedOperands))) {
                         // If either operand is a constant -> use OP_MULTIPLY_CONSTANT with manual operands
                         // We need "trace" the immediate back, and create the immediate value.
@@ -132,7 +133,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                             {LOCAL} /* no processed operands */);
                     return instr ? success() : failure();
                 }
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_MUL, {op.getResult()}, {C},
                             processedOperands);
@@ -141,7 +142,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return op.emitOpError("Arith muli operation not in host or netqasm section!\n");
             })
             .Case<arith::DivUIOp>([&](arith::DivUIOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_DIV, {op.getResult()}, {C});
                     return instruction ? success() : failure();
@@ -149,7 +150,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
                 return op.emitOpError("Arith divui operation not in netqasm section!\n");
             })
             .Case<arith::RemUIOp>([&](arith::RemUIOp op) -> LogicalResult {
-                if (qoala::dialects::helpers::operationIsInsideLocalRoutineFunc(operation)) {
+                if (operationIsInsideLocalRoutineFunc(operation)) {
                     const auto *instruction = qoala::iqoala::helpers::buildInstruction<NetQASMMCInstr>(
                             moduleTranslation, op.getOperation(), NetQASMMCInstr::OP_REM, {op.getResult()}, {C});
                     return instruction ? success() : failure();
@@ -159,7 +160,7 @@ static LogicalResult translateArithOperation(Operation *operation, ModuleTransla
             .Case<arith::ExtUIOp>([&](arith::ExtUIOp op) -> LogicalResult {
                 // extui is a no-op for iQoala MC, but we must forward the value mapping:
                 // result(%2) should refer to the same mapped register as input(%1).
-                if (qoala::dialects::helpers::operationIsInsideMainFunc(operation)) {
+                if (operationIsInsideMainFunc(operation)) {
                     const Value in = op.getIn(); // or op.getOperand(0)
                     const Value out = op.getResult();
 

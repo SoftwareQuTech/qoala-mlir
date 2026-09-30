@@ -19,6 +19,7 @@ using namespace qoala::iqoala;
 using namespace qoala::analysis;
 using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::qoalahost;
+using namespace qoala::iqoala::helpers;
 
 static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
     for (Operation &op : block.getOperations()) {
@@ -191,7 +192,7 @@ static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslat
 
     iQoalaMCOperand *remoteCSocketVal =
             iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
-    const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+    const auto *csocketInstr = buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op, QoalaHostMCInstr::OP_ASSIGN_CVAL, {}, {LOCAL}, {remoteCSocketVal},
             /*useOpOperands=*/false);
     // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
@@ -202,11 +203,11 @@ static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslat
 static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const StringRef &remoteName) {
     // Get the RegRef for the given remote name
-    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    const iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
     iQoalaMCOperand *csocketOperand =
             iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
     // Use that constant and the actual value to send to create the send_cmsg instruction.
-    const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+    const auto *sendCMSGInstr = buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand});
     return sendCMSGInstr ? success() : failure();
 }
@@ -214,12 +215,12 @@ static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslat
 static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const Value &opResult, const StringRef &remoteName) {
     // Get the RegRef for the given remote name
-    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    const iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
     iQoalaMCOperand *csocketOperand =
             iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
     // Create the actual recv_cmsg MC instruction
-    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand});
+    const auto *recvInstr = buildInstruction<QoalaHostMCInstr>(moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG,
+                                                               {opResult}, {LOCAL}, {csocketOperand});
     return recvInstr ? success() : failure();
 }
 
@@ -326,7 +327,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 callMCOperands.push_back(calleeOperand);
 
                 // Create qoalahost MC instruction
-                const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                const auto *instruction = buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
                         /*useOpOperands=*/false);
                 // After everything, we effectively unmap the free'd qubits from the current stack frame
@@ -341,10 +342,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForValue(returnedValue);
                     assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
                     iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
-                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RETURN_RESULT, {}, {},
-                            {retValueOperand},
-                            /*useOpOperands=*/false);
+                    const auto *instruction = buildInstruction<QoalaHostMCInstr>(moduleTranslation, op.getOperation(),
+                                                                                 QoalaHostMCInstr::OP_RETURN_RESULT, {},
+                                                                                 {}, {retValueOperand},
+                                                                                 /*useOpOperands=*/false);
                     if (!instruction) {
                         op.emitOpError("Return op: could not create return_result instruction");
                         return failure();

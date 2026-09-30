@@ -136,9 +136,8 @@ namespace qoala::analysis::functionize {
     }
 
     void PerQubitGrouper::registerQallocOp(dialects::qmem::QAllocOp &qallocOp) {
-        const auto result = this->declaredQubits.try_emplace(qallocOp.getQ(), qallocOp);
-        (void) result;
-        assert(result.second && "Per qubit grouper: trying to map a qalloc operation that was already mapped");
+        const auto &[entry, inserted] = this->declaredQubits.try_emplace(qallocOp.getQ(), qallocOp);
+        assert(inserted && "Per qubit grouper: trying to map a qalloc operation that was already mapped");
     }
 
     void PerQubitGrouper::groupDefinitionWithQAlloc(helpers::DefineQubitsInterface &defOp) {

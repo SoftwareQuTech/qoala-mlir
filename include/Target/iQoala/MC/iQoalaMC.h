@@ -34,7 +34,7 @@ namespace qoala::assembly {
         explicit iQoalaMCExpr(std::string symName): kind(SYMBOL_REFERENCE), symbolName(std::move(symName)) { }
 
         explicit iQoalaMCExpr(mlir::Operation *mlirOp):
-            kind(INSTRUCTION_REFERENCE), instructionRef{mlirOp, 0, false} { }
+            kind(INSTRUCTION_REFERENCE), instructionRef{.targetOp = mlirOp, .displacement = 0, .isResolved = false} { }
 
         ~iQoalaMCExpr() override;
 

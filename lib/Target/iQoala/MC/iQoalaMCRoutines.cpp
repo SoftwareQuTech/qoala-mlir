@@ -9,9 +9,8 @@ using namespace mlir;
 
 namespace qoala::iqoala {
     void QuantumRoutine::registerQubit(const Value &value, const uint8_t phyQubitNum) {
-        const auto result = this->qubitMap.try_emplace(value, phyQubitNum);
-        (void) result;
-        assert(result.second && "Attempting to map a qubit value that has already been mapped");
+        const auto &[entry, inserted] = this->qubitMap.try_emplace(value, phyQubitNum);
+        assert(inserted && "Attempting to map a qubit value that has already been mapped");
     }
 
     uint8_t QuantumRoutine::releaseQubit(const Value &value) {
@@ -92,9 +91,8 @@ namespace qoala::iqoala {
             }
             LLVM_DEBUG(llvm::dbgs() << "+++ Emplacing ptr: '" << opPtr << "', i = " << i
                                     << ", opcode = " << instruction->getOpcode() << ", op = " << instruction << "\n");
-            const auto result = operationToIndex.try_emplace(opPtr, i);
-            (void) result;
-            assert(result.second && "Resolve Instr Refs: Op index pointer already present!");
+            const auto &[entry, inserted] = operationToIndex.try_emplace(opPtr, i);
+            assert(inserted && "Resolve Instr Refs: Op index pointer already present!");
 
             for (const auto *param : instruction->getOperands()) {
                 if (param->isExpression() && param->getExpression()->isInstructionRef()) {

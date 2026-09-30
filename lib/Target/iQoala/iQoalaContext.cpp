@@ -103,9 +103,8 @@ namespace qoala::iqoala {
             return this->classicalSocketIDs.at(remoteID);
         }
         const uint32_t newSocketID = this->classicalSocketIDs.size();
-        const auto result = this->classicalSocketIDs.try_emplace(remoteID, newSocketID);
-        (void) result;
-        assert(result.second && "Attempting to map a remote name that is already mapped");
+        const auto &[entry, inserted] = this->classicalSocketIDs.try_emplace(remoteID, newSocketID);
+        assert(inserted && "Attempting to map a remote name that is already mapped");
         return newSocketID;
     }
 
@@ -115,9 +114,8 @@ namespace qoala::iqoala {
             return this->eprsSocketIDs.at(remoteID);
         }
         const uint32_t newSocketID = this->eprsSocketIDs.size();
-        const auto result = this->eprsSocketIDs.try_emplace(remoteID, newSocketID);
-        (void) result;
-        assert(result.second && "Attempting to map a remote name that is already mapped");
+        const auto &[entry, inserted] = this->eprsSocketIDs.try_emplace(remoteID, newSocketID);
+        assert(inserted && "Attempting to map a remote name that is already mapped");
         return newSocketID;
     }
 

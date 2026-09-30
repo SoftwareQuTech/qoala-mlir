@@ -70,9 +70,8 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::ModuleStackFrame::mapValueInScope(const Value &value, iQoalaRegReference *regRef) {
-        const auto result = this->valuesInScope.try_emplace(value, regRef);
-        (void) result;
-        assert(result.second && "Attempting to map a value that is already mapped");
+        const auto &[entry, inserted] = this->valuesInScope.try_emplace(value, regRef);
+        assert(inserted && "Attempting to map a value that is already mapped");
     }
 
     bool ModuleTranslation::ModuleStackFrame::isValueInScope(const Value &value) const {
@@ -233,9 +232,8 @@ namespace qoala::translate {
             iQoalaRegReference *blockArgRegRef = iQoalaRegReference::createRegReference(LOCAL, blockArgReg);
             this->mapValueToRegRef(mlirBlockArg, blockArgRegRef);
         }
-        const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
-        (void) result;
-        assert(result.second && "Attempting to map a block that is already mapped");
+        const auto &[entry, inserted] = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
+        assert(inserted && "Attempting to map a block that is already mapped");
     }
 
     void ModuleTranslation::mapValueToRegRef(const Value &mlirVal, iQoalaRegReference *regRef) {
@@ -284,9 +282,8 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
-        const auto result = this->cmpMap.try_emplace(mlirVal, mlirOp);
-        (void) result;
-        assert(result.second && "Attempting to map a comparison value that is already mapped");
+        const auto &[entry, inserted] = this->cmpMap.try_emplace(mlirVal, mlirOp);
+        assert(inserted && "Attempting to map a comparison value that is already mapped");
     }
 
     Operation *ModuleTranslation::getMappedCmpOperation(const Value &mlirVal) const {

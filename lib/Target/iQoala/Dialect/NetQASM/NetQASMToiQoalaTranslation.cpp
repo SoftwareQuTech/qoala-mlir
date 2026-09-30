@@ -53,7 +53,7 @@ static LogicalResult processReturnOp(ModuleTranslation *moduleTranslation, Retur
     // Counter-intuitive: the returned values are the *operands* of the return op
     for (uint32_t i = 0; i < op.getNumOperands(); i++) {
         // Get the local routine of the operation under analysis
-        std::string localRoutineName = qoala::dialects::helpers::getParentLocalRoutineName(op.getOperation());
+        std::string localRoutineName = getParentLocalRoutineName(op.getOperation());
         LocalQuantumRoutine *localRoutine =
                 moduleTranslation->getQoalaModule()->getLocalRoutineByName(localRoutineName);
 
@@ -93,14 +93,10 @@ static iQoalaMCInstruction *createRotationInstr(RotationOp &op, ModuleTranslatio
                                                 const NetQASMMCInstr::OpCode opCode) {
     iQoalaRegReference *qbitReg = moduleTranslation->getMappedRegRefForValue(op.getQ());
     assert(qbitReg && "Create Rotation Instr: No mapped registry for qubit");
-    // const uint32_t nVal = op.getNVal().getLimitedValue(UINT32_MAX);
-    // const uint32_t expVal = op.getExpVal().getLimitedValue(UINT32_MAX);
     iQoalaRegReference *nValReg = moduleTranslation->getMappedRegRefForValue(op.getNVal());
     iQoalaRegReference *expValReg = moduleTranslation->getMappedRegRefForValue(op.getExpVal());
 
     iQoalaMCOperand *qubitOperand = iQoalaMCOperand::createRegisterOperand(qbitReg);
-    // iQoalaMCOperand *nOperand = iQoalaMCOperand::createImmediateOperand(nVal);
-    // iQoalaMCOperand *expOperand = iQoalaMCOperand::createImmediateOperand(expVal);
     iQoalaMCOperand *nOperand = iQoalaMCOperand::createRegisterOperand(nValReg);
     iQoalaMCOperand *expOperand = iQoalaMCOperand::createRegisterOperand(expValReg);
 

@@ -48,10 +48,8 @@ namespace qoala::analysis::functionize {
         for (Operation &op : mainFunction.getOps()) {
             if (qMemOpCanBeSimplyFunctionized(op)) {
                 if (auto qallocOp = llvm::dyn_cast<dialects::qmem::QAllocOp>(op)) {
-                    const auto result = declaredQubits.try_emplace(qallocOp.getQ(), qallocOp);
-                    (void) result;
-                    assert(result.second &&
-                           "Simple functionize: trying to map a qalloc operation that was already mapped");
+                    const auto &[entry, inserted] = declaredQubits.try_emplace(qallocOp.getQ(), qallocOp);
+                    assert(inserted && "Simple functionize: trying to map a qalloc operation that was already mapped");
                     continue;
                 }
                 if (auto initOp = llvm::dyn_cast<dialects::qmem::InitOp>(op)) {
