@@ -197,17 +197,19 @@ LogicalResult qoalahost::CallOp::verifySymbolUses(SymbolTableCollection &symbolT
                                << "netqasm.request_routine.";
 }
 
-/* Additional verifier for the Call operation to check number of arguments used. */
+/* Additional verifier for the Call operation to check the number of arguments used. */
 LogicalResult qoalahost::CallOp::verify() {
     auto module = this->getOperation()->getParentOfType<ModuleOp>();
     // Even if we write MLIR without declaring a module, MLIR will insert a top-level module operation, so
     // it is safe to assert the existence of the module.
     assert(module && "Unexpected - Operation not inside an MLIR module operation");
-    if (const Operation *callee = helpers::getRoutineWithName(&module, this->getCallee()); !callee) {
+    const helpers::RoutineMap routineMap(&module);
+    if (const std::optional<Operation *> callee = routineMap.getRoutineWithName(this->getCallee());
+        !callee.has_value()) {
         this->emitOpError() << "Called function '" << this->getCallee() << "' was not found in the module.";
         return failure();
     } else {
-        auto netQASMRoutine = dyn_cast<NetQASMRoutineInterface>(callee);
+        auto netQASMRoutine = dyn_cast<NetQASMRoutineInterface>(callee.value());
         const MutableArrayRef<BlockArgument> routineArgs = netQASMRoutine.getArgsTypesList();
         if (this->getArgOperands().size() != routineArgs.size()) {
             this->emitError() << "Call operation does not match the number of arguments of the callee.";
@@ -228,13 +230,13 @@ uint64_t qoalahost::RecvIntOp::getDuration() { return options::qoalaOptLatency +
 
 uint64_t qoalahost::RecvFloatOp::getDuration() { return options::qoalaOptLatency + options::qoalaOptHostPeerLatency; }
 
-BlockType qoalahost::SendIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::SendIntOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvIntOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::RecvIntOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::SendFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::SendFloatOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvFloatOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::RecvFloatOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
 uint64_t qoalahost::RecvIntsOp::getDuration() {
     // TODO - This need to be improved because this is just a rough estimation about how long does a recv op takes
@@ -248,29 +250,24 @@ uint64_t qoalahost::RecvFloatsOp::getDuration() {
     return (options::qoalaOptLatency + options::qoalaOptHostPeerLatency) * numberOfValues;
 }
 
-BlockType qoalahost::SendIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::SendIntsOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvIntsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) { return BlockType::CC; }
+BlockType qoalahost::RecvIntsOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::SendFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::SendFloatsOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::RecvFloatsOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
-    return BlockType::CC;
-}
+BlockType qoalahost::RecvFloatsOp::getBlockType(const helpers::RoutineMap &routineMap) { return BlockType::CC; }
 
-BlockType qoalahost::CallOp::getBlockType(const llvm::StringMap<Operation *> &routineMap) {
+BlockType qoalahost::CallOp::getBlockType(const helpers::RoutineMap &routineMap) {
     const StringRef symName = this->getCallee();
-    Operation *callee = routineMap.contains(symName) ? routineMap.at(symName) : nullptr;
-    if (!callee) {
+    if (!routineMap.containsSymbolWithName(symName)) {
         return BlockType::CL;
     }
 
-    if (isa<netqasm::RequestRoutineOp>(callee)) {
+    if (routineMap.hasRequestRoutineWithName(symName)) {
         return BlockType::QC;
     }
-    if (isa<netqasm::LocalRoutineOp>(callee)) {
+    if (routineMap.hasLocalRoutineWithName(symName)) {
         return BlockType::QL;
     }
     return BlockType::CL;

@@ -1,4 +1,5 @@
 #include "Analysis/Helpers/GenericInterfaces.h"
+#include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QoalaHost/Isolate.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 
@@ -10,14 +11,6 @@ using namespace mlir;
 using namespace qoala::dialects;
 
 namespace qoala::analysis::isolate {
-    Operation *getNextOperation(Operation *op) {
-        Block::iterator it(op);
-        ++it;
-        if (it != op->getBlock()->end()) {
-            return &*it;
-        }
-        return nullptr;
-    }
 
     void isolateOp(Operation *opToIsolate, ConversionPatternRewriter &rewriter) {
         LLVM_DEBUG(llvm::dbgs() << "Isolating operation " << *opToIsolate << "\n");
@@ -46,8 +39,11 @@ namespace qoala::analysis::isolate {
             assert(opToIsolate == opToIsolateInNewBlock);
         }
         // Get the next operation to the opToIsolate
-        Operation *nextToOpToIsolate = getNextOperation(opToIsolateInNewBlock);
-        LLVM_DEBUG(llvm::dbgs() << "Next op to isolate: " << *nextToOpToIsolate << "\n");
+        const std::optional<Operation *> nextToOp = helpers::getNextOperation(opToIsolateInNewBlock);
+        assert(nextToOp.has_value() && "There is no operation next to the one to isolate in the same block");
+
+        Operation *nextToOpToIsolate = *nextToOp;
+        LLVM_DEBUG(llvm::dbgs() << "Next op to isolate: " << nextToOpToIsolate << "\n");
 
         // Split the new block up to the next op to isolate.
         // In this way "nextToOpToIsolate" will be the first op of a new block, and

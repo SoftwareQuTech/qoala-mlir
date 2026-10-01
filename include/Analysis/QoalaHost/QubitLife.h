@@ -1,9 +1,7 @@
 #ifndef QOALA_MLIR_QUBITLIFE_H
 #define QOALA_MLIR_QUBITLIFE_H
 
-#include "mlir/IR/BuiltinOps.h"
-
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 
 namespace qoala::analysis::qubitlife {
     // Conceptually different from reordering::MILPTask

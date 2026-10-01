@@ -17,19 +17,19 @@ namespace qoala::helpers {
         //
         // To avoid these lifetime issues, OpAndValues eagerly copies all replacement
         // values into an owning container.
-        OpAndValues(mlir::Operation *op, mlir::ValueRange vr): operation(op), values(vr.begin(), vr.end()) { }
+        OpAndValues(mlir::Operation *op, const mlir::ValueRange &vr): operation(op), values(vr.begin(), vr.end()) { }
 
-        OpAndValues(mlir::Operation *op, mlir::Value v): operation(op), values{v} { }
+        OpAndValues(mlir::Operation *op, const mlir::Value &v): operation(op), values{v} { }
 
         // Convenience overload: accept operand ranges too.
-        OpAndValues(mlir::Operation *op, mlir::OperandRange orng): operation(op) {
+        OpAndValues(mlir::Operation *op, const mlir::OperandRange &orng): operation(op) {
             values.reserve(orng.size());
-            for (mlir::Value v : orng) {
+            for (const mlir::Value &v : orng) {
                 values.push_back(v);
             }
         }
 
-        mlir::Operation *operation{};
+        mlir::Operation *operation;
         llvm::SmallVector<mlir::Value, 4> values;
     };
 
@@ -98,32 +98,6 @@ namespace qoala::helpers {
         }
     };
 
-    namespace angle {
-        extern std::string angleConversionFunctionName;
-
-        bool moduleContainsAngleConversionDeclaration(mlir::ModuleOp &module);
-        mlir::Operation *insertAngleConversionFunctionDeclaration(mlir::ModuleOp &module);
-        std::vector<uint32_t> transformDouble(double angleRads);
-    } // namespace angle
-
-    namespace print {
-        /* Helper functions to print an operation recursively (i.e. including nested regions and ops) */
-        struct IdentRAII {
-            uint32_t &indent;
-
-            explicit IdentRAII(uint32_t &indent): indent(indent) { }
-
-            ~IdentRAII() { --indent; }
-        };
-
-        void printOperation(mlir::Operation *op);
-        void printRegion(mlir::Region &region);
-        void printBlock(mlir::Block &block);
-        void resetIndent();
-        IdentRAII pushIndent();
-
-        llvm::raw_ostream &printIndent();
-    } // namespace print
 } // namespace qoala::helpers
 
 #endif // QOALA_MLIR_HELPERS_H

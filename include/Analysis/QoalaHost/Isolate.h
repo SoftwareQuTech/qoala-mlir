@@ -5,7 +5,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace qoala::analysis::isolate {
-    mlir::Operation *getNextOperation(mlir::Operation *op);
 
     /**
      * Isolate the given operation in its own block.

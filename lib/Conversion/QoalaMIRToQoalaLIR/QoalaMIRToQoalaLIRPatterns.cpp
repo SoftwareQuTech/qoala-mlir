@@ -1,10 +1,11 @@
+#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
+#include "Analysis/Helpers/Helpers.h"
+#include "Analysis/QoalaHost/Isolate.h"
+#include "Analysis/QoalaHost/Reordering.h"
+#include "Conversion/Helpers/Angle.h"
+
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Vector/Transforms/VectorRewritePatterns.h"
-
-#include "Analysis/QoalaHost/Helpers.h"
-#include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIRPatterns.h"
-
-#include "Analysis/QoalaHost/Isolate.h"
 
 #include "llvm/Support/Debug.h"
 
@@ -78,9 +79,10 @@ namespace qoala::conversion::mir {
         // At this point, the block containing the new qoalahost.call op contains 2 terminators, since
         // We inserted a new one when isolating the original func.call op.
         // We need to remove the extra qoalahost.nop_term terminator operation
-        if (const auto opNextToCall = analysis::isolate::getNextOperation(op.getOperation())) {
-            assert(isa<qoalahost::NopTOp>(opNextToCall) && "Operation next to the call is not a NopTOp");
-            rewriter.eraseOp(opNextToCall);
+        if (const auto opNextToCall = getNextOperation(op.getOperation())) {
+            assert(opNextToCall.has_value() && "There is no operation next to the call op");
+            assert(isa<qoalahost::NopTOp>(*opNextToCall) && "Operation next to the call is not a NopTOp");
+            rewriter.eraseOp(*opNextToCall);
         }
 
         return std::make_unique<OpAndValues>(newCall.getOperation(), newCall->getResults());
@@ -97,9 +99,10 @@ namespace qoala::conversion::mir {
         // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_ints op.
         // We need to remove the extra qoalahost.nop_term terminator operation
-        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
-            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
-            rewriter.eraseOp(opNextToRecv);
+        if (const auto opNextToRecv = getNextOperation(op.getOperation())) {
+            assert(opNextToRecv.has_value() && "There is no operation next to the recv_ints op");
+            assert(isa<qoalahost::NopTOp>(*opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
+            rewriter.eraseOp(*opNextToRecv);
         }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
@@ -113,9 +116,10 @@ namespace qoala::conversion::mir {
         // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_floats op.
         // We need to remove the extra qoalahost.nop_term terminator operation
-        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
-            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
-            rewriter.eraseOp(opNextToRecv);
+        if (const auto opNextToRecv = getNextOperation(op.getOperation())) {
+            assert(opNextToRecv.has_value() && "There is no operation next to the recv_floats op");
+            assert(isa<qoalahost::NopTOp>(*opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
+            rewriter.eraseOp(*opNextToRecv);
         }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
@@ -144,9 +148,10 @@ namespace qoala::conversion::mir {
         // At this point, the block containing the new qoalahost.recv_ints op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_ints op.
         // We need to remove the extra qoalahost.nop_term terminator operation
-        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
-            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
-            rewriter.eraseOp(opNextToRecv);
+        if (const auto opNextToRecv = getNextOperation(op.getOperation())) {
+            assert(opNextToRecv.has_value() && "There is no operation next to the recv_int op");
+            assert(isa<qoalahost::NopTOp>(*opNextToRecv) && "Operation next to the recv_ints is not a NopTOp");
+            rewriter.eraseOp(*opNextToRecv);
         }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }
@@ -159,9 +164,10 @@ namespace qoala::conversion::mir {
         // At this point, the block containing the new qoalahost.recv_floats op contains 2 terminators, since
         // We inserted a new one when isolating the original qmem.recv_floats op.
         // We need to remove the extra qoalahost.nop_term terminator operation
-        if (const auto opNextToRecv = analysis::isolate::getNextOperation(op.getOperation())) {
-            assert(isa<qoalahost::NopTOp>(opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
-            rewriter.eraseOp(opNextToRecv);
+        if (const auto opNextToRecv = getNextOperation(op.getOperation())) {
+            assert(opNextToRecv.has_value() && "There is no operation next to the recv_float op");
+            assert(isa<qoalahost::NopTOp>(*opNextToRecv) && "Operation next to the recv_floats is not a NopTOp");
+            rewriter.eraseOp(*opNextToRecv);
         }
         return std::make_unique<OpAndValues>(newRecv.getOperation(), newRecv->getResults());
     }

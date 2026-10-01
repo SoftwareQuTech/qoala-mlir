@@ -1,4 +1,4 @@
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #include "llvm/Support/Debug.h"
@@ -13,6 +13,7 @@ namespace qoala::helpers::angle {
      * We change it here to change it in all places.
      */
     std::string angleConversionFunctionName("__qoala_convert_float_angle");
+    StringRef angleConversionFuncNameStrRef(angleConversionFunctionName);
 
     bool moduleContainsAngleConversionDeclaration(ModuleOp &module) {
         return module.lookupSymbol<func::FuncOp>(angleConversionFunctionName);

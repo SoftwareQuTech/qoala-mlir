@@ -3,27 +3,25 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/NetQASM/Helpers.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Precedences.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/BuiltinOps.h"
 
 #define DEBUG_TYPE "qoalahost-add-precedences-pass-internal"
 
-#if __cplusplus >= 202002L
-std::string blockIDFmt = "block_{}";
-#else
-std::string blockIDFmt = "block_%d";
-#endif
-
 using namespace mlir;
 using namespace qoala::dialects;
 using namespace qoala::analysis;
 
-namespace qoala::analysis::precedences {
+namespace {
+#if __cplusplus >= 202002L
+    std::string blockIDFmt = "block_{}";
+#else
+    std::string blockIDFmt = "block_%d";
+#endif
     // caller block → all memory effects from its callee
     struct MemEffectInfo {
         MemEffectInfo(Operation *op, std::vector<MemoryEffects::EffectInstance> effects):
@@ -34,7 +32,9 @@ namespace qoala::analysis::precedences {
         Operation *calleeOp;
         std::vector<MemoryEffects::EffectInstance> effects;
     };
+} // namespace
 
+namespace qoala::analysis::precedences {
     static std::vector<MemoryEffects::EffectInstance> computeMemoryEffects(FunctionOpInterface &calleeRoutineOp,
                                                                            qoalahost::CallOp &callOp) {
         std::vector<MemoryEffects::EffectInstance> allEffects;

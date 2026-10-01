@@ -57,9 +57,9 @@ namespace qoala::analysis::functionize {
      *             the set of indexes of that operation's result that are considered a result of the
      *             given operations set. After calling this function, any other member of this struct
      *             are not guaranteed to be set or initialized.
-     * @param operations An _ordered_ set of of operations to analyze.
+     * @param quantumOps An _ordered_ set of of operations to analyze.
      */
-    void computeArgTypesAndReturns(FunctionizeData &data, llvm::SetVector<mlir::Operation *> &operations);
+    void computeArgTypesAndReturns(FunctionizeData &data, llvm::SetVector<mlir::Operation *> &quantumOps);
 
     /**
      * "Functionizes" the operations on the given module. For each one of the operations

@@ -1,6 +1,6 @@
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/QMem/Conversion.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Dialect/Helpers/MIRToLIRHelperPasses.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/BuiltinOps.h"

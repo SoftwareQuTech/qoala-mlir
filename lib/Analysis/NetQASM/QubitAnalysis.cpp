@@ -9,11 +9,12 @@ using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::netqasm;
 
 namespace qoala::analysis::netqasm {
-    std::map<uint32_t, uint8_t> getReturnedQubitsMap(ModuleOp *mlirModule, const StringRef &functionName,
+    std::map<uint32_t, uint8_t> getReturnedQubitsMap(const RoutineMap &routineMap, const StringRef &functionName,
                                                      const iqoala::QuantumRoutine *quantumRoutine) {
         std::map<uint32_t, uint8_t> result;
-        if (auto routineOp = dyn_cast_if_present<helpers::NetQASMRoutineInterface>(
-                    getRoutineWithName(mlirModule, functionName))) {
+
+        if (const auto routine = routineMap.getRoutineWithName(functionName); routine.has_value()) {
+            auto routineOp = dyn_cast<helpers::NetQASMRoutineInterface>(routine.value());
             const auto returnOp = routineOp.getReturnOperation();
 
             if (!returnOp.has_value()) {
@@ -22,7 +23,7 @@ namespace qoala::analysis::netqasm {
                 return result;
             }
 
-            for (auto returnVal : llvm::enumerate(returnOp.value()->getOperands())) {
+            for (auto [index, returnVal] : llvm::enumerate(returnOp.value()->getOperands())) {
                 // Assumption: In general, local routines return either qubit references
                 // OR measurement values, but NOT both (mixed value types).
                 // Being this said, we have two options to check if the local routine
@@ -32,10 +33,10 @@ namespace qoala::analysis::netqasm {
                 // * An operand is a function argument (returnVal.getDefiningOp() == nullptr)
                 //   so we need to check in the QoalaHost section if the value is labeled as
                 //   a qubit.
-                if (auto definingOp = returnVal.value().getDefiningOp()) {
+                if (auto definingOp = returnVal.getDefiningOp()) {
                     if (isa<QAllocOp>(definingOp)) {
-                        uint8_t qubitID = quantumRoutine->getQubitNum(returnVal.value());
-                        result.emplace(returnVal.index(), qubitID);
+                        uint8_t qubitID = quantumRoutine->getQubitNum(returnVal);
+                        result.emplace(index, qubitID);
                     }
                 } else {
                     // TODO - The returned value is an argument. Trace it back to the
@@ -74,12 +75,10 @@ namespace qoala::analysis::netqasm {
     }
 
     void ArgValueMap::mapCallerArgToCalleeArgValue(const Value &callerVal, const BlockArgument &blockArg) {
-        const auto result = this->callerArgsToCalleeArgMap.try_emplace(callerVal, blockArg);
-        (void) result;
-        assert(result.second && "Attempting to map a caller value that is already mapped");
-        const auto resultB = this->calleeArgsToCallerArgMap.try_emplace(blockArg, callerVal);
-        (void) resultB;
-        assert(resultB.second && "Attempting to map a block argument that is already mapped");
+        const auto &[entry, inserted] = this->callerArgsToCalleeArgMap.try_emplace(callerVal, blockArg);
+        assert(inserted && "Attempting to map a caller value that is already mapped");
+        const auto &[entryB, insertedB] = this->calleeArgsToCallerArgMap.try_emplace(blockArg, callerVal);
+        assert(insertedB && "Attempting to map a block argument that is already mapped");
     }
 
     template<typename RoutineType>

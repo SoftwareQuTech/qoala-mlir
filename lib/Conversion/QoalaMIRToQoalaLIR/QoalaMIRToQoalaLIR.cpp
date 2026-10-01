@@ -6,7 +6,7 @@
 #include "mlir/Transforms/Passes.h"
 
 #include "Analysis/Helpers/Helpers.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Conversion/QoalaMIRToQoalaLIR/QoalaMIRToQoalaLIR.h"
 
 namespace qoala::analysis {

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "Analysis/NetQASM/Helpers.h"
 #include "Analysis/QoalaHost/AnalysisTraversal.h"
-#include "Analysis/QoalaHost/Helpers.h"
+#include "Analysis/QoalaHost/Reordering.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/Passes.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
@@ -33,7 +33,8 @@ namespace {
 namespace qoala::analysis::qoalahost::gatecount {
 
     // Map call operands/results to callee block args/returns.
-    static DenseMap<Value, Value> mapReturnValToCaller(dialects::qoalahost::CallOp callOp, FunctionOpInterface callee) {
+    static DenseMap<Value, Value> mapReturnValToCaller(dialects::qoalahost::CallOp &callOp,
+                                                       FunctionOpInterface &callee) {
         DenseMap<Value, Value> returnedValuesMap;
 
         // Map return values
@@ -98,7 +99,7 @@ namespace qoala::analysis::qoalahost::gatecount {
      * themselves the flush trigger. This ensures gate counts reflect only gates
      * up to the last measurement or two-qubit op (for fidelity estimation).
      */
-    static void processCalleeGates(FunctionOpInterface callee, dialects::qoalahost::CallOp callOp,
+    static void processCalleeGates(FunctionOpInterface &callee, dialects::qoalahost::CallOp &callOp,
                                    const std::string &blockId, GateCountState &state) {
         uint32_t opIdx = 1;
         netqasm::ArgValueMap valuesArgMap = netqasm::getRoutineArgValues(callee, callOp.getOperands());

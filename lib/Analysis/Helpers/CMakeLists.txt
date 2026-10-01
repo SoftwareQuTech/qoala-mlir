@@ -1,5 +1,6 @@
 add_mlir_library(QoalaAnalysisHelpers
         Helpers.cpp
+        Printer.cpp
         PatternRewriteDriver.cpp
 
         DEPENDS

@@ -2,7 +2,7 @@
 
 #include "Analysis/Helpers/Helpers.h"
 #include "Analysis/NetQASM/Helpers.h"
-#include "Conversion/Helpers/Helpers.h"
+#include "Conversion/Helpers/Angle.h"
 #include "Dialect/NetQASM/NetQASM.h"
 #include "Dialect/QoalaHost/QoalaHost.h"
 #include "Target/iQoala/MC/Helpers.h"
@@ -20,6 +20,7 @@ using namespace qoala;
 using namespace qoala::iqoala;
 using namespace qoala::assembly;
 using namespace qoala::analysis;
+using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::netqasm;
 using namespace qoala::dialects::qoalahost;
 using namespace qoala::dialects::qremote;
@@ -40,6 +41,8 @@ namespace qoala::translate {
 
     ModuleOp *ModuleTranslation::getMLIRModule() const { return this->mlirModule; }
 
+    RoutineMap &ModuleTranslation::getRoutineMap() const { return *this->routineMap; }
+
     iQoalaModule *ModuleTranslation::getQoalaModule() const { return this->iQoalaModule.get(); }
 
     std::optional<iqoala::Block *> ModuleTranslation::findIdPrecedence(const StringRef &key) const {
@@ -50,7 +53,8 @@ namespace qoala::translate {
     }
 
     ModuleTranslation::ModuleTranslation(ModuleOp *module, std::unique_ptr<iqoala::iQoalaModule> &iQoalaModule):
-        mlirModule(module), iQoalaModule(std::move(iQoalaModule)), ifaces(module->getContext()) { }
+        mlirModule(module), routineMap(std::make_unique<RoutineMap>(module)), iQoalaModule(std::move(iQoalaModule)),
+        ifaces(module->getContext()) { }
 
     LogicalResult ModuleTranslation::convertOperation(Operation &op) {
         // This is the entry point of the translation of any operation.
@@ -66,9 +70,8 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::ModuleStackFrame::mapValueInScope(const Value &value, iQoalaRegReference *regRef) {
-        const auto result = this->valuesInScope.try_emplace(value, regRef);
-        (void) result;
-        assert(result.second && "Attempting to map a value that is already mapped");
+        const auto &[entry, inserted] = this->valuesInScope.try_emplace(value, regRef);
+        assert(inserted && "Attempting to map a value that is already mapped");
     }
 
     bool ModuleTranslation::ModuleStackFrame::isValueInScope(const Value &value) const {
@@ -229,9 +232,8 @@ namespace qoala::translate {
             iQoalaRegReference *blockArgRegRef = iQoalaRegReference::createRegReference(LOCAL, blockArgReg);
             this->mapValueToRegRef(mlirBlockArg, blockArgRegRef);
         }
-        const auto result = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
-        (void) result;
-        assert(result.second && "Attempting to map a block that is already mapped");
+        const auto &[entry, inserted] = this->qoalaHostBlocksMap.try_emplace(mlirBlock, newBlock);
+        assert(inserted && "Attempting to map a block that is already mapped");
     }
 
     void ModuleTranslation::mapValueToRegRef(const Value &mlirVal, iQoalaRegReference *regRef) {
@@ -280,9 +282,8 @@ namespace qoala::translate {
     }
 
     void ModuleTranslation::mapCmpValue(const Value &mlirVal, Operation *mlirOp) {
-        const auto result = this->cmpMap.try_emplace(mlirVal, mlirOp);
-        (void) result;
-        assert(result.second && "Attempting to map a comparison value that is already mapped");
+        const auto &[entry, inserted] = this->cmpMap.try_emplace(mlirVal, mlirOp);
+        assert(inserted && "Attempting to map a comparison value that is already mapped");
     }
 
     Operation *ModuleTranslation::getMappedCmpOperation(const Value &mlirVal) const {
@@ -338,14 +339,15 @@ namespace qoala::translate {
 
     LogicalResult ModuleTranslation::convertLocalRoutines() {
         for (auto localRoutine : getModuleBody(this->mlirModule->getOperation()).getOps<LocalRoutineOp>()) {
-            if (localRoutine.getName() == helpers::angle::angleConversionFunctionName) {
+            const StringRef routineNameStrRef = localRoutine.getName();
+            if (routineNameStrRef == helpers::angle::angleConversionFuncNameStrRef) {
                 // "__qoala_convert_float_angle" is a "routine" of this type
                 // Since this routine is intended to be provided by the runtime,
                 // we simply don't need to do anything
             } else {
                 // We create the routine and process the arguments.
-                auto *routine = LocalQuantumRoutine::createLocalRoutine(localRoutine.getName());
-                std::string routineName = localRoutine.getName().str();
+                auto *routine = LocalQuantumRoutine::createLocalRoutine(routineNameStrRef);
+                std::string routineName = routineNameStrRef.str();
                 // Dense index among *classical* args only (qubit args do NOT consume @input slots)
                 uint32_t classicalIdx = 0;
 
@@ -428,10 +430,7 @@ namespace qoala::translate {
     }
 
     LogicalResult ModuleTranslation::convertFunctionSignatures() {
-        if (failed(this->convertLocalRoutines()) || failed(this->convertRequestRoutines())) {
-            return failure();
-        }
-        return success();
+        return success(this->convertLocalRoutines().succeeded() && this->convertRequestRoutines().succeeded());
     }
 
     std::unique_ptr<iQoalaModule> translateModuleToiQoala(Operation *originalModule, iQoalaContext &iQoalaContext,

@@ -19,6 +19,7 @@ using namespace qoala::iqoala;
 using namespace qoala::analysis;
 using namespace qoala::dialects::helpers;
 using namespace qoala::dialects::qoalahost;
+using namespace qoala::iqoala::helpers;
 
 static LogicalResult translateBlock(mlir::Block &block, ModuleTranslation *moduleTranslation) {
     for (Operation &op : block.getOperations()) {
@@ -104,13 +105,14 @@ static LogicalResult processCallToRoutine(ModuleTranslation *moduleTranslation, 
                                           std::vector<uint8_t> &qubitsToUnmap) {
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
-    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
     const std::string calleeStr = callee.str();
 
-    Operation *calledFunction = getRoutineWithName(mlirModule, callee);
-    if (!calledFunction) {
+    const std::optional<Operation *> calledOp = moduleTranslation->getRoutineMap().getRoutineWithName(callee);
+    if (!calledOp.has_value()) {
         return failure();
     }
+
+    Operation *calledFunction = calledOp.value();
 
     // BEFORE pushing a new frame on the stack, we have to discover the arguments that are mapped to
     // a qubit in the current stack frame:
@@ -190,7 +192,7 @@ static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslat
 
     iQoalaMCOperand *remoteCSocketVal =
             iQoalaMCOperand::createImmediateOperand(static_cast<uint32_t>(eprsSocketID.value()));
-    const auto *csocketInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+    const auto *csocketInstr = buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op, QoalaHostMCInstr::OP_ASSIGN_CVAL, {}, {LOCAL}, {remoteCSocketVal},
             /*useOpOperands=*/false);
     // As per convention, the first operand is the yielded result of any QoalaHostMCInstr
@@ -201,11 +203,11 @@ static std::optional<iQoalaRegReference *> addSocketRefAssignCVal(ModuleTranslat
 static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const StringRef &remoteName) {
     // Get the RegRef for the given remote name
-    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    const iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
     iQoalaMCOperand *csocketOperand =
             iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
     // Use that constant and the actual value to send to create the send_cmsg instruction.
-    const auto *sendCMSGInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+    const auto *sendCMSGInstr = buildInstruction<QoalaHostMCInstr>(
             moduleTranslation, op, QoalaHostMCInstr::OP_SEND_CMSG, {}, {}, {csocketOperand});
     return sendCMSGInstr ? success() : failure();
 }
@@ -213,18 +215,18 @@ static LogicalResult processSendClassicalValue(ModuleTranslation *moduleTranslat
 static LogicalResult processRecvClassicalValue(ModuleTranslation *moduleTranslation, Operation *op,
                                                const Value &opResult, const StringRef &remoteName) {
     // Get the RegRef for the given remote name
-    iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
+    const iQoalaRegReference *csocketRegRef = moduleTranslation->getRegRefForCSocketName(remoteName);
     iQoalaMCOperand *csocketOperand =
             iQoalaMCOperand::createRegisterOperand(iQoalaRegReference::createRegReference(csocketRegRef));
     // Create the actual recv_cmsg MC instruction
-    const auto *recvInstr = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-            moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG, {opResult}, {LOCAL}, {csocketOperand});
+    const auto *recvInstr = buildInstruction<QoalaHostMCInstr>(moduleTranslation, op, QoalaHostMCInstr::OP_RECV_CMSG,
+                                                               {opResult}, {LOCAL}, {csocketOperand});
     return recvInstr ? success() : failure();
 }
 
 static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, RemoteIDRefOp &op) {
     // Create a constant value that references the csocket from the META section
-    std::optional<iQoalaRegReference *> csocketOperand =
+    const std::optional<iQoalaRegReference *> csocketOperand =
             addSocketRefAssignCVal(moduleTranslation, op.getOperation(), op.getRemote());
     if (!csocketOperand) {
         return failure();
@@ -235,7 +237,7 @@ static LogicalResult processRemoteIDRefOp(ModuleTranslation *moduleTranslation, 
 
 static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTranslation *moduleTranslation) {
     LLVM_DEBUG(llvm::dbgs() << "******** Translating op '" << operation->getName() << "' *********\n");
-    ModuleOp *mlirModule = moduleTranslation->getMLIRModule();
+    const RoutineMap &routineMap = moduleTranslation->getRoutineMap();
     const iQoalaModule *iQoalaModule = moduleTranslation->getQoalaModule();
     iQoalaContext *context = iQoalaModule->getiQoalaContext();
     return llvm::TypeSwitch<Operation *, LogicalResult>(operation)
@@ -264,10 +266,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 }
 
                 // Compute the right opcode
-                if (hasLocalRoutineWithName(mlirModule, callee)) {
+                if (routineMap.hasLocalRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_SUBROUTINE;
                 }
-                if (hasRequestRoutineWithName(mlirModule, callee)) {
+                if (routineMap.hasRequestRoutineWithName(callee)) {
                     opCode = QoalaHostMCInstr::OP_RUN_REQUEST;
                 }
 
@@ -280,7 +282,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 // in the qoalahost section to the physical qubitID
                 const QuantumRoutine *routine = iQoalaModule->getRoutineByName(callee);
 
-                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(mlirModule, callee, routine)) {
+                for (auto &[retIndex, qubitId] : netqasm::getReturnedQubitsMap(routineMap, callee, routine)) {
                     if (qubitId != 0xFF) {
                         Value valueAtCaller = op.getResult(retIndex);
                         // We map the MLIR value with the qubitID in the current stack frame held by
@@ -325,7 +327,7 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                 callMCOperands.push_back(calleeOperand);
 
                 // Create qoalahost MC instruction
-                const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
+                const auto *instruction = buildInstruction<QoalaHostMCInstr>(
                         moduleTranslation, op.getOperation(), opCode, yieldedResults, localRegTypes, callMCOperands,
                         /*useOpOperands=*/false);
                 // After everything, we effectively unmap the free'd qubits from the current stack frame
@@ -340,10 +342,10 @@ static LogicalResult translateQoalaHostOperation(Operation *operation, ModuleTra
                     iQoalaRegReference *retValRef = moduleTranslation->getMappedRegRefForValue(returnedValue);
                     assert(retValRef && "Return op: trying to return a value which is not mapped to a local registry");
                     iQoalaMCOperand *retValueOperand = iQoalaMCOperand::createRegisterOperand(retValRef);
-                    const auto *instruction = qoala::iqoala::helpers::buildInstruction<QoalaHostMCInstr>(
-                            moduleTranslation, op.getOperation(), QoalaHostMCInstr::OP_RETURN_RESULT, {}, {},
-                            {retValueOperand},
-                            /*useOpOperands=*/false);
+                    const auto *instruction = buildInstruction<QoalaHostMCInstr>(moduleTranslation, op.getOperation(),
+                                                                                 QoalaHostMCInstr::OP_RETURN_RESULT, {},
+                                                                                 {}, {retValueOperand},
+                                                                                 /*useOpOperands=*/false);
                     if (!instruction) {
                         op.emitOpError("Return op: could not create return_result instruction");
                         return failure();

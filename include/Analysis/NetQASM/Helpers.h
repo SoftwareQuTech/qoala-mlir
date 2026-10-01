@@ -2,20 +2,21 @@
 #define HELPERS_H
 
 #include "Target/iQoala/iQoala.h"
-#include "mlir/IR/BuiltinOps.h"
+
+#include "Dialect/Helpers/DialectHelpers.h"
 
 namespace qoala::analysis::netqasm {
     /**
-     * Looks for a function with the given name inside the given MLIR module, and creates a map between
-     * the indexes of the returned MLIR values thar represent a qubit and the physical qubit IDs allocated
-     * for those values.
-     * @param mlirModule The MLIR module to search for the function.
+     * Looks for a function with the given name and creates a map between the indexes of the returned MLIR
+     * values that represent a qubit and the physical qubit IDs allocated for those values.
+     * @param routineMap The map that relates the names of the quantum routines with their MLIR operations.
      * @param functionName The function name to analyze.
      * @param quantumRoutine The iQoala object that represents the quantum routine to analyze.
      * @return A map that relates the returned indexes of qubits with the physical qubit IDs allocated
      *         within the body of the MLIR quantum routine.
      */
-    std::map<uint32_t, uint8_t> getReturnedQubitsMap(mlir::ModuleOp *mlirModule, const mlir::StringRef &functionName,
+    std::map<uint32_t, uint8_t> getReturnedQubitsMap(const dialects::helpers::RoutineMap &routineMap,
+                                                     const mlir::StringRef &functionName,
                                                      const iqoala::QuantumRoutine *quantumRoutine);
 
     /**

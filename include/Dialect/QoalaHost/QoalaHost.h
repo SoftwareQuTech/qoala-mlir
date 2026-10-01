@@ -24,6 +24,8 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 
+#include "Dialect/Helpers/DialectHelpers.h"
+
 // Remotes will be lowered to declarations in the qremote dialect
 #include "Dialect/QRemote/QRemote.h"
 

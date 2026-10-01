@@ -89,6 +89,14 @@ namespace qoala::helpers {
     }
 
     /**
+     * Gets the next operation within the same block *in lexicographical order* of the given operation.
+     * @param op the operation to analyze.
+     * @return A pointer to the next operation *on the same block* as the given operation.
+     *         If the given operation is the last one, this function returns std::nullopt.
+     */
+    std::optional<mlir::Operation *> getNextOperation(mlir::Operation *op);
+
+    /**
      * Formats a given format string using the given values. IMPORTANT: The format string style
      * depends on the C++ standard used: For C++17 or older, use the C-style format string (e.g.
      * "my_format_%d". For C++20 or newer, use "python"-style format string (e.g. "my_format_{}").

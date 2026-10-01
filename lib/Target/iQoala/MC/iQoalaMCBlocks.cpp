@@ -107,36 +107,38 @@ namespace qoala::iqoala {
 
     void Block::print(raw_ostream &os) const {
         std::vector<std::string> predNames;
-        for (auto pred : this->predecessors) {
+        predNames.reserve(this->predecessors.size());
+        for (const Block *pred : this->predecessors) {
             predNames.push_back(pred->name);
         }
 
         std::vector<std::string> depNames;
-        for (auto dep : this->dependencies) {
+        depNames.reserve(this->dependencies.size());
+        for (const Block *dep : this->dependencies) {
             depNames.push_back(dep->name);
         }
 
-        Block *prevCommBlk = this->prevComm;
-        std::string prevComm;
+        const Block *prevCommBlk = this->prevComm;
+        std::string prevCommBlkName;
         if (prevCommBlk != nullptr) {
-            prevComm = prevCommBlk->name;
+            prevCommBlkName = prevCommBlk->name;
         }
 
-        Block *prevEntBlk = this->prevEnt;
-        std::string prevEnt;
+        const Block *prevEntBlk = this->prevEnt;
+        std::string prevEntBlkName;
         if (prevEntBlk != nullptr) {
-            prevEnt = prevEntBlk->name;
+            prevEntBlkName = prevEntBlk->name;
         }
 
-        std::unordered_map<std::string, int> deadlines;
-        for (const auto &pair : this->deadlines) {
-            deadlines[pair.first->name] = pair.second;
+        std::unordered_map<std::string, int> deadlinesNames;
+        for (const auto [block, deadline] : this->deadlines) {
+            deadlinesNames[block->name] = deadline;
         }
 
         os << "^" << this->name << " { type = " << this->type << "; predecessors = ["
            << helpers::formatVector(predNames) << "]; dependencies = [" << helpers::formatVector(depNames)
-           << "]; prev_comm = " << prevComm << "; prev_ent = " << prevEnt << "; deadlines = ["
-           << helpers::formatUnorderedMap(deadlines) << "] }:\n";
+           << "]; prev_comm = " << prevCommBlkName << "; prev_ent = " << prevEntBlkName << "; deadlines = ["
+           << helpers::formatUnorderedMap(deadlinesNames) << "] }:\n";
         for (const assembly::QoalaHostMCInstr *instruction : this->instructions) {
             os << tabStr << *instruction << "\n";
         }
